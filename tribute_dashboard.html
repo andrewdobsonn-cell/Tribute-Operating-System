@@ -4,613 +4,443 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Tribute Executive Dashboard</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#ffffff;--bg2:#f7f7f5;--bg3:#ededea;
+  --text:#1a1a18;--text2:#6b6b67;--text3:#9e9c96;
+  --border:rgba(0,0,0,0.09);--border2:rgba(0,0,0,0.16);
+  --green:#1D9E75;--amber:#EF9F27;--red:#E24B4A;--blue:#185FA5;
+  --green-bg:#E1F5EE;--amber-bg:#FAEEDA;--red-bg:#FCEBEB;
+  --green-text:#0F6E56;--amber-text:#633806;--red-text:#791F1F;
+  --r:8px;--rl:12px;
+}
+@media(prefers-color-scheme:dark){
+  :root{
+    --bg:#1a1a18;--bg2:#232320;--bg3:#2c2c29;
+    --text:#e8e6e0;--text2:#9e9c96;--text3:#6b6b67;
+    --border:rgba(255,255,255,0.09);--border2:rgba(255,255,255,0.16);
+    --green-bg:#04342C;--amber-bg:#412402;--red-bg:#501313;
+    --green-text:#9FE1CB;--amber-text:#FAC775;--red-text:#F09595;
+  }
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);padding:20px;max-width:1200px;margin:0 auto;font-size:14px;line-height:1.5}
+.hdr{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:14px;border-bottom:0.5px solid var(--border);margin-bottom:16px;flex-wrap:wrap;gap:10px}
+.logo{font-size:10px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--text3)}
+.title{font-size:22px;font-weight:500;margin-top:3px}
+.subtitle{font-size:11px;color:var(--text3);margin-top:2px}
+.hdr-r{text-align:right;font-size:11px;color:var(--text3)}
+.live-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--green);margin-right:4px;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
 
-  :root {
-    --bg: #ffffff;
-    --bg2: #f7f7f5;
-    --bg3: #f0ede8;
-    --text: #1a1a18;
-    --text2: #6b6b67;
-    --text3: #9e9c96;
-    --border: rgba(0,0,0,0.1);
-    --border2: rgba(0,0,0,0.18);
-    --green: #1D9E75;
-    --amber: #EF9F27;
-    --red: #E24B4A;
-    --blue: #185FA5;
-    --blue-light: #E6F1FB;
-    --green-light: #E1F5EE;
-    --amber-light: #FAEEDA;
-    --red-light: #FCEBEB;
-    --radius: 8px;
-    --radius-lg: 12px;
-  }
+.period-bar{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap;align-items:center}
+.period-btn{font-size:11px;font-weight:500;padding:5px 12px;border-radius:20px;cursor:pointer;border:0.5px solid var(--border2);color:var(--text2);background:var(--bg2);transition:all .15s;user-select:none}
+.period-btn.on{background:var(--text);color:var(--bg);border-color:var(--text)}
+.period-label{font-size:11px;color:var(--text3);margin-right:4px}
+.custom-range{display:flex;gap:6px;align-items:center;margin-left:8px}
+.custom-range input{font-size:11px;padding:4px 8px;border:0.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text)}
+.custom-range button{font-size:11px;padding:4px 10px;border-radius:var(--r);border:0.5px solid var(--border2);background:var(--bg2);color:var(--text);cursor:pointer}
 
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #1a1a18;
-      --bg2: #232320;
-      --bg3: #2c2c29;
-      --text: #e8e6e0;
-      --text2: #9e9c96;
-      --text3: #6b6b67;
-      --border: rgba(255,255,255,0.1);
-      --border2: rgba(255,255,255,0.18);
-      --blue-light: #042C53;
-      --green-light: #04342C;
-      --amber-light: #412402;
-      --red-light: #501313;
-    }
-  }
+.tabs{display:flex;border-bottom:0.5px solid var(--border);margin-bottom:16px;overflow-x:auto}
+.tab{font-size:12px;font-weight:500;color:var(--text2);padding:8px 16px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-0.5px;white-space:nowrap;transition:color .15s;user-select:none}
+.tab.on{color:var(--text);border-bottom-color:var(--text)}
+.tab:hover:not(.on){color:var(--text)}
 
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    padding: 24px;
-    max-width: 1200px;
-    margin: 0 auto;
-    font-size: 14px;
-    line-height: 1.5;
-  }
+.stabs{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap}
+.stab{font-size:11px;font-weight:500;padding:4px 12px;border-radius:20px;cursor:pointer;border:0.5px solid var(--border2);color:var(--text2);background:var(--bg2);transition:all .15s;user-select:none}
+.stab.on{background:var(--text);color:var(--bg);border-color:var(--text)}
 
-  .header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    padding-bottom: 16px;
-    border-bottom: 0.5px solid var(--border);
-    margin-bottom: 20px;
-  }
-  .logo { font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text2); }
-  .title { font-size: 20px; font-weight: 500; color: var(--text); margin-top: 4px; }
-  .subtitle { font-size: 12px; color: var(--text3); margin-top: 2px; }
-  .header-right { text-align: right; }
-  .refresh-note { font-size: 11px; color: var(--text3); }
+.loading{text-align:center;padding:60px 20px;color:var(--text3);font-size:13px}
+.spinner{width:24px;height:24px;border:2px solid var(--border2);border-top-color:var(--text);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 12px}
+@keyframes spin{to{transform:rotate(360deg)}}
 
-  .tabs {
-    display: flex;
-    gap: 0;
-    border-bottom: 0.5px solid var(--border);
-    margin-bottom: 20px;
-    overflow-x: auto;
-  }
-  .tab {
-    font-size: 12px;
-    font-weight: 500;
-    color: var(--text2);
-    padding: 8px 16px;
-    cursor: pointer;
-    border-bottom: 2px solid transparent;
-    margin-bottom: -0.5px;
-    white-space: nowrap;
-    transition: color 0.15s;
-    user-select: none;
-  }
-  .tab.active { color: var(--text); border-bottom-color: var(--text); }
-  .tab:hover:not(.active) { color: var(--text); }
+.error-banner{background:var(--red-bg);color:var(--red-text);border-radius:var(--r);padding:12px 16px;margin-bottom:16px;font-size:13px}
 
-  .subtabs { display: flex; gap: 6px; margin-bottom: 20px; flex-wrap: wrap; }
-  .subtab {
-    font-size: 11px;
-    font-weight: 500;
-    padding: 4px 12px;
-    border-radius: 20px;
-    cursor: pointer;
-    border: 0.5px solid var(--border2);
-    color: var(--text2);
-    background: var(--bg2);
-    transition: all 0.15s;
-    user-select: none;
-  }
-  .subtab.active { background: var(--text); color: var(--bg); border-color: var(--text); }
+.banner{border-radius:var(--r);padding:12px 16px;margin-bottom:16px;border-left:3px solid var(--green);background:var(--bg2);font-size:13px;line-height:1.6}
+.banner.w{border-left-color:var(--amber)}.banner.r{border-left-color:var(--red)}
+.blabel{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--green);margin-bottom:4px}
+.blabel.w{color:var(--amber)}.blabel.r{color:var(--red)}
 
-  .insight-banner {
-    border-radius: var(--radius);
-    padding: 12px 16px;
-    margin-bottom: 20px;
-    border-left: 3px solid var(--green);
-    background: var(--bg2);
-    font-size: 13px;
-    color: var(--text);
-    line-height: 1.6;
-  }
-  .insight-banner.amber { border-left-color: var(--amber); }
-  .insight-banner.red { border-left-color: var(--red); }
-  .insight-label {
-    font-size: 10px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: var(--green);
-    margin-bottom: 4px;
-  }
-  .insight-label.amber { color: var(--amber); }
-  .insight-label.red { color: var(--red); }
+.kgrid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-bottom:16px}
+@media(max-width:800px){.kgrid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:500px){.kgrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.kpi{background:var(--bg2);border-radius:var(--r);padding:14px 16px}
+.klabel{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text2);margin-bottom:6px}
+.kval{font-size:24px;font-weight:500;line-height:1;margin-bottom:4px;font-variant-numeric:tabular-nums}
+.ksub{font-size:11px;color:var(--text3)}
+.kval.g{color:var(--green)}.kval.a{color:var(--amber)}.kval.r{color:var(--red)}
 
-  .kpi-grid {
-    display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-    gap: 10px;
-    margin-bottom: 20px;
-  }
-  @media (max-width: 800px) { .kpi-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-  @media (max-width: 500px) { .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.tcol{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+@media(max-width:700px){.tcol{grid-template-columns:1fr}}
+.card{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--rl);padding:16px 18px}
+.ctitle{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text2);margin-bottom:12px}
+.cnote{font-size:11px;color:var(--text3);line-height:1.5;margin-top:10px;border-top:0.5px solid var(--border);padding-top:8px;font-style:italic}
+.fcard{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--rl);padding:16px 18px;margin-bottom:12px}
 
-  .kpi {
-    background: var(--bg2);
-    border-radius: var(--radius);
-    padding: 14px 16px;
-  }
-  .kpi-label {
-    font-size: 10px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--text2);
-    margin-bottom: 6px;
-  }
-  .kpi-val {
-    font-size: 24px;
-    font-weight: 500;
-    color: var(--text);
-    line-height: 1;
-    margin-bottom: 4px;
-    font-variant-numeric: tabular-nums;
-  }
-  .kpi-sub { font-size: 11px; color: var(--text3); }
-  .kpi-val.green { color: var(--green); }
-  .kpi-val.amber { color: var(--amber); }
-  .kpi-val.red { color: var(--red); }
+.mtbl{width:100%;border-collapse:collapse;font-size:12px}
+.mtbl th{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--text2);padding:7px 10px;border-bottom:0.5px solid var(--border2);text-align:right}
+.mtbl th:first-child{text-align:left}
+.mtbl td{padding:9px 10px;border-bottom:0.5px solid var(--border);text-align:right;font-variant-numeric:tabular-nums}
+.mtbl td:first-child{text-align:left;font-weight:500}
+.mtbl tbody tr:last-child td{border-bottom:none}
+.mtbl tbody tr:hover td{background:var(--bg2);cursor:pointer}
 
-  .two-col {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 14px;
-    margin-bottom: 14px;
-  }
-  @media (max-width: 700px) { .two-col { grid-template-columns: 1fr; } }
+.etbl{width:100%;border-collapse:collapse;font-size:13px}
+.etbl td{padding:8px 0;border-bottom:0.5px solid var(--border)}
+.etbl td:last-child{text-align:right;font-variant-numeric:tabular-nums}
+.etbl tr:last-child td{border-bottom:none}
 
-  .card {
-    background: var(--bg);
-    border: 0.5px solid var(--border);
-    border-radius: var(--radius-lg);
-    padding: 16px 18px;
-  }
-  .card-title {
-    font-size: 10px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--text2);
-    margin-bottom: 14px;
-  }
-  .card-insight {
-    font-size: 11px;
-    color: var(--text3);
-    line-height: 1.5;
-    margin-top: 12px;
-    border-top: 0.5px solid var(--border);
-    padding-top: 10px;
-    font-style: italic;
-  }
+.badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;display:inline-block}
+.bg{background:var(--green-bg);color:var(--green-text)}
+.ba{background:var(--amber-bg);color:var(--amber-text)}
+.br{background:var(--red-bg);color:var(--red-text)}
 
-  .market-table { width: 100%; border-collapse: collapse; font-size: 12px; }
-  .market-table th {
-    font-size: 10px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.07em;
-    color: var(--text2);
-    padding: 7px 10px;
-    border-bottom: 0.5px solid var(--border2);
-    text-align: right;
-  }
-  .market-table th:first-child { text-align: left; }
-  .market-table td {
-    padding: 9px 10px;
-    border-bottom: 0.5px solid var(--border);
-    color: var(--text);
-    text-align: right;
-    font-variant-numeric: tabular-nums;
-  }
-  .market-table td:first-child { text-align: left; font-weight: 500; }
-  .market-table tbody tr:last-child td { border-bottom: none; }
-  .market-table tbody tr:hover td { background: var(--bg2); cursor: pointer; }
+.mbarrow{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:0.5px solid var(--border)}
+.mbarrow:last-child{border-bottom:none}
+.mbarlabel{font-size:11px;color:var(--text);width:140px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mbartrack{flex:1;height:12px;background:var(--bg3);border-radius:2px;overflow:hidden}
+.mbarfill{height:100%;border-radius:2px;transition:width .5s ease}
+.mbarval{font-size:11px;font-weight:500;width:46px;text-align:right;flex-shrink:0}
 
-  .badge {
-    font-size: 10px;
-    font-weight: 600;
-    padding: 2px 8px;
-    border-radius: 10px;
-    display: inline-block;
-  }
-  .badge-green { background: var(--green-light); color: #0F6E56; }
-  .badge-amber { background: var(--amber-light); color: #633806; }
-  .badge-red { background: var(--red-light); color: #791F1F; }
+.barrow{display:flex;align-items:center;gap:8px;padding:4px 0}
+.barlabel{font-size:11px;color:var(--text2);width:120px;flex-shrink:0;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bartrack{flex:1;height:18px;background:var(--bg3);border-radius:3px;overflow:hidden;position:relative}
+.barfill{height:100%;border-radius:3px;display:flex;align-items:center;justify-content:flex-end;padding-right:6px;transition:width .5s ease}
+.barval{font-size:10px;font-weight:700;color:#fff;white-space:nowrap}
 
-  .bar-wrap {
-    width: 60px; height: 4px;
-    background: var(--bg3);
-    border-radius: 2px;
-    overflow: hidden;
-    display: inline-block;
-    vertical-align: middle;
-    margin-left: 6px;
-  }
-  .bar-fill { height: 4px; border-radius: 2px; }
+.trend-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:8px}
+.trend-day{background:var(--bg2);border-radius:4px;padding:6px 4px;text-align:center}
+.trend-day-label{font-size:9px;color:var(--text3);margin-bottom:3px}
+.trend-day-val{font-size:11px;font-weight:500;color:var(--text)}
+.trend-day-sub{font-size:9px;color:var(--text3)}
 
-  .full-card {
-    background: var(--bg);
-    border: 0.5px solid var(--border);
-    border-radius: var(--radius-lg);
-    padding: 16px 18px;
-    margin-bottom: 14px;
-  }
-
-  .econ-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  .econ-table td { padding: 8px 0; border-bottom: 0.5px solid var(--border); color: var(--text); }
-  .econ-table td:last-child { text-align: right; font-variant-numeric: tabular-nums; }
-  .econ-table tr:last-child td { border-bottom: none; }
-
-  .footer {
-    margin-top: 40px;
-    padding-top: 16px;
-    border-top: 0.5px solid var(--border);
-    font-size: 11px;
-    color: var(--text3);
-    display: flex;
-    justify-content: space-between;
-  }
-
-  button.action-btn {
-    font-size: 12px;
-    font-weight: 500;
-    padding: 8px 18px;
-    border-radius: var(--radius);
-    border: 0.5px solid var(--border2);
-    background: var(--bg2);
-    color: var(--text);
-    cursor: pointer;
-    transition: background 0.15s;
-    margin-top: 12px;
-  }
-  button.action-btn:hover { background: var(--bg3); }
+.ftr{margin-top:32px;padding-top:14px;border-top:0.5px solid var(--border);font-size:11px;color:var(--text3);display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
 </style>
 </head>
 <body>
 
-<div class="header">
+<div class="hdr">
   <div>
     <div class="logo">Tribute Home Care</div>
     <div class="title">Executive Dashboard</div>
-    <div class="subtitle">Last updated: <span id="updateDate"></span> · Data: Viv Technologies + QuickBooks</div>
+    <div class="subtitle"><span class="live-dot"></span>Live data &middot; Viv Technologies API &middot; Updated <span id="ud">now</span></div>
   </div>
-  <div class="header-right">
-    <div class="refresh-note">Feb 2025 – Mar 2026</div>
-    <div class="refresh-note" style="margin-top:4px">13 weeks of operations · 8 markets</div>
+  <div class="hdr-r" id="dateRangeDisplay"></div>
+</div>
+
+<div class="period-bar">
+  <span class="period-label">Period:</span>
+  <div class="period-btn on" onclick="setPeriod('week',this)">This week</div>
+  <div class="period-btn" onclick="setPeriod('last_week',this)">Last week</div>
+  <div class="period-btn" onclick="setPeriod('month',this)">This month</div>
+  <div class="period-btn" onclick="setPeriod('last_month',this)">Last month</div>
+  <div class="period-btn" onclick="setPeriod('ytd',this)">Year to date</div>
+  <div class="period-btn" onclick="setPeriod('last_year',this)">Last year</div>
+  <div class="period-btn" onclick="setPeriod('13weeks',this)">13 weeks</div>
+  <div class="custom-range">
+    <input type="date" id="customStart">
+    <span style="font-size:11px;color:var(--text3)">to</span>
+    <input type="date" id="customEnd">
+    <button onclick="setCustomRange()">Go</button>
   </div>
 </div>
 
 <div class="tabs">
-  <div class="tab active" onclick="setTab('company',this)">Company</div>
-  <div class="tab" onclick="setTab('massachusetts',this)">Massachusetts</div>
-  <div class="tab" onclick="setTab('illinois',this)">Illinois</div>
-  <div class="tab" onclick="setTab('maryland',this)">Maryland</div>
+  <div class="tab on" onclick="setTab('co',this)">Company</div>
+  <div class="tab" onclick="setTab('ma',this)">Massachusetts</div>
+  <div class="tab" onclick="setTab('il',this)">Illinois</div>
+  <div class="tab" onclick="setTab('md',this)">Maryland</div>
 </div>
 
-<div class="subtabs" id="subtabRow" style="display:none"></div>
-<div id="content"></div>
+<div class="stabs" id="sr" style="display:none"></div>
+<div id="ct"></div>
 
-<div class="footer">
-  <span>Tribute Home Care LLC · Executive Operating System</span>
-  <span>Data refreshed weekly via Viv API + QuickBooks export</span>
+<div class="ftr">
+  <span>Tribute Home Care LLC &middot; Executive Operating System</span>
+  <span id="genAt"></span>
 </div>
 
 <script>
-document.getElementById('updateDate').textContent = new Date().toLocaleDateString('en-US', {month:'long',day:'numeric',year:'numeric'});
+const API = 'https://tribute-api-prod-bkc4hfcwf3f2f6bf.centralus-01.azurewebsites.net/api/vivProxy';
 
-const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-const gridC = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
-const tickC = isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.35)';
+const f  = n => n>=1e6?'$'+(n/1e6).toFixed(2)+'M':n>=1e3?'$'+(n/1e3).toFixed(0)+'K':'$'+Math.round(n);
+const fp = n => (n*100).toFixed(1)+'%';
+const fn = n => n>=1e3?(n/1e3).toFixed(1)+'K':Math.round(n).toString();
+const mc = m => m>=0.32?'g':m>=0.28?'a':'r';
+const mb = m => m>=0.32?'bg':m>=0.28?'ba':'br';
+const mcolor = m => m>=0.32?'var(--green)':m>=0.28?'var(--amber)':'var(--red)';
+const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
-const charts = {};
-function destroyChart(id) { if (charts[id]) { charts[id].destroy(); delete charts[id]; } }
+let curPeriod = 'week';
+let curTab = 'co';
+let curMkt = null;
+let apiData = null;
+let cgData = null;
 
-const fmt = n => n >= 1e6 ? '$' + (n/1e6).toFixed(2) + 'M' : n >= 1e3 ? '$' + (n/1e3).toFixed(0) + 'K' : '$' + Math.round(n);
-const fmtN = n => n >= 1e3 ? (n/1e3).toFixed(1) + 'K' : Math.round(n);
-const pct = n => (n*100).toFixed(1) + '%';
-const mc = m => m >= 0.32 ? 'green' : m >= 0.28 ? 'amber' : 'red';
-const mb = m => m >= 0.32 ? 'badge-green' : m >= 0.28 ? 'badge-amber' : 'badge-red';
+const STATES = {ma:['Boston','MetroWest Boston','North of Boston','South of Boston'],il:['Chicago'],md:['Baltimore','Annapolis','Bethesda']};
+const STNAME = {ma:'Massachusetts',il:'Illinois',md:'Maryland'};
 
-const MARKETS = {
-  'Boston':           {state:'Massachusetts',visits:9124, revenue:13180003,cogs:8606366, activeClients:62},
-  'MetroWest Boston': {state:'Massachusetts',visits:2868, revenue:7551562, cogs:4743259, activeClients:26},
-  'North of Boston':  {state:'Massachusetts',visits:643,  revenue:1121978, cogs:809679,  activeClients:6},
-  'South of Boston':  {state:'Massachusetts',visits:1374, revenue:2426869, cogs:1755141, activeClients:15},
-  'Chicago':          {state:'Illinois',     visits:1892, revenue:1565752, cogs:1032215, activeClients:19},
-  'Baltimore':        {state:'Maryland',     visits:8943, revenue:9951525, cogs:6729256, activeClients:102},
-  'Annapolis':        {state:'Maryland',     visits:497,  revenue:389061,  cogs:255289,  activeClients:5},
-  'Bethesda':         {state:'Maryland',     visits:110,  revenue:214681,  cogs:183714,  activeClients:2},
-};
-
-const ACTIVE_CG = {Massachusetts:203, Illinois:57, Maryland:203};
-const TOTAL_CG  = {Massachusetts:735, Illinois:148, Maryland:538};
-const ACTIVE_CG_ALL = 463;
-
-Object.entries(MARKETS).forEach(([,m]) => { m.gp = m.revenue - m.cogs; m.margin = m.gp / m.revenue; });
-
-const STATES = {
-  Massachusetts: ['Boston','MetroWest Boston','North of Boston','South of Boston'],
-  Illinois:      ['Chicago'],
-  Maryland:      ['Baltimore','Annapolis','Bethesda'],
-};
-
-function rollup(mList) {
-  const rev  = mList.reduce((s,m) => s + MARKETS[m].revenue, 0);
-  const cogs = mList.reduce((s,m) => s + MARKETS[m].cogs, 0);
-  const vis  = mList.reduce((s,m) => s + MARKETS[m].visits, 0);
-  const cl   = mList.reduce((s,m) => s + MARKETS[m].activeClients, 0);
-  return {revenue:rev, cogs, gp:rev-cogs, margin:(rev-cogs)/rev, visits:vis, activeClients:cl};
+function showLoading() {
+  document.getElementById('ct').innerHTML = `<div class="loading"><div class="spinner"></div>Loading live data from Viv...</div>`;
 }
 
-function kpiGrid(d, cgLabel) {
-  return `<div class="kpi-grid">
-    <div class="kpi"><div class="kpi-label">Revenue (13mo)</div><div class="kpi-val">${fmt(d.revenue)}</div><div class="kpi-sub">Feb 2025 – Mar 2026</div></div>
-    <div class="kpi"><div class="kpi-label">Gross Profit</div><div class="kpi-val">${fmt(d.gp)}</div><div class="kpi-sub">${pct(d.margin)} blended margin</div></div>
-    <div class="kpi"><div class="kpi-label">Gross Margin</div><div class="kpi-val ${mc(d.margin)}">${pct(d.margin)}</div><div class="kpi-sub">${d.margin>=0.28?'Above 28% floor':'Below 28% floor'}</div></div>
-    <div class="kpi"><div class="kpi-label">Active Clients</div><div class="kpi-val">${d.activeClients}</div><div class="kpi-sub">Currently serving</div></div>
-    <div class="kpi"><div class="kpi-label">Active Caregivers</div><div class="kpi-val">${d.activeCaregivers||'—'}</div><div class="kpi-sub">${cgLabel||'Hired, not terminated'}</div></div>
+function showError(msg) {
+  document.getElementById('ct').innerHTML = `<div class="error-banner">Error loading data: ${msg}. Check Azure Function logs.</div>`;
+}
+
+async function fetchData(period, startDate, endDate) {
+  showLoading();
+  try {
+    let url = `${API}?endpoint=visits&period=${period}`;
+    if (startDate) url += `&startDate=${startDate}&endDate=${endDate}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    apiData = await res.json();
+    document.getElementById('ud').textContent = new Date().toLocaleTimeString();
+    document.getElementById('genAt').textContent = `Generated: ${new Date(apiData.generatedAt).toLocaleString()}`;
+    document.getElementById('dateRangeDisplay').innerHTML = `${apiData.dateRange.start} &ndash; ${apiData.dateRange.end}<br><span style="color:var(--text3)">${apiData.totals.totalVisits.toLocaleString()} visits &middot; ${apiData.markets.length} markets</span>`;
+    render();
+  } catch(e) {
+    showError(e.message);
+  }
+}
+
+function getMarkets(tabKey) {
+  if (tabKey === 'co') return apiData.markets;
+  return apiData.markets.filter(m => STATES[tabKey]?.includes(m.market));
+}
+
+function rollup(markets) {
+  return markets.reduce((acc, m) => {
+    acc.revenue += m.revenue;
+    acc.cost += m.cost;
+    acc.grossProfit += m.grossProfit;
+    acc.billedHours += m.billedHours;
+    acc.totalVisits += m.totalVisits;
+    acc.filledVisits += m.filledVisits;
+    acc.openVisits += m.openVisits;
+    return acc;
+  }, {revenue:0,cost:0,grossProfit:0,billedHours:0,totalVisits:0,filledVisits:0,openVisits:0});
+}
+
+function kgrid(d, cgLabel) {
+  const margin = d.revenue > 0 ? d.grossProfit/d.revenue : 0;
+  const fillRate = (d.filledVisits+d.openVisits)>0 ? d.filledVisits/(d.filledVisits+d.openVisits) : 1;
+  return `<div class="kgrid">
+    <div class="kpi"><div class="klabel">Revenue</div><div class="kval">${f(d.revenue)}</div><div class="ksub">${apiData.dateRange.start} &ndash; ${apiData.dateRange.end}</div></div>
+    <div class="kpi"><div class="klabel">Gross Profit</div><div class="kval">${f(d.grossProfit)}</div><div class="ksub">${fp(margin)} margin</div></div>
+    <div class="kpi"><div class="klabel">Gross Margin</div><div class="kval ${mc(margin)}">${fp(margin)}</div><div class="ksub">${margin>=0.28?'Above 28% floor':'Below 28% floor'}</div></div>
+    <div class="kpi"><div class="klabel">Fill Rate</div><div class="kval ${fillRate>=0.9?'g':fillRate>=0.85?'a':'r'}">${fp(fillRate)}</div><div class="ksub">${d.filledVisits.toLocaleString()} of ${(d.filledVisits+d.openVisits).toLocaleString()} shifts</div></div>
+    <div class="kpi"><div class="klabel">Billed Hours</div><div class="kval">${fn(d.billedHours)}</div><div class="ksub">${cgLabel||''}</div></div>
   </div>`;
 }
 
-function marketRows(mList, showState) {
-  const maxRev = Math.max(...mList.map(n => MARKETS[n].revenue));
-  return mList.map(name => {
-    const m = MARKETS[name];
-    const bw = Math.round(m.revenue/maxRev*100);
+function marginBars(markets) {
+  return markets.map(m => {
+    const w = Math.round((m.grossMarginPct*100)/60*100);
+    return `<div class="mbarrow">
+      <div class="mbarlabel">${m.market}</div>
+      <div class="mbartrack"><div class="mbarfill" style="width:${Math.min(w,100)}%;background:${mcolor(m.grossMarginPct)}"></div></div>
+      <div class="mbarval" style="color:${mcolor(m.grossMarginPct)}">${fp(m.grossMarginPct)}</div>
+    </div>`;
+  }).join('');
+}
+
+function revBars(markets) {
+  const maxR = Math.max(...markets.map(m=>m.revenue));
+  return markets.map(m => {
+    const w = Math.round(m.revenue/maxR*100);
+    return `<div class="barrow">
+      <div class="barlabel">${m.market.replace(' Boston','').replace('MetroWest','MWB')}</div>
+      <div class="bartrack"><div class="barfill" style="width:${w}%;background:var(--blue)"><span class="barval">${f(m.revenue)}</span></div></div>
+    </div>`;
+  }).join('');
+}
+
+function mktRows(markets, showState) {
+  const maxR = Math.max(...markets.map(m=>m.revenue));
+  return markets.map(m => {
+    const bw = Math.round(m.revenue/maxR*60);
+    const fr = (m.filledVisits+m.openVisits)>0?m.filledVisits/(m.filledVisits+m.openVisits):1;
     return `<tr>
-      <td>${name}${showState?`<div style="font-size:10px;color:var(--text3)">${m.state}</div>`:''}</td>
-      <td>${fmt(m.revenue)}<span class="bar-wrap"><span class="bar-fill" style="width:${bw}%;background:#185FA5"></span></span></td>
-      <td>${fmt(m.gp)}</td>
-      <td><span class="badge ${mb(m.margin)}">${pct(m.margin)}</span></td>
-      <td>${fmtN(m.visits)}</td>
-      <td>${m.activeClients}</td>
+      <td>${m.market}${showState?`<div style="font-size:10px;color:var(--text3)">${m.state}</div>`:''}</td>
+      <td>${f(m.revenue)}<span style="display:inline-block;width:${bw}px;height:3px;background:var(--blue);border-radius:2px;vertical-align:middle;margin-left:4px"></span></td>
+      <td>${f(m.grossProfit)}</td>
+      <td><span class="badge ${mb(m.grossMarginPct)}">${fp(m.grossMarginPct)}</span></td>
+      <td><span class="badge ${fr>=0.9?'bg':fr>=0.85?'ba':'br'}">${fp(fr)}</span></td>
+      <td>${fn(m.billedHours)}</td>
+      <td>${m.totalVisits.toLocaleString()}</td>
     </tr>`;
   }).join('');
 }
 
-function drawMarginChart(id, labels, margins) {
-  destroyChart(id);
-  requestAnimationFrame(() => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    charts[id] = new Chart(el, {
-      type:'bar',
-      data:{
-        labels,
-        datasets:[{
-          data: margins.map(m => parseFloat((m*100).toFixed(1))),
-          backgroundColor: margins.map(m => m>=0.32?'#1D9E75':m>=0.28?'#EF9F27':'#E24B4A'),
-          borderRadius:3, borderSkipped:false
-        }]
-      },
-      options:{
-        responsive:true, maintainAspectRatio:false,
-        plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>c.raw.toFixed(1)+'% gross margin'}}},
-        scales:{
-          x:{grid:{color:gridC},ticks:{color:tickC,font:{size:10}}},
-          y:{grid:{color:gridC},ticks:{color:tickC,font:{size:10},callback:v=>v+'%'},min:0,max:45}
-        }
-      }
-    });
-  });
-}
-
-function drawRevChart(id, labels, revs) {
-  destroyChart(id);
-  requestAnimationFrame(() => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    charts[id] = new Chart(el, {
-      type:'bar',
-      data:{
-        labels,
-        datasets:[{
-          data: revs.map(r=>Math.round(r/1000)),
-          backgroundColor: isDark?'#0C447C':'#185FA5',
-          borderRadius:3, borderSkipped:false
-        }]
-      },
-      options:{
-        responsive:true, maintainAspectRatio:false, indexAxis:'y',
-        plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>'$'+c.raw+'K revenue'}}},
-        scales:{
-          x:{grid:{color:gridC},ticks:{color:tickC,font:{size:10},callback:v=>'$'+v+'K'}},
-          y:{grid:{display:false},ticks:{color:tickC,font:{size:10}}}
-        }
-      }
-    });
-  });
-}
-
-let curTab = 'company';
-let curMarket = null;
-
-function setTab(tab, el) {
-  curTab = tab; curMarket = null;
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-  el.classList.add('active');
-  render();
-}
-
-function setMarket(m) {
-  curMarket = m;
-  document.querySelectorAll('.subtab').forEach(t=>t.classList.toggle('active', t.dataset.m===m));
-  renderMarket(m);
+function trendGrid(market) {
+  if (!market.dailyBreakdown) return '';
+  const entries = Object.entries(market.dailyBreakdown).sort((a,b)=>a[0].localeCompare(b[0]));
+  const cells = entries.map(([date, d]) => {
+    const dt = new Date(date+'T12:00:00');
+    const dayName = days[dt.getDay()];
+    const fr = d.visits>0?d.filled/d.visits:1;
+    return `<div class="trend-day">
+      <div class="trend-day-label">${dayName} ${dt.getDate()}</div>
+      <div class="trend-day-val">${f(d.revenue)}</div>
+      <div class="trend-day-sub" style="color:${fr>=0.95?'var(--green)':fr>=0.85?'var(--amber)':'var(--red)'}">${fp(fr)} fill</div>
+    </div>`;
+  }).join('');
+  return `<div class="trend-grid">${cells}</div>`;
 }
 
 function render() {
-  if (curTab==='company') renderCompany();
-  else renderState(curTab.charAt(0).toUpperCase()+curTab.slice(1));
+  if (!apiData) return;
+  if (curTab === 'co') renderCo();
+  else renderSt(curTab);
 }
 
-function renderCompany() {
-  document.getElementById('subtabRow').style.display='none';
-  const all = Object.keys(MARKETS);
-  const d = rollup(all);
-  d.activeCaregivers = ACTIVE_CG_ALL;
-  const btm = MARKETS['Boston'].margin; const bam = MARKETS['Baltimore'].margin;
-  const betm = MARKETS['Bethesda'].margin; const sobm = MARKETS['South of Boston'].margin; const nobm = MARKETS['North of Boston'].margin;
-  const totalRev = d.revenue;
-  const topTwo = MARKETS['Boston'].revenue + MARKETS['Baltimore'].revenue;
-
-  document.getElementById('content').innerHTML = `
-    <div class="insight-banner amber">
-      <div class="insight-label amber">Company insight — Mar 28, 2026</div>
-      Fill rate is 100% across all markets — operations are not the constraint. Growth is limited by client acquisition and caregiver pipeline.
-      Bethesda (${pct(betm)}), South of Boston (${pct(sobm)}), and North of Boston (${pct(nobm)}) are below the 28% gross margin floor and require urgent pricing review.
-      Boston + Baltimore represent ${pct(topTwo/totalRev)} of total revenue — concentration risk is elevated.
-    </div>
-    ${kpiGrid(d, ACTIVE_CG_ALL+' of 1,499 total')}
-    <div class="two-col">
-      <div class="card">
-        <div class="card-title">Gross margin by market</div>
-        <div style="position:relative;height:220px"><canvas id="cMargin"></canvas></div>
-        <div class="card-insight">Green ≥ 32% · Amber 28–32% · Red &lt; 28% floor. Three markets currently below floor.</div>
-      </div>
-      <div class="card">
-        <div class="card-title">Revenue by market</div>
-        <div style="position:relative;height:220px"><canvas id="cRev"></canvas></div>
-        <div class="card-insight">Boston and Baltimore dominate. Annapolis, Bethesda, and North of Boston are subscale — watch unit economics carefully.</div>
-      </div>
-    </div>
-    <div class="full-card">
-      <div class="card-title">All markets — side by side comparison</div>
-      <table class="market-table">
-        <thead><tr><th>Market</th><th>Revenue</th><th>Gross Profit</th><th>Margin</th><th>Visits (13wk)</th><th>Active Clients</th></tr></thead>
-        <tbody>${marketRows(all,true)}</tbody>
-      </table>
-      <div class="card-insight">Data source: QuickBooks P&L by Class (revenue + COGS) · Viv Technologies (visits + clients) · Feb 2025 – Mar 2026</div>
-    </div>
-  `;
-  drawMarginChart('cMargin', all.map(m=>m.replace(' Boston','').replace('MetroWest','MWB')), all.map(m=>MARKETS[m].margin));
-  drawRevChart('cRev', all, all.map(m=>MARKETS[m].revenue));
-}
-
-function renderState(state) {
-  const markets = STATES[state];
-  const sr = document.getElementById('subtabRow');
-  sr.style.display = 'flex';
-  sr.innerHTML = markets.map(m=>`<div class="subtab${curMarket===m?' active':''}" data-m="${m}" onclick="setMarket('${m}')">${m}</div>`).join('');
-  if (curMarket && markets.includes(curMarket)) { renderMarket(curMarket); return; }
-
+function renderCo() {
+  document.getElementById('sr').style.display = 'none';
+  const markets = apiData.markets;
   const d = rollup(markets);
-  d.activeCaregivers = ACTIVE_CG[state];
-  const cgLabel = `${ACTIVE_CG[state]} active of ${TOTAL_CG[state]} total`;
+  const margin = d.revenue>0?d.grossProfit/d.revenue:0;
+  const fillRate = (d.filledVisits+d.openVisits)>0?d.filledVisits/(d.filledVisits+d.openVisits):1;
+  const topTwo = markets.filter(m=>['Boston','Baltimore'].includes(m.market)).reduce((s,m)=>s+m.revenue,0);
+  const belowFloor = markets.filter(m=>m.grossMarginPct<0.28).map(m=>m.market);
 
-  const stateInsight = {
-    Massachusetts: `4 markets · ${fmt(d.revenue)} revenue · ${pct(d.margin)} blended margin. MetroWest Boston leads at ${pct(MARKETS['MetroWest Boston'].margin)} margin. South and North of Boston are below the 28% floor.`,
-    Illinois: `Chicago is the sole Illinois market. ${fmt(d.revenue)} revenue at ${pct(d.margin)} gross margin — healthy, above floor. ${d.activeClients} active clients with room to grow.`,
-    Maryland: `3 markets · ${fmt(d.revenue)} revenue. Baltimore dominates at ${fmt(MARKETS['Baltimore'].revenue)}. Bethesda at ${pct(MARKETS['Bethesda'].margin)} margin is the highest-risk market in the portfolio.`
-  };
-  const isWarn = ['Massachusetts','Maryland'].includes(state);
+  let insightText = `Fill rate is ${fp(fillRate)} &mdash; `;
+  if (fillRate >= 0.95) insightText += `operations are strong across all markets.`;
+  else if (fillRate >= 0.85) insightText += `operations are healthy but watch markets with open shifts.`;
+  else insightText += `fill rate is below target. Investigate open shifts by market.`;
+  if (belowFloor.length > 0) insightText += ` ${belowFloor.join(', ')} ${belowFloor.length===1?'is':'are'} below the 28% gross margin floor and require pricing review.`;
+  insightText += ` Boston + Baltimore represent ${fp(topTwo/d.revenue)} of revenue.`;
 
-  document.getElementById('content').innerHTML = `
-    <div class="insight-banner ${isWarn?'amber':''}">
-      <div class="insight-label ${isWarn?'amber':''}">${state} overview</div>
-      ${stateInsight[state]}
+  document.getElementById('ct').innerHTML = `
+    <div class="banner w"><div class="blabel w">Company &mdash; ${curPeriod.replace('_',' ')}</div>${insightText}</div>
+    ${kgrid(d, `${fn(d.billedHours)} hrs billed`)}
+    <div class="tcol">
+      <div class="card"><div class="ctitle">Gross margin by market</div>${marginBars(markets)}<div class="cnote">Green &ge;32% &middot; Amber 28&ndash;32% &middot; Red &lt;28% floor</div></div>
+      <div class="card"><div class="ctitle">Revenue by market</div>${revBars(markets)}</div>
     </div>
-    ${kpiGrid(d, cgLabel)}
-    <div class="two-col">
-      <div class="card">
-        <div class="card-title">Gross margin — ${state} markets</div>
-        <div style="position:relative;height:${Math.max(160,markets.length*60)}px"><canvas id="sMargin"></canvas></div>
-      </div>
-      <div class="card">
-        <div class="card-title">Revenue — ${state} markets</div>
-        <div style="position:relative;height:${Math.max(160,markets.length*60)}px"><canvas id="sRev"></canvas></div>
-      </div>
-    </div>
-    <div class="full-card">
-      <div class="card-title">${state} — market detail</div>
-      <table class="market-table">
-        <thead><tr><th>Market</th><th>Revenue</th><th>Gross Profit</th><th>Margin</th><th>Visits (13wk)</th><th>Active Clients</th></tr></thead>
-        <tbody>${marketRows(markets,false)}</tbody>
+    <div class="fcard">
+      <div class="ctitle">All markets &mdash; live comparison</div>
+      <table class="mtbl">
+        <thead><tr><th>Market</th><th>Revenue</th><th>Gross Profit</th><th>Margin</th><th>Fill Rate</th><th>Billed Hrs</th><th>Visits</th></tr></thead>
+        <tbody>${mktRows(markets,true)}</tbody>
       </table>
-      <div class="card-insight">Select a market tab above to drill into individual market detail.</div>
-    </div>
-  `;
-  drawMarginChart('sMargin', markets, markets.map(m=>MARKETS[m].margin));
-  drawRevChart('sRev', markets, markets.map(m=>MARKETS[m].revenue));
+      <div class="cnote">Live data from Viv Technologies API &middot; ${apiData.dateRange.start} &ndash; ${apiData.dateRange.end}</div>
+    </div>`;
 }
 
-function renderMarket(market) {
-  const m = MARKETS[market];
-  const col = mc(m.margin);
-  const bannerClass = col==='red'?'red':col==='amber'?'amber':'';
-  const labelClass = bannerClass;
-  const insight = col==='red'
-    ? `Gross margin of ${pct(m.margin)} is below the 28% floor. Immediate pricing review required. Every point of margin recovered is worth ${fmt(m.revenue*0.01)} in annual gross profit.`
-    : col==='amber'
-    ? `Gross margin of ${pct(m.margin)} is in the watch zone — above floor but below the 32% target. Monitor closely and review bill rates at next pricing cycle.`
-    : `Gross margin of ${pct(m.margin)} is healthy and above the 32% target. ${m.activeClients} active clients across ${fmtN(m.visits)} visits in the last 13 weeks. Strong performer.`;
+function renderSt(t) {
+  const markets = getMarkets(t);
+  const sr = document.getElementById('sr');
+  sr.style.display = 'flex';
+  sr.innerHTML = markets.map(m=>`<div class="stab${curMkt===m.market?' on':''}" onclick="setMkt('${m.market}')">${m.market}</div>`).join('');
+  if (curMkt && markets.find(m=>m.market===curMkt)) { renderMkt(curMkt); return; }
+  const d = rollup(markets);
+  const margin = d.revenue>0?d.grossProfit/d.revenue:0;
 
-  document.getElementById('content').innerHTML = `
-    <div class="insight-banner ${bannerClass}">
-      <div class="insight-label ${labelClass}">${market} · ${m.state}</div>
+  document.getElementById('ct').innerHTML = `
+    <div class="banner"><div class="blabel">${STNAME[t]}</div>${f(d.revenue)} revenue &middot; ${fp(margin)} blended margin &middot; ${fn(d.billedHours)} billed hours</div>
+    ${kgrid(d)}
+    <div class="tcol">
+      <div class="card"><div class="ctitle">Gross margin &mdash; ${STNAME[t]}</div>${marginBars(markets)}</div>
+      <div class="card"><div class="ctitle">Revenue &mdash; ${STNAME[t]}</div>${revBars(markets)}</div>
+    </div>
+    <div class="fcard">
+      <div class="ctitle">${STNAME[t]} &mdash; market detail</div>
+      <table class="mtbl">
+        <thead><tr><th>Market</th><th>Revenue</th><th>Gross Profit</th><th>Margin</th><th>Fill Rate</th><th>Billed Hrs</th><th>Visits</th></tr></thead>
+        <tbody>${mktRows(markets,false)}</tbody>
+      </table>
+    </div>`;
+}
+
+function renderMkt(name) {
+  const m = apiData.markets.find(x=>x.market===name);
+  if (!m) return;
+  const col = mc(m.grossMarginPct);
+  const colv = mcolor(m.grossMarginPct);
+  const fr = (m.filledVisits+m.openVisits)>0?m.filledVisits/(m.filledVisits+m.openVisits):1;
+  const insight = col==='r'
+    ?`Gross margin of ${fp(m.grossMarginPct)} is below the 28% floor. Every 1pp recovered is worth ${f(m.revenue*0.01)} in gross profit for this period.`
+    :col==='a'
+    ?`Gross margin of ${fp(m.grossMarginPct)} is in the watch zone. Above floor but below 32% target.`
+    :`Gross margin of ${fp(m.grossMarginPct)} is healthy. Fill rate is ${fp(fr)} with ${m.billedHours.toFixed(0)} billed hours.`;
+
+  document.getElementById('ct').innerHTML = `
+    <div class="banner ${col==='r'?'r':col==='a'?'w':''}">
+      <div class="blabel ${col==='r'?'r':col==='a'?'w':''}">${name} &middot; ${m.state}</div>
       ${insight}
     </div>
-    <div class="kpi-grid">
-      <div class="kpi"><div class="kpi-label">Revenue (13mo)</div><div class="kpi-val">${fmt(m.revenue)}</div><div class="kpi-sub">Feb 2025 – Mar 2026</div></div>
-      <div class="kpi"><div class="kpi-label">Gross Profit</div><div class="kpi-val">${fmt(m.gp)}</div><div class="kpi-sub">After direct costs</div></div>
-      <div class="kpi"><div class="kpi-label">Gross Margin</div><div class="kpi-val ${col}">${pct(m.margin)}</div><div class="kpi-sub">${m.margin>=0.28?'Above floor':'Below 28% floor'}</div></div>
-      <div class="kpi"><div class="kpi-label">Active Clients</div><div class="kpi-val">${m.activeClients}</div><div class="kpi-sub">Currently serving</div></div>
-      <div class="kpi"><div class="kpi-label">Visits (13 wks)</div><div class="kpi-val">${fmtN(m.visits)}</div><div class="kpi-sub">Filled shifts</div></div>
+    <div class="kgrid">
+      <div class="kpi"><div class="klabel">Revenue</div><div class="kval">${f(m.revenue)}</div><div class="ksub">${apiData.dateRange.start} &ndash; ${apiData.dateRange.end}</div></div>
+      <div class="kpi"><div class="klabel">Gross Profit</div><div class="kval">${f(m.grossProfit)}</div><div class="ksub">After direct costs</div></div>
+      <div class="kpi"><div class="klabel">Gross Margin</div><div class="kval ${col}">${fp(m.grossMarginPct)}</div><div class="ksub">${m.grossMarginPct>=0.28?'Above floor':'Below 28% floor'}</div></div>
+      <div class="kpi"><div class="klabel">Fill Rate</div><div class="kval ${fr>=0.9?'g':fr>=0.85?'a':'r'}">${fp(fr)}</div><div class="ksub">${m.filledVisits} filled &middot; ${m.openVisits} open</div></div>
+      <div class="kpi"><div class="klabel">Billed Hours</div><div class="kval">${fn(m.billedHours)}</div><div class="ksub">${m.totalVisits} total visits</div></div>
     </div>
-    <div class="two-col">
+    <div class="tcol">
       <div class="card">
-        <div class="card-title">Economics</div>
-        <table class="econ-table">
-          <tr><td>Revenue (13 months)</td><td>${fmt(m.revenue)}</td></tr>
-          <tr><td>Cost of services</td><td>${fmt(m.cogs)}</td></tr>
-          <tr><td style="font-weight:500">Gross profit</td><td style="color:var(--green);font-weight:500">${fmt(m.gp)}</td></tr>
-          <tr><td style="font-weight:500">Gross margin %</td><td class="${col}" style="font-weight:500;color:var(--${col})">${pct(m.margin)}</td></tr>
-          <tr><td>Revenue per visit</td><td>${fmt(m.revenue/m.visits)}</td></tr>
-          <tr><td>GP per visit</td><td>${fmt(m.gp/m.visits)}</td></tr>
+        <div class="ctitle">Economics</div>
+        <table class="etbl">
+          <tr><td>Revenue</td><td>${f(m.revenue)}</td></tr>
+          <tr><td>Cost of services</td><td>${f(m.cost)}</td></tr>
+          <tr><td style="font-weight:500">Gross profit</td><td style="color:var(--green);font-weight:500">${f(m.grossProfit)}</td></tr>
+          <tr><td style="font-weight:500">Gross margin</td><td style="color:${colv};font-weight:500">${fp(m.grossMarginPct)}</td></tr>
+          <tr><td>Avg bill rate</td><td>${f(m.avgBillRate)}/hr</td></tr>
+          <tr><td>Avg pay rate</td><td>${f(m.avgPayRate)}/hr</td></tr>
+          <tr><td>Spread per hour</td><td style="color:var(--green)">${f(m.avgBillRate-m.avgPayRate)}/hr</td></tr>
         </table>
       </div>
       <div class="card">
-        <div class="card-title">Operations</div>
-        <table class="econ-table">
-          <tr><td>Active clients</td><td>${m.activeClients}</td></tr>
-          <tr><td>Visits last 13 weeks</td><td>${fmtN(m.visits)}</td></tr>
-          <tr><td>Avg visits per client per week</td><td>${(m.visits/m.activeClients/13).toFixed(1)}</td></tr>
-          <tr><td>Revenue per active client</td><td>${fmt(m.revenue/m.activeClients)}</td></tr>
-          <tr><td>Gross profit per client</td><td>${fmt(m.gp/m.activeClients)}</td></tr>
-          <tr><td>Fill rate (last 13 weeks)</td><td style="color:var(--green);font-weight:500">100%</td></tr>
-        </table>
-        <div class="card-insight">Fill rate is 100% — demand is fully met. Growth is constrained by client acquisition, not operations.</div>
+        <div class="ctitle">Daily breakdown</div>
+        ${trendGrid(m)}
+        <div class="cnote">Revenue and fill rate by day for this period.</div>
       </div>
     </div>
-    ${col==='red'?`
-    <div class="full-card" style="border-left:3px solid var(--red);border-radius:0 var(--radius-lg) var(--radius-lg) 0">
-      <div class="card-title" style="color:var(--red)">Margin recovery analysis</div>
-      <table class="econ-table">
-        <tr><td>Current gross margin</td><td style="color:var(--red)">${pct(m.margin)}</td></tr>
-        <tr><td>Floor target (28%)</td><td>28.0%</td></tr>
-        <tr><td>Gap to floor</td><td style="color:var(--red)">${(0.28-m.margin>=0?(0.28-m.margin)*100:0).toFixed(1)}pp</td></tr>
-        <tr><td>Revenue needed at 28% to match current GP</td><td>${fmt(m.gp/0.28)}</td></tr>
-        <tr><td>GP value of each 1pp margin improvement</td><td style="color:var(--green)">${fmt(m.revenue*0.01)}</td></tr>
+    ${col==='r'?`
+    <div class="fcard" style="border-left:3px solid var(--red);border-radius:0 var(--rl) var(--rl) 0">
+      <div class="ctitle" style="color:var(--red)">Margin recovery analysis</div>
+      <table class="etbl">
+        <tr><td>Current margin</td><td style="color:var(--red)">${fp(m.grossMarginPct)}</td></tr>
+        <tr><td>Floor target</td><td>28.0%</td></tr>
+        <tr><td>Gap to floor</td><td style="color:var(--red)">${((0.28-m.grossMarginPct)*100).toFixed(1)}pp</td></tr>
+        <tr><td>Value of each 1pp improvement</td><td style="color:var(--green);font-weight:500">${f(m.revenue*0.01)}</td></tr>
       </table>
-    </div>`:''}
-  `;
+    </div>`:''}`;
 }
 
-renderCompany();
+function setPeriod(p, el) {
+  curPeriod = p;
+  document.querySelectorAll('.period-btn').forEach(x=>x.classList.remove('on'));
+  el.classList.add('on');
+  curMkt = null;
+  fetchData(p);
+}
+
+function setCustomRange() {
+  const s = document.getElementById('customStart').value;
+  const e = document.getElementById('customEnd').value;
+  if (!s || !e) return alert('Please select both start and end dates.');
+  curPeriod = 'custom';
+  document.querySelectorAll('.period-btn').forEach(x=>x.classList.remove('on'));
+  curMkt = null;
+  fetchData('custom', s, e);
+}
+
+function setTab(t, el) {
+  curTab = t; curMkt = null;
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
+  el.classList.add('on');
+  if (apiData) render();
+}
+
+function setMkt(m) {
+  curMkt = m;
+  document.querySelectorAll('.stab').forEach(x=>x.classList.toggle('on',x.textContent===m));
+  renderMkt(m);
+}
+
+fetchData('week');
 </script>
 </body>
 </html>
