@@ -233,7 +233,7 @@ function renderOverview(d) {
         <div class="ctitle">This month vs last month</div>
         <table class="stbl">
           <thead><tr><th>State</th><th>Hired</th><th>Terminated</th><th>Net</th></tr></thead>
-          <tbody>${d.byState.map(s=>{const net=s.newHiresThisMonth-s.terminationsThisMonth;return`<tr><td>${s.state}</td><td style="color:var(--green)">${fn(s.newHiresThisMonth)}</td><td style="color:var(--red)">${fn(s.terminationsThisMonth)}</td><td style="color:${net>0?'var(--green)':net<0?'var(--red)':'var(--text2)'};font-weight:500">${net>0?'+':''}${net}</td></tr>`;}).join('')}</tbody>
+          <tbody>${d.byState.map(s=>{const net=s.newHiresThisMonth-s.terminationsThisMonth;const nc=net>0?'var(--green)':net<0?'var(--red)':'var(--text2)';return'<tr><td>'+s.state+'</td><td style="color:var(--green)">'+fn(s.newHiresThisMonth)+'</td><td style="color:var(--red)">'+fn(s.terminationsThisMonth)+'</td><td style="color:'+nc+';font-weight:500">'+(net>0?'+':'')+net+'</td></tr>';}).join('')}</tbody>
           <tfoot><tr><td>Total</td><td style="color:var(--green)">${fn(t.newHiresThisMonth)}</td><td style="color:var(--red)">${fn(t.terminationsThisMonth)}</td><td style="color:${t.netChangeThisMonth>0?'var(--green)':t.netChangeThisMonth<0?'var(--red)':'var(--text2)'}">${t.netChangeThisMonth>0?'+':''}${t.netChangeThisMonth}</td></tr></tfoot>
         </table>
         <div class="cnote">Last month: ${fn(t.newHiresLastMonth)} hired, ${fn(t.terminationsLastMonth)} terminated, net ${t.newHiresLastMonth-t.terminationsLastMonth>0?'+':''}${t.newHiresLastMonth-t.terminationsLastMonth}.</div>
@@ -274,7 +274,7 @@ function renderChurn(d) {
         <tbody>${d.byState.map(s=>{
           const ct=s.active>0?s.terminationsThisMonth/(s.active+s.terminationsThisMonth):0;
           const cl=s.active>0?s.terminationsLastMonth/(s.active+s.terminationsLastMonth):0;
-          return`<tr><td>${s.state}</td><td>${fn(s.active)}</td><td style="color:var(--red)">${fn(s.terminationsThisMonth)}</td><td><span class="badge ${ct<=0.05?'bg':ct<=0.08?'ba':'br'}">${fp(ct)}</span></td><td style="color:var(--text2)">${fn(s.terminationsLastMonth)}</td><td><span class="badge ${cl<=0.05?'bg':cl<=0.08?'ba':'br'}">${fp(cl)}</span></td><td style="color:${ct<cl?'var(--green)':ct>cl?'var(--red)':'var(--text2)'}">${ct<cl?'▼ Better':ct>cl?'▲ Worse':'— Same'}</td></tr>`;
+          const bc1=ct<=0.05?'bg':ct<=0.08?'ba':'br';const bc2=cl<=0.05?'bg':cl<=0.08?'ba':'br';const tc=ct<cl?'var(--green)':ct>cl?'var(--red)':'var(--text2)';const tt2=ct<cl?'▼ Better':ct>cl?'▲ Worse':'— Same';return'<tr><td>'+s.state+'</td><td>'+fn(s.active)+'</td><td style="color:var(--red)">'+fn(s.terminationsThisMonth)+'</td><td><span class="badge '+bc1+'">'+fp(ct)+'</span></td><td style="color:var(--text2)">'+fn(s.terminationsLastMonth)+'</td><td><span class="badge '+bc2+'">'+fp(cl)+'</span></td><td style="color:'+tc+'">'+tt2+'</td></tr>';
         }).join('')}</tbody>
       </table>
       <div class="cnote">Green ≤5%/month &middot; Amber 5–8% &middot; Red &gt;8%</div>
@@ -301,7 +301,7 @@ function renderHiring(d) {
         <div class="ctitle">Hires by state</div>
         <table class="stbl">
           <thead><tr><th>State</th><th>This Month</th><th>Last Month</th><th>Change</th></tr></thead>
-          <tbody>${d.byState.map(s=>{const diff=s.newHiresThisMonth-s.newHiresLastMonth;return`<tr><td>${s.state}</td><td style="color:var(--green);font-weight:500">${fn(s.newHiresThisMonth)}</td><td style="color:var(--text2)">${fn(s.newHiresLastMonth)}</td><td style="color:${diff>0?'var(--green)':diff<0?'var(--red)':'var(--text2)'}">${diff>0?'+':''}${diff}</td></tr>`;}).join('')}</tbody>
+          <tbody>${d.byState.map(s=>{const diff=s.newHiresThisMonth-s.newHiresLastMonth;const dc1=diff>0?'var(--green)':diff<0?'var(--red)':'var(--text2)';return'<tr><td>'+s.state+'</td><td style="color:var(--green);font-weight:500">'+fn(s.newHiresThisMonth)+'</td><td style="color:var(--text2)">'+fn(s.newHiresLastMonth)+'</td><td style="color:'+dc1+'">'+(diff>0?'+':'')+diff+'</td></tr>';}).join('')}</tbody>
           <tfoot><tr><td>Total</td><td style="color:var(--green)">${fn(t.newHiresThisMonth)}</td><td style="color:var(--text2)">${fn(t.newHiresLastMonth)}</td><td style="color:${t.newHiresThisMonth>=t.newHiresLastMonth?'var(--green)':'var(--red)'}">${t.newHiresThisMonth-t.newHiresLastMonth>0?'+':''}${t.newHiresThisMonth-t.newHiresLastMonth}</td></tr></tfoot>
         </table>
       </div>
@@ -309,7 +309,7 @@ function renderHiring(d) {
         <div class="ctitle">Terminations by state</div>
         <table class="stbl">
           <thead><tr><th>State</th><th>This Month</th><th>Last Month</th><th>Change</th></tr></thead>
-          <tbody>${d.byState.map(s=>{const diff=s.terminationsThisMonth-s.terminationsLastMonth;return`<tr><td>${s.state}</td><td style="color:var(--red);font-weight:500">${fn(s.terminationsThisMonth)}</td><td style="color:var(--text2)">${fn(s.terminationsLastMonth)}</td><td style="color:${diff<0?'var(--green)':diff>0?'var(--red)':'var(--text2)'}">${diff>0?'+':''}${diff}</td></tr>`;}).join('')}</tbody>
+          <tbody>${d.byState.map(s=>{const diff=s.terminationsThisMonth-s.terminationsLastMonth;const dc2=diff<0?'var(--green)':diff>0?'var(--red)':'var(--text2)';return'<tr><td>'+s.state+'</td><td style="color:var(--red);font-weight:500">'+fn(s.terminationsThisMonth)+'</td><td style="color:var(--text2)">'+fn(s.terminationsLastMonth)+'</td><td style="color:'+dc2+'">'+(diff>0?'+':'')+diff+'</td></tr>';}).join('')}</tbody>
           <tfoot><tr><td>Total</td><td style="color:var(--red)">${fn(t.terminationsThisMonth)}</td><td style="color:var(--text2)">${fn(t.terminationsLastMonth)}</td><td style="color:${t.terminationsThisMonth<=t.terminationsLastMonth?'var(--green)':'var(--red)'}">${t.terminationsThisMonth-t.terminationsLastMonth>0?'+':''}${t.terminationsThisMonth-t.terminationsLastMonth}</td></tr></tfoot>
         </table>
       </div>
@@ -356,7 +356,7 @@ function renderTenure(d) {
         <div class="ctitle">Retention by state</div>
         <table class="stbl">
           <thead><tr><th>State</th><th>Active</th><th>Terminated</th><th>Retention</th></tr></thead>
-          <tbody>${d.byState.map(s=>{const ret=s.total>0?s.active/s.total:0;return`<tr><td>${s.state}</td><td style="color:var(--green)">${fn(s.active)}</td><td style="color:var(--red)">${fn(s.terminated)}</td><td><span class="badge ${ret>=0.35?'bg':ret>=0.2?'ba':'br'}">${fp(ret)}</span></td></tr>`;}).join('')}</tbody>
+          <tbody>${d.byState.map(s=>{const ret=s.total>0?s.active/s.total:0;const rb=ret>=0.35?'bg':ret>=0.2?'ba':'br';return'<tr><td>'+s.state+'</td><td style="color:var(--green)">'+fn(s.active)+'</td><td style="color:var(--red)">'+fn(s.terminated)+'</td><td><span class="badge '+rb+'">'+fp(ret)+'</span></td></tr>';}).join('')}</tbody>
           <tfoot><tr><td>Total</td><td style="color:var(--green)">${fn(t.active)}</td><td style="color:var(--red)">${fn(t.terminated)}</td><td><span class="badge ${retRate>=0.35?'bg':retRate>=0.2?'ba':'br'}">${fp(retRate)}</span></td></tr></tfoot>
         </table>
       </div>
