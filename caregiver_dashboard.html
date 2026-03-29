@@ -6,361 +6,286 @@
 <title>Tribute — Caregiver Engine</title>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --bg:#ffffff;--bg2:#f7f7f5;--bg3:#ededea;
-  --text:#1a1a18;--text2:#6b6b67;--text3:#9e9c96;
-  --border:rgba(0,0,0,0.09);--border2:rgba(0,0,0,0.16);
-  --green:#1D9E75;--amber:#EF9F27;--red:#E24B4A;--blue:#185FA5;
-  --green-bg:#E1F5EE;--amber-bg:#FAEEDA;--red-bg:#FCEBEB;--blue-bg:#E6F1FB;
-  --green-text:#0F6E56;--amber-text:#633806;--red-text:#791F1F;--blue-text:#0C447C;
-  --r:8px;--rl:12px;
-}
-@media(prefers-color-scheme:dark){
-  :root{--bg:#1a1a18;--bg2:#232320;--bg3:#2c2c29;--text:#e8e6e0;--text2:#9e9c96;--text3:#6b6b67;--border:rgba(255,255,255,0.09);--border2:rgba(255,255,255,0.16);--green-bg:#04342C;--amber-bg:#412402;--red-bg:#501313;--blue-bg:#042C53;--green-text:#9FE1CB;--amber-text:#FAC775;--red-text:#F09595;--blue-text:#85B7EB;}
-}
+:root{--bg:#fff;--bg2:#f7f7f5;--bg3:#ededea;--text:#1a1a18;--text2:#6b6b67;--text3:#9e9c96;--border:rgba(0,0,0,0.09);--border2:rgba(0,0,0,0.16);--green:#1D9E75;--amber:#EF9F27;--red:#E24B4A;--blue:#185FA5;--green-bg:#E1F5EE;--amber-bg:#FAEEDA;--red-bg:#FCEBEB;--green-text:#0F6E56;--amber-text:#633806;--red-text:#791F1F;--r:8px;--rl:12px}
+@media(prefers-color-scheme:dark){:root{--bg:#1a1a18;--bg2:#232320;--bg3:#2c2c29;--text:#e8e6e0;--text2:#9e9c96;--text3:#6b6b67;--border:rgba(255,255,255,0.09);--border2:rgba(255,255,255,0.16);--green-bg:#04342C;--amber-bg:#412402;--red-bg:#501313;--green-text:#9FE1CB;--amber-text:#FAC775;--red-text:#F09595}}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);padding:20px;max-width:1100px;margin:0 auto;font-size:14px;line-height:1.5}
-.hdr{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:14px;border-bottom:0.5px solid var(--border);margin-bottom:16px;flex-wrap:wrap;gap:10px}
-.logo{font-size:10px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--text3)}
+.hdr{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:14px;border-bottom:.5px solid var(--border);margin-bottom:16px;flex-wrap:wrap;gap:10px}
+.logo{font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--text3)}
 .title{font-size:22px;font-weight:500;margin-top:3px}
-.subtitle{font-size:11px;color:var(--text3);margin-top:2px}
-.live-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--green);margin-right:4px;animation:pulse 2s infinite}
-.loading-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--amber);margin-right:4px;animation:pulse 2s infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
-.spinner-sm{display:inline-block;width:12px;height:12px;border:2px solid var(--border2);border-top-color:var(--text2);border-radius:50%;animation:spin 0.8s linear infinite;margin-right:6px;vertical-align:middle}
-@keyframes spin{to{transform:rotate(360deg)}}
+.sub{font-size:11px;color:var(--text3);margin-top:2px}
+.dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--green);margin-right:4px;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 .loading{text-align:center;padding:60px 20px;color:var(--text3);font-size:13px}
-.spinner{width:24px;height:24px;border:2px solid var(--border2);border-top-color:var(--text);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 12px}
-.error{background:var(--red-bg);color:var(--red-text);border-radius:var(--r);padding:12px 16px;margin-bottom:16px;font-size:13px}
-.detail-loading{background:var(--bg2);border-radius:var(--r);padding:12px 16px;margin-bottom:16px;font-size:12px;color:var(--text2);display:flex;align-items:center}
-
-.tabs{display:flex;border-bottom:0.5px solid var(--border);margin-bottom:16px;overflow-x:auto}
-.tab{font-size:12px;font-weight:500;color:var(--text2);padding:8px 16px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-0.5px;white-space:nowrap;transition:color .15s;user-select:none}
+.spin{width:24px;height:24px;border:2px solid var(--border2);border-top-color:var(--text);border-radius:50%;animation:sp .8s linear infinite;margin:0 auto 12px}
+@keyframes sp{to{transform:rotate(360deg)}}
+.err{background:var(--red-bg);color:var(--red-text);border-radius:var(--r);padding:12px 16px;margin-bottom:16px;font-size:13px}
+.tabs{display:flex;border-bottom:.5px solid var(--border);margin-bottom:16px;overflow-x:auto}
+.tab{font-size:12px;font-weight:500;color:var(--text2);padding:8px 16px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-.5px;white-space:nowrap;user-select:none}
 .tab.on{color:var(--text);border-bottom-color:var(--text)}
-.tab:hover:not(.on){color:var(--text)}
-
 .banner{border-radius:var(--r);padding:12px 16px;margin-bottom:16px;border-left:3px solid var(--green);background:var(--bg2);font-size:13px;line-height:1.6}
 .banner.w{border-left-color:var(--amber)}.banner.r{border-left-color:var(--red)}
-.blabel{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--green);margin-bottom:4px}
-.blabel.w{color:var(--amber)}.blabel.r{color:var(--red)}
-
-.kgrid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-bottom:16px}
-.kgrid4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:16px}
-@media(max-width:800px){.kgrid,.kgrid4{grid-template-columns:repeat(3,minmax(0,1fr))}}
-@media(max-width:500px){.kgrid,.kgrid4{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.bl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--green);margin-bottom:4px}
+.bl.w{color:var(--amber)}.bl.r{color:var(--red)}
+.kg{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-bottom:16px}
+.kg4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:16px}
+@media(max-width:800px){.kg,.kg4{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:500px){.kg,.kg4{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .kpi{background:var(--bg2);border-radius:var(--r);padding:14px 16px}
-.klabel{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text2);margin-bottom:6px}
-.kval{font-size:24px;font-weight:500;line-height:1;margin-bottom:4px;font-variant-numeric:tabular-nums}
-.ksub{font-size:11px;color:var(--text3)}
-.kval.g{color:var(--green)}.kval.a{color:var(--amber)}.kval.r{color:var(--red)}.kval.b{color:var(--blue)}
-.kval.loading{color:var(--text3);font-size:18px}
-.ktrend{font-size:11px;margin-top:4px}
-.ktrend.up{color:var(--green)}.ktrend.dn{color:var(--red)}.ktrend.flat{color:var(--text3)}
-
-.tcol{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
-@media(max-width:700px){.tcol{grid-template-columns:1fr}}
-.card{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--rl);padding:16px 18px}
-.ctitle{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text2);margin-bottom:12px}
-.cnote{font-size:11px;color:var(--text3);line-height:1.5;margin-top:10px;border-top:0.5px solid var(--border);padding-top:8px;font-style:italic}
-.fcard{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--rl);padding:16px 18px;margin-bottom:12px}
-
-.stbl{width:100%;border-collapse:collapse;font-size:12px}
-.stbl th{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--text2);padding:7px 10px;border-bottom:0.5px solid var(--border2);text-align:right}
-.stbl th:first-child{text-align:left}
-.stbl td{padding:9px 10px;border-bottom:0.5px solid var(--border);text-align:right;font-variant-numeric:tabular-nums}
-.stbl td:first-child{text-align:left;font-weight:500}
-.stbl tbody tr:last-child td{border-bottom:none}
-.stbl tfoot td{border-top:0.5px solid var(--border2);font-weight:500;padding:9px 10px;text-align:right}
-.stbl tfoot td:first-child{text-align:left}
-
-.badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;display:inline-block}
-.bg{background:var(--green-bg);color:var(--green-text)}
-.ba{background:var(--amber-bg);color:var(--amber-text)}
-.br{background:var(--red-bg);color:var(--red-text)}
-
-.mbarrow{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:0.5px solid var(--border)}
-.mbarrow:last-child{border-bottom:none}
-.mbarlabel{font-size:12px;color:var(--text);width:130px;flex-shrink:0}
-.mbartrack{flex:1;height:14px;background:var(--bg3);border-radius:2px;overflow:hidden}
-.mbarfill{height:100%;border-radius:2px;transition:width .5s ease}
-.mbarval{font-size:12px;font-weight:500;width:36px;text-align:right;flex-shrink:0}
-.mbarval2{font-size:11px;color:var(--text3);width:80px;text-align:right;flex-shrink:0}
-
-.hire-item{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:var(--bg2);border-radius:var(--r);margin-bottom:6px}
-.hire-name{font-size:12px;font-weight:500}
-.hire-meta{font-size:11px;color:var(--text3)}
-.hire-date{font-size:11px;color:var(--text2);text-align:right}
-
-.ret-bar{height:24px;border-radius:4px;overflow:hidden;display:flex;margin-bottom:8px}
-.ret-active{background:var(--green);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff}
-.ret-term{background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--text3)}
-
-.ftr{margin-top:32px;padding-top:14px;border-top:0.5px solid var(--border);font-size:11px;color:var(--text3);display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.kl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text2);margin-bottom:6px}
+.kv{font-size:24px;font-weight:500;line-height:1;margin-bottom:4px;font-variant-numeric:tabular-nums}
+.ks{font-size:11px;color:var(--text3)}
+.kv.g{color:var(--green)}.kv.a{color:var(--amber)}.kv.r{color:var(--red)}.kv.b{color:var(--blue)}
+.kt{font-size:11px;margin-top:4px}
+.kt.up{color:var(--green)}.kt.dn{color:var(--red)}.kt.fl{color:var(--text3)}
+.tc{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+@media(max-width:700px){.tc{grid-template-columns:1fr}}
+.card{background:var(--bg);border:.5px solid var(--border);border-radius:var(--rl);padding:16px 18px}
+.ct{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text2);margin-bottom:12px}
+.cn{font-size:11px;color:var(--text3);line-height:1.5;margin-top:10px;border-top:.5px solid var(--border);padding-top:8px;font-style:italic}
+.fc{background:var(--bg);border:.5px solid var(--border);border-radius:var(--rl);padding:16px 18px;margin-bottom:12px}
+.tbl{width:100%;border-collapse:collapse;font-size:12px}
+.tbl th{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text2);padding:7px 10px;border-bottom:.5px solid var(--border2);text-align:right}
+.tbl th:first-child{text-align:left}
+.tbl td{padding:9px 10px;border-bottom:.5px solid var(--border);text-align:right;font-variant-numeric:tabular-nums}
+.tbl td:first-child{text-align:left;font-weight:500}
+.tbl tbody tr:last-child td{border-bottom:none}
+.tbl tfoot td{border-top:.5px solid var(--border2);font-weight:500;padding:9px 10px;text-align:right}
+.tbl tfoot td:first-child{text-align:left}
+.bdg{font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;display:inline-block}
+.bg{background:var(--green-bg);color:var(--green-text)}.ba{background:var(--amber-bg);color:var(--amber-text)}.br{background:var(--red-bg);color:var(--red-text)}
+.mbr{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:.5px solid var(--border)}
+.mbr:last-child{border-bottom:none}
+.mbl{font-size:12px;color:var(--text);width:130px;flex-shrink:0}
+.mbt{flex:1;height:14px;background:var(--bg3);border-radius:2px;overflow:hidden}
+.mbf{height:100%;border-radius:2px}
+.mbv{font-size:12px;font-weight:500;width:36px;text-align:right;flex-shrink:0}
+.mbv2{font-size:11px;color:var(--text3);width:80px;text-align:right;flex-shrink:0}
+.hi{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:var(--bg2);border-radius:var(--r);margin-bottom:6px}
+.rb{height:24px;border-radius:4px;overflow:hidden;display:flex;margin-bottom:8px}
+.ra{background:var(--green);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff}
+.rt{background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--text3)}
+.ftr{margin-top:32px;padding-top:14px;border-top:.5px solid var(--border);font-size:11px;color:var(--text3);display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
 </style>
 </head>
 <body>
-
 <div class="hdr">
   <div>
     <div class="logo">Tribute Home Care</div>
     <div class="title">Caregiver Engine</div>
-    <div class="subtitle" id="statusLine"><span class="live-dot"></span>Loading...</div>
+    <div class="sub" id="sl"><span class="dot"></span>Loading...</div>
   </div>
-  <div style="text-align:right;font-size:11px;color:var(--text3)" id="hdrRight"></div>
+  <div style="text-align:right;font-size:11px;color:var(--text3)" id="hr"></div>
 </div>
-
 <div class="tabs">
   <div class="tab on" onclick="setTab('overview',this)">Overview</div>
   <div class="tab" onclick="setTab('churn',this)">Churn & Retention</div>
   <div class="tab" onclick="setTab('hiring',this)">Hiring Activity</div>
   <div class="tab" onclick="setTab('tenure',this)">Tenure & Stability</div>
 </div>
-
-<div id="ct"><div class="loading"><div class="spinner"></div>Loading caregiver overview...</div></div>
-
-<div class="ftr">
-  <span>Tribute Home Care LLC &middot; Caregiver Engine</span>
-  <span id="genAt"></span>
-</div>
-
+<div id="ct"><div class="loading"><div class="spin"></div>Loading caregiver data...</div></div>
+<div class="ftr"><span>Tribute Home Care LLC &middot; Caregiver Engine</span><span id="ga"></span></div>
 <script>
-const API = 'https://tribute-api-prod-bkc4hfcwf3f2f6bf.centralus-01.azurewebsites.net/api/vivProxy';
-const fp = n => (n*100).toFixed(1)+'%';
-const fn = n => Math.round(n).toLocaleString();
-const trend = (c,p) => c>p?'▲':c<p?'▼':'—';
-const trendCls = (c,p,hib=true) => c===p?'flat':(c>p)===hib?'up':'dn';
+var API='https://tribute-api-prod-bkc4hfcwf3f2f6bf.centralus-01.azurewebsites.net/api/vivProxy';
+var data=null,curTab='overview';
 
-let quickData = null;  // Fast: state totals only
-let fullData = null;   // Slow: full caregiver detail
-let detailLoading = false;
-let curTab = 'overview';
+function fp(n){return(n*100).toFixed(1)+'%'}
+function fn(n){return Math.round(n).toLocaleString()}
+function tr(c,p){return c>p?'▲':c<p?'▼':'—'}
+function tc(c,p,h){if(h===undefined)h=true;if(c===p)return 'fl';return(c>p)===h?'up':'dn'}
+function gc(v){return v>0?'var(--green)':v<0?'var(--red)':'var(--text2)'}
+function badgeCls(r){return r>=0.35?'bg':r>=0.2?'ba':'br'}
+function churnBadge(r){return r<=0.05?'bg':r<=0.08?'ba':'br'}
 
-// ── Phase 1: Fast load — state aggregates from visits endpoint ────────────────
-async function fetchQuick() {
-  // Use the fast aggregate caregiver call (old simple version)
-  const res = await fetch(`${API}?endpoint=caregivers&fast=true`);
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const data = await res.json();
-  
-  // Handle both old format (byState array) and new format
-  if (data.totals) {
-    return data; // Already in full format — great
-  }
-  
-  // Old format — array of market objects
-  const byState = [
-    {state:'Massachusetts', total:0, active:0, terminated:0, newHiresThisMonth:0, newHiresLastMonth:0, terminationsThisMonth:0, terminationsLastMonth:0},
-    {state:'Illinois', total:0, active:0, terminated:0, newHiresThisMonth:0, newHiresLastMonth:0, terminationsThisMonth:0, terminationsLastMonth:0},
-    {state:'Maryland', total:0, active:0, terminated:0, newHiresThisMonth:0, newHiresLastMonth:0, terminationsThisMonth:0, terminationsLastMonth:0}
-  ];
-  return { totals: { total:0, active:0, terminated:0, newHiresThisMonth:0, newHiresLastMonth:0, terminationsThisMonth:0, terminationsLastMonth:0, netChangeThisMonth:0, churnRateThisMonth:0, churnRateLastMonth:0, avgTenureDays:null, medianTenureDays:null, retentionRate:0 }, byState, recentHires:[], generatedAt: new Date().toISOString() };
+function td(content,color,bold){
+  var s='';
+  if(color)s+='color:'+color+';';
+  if(bold)s+='font-weight:500;';
+  return s?'<td style="'+s+'">'+content+'</td>':'<td>'+content+'</td>';
 }
 
-async function init() {
-  try {
-    // Load data
-    quickData = await fetchQuick();
-    fullData = quickData; // Same endpoint now returns full data
-    
-    document.getElementById('statusLine').innerHTML = `<span class="live-dot"></span>Live data &middot; Viv Technologies &middot; Updated ${new Date().toLocaleTimeString()}`;
-    document.getElementById('hdrRight').innerHTML = `${fn(quickData.totals.active)} active caregivers<br><span style="color:var(--text3)">${fn(quickData.totals.total)} ever hired &middot; 3 states</span>`;
-    document.getElementById('genAt').textContent = `Generated: ${new Date(quickData.generatedAt).toLocaleString()}`;
-    
+async function init(){
+  try{
+    var res=await fetch(API+'?endpoint=caregivers&fast=true');
+    if(!res.ok)throw new Error('HTTP '+res.status);
+    data=await res.json();
+    document.getElementById('sl').innerHTML='<span class="dot"></span>Live &middot; Viv Technologies &middot; Updated '+new Date().toLocaleTimeString();
+    document.getElementById('hr').innerHTML=fn(data.totals.active)+' active caregivers<br><span style="color:var(--text3)">'+fn(data.totals.total)+' ever hired &middot; 3 states</span>';
+    document.getElementById('ga').textContent='Generated: '+new Date(data.generatedAt).toLocaleString();
     render();
-  } catch(e) {
-    document.getElementById('ct').innerHTML = `<div class="error">Error: ${e.message}<br><pre style="font-size:10px;margin-top:8px">${e.stack}</pre></div>`;
+  }catch(e){
+    document.getElementById('ct').innerHTML='<div class="err">Error: '+e.message+'</div>';
   }
 }
 
-function setTab(t, el) {
-  curTab = t;
-  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
+function setTab(t,el){
+  curTab=t;
+  document.querySelectorAll('.tab').forEach(function(x){x.classList.remove('on')});
   el.classList.add('on');
-  render();
+  if(data)render();
 }
 
-function render() {
-  const data = fullData || quickData;
-  if (!data) return;
-  switch(curTab) {
-    case 'overview': renderOverview(data); break;
-    case 'churn': renderChurn(data); break;
-    case 'hiring': renderHiring(data); break;
-    case 'tenure': renderTenure(data); break;
+function render(){
+  if(!data)return;
+  if(curTab==='overview')renderOverview();
+  else if(curTab==='churn')renderChurn();
+  else if(curTab==='hiring')renderHiring();
+  else renderTenure();
+}
+
+function renderOverview(){
+  var t=data.totals;
+  var retRate=t.retentionRate||(t.total>0?t.active/t.total:0);
+  var churnAnn=(t.churnRateThisMonth||0)*12;
+  var aw=Math.round(retRate*100);
+  var bc=churnAnn>0.8?'r':churnAnn>0.6?'w':'';
+
+  var stateRows='';
+  data.byState.forEach(function(s){
+    var ret=s.total>0?s.active/s.total:0;
+    var bw=Math.round(ret*100);
+    var col=ret>=0.4?'var(--green)':ret>=0.25?'var(--amber)':'var(--red)';
+    stateRows+='<div class="mbr"><div class="mbl">'+s.state+'</div><div class="mbt"><div class="mbf" style="width:'+bw+'%;background:'+col+'"></div></div><div class="mbv" style="color:'+col+'">'+fn(s.active)+'</div><div class="mbv2">'+fp(ret)+' active</div></div>';
+  });
+
+  var netColor=gc(t.netChangeThisMonth);
+  var tblRows='';
+  data.byState.forEach(function(s){
+    var net=s.newHiresThisMonth-s.terminationsThisMonth;
+    tblRows+='<tr>';
+    tblRows+=td(s.state);
+    tblRows+=td(fn(s.newHiresThisMonth),'var(--green)');
+    tblRows+=td(fn(s.terminationsThisMonth),'var(--red)');
+    tblRows+=td((net>0?'+':'')+net,gc(net),true);
+    tblRows+='</tr>';
+  });
+
+  var html='';
+  html+='<div class="banner '+bc+'"><div class="bl '+bc+'">'+new Date().toLocaleDateString('en-US',{month:'long',year:'numeric'})+'</div>';
+  html+=fn(t.active)+' active caregivers across Massachusetts, Illinois, and Maryland. ';
+  html+='Net change this month: <strong>'+(t.netChangeThisMonth>0?'+':'')+t.netChangeThisMonth+'</strong> ('+fn(t.newHiresThisMonth)+' hired, '+fn(t.terminationsThisMonth)+' terminated). ';
+  html+='Monthly churn rate is '+fp(t.churnRateThisMonth)+' &mdash; '+fp(churnAnn)+' annualized.</div>';
+
+  html+='<div class="kg">';
+  html+='<div class="kpi"><div class="kl">Active Caregivers</div><div class="kv g">'+fn(t.active)+'</div><div class="ks">of '+fn(t.total)+' ever hired</div></div>';
+  html+='<div class="kpi"><div class="kl">Net Change (MTD)</div><div class="kv '+(t.netChangeThisMonth>0?'g':t.netChangeThisMonth<0?'r':'a')+'">'+(t.netChangeThisMonth>0?'+':'')+t.netChangeThisMonth+'</div><div class="ks">'+fn(t.newHiresThisMonth)+' in &middot; '+fn(t.terminationsThisMonth)+' out</div></div>';
+  html+='<div class="kpi"><div class="kl">Monthly Churn</div><div class="kv '+(t.churnRateThisMonth<=0.05?'g':t.churnRateThisMonth<=0.08?'a':'r')+'">'+fp(t.churnRateThisMonth)+'</div><div class="kt '+tc(t.churnRateThisMonth,t.churnRateLastMonth,false)+'">'+tr(t.churnRateThisMonth,t.churnRateLastMonth)+' vs '+fp(t.churnRateLastMonth)+' last mo</div></div>';
+  html+='<div class="kpi"><div class="kl">Median Tenure</div><div class="kv '+(t.medianTenureDays>=180?'g':t.medianTenureDays>=90?'a':'r')+'">'+(t.medianTenureDays?Math.round(t.medianTenureDays/30)+'mo':'—')+'</div><div class="ks">'+(t.medianTenureDays?t.medianTenureDays+' days':'')+'</div></div>';
+  html+='<div class="kpi"><div class="kl">Avg Tenure</div><div class="kv b">'+(t.avgTenureDays?Math.round(t.avgTenureDays/30)+'mo':'—')+'</div><div class="ks">'+(t.avgTenureDays?t.avgTenureDays+' days avg':'')+'</div></div>';
+  html+='</div>';
+
+  html+='<div class="tc">';
+  html+='<div class="card"><div class="ct">Active caregivers by state</div>'+stateRows+'</div>';
+  html+='<div class="card"><div class="ct">This month vs last month</div>';
+  html+='<table class="tbl"><thead><tr><th>State</th><th>Hired</th><th>Terminated</th><th>Net</th></tr></thead><tbody>'+tblRows+'</tbody>';
+  html+='<tfoot><tr>'+td('Total')+td(fn(t.newHiresThisMonth),'var(--green)')+td(fn(t.terminationsThisMonth),'var(--red)')+td((t.netChangeThisMonth>0?'+':'')+t.netChangeThisMonth,netColor,true)+'</tr></tfoot></table>';
+  html+='<div class="cn">Last month: '+fn(t.newHiresLastMonth)+' hired, '+fn(t.terminationsLastMonth)+' terminated, net '+(t.newHiresLastMonth-t.terminationsLastMonth>0?'+':'')+(t.newHiresLastMonth-t.terminationsLastMonth)+'.</div></div>';
+  html+='</div>';
+
+  html+='<div class="fc"><div class="ct">Workforce retention</div>';
+  html+='<div class="rb"><div class="ra" style="width:'+aw+'%">'+(aw>15?fn(t.active)+' active ('+fp(retRate)+')':'')+'</div><div class="rt" style="width:'+(100-aw)+'%">'+(100-aw>15?fn(t.terminated)+' terminated':'')+'</div></div>';
+  html+='<div style="font-size:11px;color:var(--text3)">'+fp(retRate)+' of all '+fn(t.total)+' ever hired are still active &middot; Industry benchmark: 20–35% cumulative retention is normal</div></div>';
+
+  document.getElementById('ct').innerHTML=html;
+}
+
+function renderChurn(){
+  var t=data.totals;
+  var annThis=t.churnRateThisMonth*12;
+
+  var html='';
+  html+='<div class="banner '+(annThis>0.8?'r':annThis>0.6?'w':'')+'"><div class="bl '+(annThis>0.8?'r':annThis>0.6?'w':'')+'">Churn analysis</div>';
+  html+='Monthly churn is '+fp(t.churnRateThisMonth)+' this month vs '+fp(t.churnRateLastMonth)+' last month — annualized '+fp(annThis)+'. '+(annThis<=0.65?'Within':'Above')+' the 60–80% home care industry benchmark.</div>';
+
+  html+='<div class="kg4">';
+  html+='<div class="kpi"><div class="kl">Churn This Month</div><div class="kv '+(t.churnRateThisMonth<=0.05?'g':t.churnRateThisMonth<=0.08?'a':'r')+'">'+fp(t.churnRateThisMonth)+'</div><div class="ks">'+fn(t.terminationsThisMonth)+' terminations</div></div>';
+  html+='<div class="kpi"><div class="kl">Churn Last Month</div><div class="kv '+(t.churnRateLastMonth<=0.05?'g':t.churnRateLastMonth<=0.08?'a':'r')+'">'+fp(t.churnRateLastMonth)+'</div><div class="ks">'+fn(t.terminationsLastMonth)+' terminations</div></div>';
+  html+='<div class="kpi"><div class="kl">Annualized Rate</div><div class="kv '+(annThis<=0.5?'g':annThis<=0.7?'a':'r')+'">'+fp(annThis)+'</div><div class="ks">Industry avg 60–80%</div></div>';
+  html+='<div class="kpi"><div class="kl">Trend</div><div class="kv '+(t.churnRateThisMonth<t.churnRateLastMonth?'g':t.churnRateThisMonth>t.churnRateLastMonth?'r':'a')+'">'+(t.churnRateThisMonth<t.churnRateLastMonth?'▼ Down':t.churnRateThisMonth>t.churnRateLastMonth?'▲ Up':'— Flat')+'</div><div class="ks">'+fp(Math.abs(t.churnRateThisMonth-t.churnRateLastMonth))+' '+(t.churnRateThisMonth<t.churnRateLastMonth?'improvement':'increase')+'</div></div>';
+  html+='</div>';
+
+  var rows='';
+  data.byState.forEach(function(s){
+    var ct=s.active>0?s.terminationsThisMonth/(s.active+s.terminationsThisMonth):0;
+    var cl=s.active>0?s.terminationsLastMonth/(s.active+s.terminationsLastMonth):0;
+    var trendCol=ct<cl?'var(--green)':ct>cl?'var(--red)':'var(--text2)';
+    var trendTxt=ct<cl?'▼ Better':ct>cl?'▲ Worse':'— Same';
+    rows+='<tr>'+td(s.state)+td(fn(s.active))+td(fn(s.terminationsThisMonth),'var(--red)')+'<td><span class="bdg '+churnBadge(ct)+'">'+fp(ct)+'</span></td>'+td(fn(s.terminationsLastMonth),'var(--text2)')+'<td><span class="bdg '+churnBadge(cl)+'">'+fp(cl)+'</span></td>'+td(trendTxt,trendCol)+'</tr>';
+  });
+
+  html+='<div class="fc"><div class="ct">Churn by state</div>';
+  html+='<table class="tbl"><thead><tr><th>State</th><th>Active</th><th>Term. This Mo.</th><th>Rate This Mo.</th><th>Term. Last Mo.</th><th>Rate Last Mo.</th><th>Trend</th></tr></thead><tbody>'+rows+'</tbody></table>';
+  html+='<div class="cn">Green &le;5%/month &middot; Amber 5–8% &middot; Red &gt;8%</div></div>';
+
+  document.getElementById('ct').innerHTML=html;
+}
+
+function renderHiring(){
+  var t=data.totals;
+
+  var html='';
+  html+='<div class="banner '+(t.newHiresThisMonth<t.newHiresLastMonth?'w':'')+'"><div class="bl '+(t.newHiresThisMonth<t.newHiresLastMonth?'w':'')+'">'+new Date().toLocaleDateString('en-US',{month:'long',year:'numeric'})+'</div>';
+  html+=fn(t.newHiresThisMonth)+' new hires this month vs '+fn(t.newHiresLastMonth)+' last month. Net headcount: '+(t.netChangeThisMonth>0?'+':'')+t.netChangeThisMonth+'.</div>';
+
+  html+='<div class="kg4">';
+  html+='<div class="kpi"><div class="kl">New Hires This Month</div><div class="kv g">'+fn(t.newHiresThisMonth)+'</div><div class="kt '+tc(t.newHiresThisMonth,t.newHiresLastMonth)+'">'+tr(t.newHiresThisMonth,t.newHiresLastMonth)+' vs '+fn(t.newHiresLastMonth)+' last mo</div></div>';
+  html+='<div class="kpi"><div class="kl">Terminations This Month</div><div class="kv r">'+fn(t.terminationsThisMonth)+'</div><div class="kt '+tc(t.terminationsThisMonth,t.terminationsLastMonth,false)+'">'+tr(t.terminationsThisMonth,t.terminationsLastMonth)+' vs '+fn(t.terminationsLastMonth)+' last mo</div></div>';
+  html+='<div class="kpi"><div class="kl">Net Headcount</div><div class="kv '+(t.netChangeThisMonth>0?'g':t.netChangeThisMonth<0?'r':'a')+'">'+(t.netChangeThisMonth>0?'+':'')+t.netChangeThisMonth+'</div><div class="ks">MTD change</div></div>';
+  html+='<div class="kpi"><div class="kl">Hire:Term Ratio</div><div class="kv '+(t.newHiresThisMonth>=t.terminationsThisMonth?'g':'r')+'">'+(t.terminationsThisMonth>0?(t.newHiresThisMonth/t.terminationsThisMonth).toFixed(1):'∞')+':1</div><div class="ks">Hires per termination</div></div>';
+  html+='</div>';
+
+  var hireRows='',termRows='';
+  data.byState.forEach(function(s){
+    var hd=s.newHiresThisMonth-s.newHiresLastMonth;
+    hireRows+='<tr>'+td(s.state)+td(fn(s.newHiresThisMonth),'var(--green)',true)+td(fn(s.newHiresLastMonth),'var(--text2)')+td((hd>0?'+':'')+hd,gc(hd))+'</tr>';
+    var td2=s.terminationsThisMonth-s.terminationsLastMonth;
+    termRows+='<tr>'+td(s.state)+td(fn(s.terminationsThisMonth),'var(--red)',true)+td(fn(s.terminationsLastMonth),'var(--text2)')+td((td2>0?'+':'')+td2,td2<0?'var(--green)':td2>0?'var(--red)':'var(--text2)')+'</tr>';
+  });
+
+  html+='<div class="tc">';
+  html+='<div class="card"><div class="ct">Hires by state</div><table class="tbl"><thead><tr><th>State</th><th>This Mo.</th><th>Last Mo.</th><th>Change</th></tr></thead><tbody>'+hireRows+'</tbody><tfoot><tr>'+td('Total')+td(fn(t.newHiresThisMonth),'var(--green)')+td(fn(t.newHiresLastMonth),'var(--text2)')+td((t.newHiresThisMonth-t.newHiresLastMonth>0?'+':'')+(t.newHiresThisMonth-t.newHiresLastMonth),gc(t.newHiresThisMonth-t.newHiresLastMonth))+'</tr></tfoot></table></div>';
+  html+='<div class="card"><div class="ct">Terminations by state</div><table class="tbl"><thead><tr><th>State</th><th>This Mo.</th><th>Last Mo.</th><th>Change</th></tr></thead><tbody>'+termRows+'</tbody><tfoot><tr>'+td('Total')+td(fn(t.terminationsThisMonth),'var(--red)')+td(fn(t.terminationsLastMonth),'var(--text2)')+td((t.terminationsThisMonth-t.terminationsLastMonth>0?'+':'')+(t.terminationsThisMonth-t.terminationsLastMonth),t.terminationsThisMonth<=t.terminationsLastMonth?'var(--green)':'var(--red)')+'</tr></tfoot></table></div>';
+  html+='</div>';
+
+  if(data.recentHires&&data.recentHires.length>0){
+    html+='<div class="fc"><div class="ct">Recent hires this month</div>';
+    data.recentHires.forEach(function(h){
+      html+='<div class="hi"><div><div style="font-size:12px;font-weight:500">'+h.name+'</div><div style="font-size:11px;color:var(--text3)">'+h.market+' &middot; '+h.state+'</div></div><div style="text-align:right"><div style="font-size:11px;color:var(--text2)">'+h.hireDate+'</div><span class="bdg '+(h.status==='active'||h.status==='hired'?'bg':'ba')+'" style="margin-top:3px;display:inline-block">'+h.status+'</span></div></div>';
+    });
+    html+='</div>';
   }
+
+  document.getElementById('ct').innerHTML=html;
 }
 
-function renderOverview(d) {
-  const t = d.totals;
-  const retRate = t.retentionRate || (t.total > 0 ? t.active/t.total : 0);
-  const churnAnn = (t.churnRateThisMonth || 0) * 12;
-  const activeW = Math.round(retRate * 100);
+function renderTenure(){
+  var t=data.totals;
+  var avgM=t.avgTenureDays?Math.round(t.avgTenureDays/30):null;
+  var medM=t.medianTenureDays?Math.round(t.medianTenureDays/30):null;
+  var retRate=t.retentionRate||(t.total>0?t.active/t.total:0);
 
-  const stateRows = d.byState.map(s => {
-    const ret = s.total > 0 ? s.active/s.total : 0;
-    const bw = Math.round(ret*100);
-    const color = ret>=0.4?'var(--green)':ret>=0.25?'var(--amber)':'var(--red)';
-    return `<div class="mbarrow">
-      <div class="mbarlabel">${s.state}</div>
-      <div class="mbartrack"><div class="mbarfill" style="width:${bw}%;background:${color}"></div></div>
-      <div class="mbarval" style="color:${color}">${fn(s.active)}</div>
-      <div class="mbarval2">${fp(ret)} active</div>
-    </div>`;
-  }).join('');
+  var html='';
+  html+='<div class="banner '+(t.medianTenureDays&&t.medianTenureDays<90?'r':t.medianTenureDays&&t.medianTenureDays<180?'w':'')+'"><div class="bl '+(t.medianTenureDays&&t.medianTenureDays<90?'r':t.medianTenureDays&&t.medianTenureDays<180?'w':'')+'">Tenure &amp; stability</div>';
+  html+=(medM?'Median tenure is <strong>'+t.medianTenureDays+' days ('+medM+' months)</strong> — half of caregivers who leave do so within '+medM+' months. Average tenure is '+(t.avgTenureDays||'N/A')+' days ('+avgM+' months).':'Tenure data not available in fast mode.')+'</div>';
 
-  document.getElementById('ct').innerHTML = `
-    <div class="banner ${churnAnn>0.8?'r':churnAnn>0.6?'w':''}">
-      <div class="blabel ${churnAnn>0.8?'r':churnAnn>0.6?'w':''}">${new Date().toLocaleDateString('en-US',{month:'long',year:'numeric'})}</div>
-      ${fn(t.active)} active caregivers across Massachusetts, Illinois, and Maryland.
-      Net change this month: <strong>${t.netChangeThisMonth>0?'+':''}${t.netChangeThisMonth}</strong> (${fn(t.newHiresThisMonth)} hired, ${fn(t.terminationsThisMonth)} terminated).
-      Monthly churn rate is ${fp(t.churnRateThisMonth)} &mdash; ${fp(churnAnn)} annualized.
-      ${t.medianTenureDays ? `Median tenure is ${t.medianTenureDays} days (${Math.round(t.medianTenureDays/30)} months).` : ''}
-    </div>
+  html+='<div class="kg4">';
+  html+='<div class="kpi"><div class="kl">Median Tenure</div><div class="kv '+(t.medianTenureDays>=180?'g':t.medianTenureDays>=90?'a':'r')+'">'+(medM?medM+'mo':'—')+'</div><div class="ks">'+(t.medianTenureDays?t.medianTenureDays+' days':'')+'</div></div>';
+  html+='<div class="kpi"><div class="kl">Average Tenure</div><div class="kv b">'+(avgM?avgM+'mo':'—')+'</div><div class="ks">'+(t.avgTenureDays?t.avgTenureDays+' days avg':'')+'</div></div>';
+  html+='<div class="kpi"><div class="kl">Early Attrition Risk</div><div class="kv '+(!t.medianTenureDays?'a':t.medianTenureDays<90?'r':t.medianTenureDays<180?'a':'g')+'">'+(!t.medianTenureDays?'—':t.medianTenureDays<90?'High':t.medianTenureDays<180?'Medium':'Low')+'</div><div class="ks">Based on median tenure</div></div>';
+  html+='<div class="kpi"><div class="kl">Cumulative Retention</div><div class="kv '+(retRate>=0.35?'g':retRate>=0.2?'a':'r')+'">'+fp(retRate)+'</div><div class="ks">'+fn(t.active)+' of '+fn(t.total)+' ever hired</div></div>';
+  html+='</div>';
 
-    <div class="kgrid">
-      <div class="kpi"><div class="klabel">Active Caregivers</div><div class="kval g">${fn(t.active)}</div><div class="ksub">of ${fn(t.total)} ever hired</div></div>
-      <div class="kpi"><div class="klabel">Net Change (MTD)</div><div class="kval ${t.netChangeThisMonth>0?'g':t.netChangeThisMonth<0?'r':'a'}">${t.netChangeThisMonth>0?'+':''}${t.netChangeThisMonth}</div><div class="ksub">${fn(t.newHiresThisMonth)} in &middot; ${fn(t.terminationsThisMonth)} out</div></div>
-      <div class="kpi"><div class="klabel">Monthly Churn</div><div class="kval ${t.churnRateThisMonth<=0.05?'g':t.churnRateThisMonth<=0.08?'a':'r'}">${fp(t.churnRateThisMonth)}</div><div class="ktrend ${trendCls(t.churnRateThisMonth,t.churnRateLastMonth,false)}">${trend(t.churnRateThisMonth,t.churnRateLastMonth)} vs ${fp(t.churnRateLastMonth)} last mo</div></div>
-      <div class="kpi"><div class="klabel">Median Tenure</div><div class="kval ${t.medianTenureDays>=180?'g':t.medianTenureDays>=90?'a':'r'}">${t.medianTenureDays?Math.round(t.medianTenureDays/30)+'mo':'—'}</div><div class="ksub">${t.medianTenureDays?t.medianTenureDays+' days':''}</div></div>
-      <div class="kpi"><div class="klabel">Avg Tenure</div><div class="kval b">${t.avgTenureDays?Math.round(t.avgTenureDays/30)+'mo':'—'}</div><div class="ksub">${t.avgTenureDays?t.avgTenureDays+' days avg':''}</div></div>
-    </div>
+  var rows='';
+  data.byState.forEach(function(s){
+    var ret=s.total>0?s.active/s.total:0;
+    rows+='<tr>'+td(s.state)+td(fn(s.active),'var(--green)')+td(fn(s.terminated),'var(--red)')+td(fn(s.total))+'<td><span class="bdg '+badgeCls(ret)+'">'+fp(ret)+'</span></td></tr>';
+  });
 
-    <div class="tcol">
-      <div class="card">
-        <div class="ctitle">Active caregivers by state</div>
-        ${stateRows}
-      </div>
-      <div class="card">
-        <div class="ctitle">This month vs last month</div>
-        <table class="stbl">
-          <thead><tr><th>State</th><th>Hired</th><th>Terminated</th><th>Net</th></tr></thead>
-          <tbody>${d.byState.map(s=>{const net=s.newHiresThisMonth-s.terminationsThisMonth;const nc=net>0?'var(--green)':net<0?'var(--red)':'var(--text2)';return'<tr><td>'+s.state+'</td><td style="color:var(--green)">'+fn(s.newHiresThisMonth)+'</td><td style="color:var(--red)">'+fn(s.terminationsThisMonth)+'</td><td style="color:'+nc+';font-weight:500">'+(net>0?'+':'')+net+'</td></tr>';}).join('')}</tbody>
-          <tfoot><tr><td>Total</td><td style="color:var(--green)">${fn(t.newHiresThisMonth)}</td><td style="color:var(--red)">${fn(t.terminationsThisMonth)}</td><td style="color:${t.netChangeThisMonth>0?'var(--green)':t.netChangeThisMonth<0?'var(--red)':'var(--text2)'}">${t.netChangeThisMonth>0?'+':''}${t.netChangeThisMonth}</td></tr></tfoot>
-        </table>
-        <div class="cnote">Last month: ${fn(t.newHiresLastMonth)} hired, ${fn(t.terminationsLastMonth)} terminated, net ${t.newHiresLastMonth-t.terminationsLastMonth>0?'+':''}${t.newHiresLastMonth-t.terminationsLastMonth}.</div>
-      </div>
-    </div>
+  html+='<div class="fc"><div class="ct">Retention by state</div>';
+  html+='<table class="tbl"><thead><tr><th>State</th><th>Active</th><th>Terminated</th><th>Total</th><th>Retention</th></tr></thead><tbody>'+rows+'</tbody>';
+  html+='<tfoot><tr>'+td('Total')+td(fn(t.active),'var(--green)')+td(fn(t.terminated),'var(--red)')+td(fn(t.total))+'<td><span class="bdg '+badgeCls(retRate)+'">'+fp(retRate)+'</span></td></tr></tfoot></table>';
+  html+='<div class="cn">Tenure metrics require full data load. Median/average tenure will show — when available from the API.</div></div>';
 
-    <div class="fcard">
-      <div class="ctitle">Workforce retention</div>
-      <div class="ret-bar">
-        <div class="ret-active" style="width:${activeW}%">${activeW>15?fn(t.active)+' active ('+fp(retRate)+')':''}</div>
-        <div class="ret-term" style="width:${100-activeW}%">${(100-activeW)>15?fn(t.terminated)+' terminated':''}</div>
-      </div>
-      <div style="font-size:11px;color:var(--text3)">${fp(retRate)} of all ${fn(t.total)} ever hired are still active &middot; Industry benchmark: 20–35% cumulative retention is normal</div>
-    </div>`;
-}
-
-function renderChurn(d) {
-  const t = d.totals;
-  const annThis = t.churnRateThisMonth * 12;
-  const annLast = t.churnRateLastMonth * 12;
-
-  document.getElementById('ct').innerHTML = `
-    <div class="banner ${annThis>0.8?'r':annThis>0.6?'w':''}">
-      <div class="blabel ${annThis>0.8?'r':annThis>0.6?'w':''}">Churn analysis</div>
-      Monthly churn is ${fp(t.churnRateThisMonth)} this month vs ${fp(t.churnRateLastMonth)} last month — annualized ${fp(annThis)}.
-      ${annThis<=0.65?'Within':'Above'} the 60–80% home care industry benchmark.
-    </div>
-    <div class="kgrid4">
-      <div class="kpi"><div class="klabel">Churn This Month</div><div class="kval ${t.churnRateThisMonth<=0.05?'g':t.churnRateThisMonth<=0.08?'a':'r'}">${fp(t.churnRateThisMonth)}</div><div class="ksub">${fn(t.terminationsThisMonth)} terminations</div></div>
-      <div class="kpi"><div class="klabel">Churn Last Month</div><div class="kval ${t.churnRateLastMonth<=0.05?'g':t.churnRateLastMonth<=0.08?'a':'r'}">${fp(t.churnRateLastMonth)}</div><div class="ksub">${fn(t.terminationsLastMonth)} terminations</div></div>
-      <div class="kpi"><div class="klabel">Annualized Rate</div><div class="kval ${annThis<=0.5?'g':annThis<=0.7?'a':'r'}">${fp(annThis)}</div><div class="ksub">Industry avg 60–80%</div></div>
-      <div class="kpi"><div class="klabel">Trend</div><div class="kval ${t.churnRateThisMonth<t.churnRateLastMonth?'g':t.churnRateThisMonth>t.churnRateLastMonth?'r':'a'}">${t.churnRateThisMonth<t.churnRateLastMonth?'▼ Down':t.churnRateThisMonth>t.churnRateLastMonth?'▲ Up':'— Flat'}</div><div class="ksub">${fp(Math.abs(t.churnRateThisMonth-t.churnRateLastMonth))} ${t.churnRateThisMonth<t.churnRateLastMonth?'improvement':'increase'}</div></div>
-    </div>
-    <div class="fcard">
-      <div class="ctitle">Churn by state</div>
-      <table class="stbl">
-        <thead><tr><th>State</th><th>Active</th><th>Term. This Mo.</th><th>Rate This Mo.</th><th>Term. Last Mo.</th><th>Rate Last Mo.</th><th>Trend</th></tr></thead>
-        <tbody>${d.byState.map(s=>{
-          const ct=s.active>0?s.terminationsThisMonth/(s.active+s.terminationsThisMonth):0;
-          const cl=s.active>0?s.terminationsLastMonth/(s.active+s.terminationsLastMonth):0;
-          const bc1=ct<=0.05?'bg':ct<=0.08?'ba':'br';const bc2=cl<=0.05?'bg':cl<=0.08?'ba':'br';const tc=ct<cl?'var(--green)':ct>cl?'var(--red)':'var(--text2)';const tt2=ct<cl?'▼ Better':ct>cl?'▲ Worse':'— Same';return'<tr><td>'+s.state+'</td><td>'+fn(s.active)+'</td><td style="color:var(--red)">'+fn(s.terminationsThisMonth)+'</td><td><span class="badge '+bc1+'">'+fp(ct)+'</span></td><td style="color:var(--text2)">'+fn(s.terminationsLastMonth)+'</td><td><span class="badge '+bc2+'">'+fp(cl)+'</span></td><td style="color:'+tc+'">'+tt2+'</td></tr>';
-        }).join('')}</tbody>
-      </table>
-      <div class="cnote">Green ≤5%/month &middot; Amber 5–8% &middot; Red &gt;8%</div>
-    </div>`;
-}
-
-function renderHiring(d) {
-  const t = d.totals;
-  document.getElementById('ct').innerHTML = `
-    <div class="banner ${t.newHiresThisMonth<t.newHiresLastMonth?'w':''}">
-      <div class="blabel ${t.newHiresThisMonth<t.newHiresLastMonth?'w':''}">${new Date().toLocaleDateString('en-US',{month:'long',year:'numeric'})}</div>
-      ${fn(t.newHiresThisMonth)} new hires this month vs ${fn(t.newHiresLastMonth)} last month.
-      Net headcount change: ${t.netChangeThisMonth>0?'+':''}${t.netChangeThisMonth}.
-      Hire-to-termination ratio: ${t.terminationsThisMonth>0?(t.newHiresThisMonth/t.terminationsThisMonth).toFixed(1):t.newHiresThisMonth}:1.
-    </div>
-    <div class="kgrid4">
-      <div class="kpi"><div class="klabel">New Hires This Month</div><div class="kval g">${fn(t.newHiresThisMonth)}</div><div class="ktrend ${trendCls(t.newHiresThisMonth,t.newHiresLastMonth)}">${trend(t.newHiresThisMonth,t.newHiresLastMonth)} vs ${fn(t.newHiresLastMonth)} last mo</div></div>
-      <div class="kpi"><div class="klabel">Terminations This Month</div><div class="kval r">${fn(t.terminationsThisMonth)}</div><div class="ktrend ${trendCls(t.terminationsThisMonth,t.terminationsLastMonth,false)}">${trend(t.terminationsThisMonth,t.terminationsLastMonth)} vs ${fn(t.terminationsLastMonth)} last mo</div></div>
-      <div class="kpi"><div class="klabel">Net Headcount</div><div class="kval ${t.netChangeThisMonth>0?'g':t.netChangeThisMonth<0?'r':'a'}">${t.netChangeThisMonth>0?'+':''}${t.netChangeThisMonth}</div><div class="ksub">MTD change</div></div>
-      <div class="kpi"><div class="klabel">Hire:Term Ratio</div><div class="kval ${t.newHiresThisMonth>=t.terminationsThisMonth?'g':'r'}">${t.terminationsThisMonth>0?(t.newHiresThisMonth/t.terminationsThisMonth).toFixed(1):'∞'}:1</div><div class="ksub">Hires per termination</div></div>
-    </div>
-    <div class="tcol">
-      <div class="card">
-        <div class="ctitle">Hires by state</div>
-        <table class="stbl">
-          <thead><tr><th>State</th><th>This Month</th><th>Last Month</th><th>Change</th></tr></thead>
-          <tbody>${d.byState.map(s=>{const diff=s.newHiresThisMonth-s.newHiresLastMonth;const dc1=diff>0?'var(--green)':diff<0?'var(--red)':'var(--text2)';return'<tr><td>'+s.state+'</td><td style="color:var(--green);font-weight:500">'+fn(s.newHiresThisMonth)+'</td><td style="color:var(--text2)">'+fn(s.newHiresLastMonth)+'</td><td style="color:'+dc1+'">'+(diff>0?'+':'')+diff+'</td></tr>';}).join('')}</tbody>
-          <tfoot><tr><td>Total</td><td style="color:var(--green)">${fn(t.newHiresThisMonth)}</td><td style="color:var(--text2)">${fn(t.newHiresLastMonth)}</td><td style="color:${t.newHiresThisMonth>=t.newHiresLastMonth?'var(--green)':'var(--red)'}">${t.newHiresThisMonth-t.newHiresLastMonth>0?'+':''}${t.newHiresThisMonth-t.newHiresLastMonth}</td></tr></tfoot>
-        </table>
-      </div>
-      <div class="card">
-        <div class="ctitle">Terminations by state</div>
-        <table class="stbl">
-          <thead><tr><th>State</th><th>This Month</th><th>Last Month</th><th>Change</th></tr></thead>
-          <tbody>${d.byState.map(s=>{const diff=s.terminationsThisMonth-s.terminationsLastMonth;const dc2=diff<0?'var(--green)':diff>0?'var(--red)':'var(--text2)';return'<tr><td>'+s.state+'</td><td style="color:var(--red);font-weight:500">'+fn(s.terminationsThisMonth)+'</td><td style="color:var(--text2)">'+fn(s.terminationsLastMonth)+'</td><td style="color:'+dc2+'">'+(diff>0?'+':'')+diff+'</td></tr>';}).join('')}</tbody>
-          <tfoot><tr><td>Total</td><td style="color:var(--red)">${fn(t.terminationsThisMonth)}</td><td style="color:var(--text2)">${fn(t.terminationsLastMonth)}</td><td style="color:${t.terminationsThisMonth<=t.terminationsLastMonth?'var(--green)':'var(--red)'}">${t.terminationsThisMonth-t.terminationsLastMonth>0?'+':''}${t.terminationsThisMonth-t.terminationsLastMonth}</td></tr></tfoot>
-        </table>
-      </div>
-    </div>
-    ${d.recentHires&&d.recentHires.length>0?`
-    <div class="fcard">
-      <div class="ctitle">Recent hires this month</div>
-      ${d.recentHires.map(h=>`<div class="hire-item"><div><div class="hire-name">${h.name}</div><div class="hire-meta">${h.market} &middot; ${h.state}</div></div><div><div class="hire-date">${h.hireDate}</div><span class="badge ${h.status==='active'?'bg':'ba'}" style="margin-top:3px;display:inline-block">${h.status}</span></div></div>`).join('')}
-    </div>`:''}`;
-}
-
-function renderTenure(d) {
-  const t = d.totals;
-  const avgM = t.avgTenureDays ? Math.round(t.avgTenureDays/30) : null;
-  const medM = t.medianTenureDays ? Math.round(t.medianTenureDays/30) : null;
-  const retRate = t.retentionRate || (t.total>0?t.active/t.total:0);
-
-  document.getElementById('ct').innerHTML = `
-    <div class="banner ${t.medianTenureDays&&t.medianTenureDays<90?'r':t.medianTenureDays&&t.medianTenureDays<180?'w':''}">
-      <div class="blabel ${t.medianTenureDays&&t.medianTenureDays<90?'r':t.medianTenureDays&&t.medianTenureDays<180?'w':''}">Tenure & stability</div>
-      ${medM?`Median tenure is <strong>${t.medianTenureDays} days (${medM} months)</strong> — half of all caregivers who leave do so within ${medM} months.
-      Average tenure is ${t.avgTenureDays} days (${avgM} months), pulled higher by long-tenured caregivers.`:'Tenure data loading...'}
-    </div>
-    <div class="kgrid4">
-      <div class="kpi"><div class="klabel">Median Tenure</div><div class="kval ${t.medianTenureDays>=180?'g':t.medianTenureDays>=90?'a':'r'}">${medM?medM+'mo':'—'}</div><div class="ksub">${t.medianTenureDays?t.medianTenureDays+' days · 50th pct':''}</div></div>
-      <div class="kpi"><div class="klabel">Average Tenure</div><div class="kval b">${avgM?avgM+'mo':'—'}</div><div class="ksub">${t.avgTenureDays?t.avgTenureDays+' days · mean':''}</div></div>
-      <div class="kpi"><div class="klabel">Early Attrition Risk</div><div class="kval ${!t.medianTenureDays?'a':t.medianTenureDays<90?'r':t.medianTenureDays<180?'a':'g'}">${!t.medianTenureDays?'—':t.medianTenureDays<90?'High':t.medianTenureDays<180?'Medium':'Low'}</div><div class="ksub">Based on median tenure</div></div>
-      <div class="kpi"><div class="klabel">Cumulative Retention</div><div class="kval ${retRate>=0.35?'g':retRate>=0.2?'a':'r'}">${fp(retRate)}</div><div class="ksub">${fn(t.active)} of ${fn(t.total)} ever hired</div></div>
-    </div>
-    <div class="tcol">
-      <div class="card">
-        <div class="ctitle">Tenure vs industry benchmark</div>
-        <table class="stbl">
-          <tbody>
-            <tr><td>Median tenure (Tribute)</td><td style="font-weight:500;color:var(--text)">${medM?medM+' months':'—'}</td></tr>
-            <tr><td>Average tenure (Tribute)</td><td style="font-weight:500;color:var(--text)">${avgM?avgM+' months':'—'}</td></tr>
-            <tr><td>Industry median (home care)</td><td style="color:var(--text2)">~6–9 months</td></tr>
-            <tr><td>Tribute vs industry</td><td style="font-weight:500;color:${medM&&medM>=6?'var(--green)':'var(--amber)'}">${medM?(medM>=6?'At or above benchmark':'Below benchmark'):'—'}</td></tr>
-            <tr><td>Annualized churn</td><td style="font-weight:500">${fp(t.churnRateThisMonth*12)}</td></tr>
-          </tbody>
-        </table>
-      </div>
-      <div class="card">
-        <div class="ctitle">Retention by state</div>
-        <table class="stbl">
-          <thead><tr><th>State</th><th>Active</th><th>Terminated</th><th>Retention</th></tr></thead>
-          <tbody>${d.byState.map(s=>{const ret=s.total>0?s.active/s.total:0;const rb=ret>=0.35?'bg':ret>=0.2?'ba':'br';return'<tr><td>'+s.state+'</td><td style="color:var(--green)">'+fn(s.active)+'</td><td style="color:var(--red)">'+fn(s.terminated)+'</td><td><span class="badge '+rb+'">'+fp(ret)+'</span></td></tr>';}).join('')}</tbody>
-          <tfoot><tr><td>Total</td><td style="color:var(--green)">${fn(t.active)}</td><td style="color:var(--red)">${fn(t.terminated)}</td><td><span class="badge ${retRate>=0.35?'bg':retRate>=0.2?'ba':'br'}">${fp(retRate)}</span></td></tr></tfoot>
-        </table>
-      </div>
-    </div>`;
+  document.getElementById('ct').innerHTML=html;
 }
 
 init();
