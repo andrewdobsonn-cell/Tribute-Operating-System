@@ -23,14 +23,18 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .tabs{display:flex;border-bottom:.5px solid var(--border);margin-bottom:16px;overflow-x:auto}
 .tab{font-size:12px;font-weight:500;color:var(--text2);padding:8px 16px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-.5px;white-space:nowrap;user-select:none}
 .tab.on{color:var(--text);border-bottom-color:var(--text)}
+.stabs{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap}
+.stab{font-size:11px;font-weight:500;padding:4px 12px;border-radius:20px;cursor:pointer;border:.5px solid var(--border2);color:var(--text2);background:var(--bg2);user-select:none}
+.stab.on{background:var(--text);color:var(--bg);border-color:var(--text)}
 .banner{border-radius:var(--r);padding:12px 16px;margin-bottom:16px;border-left:3px solid var(--green);background:var(--bg2);font-size:13px;line-height:1.6}
 .banner.w{border-left-color:var(--amber)}.banner.r{border-left-color:var(--red)}
 .bl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--green);margin-bottom:4px}
 .bl.w{color:var(--amber)}.bl.r{color:var(--red)}
 .kg{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-bottom:16px}
 .kg4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:16px}
-@media(max-width:800px){.kg,.kg4{grid-template-columns:repeat(3,minmax(0,1fr))}}
-@media(max-width:500px){.kg,.kg4{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.kg3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:16px}
+@media(max-width:800px){.kg,.kg4,.kg3{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:500px){.kg,.kg4,.kg3{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .kpi{background:var(--bg2);border-radius:var(--r);padding:14px 16px}
 .kl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text2);margin-bottom:6px}
 .kv{font-size:24px;font-weight:500;line-height:1;margin-bottom:4px;font-variant-numeric:tabular-nums}
@@ -65,6 +69,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .rb{height:24px;border-radius:4px;overflow:hidden;display:flex;margin-bottom:8px}
 .ra{background:var(--green);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff}
 .rt{background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--text3)}
+.etbl{width:100%;border-collapse:collapse;font-size:13px}
+.etbl td{padding:8px 0;border-bottom:.5px solid var(--border)}
+.etbl td:last-child{text-align:right;font-variant-numeric:tabular-nums}
+.etbl tr:last-child td{border-bottom:none}
 .ftr{margin-top:32px;padding-top:14px;border-top:.5px solid var(--border);font-size:11px;color:var(--text3);display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
 </style>
 </head>
@@ -73,35 +81,38 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <div>
     <div class="logo">Tribute Home Care</div>
     <div class="title">Caregiver Engine</div>
-    <div class="sub" id="sl"><span class="adot"></span>Loading full caregiver data... (30-60 sec)</div>
+    <div class="sub" id="sl"><span class="adot"></span>Loading caregiver data... (30-60 sec)</div>
   </div>
   <div style="text-align:right;font-size:11px;color:var(--text3)" id="hr"></div>
 </div>
 <div class="tabs">
-  <div class="tab on" onclick="setTab('overview',this)">Overview</div>
-  <div class="tab" onclick="setTab('churn',this)">Churn & Retention</div>
-  <div class="tab" onclick="setTab('hiring',this)">Hiring Activity</div>
-  <div class="tab" onclick="setTab('tenure',this)">Tenure & Stability</div>
+  <div class="tab on" onclick="setTab('co',this)">Company</div>
+  <div class="tab" onclick="setTab('ma',this)">Massachusetts</div>
+  <div class="tab" onclick="setTab('il',this)">Illinois</div>
+  <div class="tab" onclick="setTab('md',this)">Maryland</div>
 </div>
-<div id="ct"><div class="loading"><div class="spin"></div>Loading caregiver data...<br><span style="font-size:11px;margin-top:8px;display:block;color:var(--text3)">Pulling 1,499 caregiver records from Viv. Takes 30-60 seconds.</span></div></div>
+<div class="stabs" id="sr" style="display:none"></div>
+<div id="ct"><div class="loading"><div class="spin"></div>Loading caregiver data...<br><span style="font-size:11px;margin-top:8px;display:block;color:var(--text3)">Pulling 1,499 records from Viv. Takes 30-60 seconds.</span></div></div>
 <div class="ftr"><span>Tribute Home Care LLC &middot; Caregiver Engine</span><span id="ga"></span></div>
 <script>
 var API='https://tribute-api-prod-bkc4hfcwf3f2f6bf.centralus-01.azurewebsites.net/api/vivProxy';
-var data=null,curTab='overview';
+var data=null,curTab='co',curState=null;
 
 function fp(n){return(n*100).toFixed(1)+'%'}
 function fn(n){return Math.round(n).toLocaleString()}
-function tr(c,p){return c>p?'&#9650;':c<p?'&#9660;':'&mdash;'}
-function trc(c,p,h){if(h===undefined)h=true;if(c===p)return 'fl';return(c>p)===h?'up':'dn'}
 function gc(v){return v>0?'var(--green)':v<0?'var(--red)':'var(--text2)'}
-function badgeCls(r){return r>=0.35?'bg':r>=0.2?'ba':'br'}
-function churnBadge(r){return r<=0.05?'bg':r<=0.08?'ba':'br'}
-function mkTd(content,color,bold){
+function churnCls(r){return r<=0.05?'g':r<=0.08?'a':'r'}
+function churnBdg(r){return r<=0.05?'bg':r<=0.08?'ba':'br'}
+function retCls(r){return r>=0.35?'bg':r>=0.2?'ba':'br'}
+function mkTd(content,color,bold,align){
   var s='';
   if(color)s+='color:'+color+';';
   if(bold)s+='font-weight:500;';
+  if(align)s+='text-align:'+align+';';
   return s?'<td style="'+s+'">'+content+'</td>':'<td>'+content+'</td>';
 }
+function net(a,b){var n=a-b;return(n>0?'+':'')+n}
+function netTd(a,b){var n=a-b;return mkTd((n>0?'+':'')+n,gc(n),true)}
 
 async function init(){
   try{
@@ -118,191 +129,169 @@ async function init(){
 }
 
 function setTab(t,el){
-  curTab=t;
+  curTab=t; curState=null;
   document.querySelectorAll('.tab').forEach(function(x){x.classList.remove('on')});
   el.classList.add('on');
+  document.getElementById('sr').style.display='none';
   if(data)render();
+}
+
+function setState(s){
+  curState=s;
+  document.querySelectorAll('.stab').forEach(function(x){x.classList.toggle('on',x.dataset.s===s)});
+  renderStateDetail(s);
 }
 
 function render(){
   if(!data)return;
-  if(curTab==='overview')renderOverview();
-  else if(curTab==='churn')renderChurn();
-  else if(curTab==='hiring')renderHiring();
-  else renderTenure();
+  if(curTab==='co')renderCompany();
+  else renderState(curTab);
 }
 
-function renderOverview(){
+function stateData(abbr){
+  var names={ma:'Massachusetts',il:'Illinois',md:'Maryland'};
+  var name=names[abbr];
+  return data.byState.find(function(s){return s.state===name})||{state:name,total:0,active:0,terminated:0,newHiresThisMonth:0,newHiresLastMonth:0,terminationsThisMonth:0,terminationsLastMonth:0};
+}
+
+function hireRows(byState){
+  var rows='';
+  byState.forEach(function(s){
+    var n=s.newHiresThisMonth-s.terminationsThisMonth;
+    rows+='<tr>'+mkTd(s.state)+mkTd(fn(s.newHiresThisMonth),'var(--green)')+mkTd(fn(s.terminationsThisMonth),'var(--red)')+netTd(s.newHiresThisMonth,s.terminationsThisMonth)+'</tr>';
+  });
+  return rows;
+}
+
+function renderCompany(){
+  document.getElementById('sr').style.display='none';
   var t=data.totals;
   var retRate=t.retentionRate||(t.total>0?t.active/t.total:0);
   var churnAnn=(t.churnRateThisMonth||0)*12;
   var aw=Math.round(retRate*100);
   var bc=churnAnn>0.8?'r':churnAnn>0.6?'w':'';
 
-  var stateRows='';
-  data.byState.forEach(function(s){
-    var ret=s.total>0?s.active/s.total:0;
-    var bw=Math.round(ret*100);
-    var col=ret>=0.4?'var(--green)':ret>=0.25?'var(--amber)':'var(--red)';
-    stateRows+='<div class="mbr"><div class="mbl">'+s.state+'</div><div class="mbt"><div class="mbf" style="width:'+bw+'%;background:'+col+'"></div></div><div class="mbv" style="color:'+col+'">'+fn(s.active)+'</div><div class="mbv2">'+fp(ret)+' active</div></div>';
-  });
-
-  var tblRows='';
-  data.byState.forEach(function(s){
-    var net=s.newHiresThisMonth-s.terminationsThisMonth;
-    tblRows+=mkTd(s.state)+mkTd(fn(s.newHiresThisMonth),'var(--green)')+mkTd(fn(s.terminationsThisMonth),'var(--red)')+mkTd((net>0?'+':'')+net,gc(net),true);
-    tblRows='<tr>'+tblRows+'</tr>';
-    tblRows='';
-    tblRows+='<tr>'+mkTd(s.state)+mkTd(fn(s.newHiresThisMonth),'var(--green)')+mkTd(fn(s.terminationsThisMonth),'var(--red)')+mkTd((net>0?'+':'')+net,gc(net),true)+'</tr>';
-  });
-
   var html='';
-  html+='<div class="banner '+bc+'"><div class="bl '+bc+'">'+new Date().toLocaleDateString('en-US',{month:'long',year:'numeric'})+'</div>';
-  html+=fn(t.active)+' active caregivers. Net change this month: <strong>'+(t.netChangeThisMonth>0?'+':'')+t.netChangeThisMonth+'</strong> ('+fn(t.newHiresThisMonth)+' hired, '+fn(t.terminationsThisMonth)+' terminated). Monthly churn: '+fp(t.churnRateThisMonth)+' &mdash; '+fp(churnAnn)+' annualized.</div>';
+  html+='<div class="banner '+bc+'"><div class="bl '+bc+'">Company &mdash; '+new Date().toLocaleDateString('en-US',{month:'long',year:'numeric'})+'</div>';
+  html+=fn(t.active)+' active caregivers. Net this month: <strong>'+(t.netChangeThisMonth>0?'+':'')+t.netChangeThisMonth+'</strong> ('+fn(t.newHiresThisMonth)+' hired, '+fn(t.terminationsThisMonth)+' terminated). ';
+  html+='Monthly churn: '+fp(t.churnRateThisMonth)+' ('+fp(churnAnn)+' annualized) &mdash; '+(t.churnRateThisMonth<t.churnRateLastMonth?'improving vs':'up from')+' '+fp(t.churnRateLastMonth)+' last month.</div>';
 
   html+='<div class="kg">';
   html+='<div class="kpi"><div class="kl">Active Caregivers</div><div class="kv g">'+fn(t.active)+'</div><div class="ks">of '+fn(t.total)+' ever hired</div></div>';
   html+='<div class="kpi"><div class="kl">Net Change (MTD)</div><div class="kv '+(t.netChangeThisMonth>0?'g':t.netChangeThisMonth<0?'r':'a')+'">'+(t.netChangeThisMonth>0?'+':'')+t.netChangeThisMonth+'</div><div class="ks">'+fn(t.newHiresThisMonth)+' in &middot; '+fn(t.terminationsThisMonth)+' out</div></div>';
-  html+='<div class="kpi"><div class="kl">Monthly Churn</div><div class="kv '+(t.churnRateThisMonth<=0.05?'g':t.churnRateThisMonth<=0.08?'a':'r')+'">'+fp(t.churnRateThisMonth)+'</div><div class="kt '+trc(t.churnRateThisMonth,t.churnRateLastMonth,false)+'">'+tr(t.churnRateThisMonth,t.churnRateLastMonth)+' vs '+fp(t.churnRateLastMonth)+' last mo</div></div>';
+  html+='<div class="kpi"><div class="kl">Monthly Churn</div><div class="kv '+churnCls(t.churnRateThisMonth)+'">'+fp(t.churnRateThisMonth)+'</div><div class="ks '+(t.churnRateThisMonth<=t.churnRateLastMonth?'kt up':'kt dn')+'">'+(t.churnRateThisMonth<t.churnRateLastMonth?'&#9660;':'&#9650;')+' vs '+fp(t.churnRateLastMonth)+' last mo</div></div>';
   html+='<div class="kpi"><div class="kl">Median Tenure</div><div class="kv '+(t.medianTenureDays>=180?'g':t.medianTenureDays>=90?'a':'r')+'">'+(t.medianTenureDays?Math.round(t.medianTenureDays/30)+'mo':'&mdash;')+'</div><div class="ks">'+(t.medianTenureDays?t.medianTenureDays+' days':'')+'</div></div>';
   html+='<div class="kpi"><div class="kl">Avg Tenure</div><div class="kv b">'+(t.avgTenureDays?Math.round(t.avgTenureDays/30)+'mo':'&mdash;')+'</div><div class="ks">'+(t.avgTenureDays?t.avgTenureDays+' days avg':'')+'</div></div>';
   html+='</div>';
 
-  var tblRows2='';
+  // State bars
+  var maxA=Math.max.apply(null,data.byState.map(function(s){return s.active}));
+  var stateBars='';
   data.byState.forEach(function(s){
-    var net=s.newHiresThisMonth-s.terminationsThisMonth;
-    tblRows2+='<tr>'+mkTd(s.state)+mkTd(fn(s.newHiresThisMonth),'var(--green)')+mkTd(fn(s.terminationsThisMonth),'var(--red)')+mkTd((net>0?'+':'')+net,gc(net),true)+'</tr>';
+    var ret=s.total>0?s.active/s.total:0;
+    var bw=maxA>0?Math.round(s.active/maxA*100):0;
+    stateBars+='<div class="mbr"><div class="mbl">'+s.state+'</div><div class="mbt"><div class="mbf" style="width:'+bw+'%;background:var(--blue)"></div></div><div class="mbv">'+fn(s.active)+'</div><div class="mbv2">'+fp(ret)+' retained</div></div>';
   });
-  var netTotal=t.newHiresThisMonth-t.terminationsThisMonth;
+
+  // Churn bars
+  var churnBars='';
+  data.byState.forEach(function(s){
+    var cr=s.active>0?s.terminationsThisMonth/(s.active+s.terminationsThisMonth):0;
+    var bw=Math.round(cr*100/0.15*100);
+    if(bw>100)bw=100;
+    var col=cr<=0.05?'var(--green)':cr<=0.08?'var(--amber)':'var(--red)';
+    churnBars+='<div class="mbr"><div class="mbl">'+s.state+'</div><div class="mbt"><div class="mbf" style="width:'+bw+'%;background:'+col+'"></div></div><div class="mbv" style="color:'+col+'">'+fp(cr)+'</div><div class="mbv2">this month</div></div>';
+  });
 
   html+='<div class="tc">';
-  html+='<div class="card"><div class="ct">Active caregivers by state</div>'+stateRows+'</div>';
-  html+='<div class="card"><div class="ct">This month vs last month</div>';
-  html+='<table class="tbl"><thead><tr><th>State</th><th>Hired</th><th>Terminated</th><th>Net</th></tr></thead>';
-  html+='<tbody>'+tblRows2+'</tbody>';
-  html+='<tfoot><tr>'+mkTd('Total')+mkTd(fn(t.newHiresThisMonth),'var(--green)')+mkTd(fn(t.terminationsThisMonth),'var(--red)')+mkTd((netTotal>0?'+':'')+netTotal,gc(netTotal),true)+'</tr></tfoot></table>';
-  html+='<div class="cn">Last month: '+fn(t.newHiresLastMonth)+' hired, '+fn(t.terminationsLastMonth)+' terminated, net '+(t.newHiresLastMonth-t.terminationsLastMonth>0?'+':'')+(t.newHiresLastMonth-t.terminationsLastMonth)+'.</div>';
-  html+='</div></div>';
+  html+='<div class="card"><div class="ct">Active caregivers by state</div>'+stateBars+'</div>';
+  html+='<div class="card"><div class="ct">Monthly churn by state</div>'+churnBars+'<div class="cn">Green &le;5%/mo &middot; Amber 5-8% &middot; Red &gt;8%</div></div>';
+  html+='</div>';
 
-  html+='<div class="fc"><div class="ct">Workforce retention</div>';
+  // Summary table
+  var tblRows='';
+  data.byState.forEach(function(s){
+    var cr=s.active>0?s.terminationsThisMonth/(s.active+s.terminationsThisMonth):0;
+    var ret=s.total>0?s.active/s.total:0;
+    tblRows+='<tr>'+mkTd(s.state)+mkTd(fn(s.active),'var(--green)')+mkTd(fn(s.newHiresThisMonth))+mkTd(fn(s.terminationsThisMonth),'var(--red)')+'<td><span class="bdg '+churnBdg(cr)+'">'+fp(cr)+'</span></td>'+'<td><span class="bdg '+retCls(ret)+'">'+fp(ret)+'</span></td></tr>';
+  });
+  var totCr=t.active>0?t.terminationsThisMonth/(t.active+t.terminationsThisMonth):0;
+
+  html+='<div class="fc"><div class="ct">All states &mdash; side by side</div>';
+  html+='<table class="tbl"><thead><tr><th>State</th><th>Active</th><th>Hired MTD</th><th>Termed MTD</th><th>Churn Rate</th><th>Retention</th></tr></thead>';
+  html+='<tbody>'+tblRows+'</tbody>';
+  html+='<tfoot><tr>'+mkTd('Total')+mkTd(fn(t.active),'var(--green)')+mkTd(fn(t.newHiresThisMonth))+mkTd(fn(t.terminationsThisMonth),'var(--red)')+'<td><span class="bdg '+churnBdg(totCr)+'">'+fp(totCr)+'</span></td><td><span class="bdg '+retCls(retRate)+'">'+fp(retRate)+'</span></td></tr></tfoot></table>';
+  html+='<div class="cn">Churn rate = terminations &divide; (active + terminations). Retention = active &divide; all ever hired.</div></div>';
+
+  // Retention bar
+  html+='<div class="fc"><div class="ct">Workforce retention &mdash; all time</div>';
   html+='<div class="rb"><div class="ra" style="width:'+aw+'%">'+(aw>15?fn(t.active)+' active ('+fp(retRate)+')':'')+'</div><div class="rt" style="width:'+(100-aw)+'%">'+(100-aw>15?fn(t.terminated)+' terminated':'')+'</div></div>';
   html+='<div style="font-size:11px;color:var(--text3)">'+fp(retRate)+' of all '+fn(t.total)+' ever hired are still active &middot; Industry: 20-35% cumulative retention is normal for home care</div></div>';
 
   document.getElementById('ct').innerHTML=html;
 }
 
-function renderChurn(){
+function renderState(abbr){
+  var names={ma:'Massachusetts',il:'Illinois',md:'Maryland'};
+  var stateName=names[abbr];
+  var s=data.byState.find(function(x){return x.state===stateName})||{state:stateName,total:0,active:0,terminated:0,newHiresThisMonth:0,newHiresLastMonth:0,terminationsThisMonth:0,terminationsLastMonth:0};
   var t=data.totals;
-  var annThis=t.churnRateThisMonth*12;
-  var html='';
 
-  html+='<div class="banner '+(annThis>0.8?'r':annThis>0.6?'w':'')+'"><div class="bl '+(annThis>0.8?'r':annThis>0.6?'w':'')+'">Churn analysis</div>';
-  html+='Monthly churn is '+fp(t.churnRateThisMonth)+' this month vs '+fp(t.churnRateLastMonth)+' last month &mdash; annualized '+fp(annThis)+'. '+(annThis<=0.65?'Within':'Above')+' the 60-80% home care benchmark.</div>';
+  document.getElementById('sr').style.display='none';
+
+  var cr=s.active>0?s.terminationsThisMonth/(s.active+s.terminationsThisMonth):0;
+  var crl=s.active>0?s.terminationsLastMonth/(s.active+s.terminationsLastMonth):0;
+  var ret=s.total>0?s.active/s.total:0;
+  var netMo=s.newHiresThisMonth-s.terminationsThisMonth;
+  var churnAnn=cr*12;
+  var bc=churnAnn>0.8?'r':churnAnn>0.6?'w':'';
+
+  var html='';
+  html+='<div class="banner '+bc+'"><div class="bl '+bc+'">'+stateName+'</div>';
+  html+=fn(s.active)+' active caregivers. Net this month: '+(netMo>0?'+':'')+netMo+' ('+fn(s.newHiresThisMonth)+' hired, '+fn(s.terminationsThisMonth)+' terminated). ';
+  html+='Monthly churn: '+fp(cr)+' &mdash; '+(cr<crl?'improving vs':'up from')+' '+fp(crl)+' last month. '+fp(s.active/t.active*100)+' of company total.</div>';
 
   html+='<div class="kg4">';
-  html+='<div class="kpi"><div class="kl">Churn This Month</div><div class="kv '+(t.churnRateThisMonth<=0.05?'g':t.churnRateThisMonth<=0.08?'a':'r')+'">'+fp(t.churnRateThisMonth)+'</div><div class="ks">'+fn(t.terminationsThisMonth)+' terminations</div></div>';
-  html+='<div class="kpi"><div class="kl">Churn Last Month</div><div class="kv '+(t.churnRateLastMonth<=0.05?'g':t.churnRateLastMonth<=0.08?'a':'r')+'">'+fp(t.churnRateLastMonth)+'</div><div class="ks">'+fn(t.terminationsLastMonth)+' terminations</div></div>';
-  html+='<div class="kpi"><div class="kl">Annualized Rate</div><div class="kv '+(annThis<=0.5?'g':annThis<=0.7?'a':'r')+'">'+fp(annThis)+'</div><div class="ks">Industry avg 60-80%</div></div>';
-  html+='<div class="kpi"><div class="kl">Trend</div><div class="kv '+(t.churnRateThisMonth<t.churnRateLastMonth?'g':t.churnRateThisMonth>t.churnRateLastMonth?'r':'a')+'">'+(t.churnRateThisMonth<t.churnRateLastMonth?'Down':t.churnRateThisMonth>t.churnRateLastMonth?'Up':'Flat')+'</div><div class="ks">'+fp(Math.abs(t.churnRateThisMonth-t.churnRateLastMonth))+' '+(t.churnRateThisMonth<t.churnRateLastMonth?'improvement':'increase')+'</div></div>';
+  html+='<div class="kpi"><div class="kl">Active Caregivers</div><div class="kv g">'+fn(s.active)+'</div><div class="ks">'+fp(s.active/t.active)+' of company</div></div>';
+  html+='<div class="kpi"><div class="kl">Net Change (MTD)</div><div class="kv '+(netMo>0?'g':netMo<0?'r':'a')+'">'+(netMo>0?'+':'')+netMo+'</div><div class="ks">'+fn(s.newHiresThisMonth)+' in &middot; '+fn(s.terminationsThisMonth)+' out</div></div>';
+  html+='<div class="kpi"><div class="kl">Monthly Churn</div><div class="kv '+churnCls(cr)+'">'+fp(cr)+'</div><div class="ks '+(cr<=crl?'kt up':'kt dn')+'">'+(cr<crl?'&#9660;':'&#9650;')+' vs '+fp(crl)+' last mo</div></div>';
+  html+='<div class="kpi"><div class="kl">Retention</div><div class="kv '+(ret>=0.35?'g':ret>=0.2?'a':'r')+'">'+fp(ret)+'</div><div class="ks">'+fn(s.active)+' of '+fn(s.total)+' ever hired</div></div>';
   html+='</div>';
 
-  var rows='';
-  data.byState.forEach(function(s){
-    var ct=s.active>0?s.terminationsThisMonth/(s.active+s.terminationsThisMonth):0;
-    var cl=s.active>0?s.terminationsLastMonth/(s.active+s.terminationsLastMonth):0;
-    var trendCol=ct<cl?'var(--green)':ct>cl?'var(--red)':'var(--text2)';
-    var trendTxt=ct<cl?'Better':ct>cl?'Worse':'Same';
-    rows+='<tr>'+mkTd(s.state)+mkTd(fn(s.active))+'<td style="color:var(--red)">'+fn(s.terminationsThisMonth)+'</td><td><span class="bdg '+churnBadge(ct)+'">'+fp(ct)+'</span></td><td style="color:var(--text2)">'+fn(s.terminationsLastMonth)+'</td><td><span class="bdg '+churnBadge(cl)+'">'+fp(cl)+'</span></td><td style="color:'+trendCol+'">'+trendTxt+'</td></tr>';
-  });
-
-  html+='<div class="fc"><div class="ct">Churn by state</div>';
-  html+='<table class="tbl"><thead><tr><th>State</th><th>Active</th><th>Term This Mo.</th><th>Rate This Mo.</th><th>Term Last Mo.</th><th>Rate Last Mo.</th><th>Trend</th></tr></thead>';
-  html+='<tbody>'+rows+'</tbody></table>';
-  html+='<div class="cn">Green &le;5%/month &middot; Amber 5-8% &middot; Red &gt;8%</div></div>';
-
-  document.getElementById('ct').innerHTML=html;
-}
-
-function renderHiring(){
-  var t=data.totals;
-  var html='';
-
-  html+='<div class="banner '+(t.newHiresThisMonth<t.newHiresLastMonth?'w':'')+'"><div class="bl '+(t.newHiresThisMonth<t.newHiresLastMonth?'w':'')+'">'+new Date().toLocaleDateString('en-US',{month:'long',year:'numeric'})+'</div>';
-  html+=fn(t.newHiresThisMonth)+' new hires this month vs '+fn(t.newHiresLastMonth)+' last month. Net headcount: '+(t.netChangeThisMonth>0?'+':'')+t.netChangeThisMonth+'.</div>';
-
-  html+='<div class="kg4">';
-  html+='<div class="kpi"><div class="kl">New Hires This Month</div><div class="kv g">'+fn(t.newHiresThisMonth)+'</div><div class="kt '+trc(t.newHiresThisMonth,t.newHiresLastMonth)+'">'+tr(t.newHiresThisMonth,t.newHiresLastMonth)+' vs '+fn(t.newHiresLastMonth)+' last mo</div></div>';
-  html+='<div class="kpi"><div class="kl">Terminations This Month</div><div class="kv r">'+fn(t.terminationsThisMonth)+'</div><div class="kt '+trc(t.terminationsThisMonth,t.terminationsLastMonth,false)+'">'+tr(t.terminationsThisMonth,t.terminationsLastMonth)+' vs '+fn(t.terminationsLastMonth)+' last mo</div></div>';
-  html+='<div class="kpi"><div class="kl">Net Headcount</div><div class="kv '+(t.netChangeThisMonth>0?'g':t.netChangeThisMonth<0?'r':'a')+'">'+(t.netChangeThisMonth>0?'+':'')+t.netChangeThisMonth+'</div><div class="ks">MTD change</div></div>';
-  html+='<div class="kpi"><div class="kl">Hire:Term Ratio</div><div class="kv '+(t.newHiresThisMonth>=t.terminationsThisMonth?'g':'r')+'">'+(t.terminationsThisMonth>0?(t.newHiresThisMonth/t.terminationsThisMonth).toFixed(1):'n/a')+':1</div><div class="ks">Hires per termination</div></div>';
-  html+='</div>';
-
-  var hireRows='',termRows='';
-  data.byState.forEach(function(s){
-    var hd=s.newHiresThisMonth-s.newHiresLastMonth;
-    hireRows+='<tr>'+mkTd(s.state)+mkTd(fn(s.newHiresThisMonth),'var(--green)',true)+mkTd(fn(s.newHiresLastMonth),'var(--text2)')+mkTd((hd>0?'+':'')+hd,gc(hd))+'</tr>';
-    var td2=s.terminationsThisMonth-s.terminationsLastMonth;
-    termRows+='<tr>'+mkTd(s.state)+mkTd(fn(s.terminationsThisMonth),'var(--red)',true)+mkTd(fn(s.terminationsLastMonth),'var(--text2)')+mkTd((td2>0?'+':'')+td2,td2<0?'var(--green)':td2>0?'var(--red)':'var(--text2)')+'</tr>';
-  });
-  var hd2=t.newHiresThisMonth-t.newHiresLastMonth;
-  var td3=t.terminationsThisMonth-t.terminationsLastMonth;
-
+  // This month vs last month
   html+='<div class="tc">';
-  html+='<div class="card"><div class="ct">Hires by state</div><table class="tbl"><thead><tr><th>State</th><th>This Mo.</th><th>Last Mo.</th><th>Change</th></tr></thead><tbody>'+hireRows+'</tbody><tfoot><tr>'+mkTd('Total')+mkTd(fn(t.newHiresThisMonth),'var(--green)')+mkTd(fn(t.newHiresLastMonth),'var(--text2)')+mkTd((hd2>0?'+':'')+hd2,gc(hd2))+'</tr></tfoot></table></div>';
-  html+='<div class="card"><div class="ct">Terminations by state</div><table class="tbl"><thead><tr><th>State</th><th>This Mo.</th><th>Last Mo.</th><th>Change</th></tr></thead><tbody>'+termRows+'</tbody><tfoot><tr>'+mkTd('Total')+mkTd(fn(t.terminationsThisMonth),'var(--red)')+mkTd(fn(t.terminationsLastMonth),'var(--text2)')+mkTd((td3>0?'+':'')+td3,td3<0?'var(--green)':td3>0?'var(--red)':'var(--text2)')+'</tr></tfoot></table></div>';
+  html+='<div class="card"><div class="ct">Hiring &mdash; this month vs last month</div>';
+  html+='<table class="etbl">';
+  html+='<tr><td>New hires this month</td><td style="color:var(--green);font-weight:500">'+fn(s.newHiresThisMonth)+'</td></tr>';
+  html+='<tr><td>New hires last month</td><td style="color:var(--text2)">'+fn(s.newHiresLastMonth)+'</td></tr>';
+  html+='<tr><td>Change</td><td style="color:'+gc(s.newHiresThisMonth-s.newHiresLastMonth)+';font-weight:500">'+net(s.newHiresThisMonth,s.newHiresLastMonth)+'</td></tr>';
+  html+='<tr><td>Terminations this month</td><td style="color:var(--red);font-weight:500">'+fn(s.terminationsThisMonth)+'</td></tr>';
+  html+='<tr><td>Terminations last month</td><td style="color:var(--text2)">'+fn(s.terminationsLastMonth)+'</td></tr>';
+  html+='<tr><td>Churn rate this month</td><td style="color:'+(cr<=0.05?'var(--green)':cr<=0.08?'var(--amber)':'var(--red)')+';font-weight:500">'+fp(cr)+'</td></tr>';
+  html+='<tr><td>Churn rate last month</td><td style="color:var(--text2)">'+fp(crl)+'</td></tr>';
+  html+='</table></div>';
+
+  html+='<div class="card"><div class="ct">Workforce at a glance</div>';
+  html+='<table class="etbl">';
+  html+='<tr><td>Active caregivers</td><td style="color:var(--green);font-weight:500">'+fn(s.active)+'</td></tr>';
+  html+='<tr><td>Terminated / inactive</td><td style="color:var(--red)">'+fn(s.terminated)+'</td></tr>';
+  html+='<tr><td>Total ever hired</td><td style="font-weight:500">'+fn(s.total)+'</td></tr>';
+  html+='<tr><td>Cumulative retention</td><td style="color:'+(ret>=0.35?'var(--green)':ret>=0.2?'var(--amber)':'var(--red)')+';font-weight:500">'+fp(ret)+'</td></tr>';
+  html+='<tr><td>Share of company workforce</td><td style="font-weight:500">'+fp(s.active/t.active)+'</td></tr>';
+  html+='<tr><td>Annualized churn rate</td><td style="color:'+(churnAnn<=0.5?'var(--green)':churnAnn<=0.7?'var(--amber)':'var(--red)')+';font-weight:500">'+fp(churnAnn)+'</td></tr>';
+  html+='</table></div>';
   html+='</div>';
 
-  if(data.recentHires&&data.recentHires.length>0){
-    html+='<div class="fc"><div class="ct">Recent hires this month</div>';
-    data.recentHires.forEach(function(h){
+  // Recent hires for this state
+  var stateHires=data.recentHires.filter(function(h){return h.state===stateName});
+  if(stateHires.length>0){
+    html+='<div class="fc"><div class="ct">Recent hires &mdash; '+stateName+'</div>';
+    stateHires.forEach(function(h){
       var status=h.status==='active'||h.status==='hired'?'active':'inactive';
-      html+='<div class="hi"><div><div style="font-size:12px;font-weight:500">'+h.name+'</div><div style="font-size:11px;color:var(--text3)">'+h.market+' &middot; '+h.state+'</div></div><div style="text-align:right"><div style="font-size:11px;color:var(--text2)">'+h.hireDate+'</div><span class="bdg '+(status==='active'?'bg':'ba')+'" style="margin-top:3px;display:inline-block">'+status+'</span></div></div>';
+      html+='<div class="hi"><div><div style="font-size:12px;font-weight:500">'+h.name+'</div><div style="font-size:11px;color:var(--text3)">'+h.market+'</div></div><div style="text-align:right"><div style="font-size:11px;color:var(--text2)">'+h.hireDate+'</div><span class="bdg '+(status==='active'?'bg':'ba')+'" style="margin-top:3px;display:inline-block">'+status+'</span></div></div>';
     });
-    html+='<div class="cn">Showing up to 30 most recent hires this month.</div></div>';
+    html+='<div class="cn">'+stateHires.length+' recent hire'+(stateHires.length===1?'':'s')+' this month in '+stateName+'.</div></div>';
   }
-
-  document.getElementById('ct').innerHTML=html;
-}
-
-function renderTenure(){
-  var t=data.totals;
-  var avgM=t.avgTenureDays?Math.round(t.avgTenureDays/30):null;
-  var medM=t.medianTenureDays?Math.round(t.medianTenureDays/30):null;
-  var retRate=t.retentionRate||(t.total>0?t.active/t.total:0);
-  var html='';
-
-  var bc=t.medianTenureDays&&t.medianTenureDays<90?'r':t.medianTenureDays&&t.medianTenureDays<180?'w':'';
-  html+='<div class="banner '+bc+'"><div class="bl '+bc+'">Tenure &amp; stability</div>';
-  html+=(medM?'Median tenure is <strong>'+t.medianTenureDays+' days ('+medM+' months)</strong>. Half of caregivers who leave do so within '+medM+' months. Average tenure is '+(t.avgTenureDays||'N/A')+' days ('+avgM+' months).':'No tenure data available.')+'</div>';
-
-  html+='<div class="kg4">';
-  html+='<div class="kpi"><div class="kl">Median Tenure</div><div class="kv '+(t.medianTenureDays>=180?'g':t.medianTenureDays>=90?'a':'r')+'">'+(medM?medM+'mo':'&mdash;')+'</div><div class="ks">'+(t.medianTenureDays?t.medianTenureDays+' days':'')+'</div></div>';
-  html+='<div class="kpi"><div class="kl">Average Tenure</div><div class="kv b">'+(avgM?avgM+'mo':'&mdash;')+'</div><div class="ks">'+(t.avgTenureDays?t.avgTenureDays+' days avg':'')+'</div></div>';
-  html+='<div class="kpi"><div class="kl">Early Attrition Risk</div><div class="kv '+(!t.medianTenureDays?'a':t.medianTenureDays<90?'r':t.medianTenureDays<180?'a':'g')+'">'+(!t.medianTenureDays?'&mdash;':t.medianTenureDays<90?'High':t.medianTenureDays<180?'Medium':'Low')+'</div><div class="ks">Based on median tenure</div></div>';
-  html+='<div class="kpi"><div class="kl">Cumulative Retention</div><div class="kv '+(retRate>=0.35?'g':retRate>=0.2?'a':'r')+'">'+fp(retRate)+'</div><div class="ks">'+fn(t.active)+' of '+fn(t.total)+' ever hired</div></div>';
-  html+='</div>';
-
-  var rows='';
-  data.byState.forEach(function(s){
-    var ret=s.total>0?s.active/s.total:0;
-    rows+='<tr>'+mkTd(s.state)+mkTd(fn(s.active),'var(--green)')+mkTd(fn(s.terminated),'var(--red)')+mkTd(fn(s.total))+'<td><span class="bdg '+badgeCls(ret)+'">'+fp(ret)+'</span></td></tr>';
-  });
-
-  html+='<div class="tc">';
-  html+='<div class="card"><div class="ct">Tenure vs industry benchmark</div>';
-  html+='<table class="tbl"><tbody>';
-  html+='<tr><td>Median tenure (Tribute)</td><td style="font-weight:500;text-align:right">'+(medM?medM+' months':'&mdash;')+'</td></tr>';
-  html+='<tr><td>Average tenure (Tribute)</td><td style="font-weight:500;text-align:right">'+(avgM?avgM+' months':'&mdash;')+'</td></tr>';
-  html+='<tr><td>Industry median (home care)</td><td style="color:var(--text2);text-align:right">6-9 months</td></tr>';
-  html+='<tr><td>Tribute vs industry</td><td style="font-weight:500;text-align:right;color:'+(medM&&medM>=6?'var(--green)':'var(--amber)')+'">'+( medM?(medM>=6?'At or above':'Below benchmark'):'&mdash;')+'</td></tr>';
-  html+='<tr><td>Annualized churn</td><td style="font-weight:500;text-align:right">'+fp(t.churnRateThisMonth*12)+'</td></tr>';
-  html+='</tbody></table></div>';
-
-  html+='<div class="card"><div class="ct">Retention by state</div>';
-  html+='<table class="tbl"><thead><tr><th>State</th><th>Active</th><th>Terminated</th><th>Total</th><th>Retention</th></tr></thead>';
-  html+='<tbody>'+rows+'</tbody>';
-  html+='<tfoot><tr>'+mkTd('Total')+mkTd(fn(t.active),'var(--green)')+mkTd(fn(t.terminated),'var(--red)')+mkTd(fn(t.total))+'<td><span class="bdg '+badgeCls(retRate)+'">'+fp(retRate)+'</span></td></tr></tfoot></table></div>';
-  html+='</div>';
 
   document.getElementById('ct').innerHTML=html;
 }
