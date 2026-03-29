@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tribute — Caregiver Engine</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#ffffff;--bg2:#f7f7f5;--bg3:#ededea;
+  --text:#1a1a18;--text2:#6b6b67;--text3:#9e9c96;
+  --border:rgba(0,0,0,0.09);--border2:rgba(0,0,0,0.16);
+  --green:#1D9E75;--amber:#EF9F27;--red:#E24B4A;--blue:#185FA5;
+  --green-bg:#E1F5EE;--amber-bg:#FAEEDA;--red-bg:#FCEBEB;--blue-bg:#E6F1FB;
+  --green-text:#0F6E56;--amber-text:#633806;--red-text:#791F1F;--blue-text:#0C447C;
+  --r:8px;--rl:12px;
+}
+@media(prefers-color-scheme:dark){
+  :root{--bg:#1a1a18;--bg2:#232320;--bg3:#2c2c29;--text:#e8e6e0;--text2:#9e9c96;--text3:#6b6b67;--border:rgba(255,255,255,0.09);--border2:rgba(255,255,255,0.16);--green-bg:#04342C;--amber-bg:#412402;--red-bg:#501313;--blue-bg:#042C53;--green-text:#9FE1CB;--amber-text:#FAC775;--red-text:#F09595;--blue-text:#85B7EB;}
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);padding:20px;max-width:1100px;margin:0 auto;font-size:14px;line-height:1.5}
+.hdr{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:14px;border-bottom:0.5px solid var(--border);margin-bottom:16px;flex-wrap:wrap;gap:10px}
+.logo{font-size:10px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--text3)}
+.title{font-size:22px;font-weight:500;margin-top:3px}
+.subtitle{font-size:11px;color:var(--text3);margin-top:2px}
+.live-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--green);margin-right:4px;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+.loading{text-align:center;padding:60px 20px;color:var(--text3);font-size:13px}
+.spinner{width:24px;height:24px;border:2px solid var(--border2);border-top-color:var(--text);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 12px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.error{background:var(--red-bg);color:var(--red-text);border-radius:var(--r);padding:12px 16px;margin-bottom:16px;font-size:13px}
+
+.tabs{display:flex;border-bottom:0.5px solid var(--border);margin-bottom:16px}
+.tab{font-size:12px;font-weight:500;color:var(--text2);padding:8px 16px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-0.5px;white-space:nowrap;transition:color .15s;user-select:none}
+.tab.on{color:var(--text);border-bottom-color:var(--text)}
+.tab:hover:not(.on){color:var(--text)}
+
+.banner{border-radius:var(--r);padding:12px 16px;margin-bottom:16px;border-left:3px solid var(--green);background:var(--bg2);font-size:13px;line-height:1.6}
+.banner.w{border-left-color:var(--amber)}.banner.r{border-left-color:var(--red)}
+.blabel{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--green);margin-bottom:4px}
+.blabel.w{color:var(--amber)}.blabel.r{color:var(--red)}
+
+.kgrid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-bottom:16px}
+.kgrid4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:16px}
+@media(max-width:800px){.kgrid,.kgrid4{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:500px){.kgrid,.kgrid4{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.kpi{background:var(--bg2);border-radius:var(--r);padding:14px 16px}
+.klabel{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text2);margin-bottom:6px}
+.kval{font-size:24px;font-weight:500;line-height:1;margin-bottom:4px;font-variant-numeric:tabular-nums}
+.ksub{font-size:11px;color:var(--text3)}
+.kval.g{color:var(--green)}.kval.a{color:var(--amber)}.kval.r{color:var(--red)}.kval.b{color:var(--blue)}
+.ktrend{font-size:11px;margin-top:4px}
+.ktrend.up{color:var(--green)}.ktrend.dn{color:var(--red)}.ktrend.flat{color:var(--text3)}
+
+.tcol{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.tcol3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px}
+@media(max-width:700px){.tcol,.tcol3{grid-template-columns:1fr}}
+.card{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--rl);padding:16px 18px}
+.ctitle{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text2);margin-bottom:12px}
+.cnote{font-size:11px;color:var(--text3);line-height:1.5;margin-top:10px;border-top:0.5px solid var(--border);padding-top:8px;font-style:italic}
+.fcard{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--rl);padding:16px 18px;margin-bottom:12px}
+
+.stbl{width:100%;border-collapse:collapse;font-size:12px}
+.stbl th{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--text2);padding:7px 10px;border-bottom:0.5px solid var(--border2);text-align:right}
+.stbl th:first-child{text-align:left}
+.stbl td{padding:9px 10px;border-bottom:0.5px solid var(--border);text-align:right;font-variant-numeric:tabular-nums}
+.stbl td:first-child{text-align:left;font-weight:500}
+.stbl tbody tr:last-child td{border-bottom:none}
+.stbl tfoot td{border-top:0.5px solid var(--border2);font-weight:500;padding:9px 10px;text-align:right}
+.stbl tfoot td:first-child{text-align:left}
+
+.badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;display:inline-block}
+.bg{background:var(--green-bg);color:var(--green-text)}
+.ba{background:var(--amber-bg);color:var(--amber-text)}
+.br{background:var(--red-bg);color:var(--red-text)}
+.bb{background:var(--blue-bg);color:var(--blue-text)}
+
+.mbarrow{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:0.5px solid var(--border)}
+.mbarrow:last-child{border-bottom:none}
+.mbarlabel{font-size:12px;color:var(--text);width:130px;flex-shrink:0}
+.mbartrack{flex:1;height:14px;background:var(--bg3);border-radius:2px;overflow:hidden}
+.mbarfill{height:100%;border-radius:2px;transition:width .5s ease}
+.mbarval{font-size:12px;font-weight:500;width:36px;text-align:right;flex-shrink:0}
+.mbarval2{font-size:11px;color:var(--text3);width:80px;text-align:right;flex-shrink:0}
+
+.hire-list{display:flex;flex-direction:column;gap:6px}
+.hire-item{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:var(--bg2);border-radius:var(--r)}
+.hire-name{font-size:12px;font-weight:500;color:var(--text)}
+.hire-meta{font-size:11px;color:var(--text3)}
+.hire-right{text-align:right}
+.hire-date{font-size:11px;color:var(--text2)}
+
+.churn-compare{display:flex;gap:16px;margin-bottom:12px}
+.churn-box{flex:1;background:var(--bg2);border-radius:var(--r);padding:12px 14px;text-align:center}
+.churn-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text2);margin-bottom:6px}
+.churn-val{font-size:22px;font-weight:500;font-variant-numeric:tabular-nums}
+.churn-sub{font-size:11px;color:var(--text3);margin-top:3px}
+
+.retention-bar{height:28px;border-radius:4px;overflow:hidden;display:flex;margin-bottom:8px}
+.ret-active{background:var(--green);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff}
+.ret-term{background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;color:var(--text3)}
+
+.ftr{margin-top:32px;padding-top:14px;border-top:0.5px solid var(--border);font-size:11px;color:var(--text3);display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div>
+    <div class="logo">Tribute Home Care</div>
+    <div class="title">Caregiver Engine</div>
+    <div class="subtitle"><span class="live-dot"></span>Live data &middot; Viv Technologies API &middot; Updated <span id="ud">now</span></div>
+  </div>
+  <div style="text-align:right;font-size:11px;color:var(--text3)" id="hdrRight"></div>
+</div>
+
+<div class="tabs">
+  <div class="tab on" onclick="setTab('overview',this)">Overview</div>
+  <div class="tab" onclick="setTab('churn',this)">Churn & Retention</div>
+  <div class="tab" onclick="setTab('hiring',this)">Hiring Activity</div>
+  <div class="tab" onclick="setTab('tenure',this)">Tenure & Stability</div>
+</div>
+
+<div id="ct"><div class="loading"><div class="spinner"></div>Loading caregiver data from Viv...</div></div>
+
+<div class="ftr">
+  <span>Tribute Home Care LLC &middot; Caregiver Engine</span>
+  <span id="genAt"></span>
+</div>
+
+<script>
+const API = 'https://tribute-api-prod-bkc4hfcwf3f2f6bf.centralus-01.azurewebsites.net/api/vivProxy';
+const fp = n => (n*100).toFixed(1)+'%';
+const fn = n => Math.round(n).toLocaleString();
+const trend = (cur, prev) => cur > prev ? '▲' : cur < prev ? '▼' : '—';
+const trendClass = (cur, prev, higherIsBetter=true) => {
+  if (cur === prev) return 'flat';
+  return (cur > prev) === higherIsBetter ? 'up' : 'dn';
+};
+
+let cgData = null;
+let curTab = 'overview';
+
+async function fetchData() {
+  try {
+    const res = await fetch(`${API}?endpoint=caregivers`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    cgData = await res.json();
+    document.getElementById('ud').textContent = new Date().toLocaleTimeString();
+    document.getElementById('genAt').textContent = `Generated: ${new Date(cgData.generatedAt).toLocaleString()}`;
+    document.getElementById('hdrRight').innerHTML = `${fn(cgData.totals.active)} active caregivers<br><span style="color:var(--text3)">${fn(cgData.totals.total)} ever hired &middot; 3 states</span>`;
+    render();
+  } catch(e) {
+    document.getElementById('ct').innerHTML = `<div class="error">Error loading data: ${e.message}</div>`;
+  }
+}
+
+function setTab(t, el) {
+  curTab = t;
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
+  el.classList.add('on');
+  if (cgData) render();
+}
+
+function render() {
+  if (!cgData) return;
+  switch(curTab) {
+    case 'overview': renderOverview(); break;
+    case 'churn': renderChurn(); break;
+    case 'hiring': renderHiring(); break;
+    case 'tenure': renderTenure(); break;
+  }
+}
+
+function renderOverview() {
+  const t = cgData.totals;
+  const retRate = t.retentionRate;
+  const churnAnnualized = t.churnRateThisMonth * 12;
+  const netDir = t.netChangeThisMonth > 0 ? 'growing' : t.netChangeThisMonth < 0 ? 'shrinking' : 'flat';
+
+  const stateRows = cgData.byState.map(s => {
+    const ret = s.total > 0 ? s.active/s.total : 0;
+    const bw = Math.round(ret*100);
+    const color = ret>=0.4?'var(--green)':ret>=0.25?'var(--amber)':'var(--red)';
+    return `<div class="mbarrow">
+      <div class="mbarlabel">${s.state}</div>
+      <div class="mbartrack"><div class="mbarfill" style="width:${bw}%;background:${color}"></div></div>
+      <div class="mbarval" style="color:${color}">${fn(s.active)}</div>
+      <div class="mbarval2">${fp(ret)} active</div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('ct').innerHTML = `
+    <div class="banner ${churnAnnualized>0.8?'r':churnAnnualized>0.6?'w':''}">
+      <div class="blabel ${churnAnnualized>0.8?'r':churnAnnualized>0.6?'w':''}">Caregiver workforce &mdash; ${new Date().toLocaleDateString('en-US',{month:'long',year:'numeric'})}</div>
+      ${fn(t.active)} active caregivers across Massachusetts, Illinois, and Maryland.
+      Net change this month: <strong>${t.netChangeThisMonth>0?'+':''}${t.netChangeThisMonth}</strong> (${fn(t.newHiresThisMonth)} hired, ${fn(t.terminationsThisMonth)} terminated).
+      Monthly churn rate is ${fp(t.churnRateThisMonth)} &mdash; ${fp(churnAnnualized)} annualized.
+      Median caregiver tenure is ${t.medianTenureDays} days (${Math.round(t.medianTenureDays/30)} months).
+    </div>
+
+    <div class="kgrid">
+      <div class="kpi">
+        <div class="klabel">Active Caregivers</div>
+        <div class="kval g">${fn(t.active)}</div>
+        <div class="ksub">of ${fn(t.total)} ever hired</div>
+      </div>
+      <div class="kpi">
+        <div class="klabel">Net Change (MTD)</div>
+        <div class="kval ${t.netChangeThisMonth>0?'g':t.netChangeThisMonth<0?'r':'a'}">${t.netChangeThisMonth>0?'+':''}${t.netChangeThisMonth}</div>
+        <div class="ksub">${fn(t.newHiresThisMonth)} in &middot; ${fn(t.terminationsThisMonth)} out</div>
+      </div>
+      <div class="kpi">
+        <div class="klabel">Monthly Churn</div>
+        <div class="kval ${t.churnRateThisMonth<=0.05?'g':t.churnRateThisMonth<=0.08?'a':'r'}">${fp(t.churnRateThisMonth)}</div>
+        <div class="ktrend ${trendClass(t.churnRateThisMonth,t.churnRateLastMonth,false)}">${trend(t.churnRateThisMonth,t.churnRateLastMonth)} vs ${fp(t.churnRateLastMonth)} last month</div>
+      </div>
+      <div class="kpi">
+        <div class="klabel">Median Tenure</div>
+        <div class="kval ${t.medianTenureDays>=180?'g':t.medianTenureDays>=90?'a':'r'}">${Math.round(t.medianTenureDays/30)}mo</div>
+        <div class="ksub">${t.medianTenureDays} days median</div>
+      </div>
+      <div class="kpi">
+        <div class="klabel">Avg Tenure</div>
+        <div class="kval b">${Math.round(t.avgTenureDays/30)}mo</div>
+        <div class="ksub">${t.avgTenureDays} days average</div>
+      </div>
+    </div>
+
+    <div class="tcol">
+      <div class="card">
+        <div class="ctitle">Active caregivers by state</div>
+        ${stateRows}
+        <div class="cnote">Active count and cumulative retention rate per state.</div>
+      </div>
+      <div class="card">
+        <div class="ctitle">This month vs last month</div>
+        <table class="stbl">
+          <thead><tr><th>State</th><th>New Hires</th><th>Terminations</th><th>Net</th></tr></thead>
+          <tbody>
+            ${cgData.byState.map(s=>{
+              const net = s.newHiresThisMonth - s.terminationsThisMonth;
+              return `<tr>
+                <td>${s.state}</td>
+                <td style="color:var(--green)">${fn(s.newHiresThisMonth)}</td>
+                <td style="color:var(--red)">${fn(s.terminationsThisMonth)}</td>
+                <td style="color:${net>0?'var(--green)':net<0?'var(--red)':'var(--text2)';font-weight:500}">${net>0?'+':''}${net}</td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+          <tfoot>
+            <tr>
+              <td>Total</td>
+              <td style="color:var(--green)">${fn(t.newHiresThisMonth)}</td>
+              <td style="color:var(--red)">${fn(t.terminationsThisMonth)}</td>
+              <td style="color:${t.netChangeThisMonth>0?'var(--green)':t.netChangeThisMonth<0?'var(--red)':'var(--text2)'}">${t.netChangeThisMonth>0?'+':''}${t.netChangeThisMonth}</td>
+            </tr>
+          </tfoot>
+        </table>
+        <div class="cnote">Last month: ${fn(t.newHiresLastMonth)} hired, ${fn(t.terminationsLastMonth)} terminated, net ${t.newHiresLastMonth-t.terminationsLastMonth>0?'+':''}${t.newHiresLastMonth-t.terminationsLastMonth}.</div>
+      </div>
+    </div>
+
+    <div class="fcard">
+      <div class="ctitle">Workforce retention &mdash; active vs all-time</div>
+      <div class="retention-bar">
+        <div class="ret-active" style="width:${Math.round(retRate*100)}%">${Math.round(retRate*100) > 15 ? fn(t.active)+' active ('+fp(retRate)+')' : ''}</div>
+        <div class="ret-term" style="width:${Math.round((1-retRate)*100)}%">${Math.round((1-retRate)*100) > 15 ? fn(t.terminated)+' terminated' : ''}</div>
+      </div>
+      <div style="font-size:11px;color:var(--text3)">
+        ${fp(retRate)} of all ${fn(t.total)} ever hired are still active &middot; Industry benchmark: 20–35% cumulative retention is normal for home care
+      </div>
+    </div>`;
+}
+
+function renderChurn() {
+  const t = cgData.totals;
+  const annualizedThis = t.churnRateThisMonth * 12;
+  const annualizedLast = t.churnRateLastMonth * 12;
+
+  const monthlyData = cgData.byState.map(s => {
+    const churnThis = s.active > 0 ? s.terminationsThisMonth / (s.active + s.terminationsThisMonth) : 0;
+    const churnLast = s.active > 0 ? s.terminationsLastMonth / (s.active + s.terminationsLastMonth) : 0;
+    return { ...s, churnThis, churnLast };
+  });
+
+  document.getElementById('ct').innerHTML = `
+    <div class="banner ${annualizedThis>0.8?'r':annualizedThis>0.6?'w':''}">
+      <div class="blabel ${annualizedThis>0.8?'r':annualizedThis>0.6?'w':''}">Churn analysis &mdash; monthly view</div>
+      Monthly churn rate is ${fp(t.churnRateThisMonth)} this month vs ${fp(t.churnRateLastMonth)} last month.
+      Annualized that is ${fp(annualizedThis)} &mdash; ${annualizedThis<=0.6?'within':'above'} the 60% industry benchmark for home care.
+      Maryland had the highest termination activity this month at ${fn(cgData.byState.find(s=>s.state==='Maryland')?.terminationsThisMonth||0)} terminations.
+    </div>
+
+    <div class="kgrid4">
+      <div class="kpi">
+        <div class="klabel">Churn Rate — This Month</div>
+        <div class="kval ${t.churnRateThisMonth<=0.05?'g':t.churnRateThisMonth<=0.08?'a':'r'}">${fp(t.churnRateThisMonth)}</div>
+        <div class="ksub">${fn(t.terminationsThisMonth)} terminations</div>
+      </div>
+      <div class="kpi">
+        <div class="klabel">Churn Rate — Last Month</div>
+        <div class="kval ${t.churnRateLastMonth<=0.05?'g':t.churnRateLastMonth<=0.08?'a':'r'}">${fp(t.churnRateLastMonth)}</div>
+        <div class="ksub">${fn(t.terminationsLastMonth)} terminations</div>
+      </div>
+      <div class="kpi">
+        <div class="klabel">Annualized Rate</div>
+        <div class="kval ${annualizedThis<=0.5?'g':annualizedThis<=0.7?'a':'r'}">${fp(annualizedThis)}</div>
+        <div class="ksub">Industry avg: 60–80%</div>
+      </div>
+      <div class="kpi">
+        <div class="klabel">Trend</div>
+        <div class="kval ${t.churnRateThisMonth<t.churnRateLastMonth?'g':t.churnRateThisMonth>t.churnRateLastMonth?'r':'a'}">${t.churnRateThisMonth<t.churnRateLastMonth?'▼ Down':t.churnRateThisMonth>t.churnRateLastMonth?'▲ Up':'— Flat'}</div>
+        <div class="ksub">${fp(Math.abs(t.churnRateThisMonth-t.churnRateLastMonth))} ${t.churnRateThisMonth<t.churnRateLastMonth?'improvement':'increase'}</div>
+      </div>
+    </div>
+
+    <div class="fcard">
+      <div class="ctitle">Monthly churn by state</div>
+      <table class="stbl">
+        <thead><tr><th>State</th><th>Active</th><th>Term. This Mo.</th><th>Churn This Mo.</th><th>Term. Last Mo.</th><th>Churn Last Mo.</th><th>Trend</th></tr></thead>
+        <tbody>
+          ${monthlyData.map(s=>`<tr>
+            <td>${s.state}</td>
+            <td>${fn(s.active)}</td>
+            <td style="color:var(--red)">${fn(s.terminationsThisMonth)}</td>
+            <td><span class="badge ${s.churnThis<=0.05?'bg':s.churnThis<=0.08?'ba':'br'}">${fp(s.churnThis)}</span></td>
+            <td style="color:var(--text2)">${fn(s.terminationsLastMonth)}</td>
+            <td><span class="badge ${s.churnLast<=0.05?'bg':s.churnLast<=0.08?'ba':'br'}">${fp(s.churnLast)}</span></td>
+            <td style="color:${s.churnThis<s.churnLast?'var(--green)':s.churnThis>s.churnLast?'var(--red)':'var(--text2)'}">${s.churnThis<s.churnLast?'▼ Better':s.churnThis>s.churnLast?'▲ Worse':'— Same'}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+      <div class="cnote">Churn rate = terminations &divide; (active + terminations) for that state. Green &le;5%/month &middot; Amber 5–8%/month &middot; Red &gt;8%/month.</div>
+    </div>
+
+    <div class="tcol">
+      <div class="card">
+        <div class="ctitle">What drives churn in home care</div>
+        <div style="font-size:12px;color:var(--text2);line-height:1.8">
+          <div style="margin-bottom:6px"><span style="font-weight:500;color:var(--text)">Hours availability</span> — caregivers leave when hours drop below sustainable income</div>
+          <div style="margin-bottom:6px"><span style="font-weight:500;color:var(--text)">Client compatibility</span> — poor caregiver-client matching increases early termination</div>
+          <div style="margin-bottom:6px"><span style="font-weight:500;color:var(--text)">Scheduling gaps</span> — inconsistent weekly hours vs guaranteed hours elsewhere</div>
+          <div style="margin-bottom:6px"><span style="font-weight:500;color:var(--text)">Onboarding friction</span> — median tenure of ${t.medianTenureDays} days suggests early departure risk</div>
+          <div><span style="font-weight:500;color:var(--text)">Pay competitiveness</span> — market rate pressure in all 3 states</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="ctitle">Churn cost estimate</div>
+        <div style="font-size:12px;color:var(--text2);line-height:1.8">
+          <div style="margin-bottom:8px">At ${fn(t.terminationsThisMonth)} terminations/month, estimated replacement cost:</div>
+          <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:0.5px solid var(--border)"><span>Recruiting cost per hire</span><span style="font-weight:500;color:var(--text)">~$500–800</span></div>
+          <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:0.5px solid var(--border)"><span>Training/onboarding time</span><span style="font-weight:500;color:var(--text)">~$200–400</span></div>
+          <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:0.5px solid var(--border)"><span>Lost productivity (ramp)</span><span style="font-weight:500;color:var(--text)">~$300–600</span></div>
+          <div style="display:flex;justify-content:space-between;padding:8px 0;font-weight:500"><span style="color:var(--text)">Monthly churn cost estimate</span><span style="color:var(--red)">$${(t.terminationsThisMonth*1000/1000).toFixed(0)}K–$${(t.terminationsThisMonth*1800/1000).toFixed(0)}K</span></div>
+        </div>
+      </div>
+    </div>`;
+}
+
+function renderHiring() {
+  const t = cgData.totals;
+  const hiringTrend = t.newHiresThisMonth >= t.newHiresLastMonth ? 'flat or improving' : 'slowing down';
+
+  document.getElementById('ct').innerHTML = `
+    <div class="banner ${t.newHiresThisMonth<t.newHiresLastMonth?'w':''}">
+      <div class="blabel ${t.newHiresThisMonth<t.newHiresLastMonth?'w':''}">Hiring activity &mdash; ${new Date().toLocaleDateString('en-US',{month:'long',year:'numeric'})}</div>
+      ${fn(t.newHiresThisMonth)} new hires so far this month vs ${fn(t.newHiresLastMonth)} last month &mdash; hiring is ${hiringTrend}.
+      With ${fn(t.terminationsThisMonth)} terminations, net headcount change is ${t.netChangeThisMonth>0?'+':''}${t.netChangeThisMonth} this month.
+      Massachusetts leads hiring with ${fn(cgData.byState.find(s=>s.state==='Massachusetts')?.newHiresThisMonth||0)} new hires.
+    </div>
+
+    <div class="kgrid4">
+      <div class="kpi">
+        <div class="klabel">New Hires This Month</div>
+        <div class="kval g">${fn(t.newHiresThisMonth)}</div>
+        <div class="ktrend ${trendClass(t.newHiresThisMonth,t.newHiresLastMonth)}">${trend(t.newHiresThisMonth,t.newHiresLastMonth)} vs ${fn(t.newHiresLastMonth)} last month</div>
+      </div>
+      <div class="kpi">
+        <div class="klabel">Terminations This Month</div>
+        <div class="kval r">${fn(t.terminationsThisMonth)}</div>
+        <div class="ktrend ${trendClass(t.terminationsThisMonth,t.terminationsLastMonth,false)}">${trend(t.terminationsThisMonth,t.terminationsLastMonth)} vs ${fn(t.terminationsLastMonth)} last month</div>
+      </div>
+      <div class="kpi">
+        <div class="klabel">Net Headcount Change</div>
+        <div class="kval ${t.netChangeThisMonth>0?'g':t.netChangeThisMonth<0?'r':'a'}">${t.netChangeThisMonth>0?'+':''}${t.netChangeThisMonth}</div>
+        <div class="ksub">This month MTD</div>
+      </div>
+      <div class="kpi">
+        <div class="klabel">Hire-to-Term Ratio</div>
+        <div class="kval ${t.newHiresThisMonth>=t.terminationsThisMonth?'g':'r'}">${t.terminationsThisMonth>0?(t.newHiresThisMonth/t.terminationsThisMonth).toFixed(1):'∞'}:1</div>
+        <div class="ksub">Hires per termination</div>
+      </div>
+    </div>
+
+    <div class="tcol">
+      <div class="card">
+        <div class="ctitle">Hiring by state — this month vs last</div>
+        <table class="stbl">
+          <thead><tr><th>State</th><th>This Month</th><th>Last Month</th><th>Change</th></tr></thead>
+          <tbody>
+            ${cgData.byState.map(s=>{
+              const diff = s.newHiresThisMonth - s.newHiresLastMonth;
+              return `<tr>
+                <td>${s.state}</td>
+                <td style="color:var(--green);font-weight:500">${fn(s.newHiresThisMonth)}</td>
+                <td style="color:var(--text2)">${fn(s.newHiresLastMonth)}</td>
+                <td style="color:${diff>0?'var(--green)':diff<0?'var(--red)':'var(--text2)'}">${diff>0?'+':''}${diff}</td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+          <tfoot>
+            <tr><td>Total</td><td style="color:var(--green)">${fn(t.newHiresThisMonth)}</td><td style="color:var(--text2)">${fn(t.newHiresLastMonth)}</td><td style="color:${t.newHiresThisMonth>=t.newHiresLastMonth?'var(--green)':'var(--red)'}">${t.newHiresThisMonth-t.newHiresLastMonth>0?'+':''}${t.newHiresThisMonth-t.newHiresLastMonth}</td></tr>
+          </tfoot>
+        </table>
+      </div>
+      <div class="card">
+        <div class="ctitle">Terminations by state — this month vs last</div>
+        <table class="stbl">
+          <thead><tr><th>State</th><th>This Month</th><th>Last Month</th><th>Change</th></tr></thead>
+          <tbody>
+            ${cgData.byState.map(s=>{
+              const diff = s.terminationsThisMonth - s.terminationsLastMonth;
+              return `<tr>
+                <td>${s.state}</td>
+                <td style="color:var(--red);font-weight:500">${fn(s.terminationsThisMonth)}</td>
+                <td style="color:var(--text2)">${fn(s.terminationsLastMonth)}</td>
+                <td style="color:${diff<0?'var(--green)':diff>0?'var(--red)':'var(--text2)'}">${diff>0?'+':''}${diff}</td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+          <tfoot>
+            <tr><td>Total</td><td style="color:var(--red)">${fn(t.terminationsThisMonth)}</td><td style="color:var(--text2)">${fn(t.terminationsLastMonth)}</td><td style="color:${t.terminationsThisMonth<=t.terminationsLastMonth?'var(--green)':'var(--red)'}">${t.terminationsThisMonth-t.terminationsLastMonth>0?'+':''}${t.terminationsThisMonth-t.terminationsLastMonth}</td></tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+
+    <div class="fcard">
+      <div class="ctitle">Recent hires &mdash; ${new Date().toLocaleDateString('en-US',{month:'long',year:'numeric'})}</div>
+      <div class="hire-list">
+        ${cgData.recentHires.length === 0
+          ? '<div style="font-size:13px;color:var(--text3);padding:12px 0">No new hires recorded this month yet.</div>'
+          : cgData.recentHires.map(h=>`
+          <div class="hire-item">
+            <div>
+              <div class="hire-name">${h.name || 'Unknown'}</div>
+              <div class="hire-meta">${h.market} &middot; ${h.state}</div>
+            </div>
+            <div class="hire-right">
+              <div class="hire-date">${h.hireDate}</div>
+              <span class="badge ${h.status==='active'?'bg':'ba'}" style="margin-top:3px;display:inline-block">${h.status}</span>
+            </div>
+          </div>`).join('')}
+      </div>
+      <div class="cnote">Showing up to 20 most recent hires this month. ${cgData.totals.newHiresThisMonth > 20 ? (cgData.totals.newHiresThisMonth - 20) + ' additional hires not shown.' : ''}</div>
+    </div>`;
+}
+
+function renderTenure() {
+  const t = cgData.totals;
+  const avgMonths = Math.round(t.avgTenureDays/30);
+  const medMonths = Math.round(t.medianTenureDays/30);
+
+  document.getElementById('ct').innerHTML = `
+    <div class="banner ${t.medianTenureDays<90?'r':t.medianTenureDays<180?'w':''}">
+      <div class="blabel ${t.medianTenureDays<90?'r':t.medianTenureDays<180?'w':''}">Tenure & workforce stability</div>
+      Median tenure is <strong>${t.medianTenureDays} days (${medMonths} months)</strong> — meaning half of all caregivers who leave do so within ${medMonths} months of being hired.
+      Average tenure is ${t.avgTenureDays} days (${avgMonths} months), pulled higher by long-tenured caregivers.
+      The gap between median and average (${avgMonths-medMonths} months) indicates a small group of highly stable long-term caregivers alongside high early-stage turnover.
+    </div>
+
+    <div class="kgrid4">
+      <div class="kpi">
+        <div class="klabel">Median Tenure</div>
+        <div class="kval ${t.medianTenureDays>=180?'g':t.medianTenureDays>=90?'a':'r'}">${medMonths} mo</div>
+        <div class="ksub">${t.medianTenureDays} days &middot; 50th percentile</div>
+      </div>
+      <div class="kpi">
+        <div class="klabel">Average Tenure</div>
+        <div class="kval b">${avgMonths} mo</div>
+        <div class="ksub">${t.avgTenureDays} days &middot; mean</div>
+      </div>
+      <div class="kpi">
+        <div class="klabel">Early Attrition Risk</div>
+        <div class="kval ${t.medianTenureDays<90?'r':t.medianTenureDays<180?'a':'g'}">${t.medianTenureDays<90?'High':t.medianTenureDays<180?'Medium':'Low'}</div>
+        <div class="ksub">Based on median tenure</div>
+      </div>
+      <div class="kpi">
+        <div class="klabel">Cumulative Retention</div>
+        <div class="kval ${t.retentionRate>=0.35?'g':t.retentionRate>=0.2?'a':'r'}">${fp(t.retentionRate)}</div>
+        <div class="ksub">${fn(t.active)} active of ${fn(t.total)} ever hired</div>
+      </div>
+    </div>
+
+    <div class="tcol">
+      <div class="card">
+        <div class="ctitle">Tenure interpretation</div>
+        <div style="font-size:12px;color:var(--text2);line-height:1.9">
+          <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:0.5px solid var(--border)">
+            <span>Median tenure (leavers)</span>
+            <span style="font-weight:500;color:var(--text)">${t.medianTenureDays} days (${medMonths} mo)</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:0.5px solid var(--border)">
+            <span>Average tenure (leavers)</span>
+            <span style="font-weight:500;color:var(--text)">${t.avgTenureDays} days (${avgMonths} mo)</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:0.5px solid var(--border)">
+            <span>Industry median (home care)</span>
+            <span style="font-weight:500;color:var(--text2)">~6–9 months</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:0.5px solid var(--border)">
+            <span>Tribute vs industry</span>
+            <span style="font-weight:500;color:${medMonths>=6?'var(--green)':'var(--amber)'}">${medMonths>=6?'At or above':'Below'} benchmark</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:5px 0">
+            <span>Annualized churn rate</span>
+            <span style="font-weight:500;color:var(--text)">${fp(t.churnRateThisMonth*12)}</span>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="ctitle">Stability levers</div>
+        <div style="font-size:12px;color:var(--text2);line-height:1.9">
+          <div style="margin-bottom:8px;padding-bottom:8px;border-bottom:0.5px solid var(--border)">
+            <div style="font-weight:500;color:var(--text);margin-bottom:2px">Guaranteed hours programs</div>
+            <div>Caregivers with &ge;30 hrs/week guaranteed have 2–3x higher retention. Check utilization by market.</div>
+          </div>
+          <div style="margin-bottom:8px;padding-bottom:8px;border-bottom:0.5px solid var(--border)">
+            <div style="font-weight:500;color:var(--text);margin-bottom:2px">90-day retention milestone</div>
+            <div>Caregivers who reach 90 days are significantly more likely to stay 1+ year. Track 90-day cohort survival.</div>
+          </div>
+          <div>
+            <div style="font-weight:500;color:var(--text);margin-bottom:2px">Early engagement signals</div>
+            <div>First-week activation rate (did the caregiver work their first shift?) is the strongest predictor of 6-month retention.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="fcard">
+      <div class="ctitle">Tenure by state</div>
+      <table class="stbl">
+        <thead><tr><th>State</th><th>Active</th><th>Terminated</th><th>Total</th><th>Cumulative Retention</th></tr></thead>
+        <tbody>
+          ${cgData.byState.map(s=>{
+            const ret = s.total>0?s.active/s.total:0;
+            return `<tr>
+              <td>${s.state}</td>
+              <td style="color:var(--green)">${fn(s.active)}</td>
+              <td style="color:var(--red)">${fn(s.terminated)}</td>
+              <td>${fn(s.total)}</td>
+              <td><span class="badge ${ret>=0.35?'bg':ret>=0.2?'ba':'br'}">${fp(ret)}</span></td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+        <tfoot>
+          <tr>
+            <td>All states</td>
+            <td style="color:var(--green)">${fn(t.active)}</td>
+            <td style="color:var(--red)">${fn(t.terminated)}</td>
+            <td>${fn(t.total)}</td>
+            <td><span class="badge ${t.retentionRate>=0.35?'bg':t.retentionRate>=0.2?'ba':'br'}">${fp(t.retentionRate)}</span></td>
+          </tr>
+        </tfoot>
+      </table>
+      <div class="cnote">Tenure metrics (avg/median days) are calculated from caregivers who have been terminated. Active caregivers' tenure continues to accrue.</div>
+    </div>`;
+}
+
+fetchData();
+</script>
+</body>
+</html>
