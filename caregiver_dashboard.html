@@ -137,7 +137,7 @@ let curTab = 'overview';
 // ── Phase 1: Fast load — state aggregates from visits endpoint ────────────────
 async function fetchQuick() {
   // Use the fast aggregate caregiver call (old simple version)
-  const res = await fetch(`${API}?endpoint=caregivers`);
+  const res = await fetch(`${API}?endpoint=caregivers&fast=true`);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const data = await res.json();
   
