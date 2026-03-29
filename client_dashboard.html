@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tribute — Client Census</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#ffffff;--bg2:#f7f7f5;--bg3:#ededea;
+  --text:#1a1a18;--text2:#6b6b67;--text3:#9e9c96;
+  --border:rgba(0,0,0,0.09);--border2:rgba(0,0,0,0.16);
+  --green:#1D9E75;--amber:#EF9F27;--red:#E24B4A;--blue:#185FA5;
+  --green-bg:#E1F5EE;--amber-bg:#FAEEDA;--red-bg:#FCEBEB;--blue-bg:#E6F1FB;
+  --green-text:#0F6E56;--amber-text:#633806;--red-text:#791F1F;--blue-text:#0C447C;
+  --r:8px;--rl:12px;
+}
+@media(prefers-color-scheme:dark){
+  :root{--bg:#1a1a18;--bg2:#232320;--bg3:#2c2c29;--text:#e8e6e0;--text2:#9e9c96;--text3:#6b6b67;--border:rgba(255,255,255,0.09);--border2:rgba(255,255,255,0.16);--green-bg:#04342C;--amber-bg:#412402;--red-bg:#501313;--blue-bg:#042C53;--green-text:#9FE1CB;--amber-text:#FAC775;--red-text:#F09595;--blue-text:#85B7EB;}
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);padding:20px;max-width:1100px;margin:0 auto;font-size:14px;line-height:1.5}
+.hdr{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:14px;border-bottom:0.5px solid var(--border);margin-bottom:16px;flex-wrap:wrap;gap:10px}
+.logo{font-size:10px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--text3)}
+.title{font-size:22px;font-weight:500;margin-top:3px}
+.subtitle{font-size:11px;color:var(--text3);margin-top:2px}
+.live-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--green);margin-right:4px;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+.loading{text-align:center;padding:60px 20px;color:var(--text3);font-size:13px}
+.spinner{width:24px;height:24px;border:2px solid var(--border2);border-top-color:var(--text);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 12px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.error{background:var(--red-bg);color:var(--red-text);border-radius:var(--r);padding:12px 16px;margin-bottom:16px;font-size:13px}
+
+.tabs{display:flex;border-bottom:0.5px solid var(--border);margin-bottom:16px;overflow-x:auto}
+.tab{font-size:12px;font-weight:500;color:var(--text2);padding:8px 16px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-0.5px;white-space:nowrap;transition:color .15s;user-select:none}
+.tab.on{color:var(--text);border-bottom-color:var(--text)}
+.tab:hover:not(.on){color:var(--text)}
+
+.banner{border-radius:var(--r);padding:12px 16px;margin-bottom:16px;border-left:3px solid var(--green);background:var(--bg2);font-size:13px;line-height:1.6}
+.banner.w{border-left-color:var(--amber)}.banner.r{border-left-color:var(--red)}
+.blabel{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--green);margin-bottom:4px}
+.blabel.w{color:var(--amber)}.blabel.r{color:var(--red)}
+
+.kgrid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-bottom:16px}
+.kgrid4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:16px}
+@media(max-width:800px){.kgrid,.kgrid4{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:500px){.kgrid,.kgrid4{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.kpi{background:var(--bg2);border-radius:var(--r);padding:14px 16px}
+.klabel{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text2);margin-bottom:6px}
+.kval{font-size:24px;font-weight:500;line-height:1;margin-bottom:4px;font-variant-numeric:tabular-nums}
+.ksub{font-size:11px;color:var(--text3)}
+.kval.g{color:var(--green)}.kval.a{color:var(--amber)}.kval.r{color:var(--red)}.kval.b{color:var(--blue)}
+.ktrend{font-size:11px;margin-top:4px}
+.ktrend.up{color:var(--green)}.ktrend.dn{color:var(--red)}.ktrend.flat{color:var(--text3)}
+
+.tcol{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+@media(max-width:700px){.tcol{grid-template-columns:1fr}}
+.card{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--rl);padding:16px 18px}
+.ctitle{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text2);margin-bottom:12px}
+.cnote{font-size:11px;color:var(--text3);line-height:1.5;margin-top:10px;border-top:0.5px solid var(--border);padding-top:8px;font-style:italic}
+.fcard{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--rl);padding:16px 18px;margin-bottom:12px}
+
+.stbl{width:100%;border-collapse:collapse;font-size:12px}
+.stbl th{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--text2);padding:7px 10px;border-bottom:0.5px solid var(--border2);text-align:right}
+.stbl th:first-child{text-align:left}
+.stbl td{padding:9px 10px;border-bottom:0.5px solid var(--border);text-align:right;font-variant-numeric:tabular-nums}
+.stbl td:first-child{text-align:left;font-weight:500}
+.stbl tbody tr:last-child td{border-bottom:none}
+.stbl tfoot td{border-top:0.5px solid var(--border2);font-weight:500;padding:9px 10px;text-align:right}
+.stbl tfoot td:first-child{text-align:left}
+
+.badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;display:inline-block}
+.bg{background:var(--green-bg);color:var(--green-text)}
+.ba{background:var(--amber-bg);color:var(--amber-text)}
+.br{background:var(--red-bg);color:var(--red-text)}
+.bb{background:var(--blue-bg);color:var(--blue-text)}
+
+.mbarrow{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:0.5px solid var(--border)}
+.mbarrow:last-child{border-bottom:none}
+.mbarlabel{font-size:12px;color:var(--text);width:150px;flex-shrink:0}
+.mbartrack{flex:1;height:14px;background:var(--bg3);border-radius:2px;overflow:hidden}
+.mbarfill{height:100%;border-radius:2px;transition:width .5s ease}
+.mbarval{font-size:12px;font-weight:500;width:36px;text-align:right;flex-shrink:0}
+.mbarval2{font-size:11px;color:var(--text3);width:80px;text-align:right;flex-shrink:0}
+
+.ftr{margin-top:32px;padding-top:14px;border-top:0.5px solid var(--border);font-size:11px;color:var(--text3);display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div>
+    <div class="logo">Tribute Home Care</div>
+    <div class="title">Client Census</div>
+    <div class="subtitle"><span class="live-dot"></span>Live data &middot; Viv Technologies API &middot; Updated <span id="ud">now</span></div>
+  </div>
+  <div style="text-align:right;font-size:11px;color:var(--text3)" id="hdrRight"></div>
+</div>
+
+<div class="tabs">
+  <div class="tab on" onclick="setTab('overview',this)">Overview</div>
+  <div class="tab" onclick="setTab('growth',this)">Growth & Churn</div>
+  <div class="tab" onclick="setTab('markets',this)">By Market</div>
+  <div class="tab" onclick="setTab('pipeline',this)">Pipeline & Status</div>
+</div>
+
+<div id="ct"><div class="loading"><div class="spinner"></div>Loading client census...</div></div>
+
+<div class="ftr">
+  <span>Tribute Home Care LLC &middot; Client Census</span>
+  <span id="genAt"></span>
+</div>
+
+<script>
+const API = 'https://tribute-api-prod-bkc4hfcwf3f2f6bf.centralus-01.azurewebsites.net/api/vivProxy';
+const fp = n => (n*100).toFixed(1)+'%';
+const fn = n => Math.round(n).toLocaleString();
+const trend = (c,p) => c>p?'▲':c<p?'▼':'—';
+const trendCls = (c,p,hib=true) => c===p?'flat':(c>p)===hib?'up':'dn';
+
+let data = null;
+let curTab = 'overview';
+
+async function init() {
+  try {
+    const res = await fetch(`${API}?endpoint=clients`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    data = await res.json();
+    document.getElementById('ud').textContent = new Date().toLocaleTimeString();
+    document.getElementById('genAt').textContent = `Generated: ${new Date(data.generatedAt).toLocaleString()}`;
+    document.getElementById('hdrRight').innerHTML = `${fn(data.totals.active)} active clients<br><span style="color:var(--text3)">${fn(data.totals.total)} ever served &middot; 8 markets</span>`;
+    render();
+  } catch(e) {
+    document.getElementById('ct').innerHTML = `<div class="error">Error: ${e.message}</div>`;
+  }
+}
+
+function setTab(t, el) {
+  curTab = t;
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
+  el.classList.add('on');
+  render();
+}
+
+function render() {
+  if (!data) return;
+  switch(curTab) {
+    case 'overview': renderOverview(); break;
+    case 'growth': renderGrowth(); break;
+    case 'markets': renderMarkets(); break;
+    case 'pipeline': renderPipeline(); break;
+  }
+}
+
+function renderOverview() {
+  const t = data.totals;
+  const netDir = t.netChangeThisMonth > 0 ? 'growing' : t.netChangeThisMonth < 0 ? 'declining' : 'flat';
+  const topMarket = data.byMarket[0];
+  const topTwo = data.byMarket.slice(0,2).reduce((s,m)=>s+m.active,0);
+  const concRisk = topTwo/t.active;
+
+  const maxActive = Math.max(...data.byMarket.map(m=>m.active));
+  const marketBars = data.byMarket.map(m => {
+    const w = maxActive > 0 ? Math.round(m.active/maxActive*100) : 0;
+    return `<div class="mbarrow">
+      <div class="mbarlabel">${m.market}</div>
+      <div class="mbartrack"><div class="mbarfill" style="width:${w}%;background:var(--blue)"></div></div>
+      <div class="mbarval">${fn(m.active)}</div>
+      <div class="mbarval2">${t.active>0?fp(m.active/t.active):'-'} of total</div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('ct').innerHTML = `
+    <div class="banner ${t.netChangeThisMonth<-5?'r':t.netChangeThisMonth<0?'w':''}">
+      <div class="blabel ${t.netChangeThisMonth<-5?'r':t.netChangeThisMonth<0?'w':''}">${new Date().toLocaleDateString('en-US',{month:'long',year:'numeric'})}</div>
+      ${fn(t.active)} active clients across 8 markets — census is ${netDir} this month.
+      Net change: <strong>${t.netChangeThisMonth>0?'+':''}${t.netChangeThisMonth}</strong> (${fn(t.newThisMonth)} new, ${fn(t.dischargedThisMonth)} discharged).
+      ${topMarket.market} is the largest market at ${fn(topMarket.active)} active clients (${fp(topMarket.active/t.active)} of total).
+      ${t.onHold>0?`${fn(t.onHold)} clients currently on hold or in transition.`:''}
+    </div>
+
+    <div class="kgrid">
+      <div class="kpi"><div class="klabel">Active Clients</div><div class="kval g">${fn(t.active)}</div><div class="ksub">Currently receiving care</div></div>
+      <div class="kpi"><div class="klabel">Net Change (MTD)</div><div class="kval ${t.netChangeThisMonth>0?'g':t.netChangeThisMonth<0?'r':'a'}">${t.netChangeThisMonth>0?'+':''}${t.netChangeThisMonth}</div><div class="ksub">${fn(t.newThisMonth)} in &middot; ${fn(t.dischargedThisMonth)} out</div></div>
+      <div class="kpi"><div class="klabel">New This Month</div><div class="kval b">${fn(t.newThisMonth)}</div><div class="ktrend ${trendCls(t.newThisMonth,t.newLastMonth)}">${trend(t.newThisMonth,t.newLastMonth)} vs ${fn(t.newLastMonth)} last mo</div></div>
+      <div class="kpi"><div class="klabel">Discharged (MTD)</div><div class="kval ${t.dischargedThisMonth>t.newThisMonth?'r':'a'}">${fn(t.dischargedThisMonth)}</div><div class="ksub">This month to date</div></div>
+      <div class="kpi"><div class="klabel">On Hold</div><div class="kval a">${fn(t.onHold)}</div><div class="ksub">Hospitalized / transitioning</div></div>
+    </div>
+
+    <div class="fcard">
+      <div class="ctitle">Active clients by market</div>
+      ${marketBars}
+      <div class="cnote">Baltimore and Boston represent ${fp(topTwo/t.active)} of active census. ${concRisk>0.7?'High concentration risk — growth in other markets reduces dependency.':'Concentration is within normal range.'}</div>
+    </div>`;
+}
+
+function renderGrowth() {
+  const t = data.totals;
+  const growthRate = t.active > 0 ? t.newThisMonth / t.active : 0;
+  const churnRate = t.active > 0 ? t.dischargedThisMonth / t.active : 0;
+
+  document.getElementById('ct').innerHTML = `
+    <div class="banner ${t.netChangeThisMonth<0?'r':t.netChangeThisMonth===0?'w':''}">
+      <div class="blabel ${t.netChangeThisMonth<0?'r':t.netChangeThisMonth===0?'w':''}">${new Date().toLocaleDateString('en-US',{month:'long',year:'numeric'})}</div>
+      ${fn(t.newThisMonth)} new clients this month vs ${fn(t.dischargedThisMonth)} discharged — net ${t.netChangeThisMonth>0?'+':''}${t.netChangeThisMonth}.
+      Monthly intake rate: ${fp(growthRate)} &middot; Monthly discharge rate: ${fp(churnRate)}.
+      ${t.newThisMonth>t.newLastMonth?'Intake is up from last month.':t.newThisMonth<t.newLastMonth?'Intake is down from last month.':'Intake is flat vs last month.'}
+    </div>
+
+    <div class="kgrid4">
+      <div class="kpi"><div class="klabel">New Clients This Month</div><div class="kval g">${fn(t.newThisMonth)}</div><div class="ktrend ${trendCls(t.newThisMonth,t.newLastMonth)}">${trend(t.newThisMonth,t.newLastMonth)} vs ${fn(t.newLastMonth)} last month</div></div>
+      <div class="kpi"><div class="klabel">Discharged This Month</div><div class="kval ${t.dischargedThisMonth>t.newThisMonth?'r':'a'}">${fn(t.dischargedThisMonth)}</div><div class="ksub">Left care this month</div></div>
+      <div class="kpi"><div class="klabel">Net Census Change</div><div class="kval ${t.netChangeThisMonth>0?'g':t.netChangeThisMonth<0?'r':'a'}">${t.netChangeThisMonth>0?'+':''}${t.netChangeThisMonth}</div><div class="ksub">New minus discharged</div></div>
+      <div class="kpi"><div class="klabel">Intake:Discharge Ratio</div><div class="kval ${t.newThisMonth>=t.dischargedThisMonth?'g':'r'}">${t.dischargedThisMonth>0?(t.newThisMonth/t.dischargedThisMonth).toFixed(2):'∞'}:1</div><div class="ksub">New per discharged</div></div>
+    </div>
+
+    <div class="fcard">
+      <div class="ctitle">Growth by market — this month vs last month</div>
+      <table class="stbl">
+        <thead><tr><th>Market</th><th>Active</th><th>New This Mo.</th><th>New Last Mo.</th><th>Discharged</th><th>Net</th></tr></thead>
+        <tbody>${data.byMarket.map(m=>{
+          const net=m.newThisMonth-m.dischargedThisMonth;
+          return`<tr>
+            <td>${m.market}<div style="font-size:10px;color:var(--text3)">${m.state}</div></td>
+            <td>${fn(m.active)}</td>
+            <td style="color:var(--green)">${fn(m.newThisMonth)}</td>
+            <td style="color:var(--text2)">${fn(m.newLastMonth)}</td>
+            <td style="color:var(--red)">${fn(m.dischargedThisMonth)}</td>
+            <td style="color:${net>0?'var(--green)':net<0?'var(--red)':'var(--text2)';font-weight:500}">${net>0?'+':''}${net}</td>
+          </tr>`;
+        }).join('')}</tbody>
+        <tfoot><tr>
+          <td>Total</td>
+          <td>${fn(t.active)}</td>
+          <td style="color:var(--green)">${fn(t.newThisMonth)}</td>
+          <td style="color:var(--text2)">${fn(t.newLastMonth)}</td>
+          <td style="color:var(--red)">${fn(t.dischargedThisMonth)}</td>
+          <td style="color:${t.netChangeThisMonth>0?'var(--green)':t.netChangeThisMonth<0?'var(--red)':'var(--text2)'}">${t.netChangeThisMonth>0?'+':''}${t.netChangeThisMonth}</td>
+        </tr></tfoot>
+      </table>
+    </div>`;
+}
+
+function renderMarkets() {
+  const t = data.totals;
+  const maxActive = Math.max(...data.byMarket.map(m=>m.active));
+
+  document.getElementById('ct').innerHTML = `
+    <div class="banner">
+      <div class="blabel">Market breakdown &mdash; active census</div>
+      ${fn(t.active)} active clients across 8 markets. Baltimore leads with ${fn(data.byMarket[0]?.active||0)} clients.
+      Each market's growth trend reflects local referral network strength and caregiver availability.
+    </div>
+
+    <div class="fcard">
+      <div class="ctitle">Full market comparison</div>
+      <table class="stbl">
+        <thead><tr><th>Market</th><th>Active</th><th>% of Total</th><th>On Hold</th><th>Discharged</th><th>Ever Served</th><th>Retention</th></tr></thead>
+        <tbody>${data.byMarket.map(m=>{
+          const ret = m.total>0?m.active/m.total:0;
+          const bw = maxActive>0?Math.round(m.active/maxActive*50):0;
+          return`<tr>
+            <td>${m.market}<div style="font-size:10px;color:var(--text3)">${m.state}</div></td>
+            <td>${fn(m.active)}<span style="display:inline-block;width:${bw}px;height:3px;background:var(--blue);border-radius:2px;vertical-align:middle;margin-left:6px"></span></td>
+            <td>${t.active>0?fp(m.active/t.active):'-'}</td>
+            <td style="color:var(--amber)">${fn(m.onHold)}</td>
+            <td style="color:var(--text2)">${fn(m.discharged)}</td>
+            <td>${fn(m.total)}</td>
+            <td><span class="badge ${ret>=0.2?'bg':ret>=0.1?'ba':'br'}">${fp(ret)}</span></td>
+          </tr>`;
+        }).join('')}</tbody>
+        <tfoot><tr>
+          <td>Total</td>
+          <td>${fn(t.active)}</td>
+          <td>100%</td>
+          <td style="color:var(--amber)">${fn(t.onHold)}</td>
+          <td style="color:var(--text2)">${fn(t.discharged)}</td>
+          <td>${fn(t.total)}</td>
+          <td><span class="badge ${t.active/t.total>=0.2?'bg':t.active/t.total>=0.1?'ba':'br'}">${fp(t.active/t.total)}</span></td>
+        </tr></tfoot>
+      </table>
+      <div class="cnote">Retention = active &divide; ever served. Home care retention varies by market maturity — newer markets have higher retention as they haven't accumulated historical discharges yet.</div>
+    </div>
+
+    <div class="tcol">
+      <div class="card">
+        <div class="ctitle">Massachusetts markets</div>
+        <table class="stbl">
+          <thead><tr><th>Market</th><th>Active</th><th>New MTD</th><th>Net</th></tr></thead>
+          <tbody>${data.byMarket.filter(m=>m.state==='Massachusetts').map(m=>{
+            const net=m.newThisMonth-m.dischargedThisMonth;
+            return`<tr><td>${m.market}</td><td>${fn(m.active)}</td><td style="color:var(--green)">${fn(m.newThisMonth)}</td><td style="color:${net>=0?'var(--green)':'var(--red)'}">${net>0?'+':''}${net}</td></tr>`;
+          }).join('')}</tbody>
+        </table>
+      </div>
+      <div class="card">
+        <div class="ctitle">Maryland & Illinois markets</div>
+        <table class="stbl">
+          <thead><tr><th>Market</th><th>Active</th><th>New MTD</th><th>Net</th></tr></thead>
+          <tbody>${data.byMarket.filter(m=>m.state!=='Massachusetts').map(m=>{
+            const net=m.newThisMonth-m.dischargedThisMonth;
+            return`<tr><td>${m.market}<div style="font-size:10px;color:var(--text3)">${m.state}</div></td><td>${fn(m.active)}</td><td style="color:var(--green)">${fn(m.newThisMonth)}</td><td style="color:${net>=0?'var(--green)':'var(--red)'}">${net>0?'+':''}${net}</td></tr>`;
+          }).join('')}</tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+function renderPipeline() {
+  const t = data.totals;
+  const activeRate = t.total>0?t.active/t.total:0;
+  const dischargeRate = t.total>0?t.discharged/t.total:0;
+
+  document.getElementById('ct').innerHTML = `
+    <div class="banner">
+      <div class="blabel">Client status distribution</div>
+      Of ${fn(t.total)} clients ever served, ${fn(t.active)} are active (${fp(activeRate)}), ${fn(t.onHold)} on hold, and ${fn(t.discharged)} discharged.
+      Net census change this month is ${t.netChangeThisMonth>0?'+':''}${t.netChangeThisMonth} — intake ${t.newThisMonth>=t.dischargedThisMonth?'exceeds':'is below'} discharges.
+    </div>
+
+    <div class="kgrid4">
+      <div class="kpi"><div class="klabel">Active</div><div class="kval g">${fn(t.active)}</div><div class="ksub">${fp(activeRate)} of ever served</div></div>
+      <div class="kpi"><div class="klabel">On Hold</div><div class="kval a">${fn(t.onHold)}</div><div class="ksub">Hospitalized / transitioning</div></div>
+      <div class="kpi"><div class="klabel">Discharged</div><div class="kval">${fn(t.discharged)}</div><div class="ksub">${fp(dischargeRate)} of ever served</div></div>
+      <div class="kpi"><div class="klabel">Ever Served</div><div class="kval b">${fn(t.total)}</div><div class="ksub">All time census</div></div>
+    </div>
+
+    <div class="fcard">
+      <div class="ctitle">Status breakdown by market</div>
+      <table class="stbl">
+        <thead><tr><th>Market</th><th>Active</th><th>On Hold</th><th>Discharged</th><th>Total</th><th>Active %</th></tr></thead>
+        <tbody>${data.byMarket.map(m=>{
+          const ar=m.total>0?m.active/m.total:0;
+          return`<tr>
+            <td>${m.market}</td>
+            <td style="color:var(--green)">${fn(m.active)}</td>
+            <td style="color:var(--amber)">${fn(m.onHold)}</td>
+            <td style="color:var(--text2)">${fn(m.discharged)}</td>
+            <td>${fn(m.total)}</td>
+            <td><span class="badge ${ar>=0.2?'bg':ar>=0.1?'ba':'br'}">${fp(ar)}</span></td>
+          </tr>`;
+        }).join('')}</tbody>
+        <tfoot><tr>
+          <td>Total</td>
+          <td style="color:var(--green)">${fn(t.active)}</td>
+          <td style="color:var(--amber)">${fn(t.onHold)}</td>
+          <td style="color:var(--text2)">${fn(t.discharged)}</td>
+          <td>${fn(t.total)}</td>
+          <td><span class="badge ${activeRate>=0.2?'bg':activeRate>=0.1?'ba':'br'}">${fp(activeRate)}</span></td>
+        </tr></tfoot>
+      </table>
+    </div>
+
+    <div class="tcol">
+      <div class="card">
+        <div class="ctitle">This month activity</div>
+        <table class="stbl">
+          <tbody>
+            <tr><td>New clients started</td><td style="color:var(--green);font-weight:500">${fn(t.newThisMonth)}</td></tr>
+            <tr><td>Clients discharged</td><td style="color:var(--red);font-weight:500">${fn(t.dischargedThisMonth)}</td></tr>
+            <tr><td>Net census change</td><td style="color:${t.netChangeThisMonth>=0?'var(--green)':'var(--red)'};font-weight:500">${t.netChangeThisMonth>0?'+':''}${t.netChangeThisMonth}</td></tr>
+            <tr><td>Intake:discharge ratio</td><td style="font-weight:500">${t.dischargedThisMonth>0?(t.newThisMonth/t.dischargedThisMonth).toFixed(2):'∞'}:1</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="card">
+        <div class="ctitle">Last month comparison</div>
+        <table class="stbl">
+          <tbody>
+            <tr><td>New clients (last month)</td><td style="color:var(--text2)">${fn(t.newLastMonth)}</td></tr>
+            <tr><td>New clients (this month)</td><td style="color:${t.newThisMonth>=t.newLastMonth?'var(--green)':'var(--red)'};font-weight:500">${fn(t.newThisMonth)}</td></tr>
+            <tr><td>Change in intake</td><td style="color:${t.newThisMonth>=t.newLastMonth?'var(--green)':'var(--red)'}">${t.newThisMonth-t.newLastMonth>0?'+':''}${t.newThisMonth-t.newLastMonth}</td></tr>
+            <tr><td>Trend</td><td style="font-weight:500;color:${t.newThisMonth>=t.newLastMonth?'var(--green)':'var(--red)'}">${t.newThisMonth>t.newLastMonth?'▲ Up':t.newThisMonth<t.newLastMonth?'▼ Down':'— Flat'}</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+init();
+</script>
+</body>
+</html>
