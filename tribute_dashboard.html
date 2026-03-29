@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tribute Executive Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #ffffff;
+    --bg2: #f7f7f5;
+    --bg3: #f0ede8;
+    --text: #1a1a18;
+    --text2: #6b6b67;
+    --text3: #9e9c96;
+    --border: rgba(0,0,0,0.1);
+    --border2: rgba(0,0,0,0.18);
+    --green: #1D9E75;
+    --amber: #EF9F27;
+    --red: #E24B4A;
+    --blue: #185FA5;
+    --blue-light: #E6F1FB;
+    --green-light: #E1F5EE;
+    --amber-light: #FAEEDA;
+    --red-light: #FCEBEB;
+    --radius: 8px;
+    --radius-lg: 12px;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1a1a18;
+      --bg2: #232320;
+      --bg3: #2c2c29;
+      --text: #e8e6e0;
+      --text2: #9e9c96;
+      --text3: #6b6b67;
+      --border: rgba(255,255,255,0.1);
+      --border2: rgba(255,255,255,0.18);
+      --blue-light: #042C53;
+      --green-light: #04342C;
+      --amber-light: #412402;
+      --red-light: #501313;
+    }
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: 24px;
+    max-width: 1200px;
+    margin: 0 auto;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding-bottom: 16px;
+    border-bottom: 0.5px solid var(--border);
+    margin-bottom: 20px;
+  }
+  .logo { font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text2); }
+  .title { font-size: 20px; font-weight: 500; color: var(--text); margin-top: 4px; }
+  .subtitle { font-size: 12px; color: var(--text3); margin-top: 2px; }
+  .header-right { text-align: right; }
+  .refresh-note { font-size: 11px; color: var(--text3); }
+
+  .tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 0.5px solid var(--border);
+    margin-bottom: 20px;
+    overflow-x: auto;
+  }
+  .tab {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text2);
+    padding: 8px 16px;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -0.5px;
+    white-space: nowrap;
+    transition: color 0.15s;
+    user-select: none;
+  }
+  .tab.active { color: var(--text); border-bottom-color: var(--text); }
+  .tab:hover:not(.active) { color: var(--text); }
+
+  .subtabs { display: flex; gap: 6px; margin-bottom: 20px; flex-wrap: wrap; }
+  .subtab {
+    font-size: 11px;
+    font-weight: 500;
+    padding: 4px 12px;
+    border-radius: 20px;
+    cursor: pointer;
+    border: 0.5px solid var(--border2);
+    color: var(--text2);
+    background: var(--bg2);
+    transition: all 0.15s;
+    user-select: none;
+  }
+  .subtab.active { background: var(--text); color: var(--bg); border-color: var(--text); }
+
+  .insight-banner {
+    border-radius: var(--radius);
+    padding: 12px 16px;
+    margin-bottom: 20px;
+    border-left: 3px solid var(--green);
+    background: var(--bg2);
+    font-size: 13px;
+    color: var(--text);
+    line-height: 1.6;
+  }
+  .insight-banner.amber { border-left-color: var(--amber); }
+  .insight-banner.red { border-left-color: var(--red); }
+  .insight-label {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--green);
+    margin-bottom: 4px;
+  }
+  .insight-label.amber { color: var(--amber); }
+  .insight-label.red { color: var(--red); }
+
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  @media (max-width: 800px) { .kpi-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  @media (max-width: 500px) { .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+  .kpi {
+    background: var(--bg2);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+  }
+  .kpi-label {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text2);
+    margin-bottom: 6px;
+  }
+  .kpi-val {
+    font-size: 24px;
+    font-weight: 500;
+    color: var(--text);
+    line-height: 1;
+    margin-bottom: 4px;
+    font-variant-numeric: tabular-nums;
+  }
+  .kpi-sub { font-size: 11px; color: var(--text3); }
+  .kpi-val.green { color: var(--green); }
+  .kpi-val.amber { color: var(--amber); }
+  .kpi-val.red { color: var(--red); }
+
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-bottom: 14px;
+  }
+  @media (max-width: 700px) { .two-col { grid-template-columns: 1fr; } }
+
+  .card {
+    background: var(--bg);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 16px 18px;
+  }
+  .card-title {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text2);
+    margin-bottom: 14px;
+  }
+  .card-insight {
+    font-size: 11px;
+    color: var(--text3);
+    line-height: 1.5;
+    margin-top: 12px;
+    border-top: 0.5px solid var(--border);
+    padding-top: 10px;
+    font-style: italic;
+  }
+
+  .market-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .market-table th {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--text2);
+    padding: 7px 10px;
+    border-bottom: 0.5px solid var(--border2);
+    text-align: right;
+  }
+  .market-table th:first-child { text-align: left; }
+  .market-table td {
+    padding: 9px 10px;
+    border-bottom: 0.5px solid var(--border);
+    color: var(--text);
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  .market-table td:first-child { text-align: left; font-weight: 500; }
+  .market-table tbody tr:last-child td { border-bottom: none; }
+  .market-table tbody tr:hover td { background: var(--bg2); cursor: pointer; }
+
+  .badge {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 10px;
+    display: inline-block;
+  }
+  .badge-green { background: var(--green-light); color: #0F6E56; }
+  .badge-amber { background: var(--amber-light); color: #633806; }
+  .badge-red { background: var(--red-light); color: #791F1F; }
+
+  .bar-wrap {
+    width: 60px; height: 4px;
+    background: var(--bg3);
+    border-radius: 2px;
+    overflow: hidden;
+    display: inline-block;
+    vertical-align: middle;
+    margin-left: 6px;
+  }
+  .bar-fill { height: 4px; border-radius: 2px; }
+
+  .full-card {
+    background: var(--bg);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 16px 18px;
+    margin-bottom: 14px;
+  }
+
+  .econ-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .econ-table td { padding: 8px 0; border-bottom: 0.5px solid var(--border); color: var(--text); }
+  .econ-table td:last-child { text-align: right; font-variant-numeric: tabular-nums; }
+  .econ-table tr:last-child td { border-bottom: none; }
+
+  .footer {
+    margin-top: 40px;
+    padding-top: 16px;
+    border-top: 0.5px solid var(--border);
+    font-size: 11px;
+    color: var(--text3);
+    display: flex;
+    justify-content: space-between;
+  }
+
+  button.action-btn {
+    font-size: 12px;
+    font-weight: 500;
+    padding: 8px 18px;
+    border-radius: var(--radius);
+    border: 0.5px solid var(--border2);
+    background: var(--bg2);
+    color: var(--text);
+    cursor: pointer;
+    transition: background 0.15s;
+    margin-top: 12px;
+  }
+  button.action-btn:hover { background: var(--bg3); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="logo">Tribute Home Care</div>
+    <div class="title">Executive Dashboard</div>
+    <div class="subtitle">Last updated: <span id="updateDate"></span> · Data: Viv Technologies + QuickBooks</div>
+  </div>
+  <div class="header-right">
+    <div class="refresh-note">Feb 2025 – Mar 2026</div>
+    <div class="refresh-note" style="margin-top:4px">13 weeks of operations · 8 markets</div>
+  </div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="setTab('company',this)">Company</div>
+  <div class="tab" onclick="setTab('massachusetts',this)">Massachusetts</div>
+  <div class="tab" onclick="setTab('illinois',this)">Illinois</div>
+  <div class="tab" onclick="setTab('maryland',this)">Maryland</div>
+</div>
+
+<div class="subtabs" id="subtabRow" style="display:none"></div>
+<div id="content"></div>
+
+<div class="footer">
+  <span>Tribute Home Care LLC · Executive Operating System</span>
+  <span>Data refreshed weekly via Viv API + QuickBooks export</span>
+</div>
+
+<script>
+document.getElementById('updateDate').textContent = new Date().toLocaleDateString('en-US', {month:'long',day:'numeric',year:'numeric'});
+
+const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+const gridC = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
+const tickC = isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.35)';
+
+const charts = {};
+function destroyChart(id) { if (charts[id]) { charts[id].destroy(); delete charts[id]; } }
+
+const fmt = n => n >= 1e6 ? '$' + (n/1e6).toFixed(2) + 'M' : n >= 1e3 ? '$' + (n/1e3).toFixed(0) + 'K' : '$' + Math.round(n);
+const fmtN = n => n >= 1e3 ? (n/1e3).toFixed(1) + 'K' : Math.round(n);
+const pct = n => (n*100).toFixed(1) + '%';
+const mc = m => m >= 0.32 ? 'green' : m >= 0.28 ? 'amber' : 'red';
+const mb = m => m >= 0.32 ? 'badge-green' : m >= 0.28 ? 'badge-amber' : 'badge-red';
+
+const MARKETS = {
+  'Boston':           {state:'Massachusetts',visits:9124, revenue:13180003,cogs:8606366, activeClients:62},
+  'MetroWest Boston': {state:'Massachusetts',visits:2868, revenue:7551562, cogs:4743259, activeClients:26},
+  'North of Boston':  {state:'Massachusetts',visits:643,  revenue:1121978, cogs:809679,  activeClients:6},
+  'South of Boston':  {state:'Massachusetts',visits:1374, revenue:2426869, cogs:1755141, activeClients:15},
+  'Chicago':          {state:'Illinois',     visits:1892, revenue:1565752, cogs:1032215, activeClients:19},
+  'Baltimore':        {state:'Maryland',     visits:8943, revenue:9951525, cogs:6729256, activeClients:102},
+  'Annapolis':        {state:'Maryland',     visits:497,  revenue:389061,  cogs:255289,  activeClients:5},
+  'Bethesda':         {state:'Maryland',     visits:110,  revenue:214681,  cogs:183714,  activeClients:2},
+};
+
+const ACTIVE_CG = {Massachusetts:203, Illinois:57, Maryland:203};
+const TOTAL_CG  = {Massachusetts:735, Illinois:148, Maryland:538};
+const ACTIVE_CG_ALL = 463;
+
+Object.entries(MARKETS).forEach(([,m]) => { m.gp = m.revenue - m.cogs; m.margin = m.gp / m.revenue; });
+
+const STATES = {
+  Massachusetts: ['Boston','MetroWest Boston','North of Boston','South of Boston'],
+  Illinois:      ['Chicago'],
+  Maryland:      ['Baltimore','Annapolis','Bethesda'],
+};
+
+function rollup(mList) {
+  const rev  = mList.reduce((s,m) => s + MARKETS[m].revenue, 0);
+  const cogs = mList.reduce((s,m) => s + MARKETS[m].cogs, 0);
+  const vis  = mList.reduce((s,m) => s + MARKETS[m].visits, 0);
+  const cl   = mList.reduce((s,m) => s + MARKETS[m].activeClients, 0);
+  return {revenue:rev, cogs, gp:rev-cogs, margin:(rev-cogs)/rev, visits:vis, activeClients:cl};
+}
+
+function kpiGrid(d, cgLabel) {
+  return `<div class="kpi-grid">
+    <div class="kpi"><div class="kpi-label">Revenue (13mo)</div><div class="kpi-val">${fmt(d.revenue)}</div><div class="kpi-sub">Feb 2025 – Mar 2026</div></div>
+    <div class="kpi"><div class="kpi-label">Gross Profit</div><div class="kpi-val">${fmt(d.gp)}</div><div class="kpi-sub">${pct(d.margin)} blended margin</div></div>
+    <div class="kpi"><div class="kpi-label">Gross Margin</div><div class="kpi-val ${mc(d.margin)}">${pct(d.margin)}</div><div class="kpi-sub">${d.margin>=0.28?'Above 28% floor':'Below 28% floor'}</div></div>
+    <div class="kpi"><div class="kpi-label">Active Clients</div><div class="kpi-val">${d.activeClients}</div><div class="kpi-sub">Currently serving</div></div>
+    <div class="kpi"><div class="kpi-label">Active Caregivers</div><div class="kpi-val">${d.activeCaregivers||'—'}</div><div class="kpi-sub">${cgLabel||'Hired, not terminated'}</div></div>
+  </div>`;
+}
+
+function marketRows(mList, showState) {
+  const maxRev = Math.max(...mList.map(n => MARKETS[n].revenue));
+  return mList.map(name => {
+    const m = MARKETS[name];
+    const bw = Math.round(m.revenue/maxRev*100);
+    return `<tr>
+      <td>${name}${showState?`<div style="font-size:10px;color:var(--text3)">${m.state}</div>`:''}</td>
+      <td>${fmt(m.revenue)}<span class="bar-wrap"><span class="bar-fill" style="width:${bw}%;background:#185FA5"></span></span></td>
+      <td>${fmt(m.gp)}</td>
+      <td><span class="badge ${mb(m.margin)}">${pct(m.margin)}</span></td>
+      <td>${fmtN(m.visits)}</td>
+      <td>${m.activeClients}</td>
+    </tr>`;
+  }).join('');
+}
+
+function drawMarginChart(id, labels, margins) {
+  destroyChart(id);
+  requestAnimationFrame(() => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    charts[id] = new Chart(el, {
+      type:'bar',
+      data:{
+        labels,
+        datasets:[{
+          data: margins.map(m => parseFloat((m*100).toFixed(1))),
+          backgroundColor: margins.map(m => m>=0.32?'#1D9E75':m>=0.28?'#EF9F27':'#E24B4A'),
+          borderRadius:3, borderSkipped:false
+        }]
+      },
+      options:{
+        responsive:true, maintainAspectRatio:false,
+        plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>c.raw.toFixed(1)+'% gross margin'}}},
+        scales:{
+          x:{grid:{color:gridC},ticks:{color:tickC,font:{size:10}}},
+          y:{grid:{color:gridC},ticks:{color:tickC,font:{size:10},callback:v=>v+'%'},min:0,max:45}
+        }
+      }
+    });
+  });
+}
+
+function drawRevChart(id, labels, revs) {
+  destroyChart(id);
+  requestAnimationFrame(() => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    charts[id] = new Chart(el, {
+      type:'bar',
+      data:{
+        labels,
+        datasets:[{
+          data: revs.map(r=>Math.round(r/1000)),
+          backgroundColor: isDark?'#0C447C':'#185FA5',
+          borderRadius:3, borderSkipped:false
+        }]
+      },
+      options:{
+        responsive:true, maintainAspectRatio:false, indexAxis:'y',
+        plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>'$'+c.raw+'K revenue'}}},
+        scales:{
+          x:{grid:{color:gridC},ticks:{color:tickC,font:{size:10},callback:v=>'$'+v+'K'}},
+          y:{grid:{display:false},ticks:{color:tickC,font:{size:10}}}
+        }
+      }
+    });
+  });
+}
+
+let curTab = 'company';
+let curMarket = null;
+
+function setTab(tab, el) {
+  curTab = tab; curMarket = null;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  render();
+}
+
+function setMarket(m) {
+  curMarket = m;
+  document.querySelectorAll('.subtab').forEach(t=>t.classList.toggle('active', t.dataset.m===m));
+  renderMarket(m);
+}
+
+function render() {
+  if (curTab==='company') renderCompany();
+  else renderState(curTab.charAt(0).toUpperCase()+curTab.slice(1));
+}
+
+function renderCompany() {
+  document.getElementById('subtabRow').style.display='none';
+  const all = Object.keys(MARKETS);
+  const d = rollup(all);
+  d.activeCaregivers = ACTIVE_CG_ALL;
+  const btm = MARKETS['Boston'].margin; const bam = MARKETS['Baltimore'].margin;
+  const betm = MARKETS['Bethesda'].margin; const sobm = MARKETS['South of Boston'].margin; const nobm = MARKETS['North of Boston'].margin;
+  const totalRev = d.revenue;
+  const topTwo = MARKETS['Boston'].revenue + MARKETS['Baltimore'].revenue;
+
+  document.getElementById('content').innerHTML = `
+    <div class="insight-banner amber">
+      <div class="insight-label amber">Company insight — Mar 28, 2026</div>
+      Fill rate is 100% across all markets — operations are not the constraint. Growth is limited by client acquisition and caregiver pipeline.
+      Bethesda (${pct(betm)}), South of Boston (${pct(sobm)}), and North of Boston (${pct(nobm)}) are below the 28% gross margin floor and require urgent pricing review.
+      Boston + Baltimore represent ${pct(topTwo/totalRev)} of total revenue — concentration risk is elevated.
+    </div>
+    ${kpiGrid(d, ACTIVE_CG_ALL+' of 1,499 total')}
+    <div class="two-col">
+      <div class="card">
+        <div class="card-title">Gross margin by market</div>
+        <div style="position:relative;height:220px"><canvas id="cMargin"></canvas></div>
+        <div class="card-insight">Green ≥ 32% · Amber 28–32% · Red &lt; 28% floor. Three markets currently below floor.</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Revenue by market</div>
+        <div style="position:relative;height:220px"><canvas id="cRev"></canvas></div>
+        <div class="card-insight">Boston and Baltimore dominate. Annapolis, Bethesda, and North of Boston are subscale — watch unit economics carefully.</div>
+      </div>
+    </div>
+    <div class="full-card">
+      <div class="card-title">All markets — side by side comparison</div>
+      <table class="market-table">
+        <thead><tr><th>Market</th><th>Revenue</th><th>Gross Profit</th><th>Margin</th><th>Visits (13wk)</th><th>Active Clients</th></tr></thead>
+        <tbody>${marketRows(all,true)}</tbody>
+      </table>
+      <div class="card-insight">Data source: QuickBooks P&L by Class (revenue + COGS) · Viv Technologies (visits + clients) · Feb 2025 – Mar 2026</div>
+    </div>
+  `;
+  drawMarginChart('cMargin', all.map(m=>m.replace(' Boston','').replace('MetroWest','MWB')), all.map(m=>MARKETS[m].margin));
+  drawRevChart('cRev', all, all.map(m=>MARKETS[m].revenue));
+}
+
+function renderState(state) {
+  const markets = STATES[state];
+  const sr = document.getElementById('subtabRow');
+  sr.style.display = 'flex';
+  sr.innerHTML = markets.map(m=>`<div class="subtab${curMarket===m?' active':''}" data-m="${m}" onclick="setMarket('${m}')">${m}</div>`).join('');
+  if (curMarket && markets.includes(curMarket)) { renderMarket(curMarket); return; }
+
+  const d = rollup(markets);
+  d.activeCaregivers = ACTIVE_CG[state];
+  const cgLabel = `${ACTIVE_CG[state]} active of ${TOTAL_CG[state]} total`;
+
+  const stateInsight = {
+    Massachusetts: `4 markets · ${fmt(d.revenue)} revenue · ${pct(d.margin)} blended margin. MetroWest Boston leads at ${pct(MARKETS['MetroWest Boston'].margin)} margin. South and North of Boston are below the 28% floor.`,
+    Illinois: `Chicago is the sole Illinois market. ${fmt(d.revenue)} revenue at ${pct(d.margin)} gross margin — healthy, above floor. ${d.activeClients} active clients with room to grow.`,
+    Maryland: `3 markets · ${fmt(d.revenue)} revenue. Baltimore dominates at ${fmt(MARKETS['Baltimore'].revenue)}. Bethesda at ${pct(MARKETS['Bethesda'].margin)} margin is the highest-risk market in the portfolio.`
+  };
+  const isWarn = ['Massachusetts','Maryland'].includes(state);
+
+  document.getElementById('content').innerHTML = `
+    <div class="insight-banner ${isWarn?'amber':''}">
+      <div class="insight-label ${isWarn?'amber':''}">${state} overview</div>
+      ${stateInsight[state]}
+    </div>
+    ${kpiGrid(d, cgLabel)}
+    <div class="two-col">
+      <div class="card">
+        <div class="card-title">Gross margin — ${state} markets</div>
+        <div style="position:relative;height:${Math.max(160,markets.length*60)}px"><canvas id="sMargin"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Revenue — ${state} markets</div>
+        <div style="position:relative;height:${Math.max(160,markets.length*60)}px"><canvas id="sRev"></canvas></div>
+      </div>
+    </div>
+    <div class="full-card">
+      <div class="card-title">${state} — market detail</div>
+      <table class="market-table">
+        <thead><tr><th>Market</th><th>Revenue</th><th>Gross Profit</th><th>Margin</th><th>Visits (13wk)</th><th>Active Clients</th></tr></thead>
+        <tbody>${marketRows(markets,false)}</tbody>
+      </table>
+      <div class="card-insight">Select a market tab above to drill into individual market detail.</div>
+    </div>
+  `;
+  drawMarginChart('sMargin', markets, markets.map(m=>MARKETS[m].margin));
+  drawRevChart('sRev', markets, markets.map(m=>MARKETS[m].revenue));
+}
+
+function renderMarket(market) {
+  const m = MARKETS[market];
+  const col = mc(m.margin);
+  const bannerClass = col==='red'?'red':col==='amber'?'amber':'';
+  const labelClass = bannerClass;
+  const insight = col==='red'
+    ? `Gross margin of ${pct(m.margin)} is below the 28% floor. Immediate pricing review required. Every point of margin recovered is worth ${fmt(m.revenue*0.01)} in annual gross profit.`
+    : col==='amber'
+    ? `Gross margin of ${pct(m.margin)} is in the watch zone — above floor but below the 32% target. Monitor closely and review bill rates at next pricing cycle.`
+    : `Gross margin of ${pct(m.margin)} is healthy and above the 32% target. ${m.activeClients} active clients across ${fmtN(m.visits)} visits in the last 13 weeks. Strong performer.`;
+
+  document.getElementById('content').innerHTML = `
+    <div class="insight-banner ${bannerClass}">
+      <div class="insight-label ${labelClass}">${market} · ${m.state}</div>
+      ${insight}
+    </div>
+    <div class="kpi-grid">
+      <div class="kpi"><div class="kpi-label">Revenue (13mo)</div><div class="kpi-val">${fmt(m.revenue)}</div><div class="kpi-sub">Feb 2025 – Mar 2026</div></div>
+      <div class="kpi"><div class="kpi-label">Gross Profit</div><div class="kpi-val">${fmt(m.gp)}</div><div class="kpi-sub">After direct costs</div></div>
+      <div class="kpi"><div class="kpi-label">Gross Margin</div><div class="kpi-val ${col}">${pct(m.margin)}</div><div class="kpi-sub">${m.margin>=0.28?'Above floor':'Below 28% floor'}</div></div>
+      <div class="kpi"><div class="kpi-label">Active Clients</div><div class="kpi-val">${m.activeClients}</div><div class="kpi-sub">Currently serving</div></div>
+      <div class="kpi"><div class="kpi-label">Visits (13 wks)</div><div class="kpi-val">${fmtN(m.visits)}</div><div class="kpi-sub">Filled shifts</div></div>
+    </div>
+    <div class="two-col">
+      <div class="card">
+        <div class="card-title">Economics</div>
+        <table class="econ-table">
+          <tr><td>Revenue (13 months)</td><td>${fmt(m.revenue)}</td></tr>
+          <tr><td>Cost of services</td><td>${fmt(m.cogs)}</td></tr>
+          <tr><td style="font-weight:500">Gross profit</td><td style="color:var(--green);font-weight:500">${fmt(m.gp)}</td></tr>
+          <tr><td style="font-weight:500">Gross margin %</td><td class="${col}" style="font-weight:500;color:var(--${col})">${pct(m.margin)}</td></tr>
+          <tr><td>Revenue per visit</td><td>${fmt(m.revenue/m.visits)}</td></tr>
+          <tr><td>GP per visit</td><td>${fmt(m.gp/m.visits)}</td></tr>
+        </table>
+      </div>
+      <div class="card">
+        <div class="card-title">Operations</div>
+        <table class="econ-table">
+          <tr><td>Active clients</td><td>${m.activeClients}</td></tr>
+          <tr><td>Visits last 13 weeks</td><td>${fmtN(m.visits)}</td></tr>
+          <tr><td>Avg visits per client per week</td><td>${(m.visits/m.activeClients/13).toFixed(1)}</td></tr>
+          <tr><td>Revenue per active client</td><td>${fmt(m.revenue/m.activeClients)}</td></tr>
+          <tr><td>Gross profit per client</td><td>${fmt(m.gp/m.activeClients)}</td></tr>
+          <tr><td>Fill rate (last 13 weeks)</td><td style="color:var(--green);font-weight:500">100%</td></tr>
+        </table>
+        <div class="card-insight">Fill rate is 100% — demand is fully met. Growth is constrained by client acquisition, not operations.</div>
+      </div>
+    </div>
+    ${col==='red'?`
+    <div class="full-card" style="border-left:3px solid var(--red);border-radius:0 var(--radius-lg) var(--radius-lg) 0">
+      <div class="card-title" style="color:var(--red)">Margin recovery analysis</div>
+      <table class="econ-table">
+        <tr><td>Current gross margin</td><td style="color:var(--red)">${pct(m.margin)}</td></tr>
+        <tr><td>Floor target (28%)</td><td>28.0%</td></tr>
+        <tr><td>Gap to floor</td><td style="color:var(--red)">${(0.28-m.margin>=0?(0.28-m.margin)*100:0).toFixed(1)}pp</td></tr>
+        <tr><td>Revenue needed at 28% to match current GP</td><td>${fmt(m.gp/0.28)}</td></tr>
+        <tr><td>GP value of each 1pp margin improvement</td><td style="color:var(--green)">${fmt(m.revenue*0.01)}</td></tr>
+      </table>
+    </div>`:''}
+  `;
+}
+
+renderCompany();
+</script>
+</body>
+</html>
