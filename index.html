@@ -763,7 +763,6 @@ body {
       class="dash-iframe"
       src="https://andrewdobsonn-cell.github.io/Tribute-Operating-System/tribute_dashboard.html"
       style="display:none"
-      onload="onFrameLoad()"
     ></iframe>
   </div>
 
@@ -1058,7 +1057,7 @@ function generateInsights(visits, cgHours, cg, weekStart, weekEnd){
 
   // Render actions
   var actionHtml = actions.map(function(a){
-    return '<div class="action-item" onclick="loadDash(''+a.dash+'',null)"><div class="action-num">'+a.num+'</div><div class="action-text">'+a.text+'</div><div class="action-arrow">→</div></div>';
+    return '<div class="action-item" onclick="loadDash(\"'+a.dash+'\",null)"><div class="action-num">'+a.num+'</div><div class="action-text">'+a.text+'</div><div class="action-arrow">→</div></div>';
   }).join('');
   var actionEl = document.getElementById('actionList');
   if(actionEl) actionEl.innerHTML = actionHtml;
@@ -1098,6 +1097,9 @@ function loadDash(key, tile){
     document.querySelector('.dash-frame-wrap').scrollIntoView({behavior:'smooth',block:'start'});
   },100);
 }
+
+// Wire iframe onload
+document.getElementById('dashFrame').addEventListener('load', onFrameLoad);
 
 // Init
 updateClock();
