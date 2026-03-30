@@ -217,7 +217,7 @@ async function fetchData(){
   document.getElementById('sl').innerHTML='<span class="adot"></span>Loading...';
   document.getElementById('ct').innerHTML='<div class="loading"><div class="spin"></div>Loading client census for '+periodLabel()+'...</div>';
   try{
-    var res=await fetch(API+'?endpoint=clients');
+    var res=await fetch(API+'?endpoint=clients&startDate='+start+'&endDate='+end);
     if(!res.ok)throw new Error('HTTP '+res.status);
     data=await res.json();
     document.getElementById('sl').innerHTML='<span class="dot"></span>Live &middot; Viv Technologies &middot; Updated '+new Date().toLocaleTimeString();
