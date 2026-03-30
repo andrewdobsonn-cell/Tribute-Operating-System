@@ -511,12 +511,12 @@ function renderUber(){
   html+='<div class="fc" style="background:var(--orange-50);border-color:var(--orange)">';
   html+='<div class="ct" style="color:var(--orange)">Upload New Uber / Lyft CSV</div>';
   html+='<p style="font-size:12px;color:var(--text2);margin-bottom:12px">Drop the latest Uber for Business export. Only rows with <strong>- TRIBUTE</strong> in the expense code will be included. Caregiver and Client rows are automatically excluded.</p>';
-  html+='<div class="upload-zone" id="uberZone" onclick="document.getElementById('uberFile').click()" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="handleDrop(event,'uber')">';
+  html+='<div class="upload-zone" id="uberZone" onclick="document.getElementById(\'uberFile\').click()" ondragover="event.preventDefault();this.classList.add(\'drag\')" ondragleave="this.classList.remove(\'drag\')" ondrop="handleDrop(event,\'uber\')">'; 
   html+='<div class="upload-zone-icon">🚗</div>';
   html+='<div class="upload-zone-title">Drop Uber for Business CSV here</div>';
   html+='<div class="upload-zone-sub">Rows with Boston-Caregiver or Boston-Client expense codes are automatically filtered out</div>';
   html+='</div>';
-  html+='<input type="file" id="uberFile" accept=".csv" style="display:none" onchange="loadCSV(this,'uber')">';
+  html+='<input type="file" id="uberFile" accept=".csv" style="display:none" onchange="loadCSV(this,\'uber\')">'; 
   html+='<div class="upload-status" id="uberStatus"></div>';
   html+='</div>';
 
@@ -640,12 +640,12 @@ function renderOT(){
   html+='<div class="fc" style="background:var(--orange-50);border-color:var(--orange)">';
   html+='<div class="ct" style="color:var(--orange)">Upload New Weekly Cost Data CSV</div>';
   html+='<p style="font-size:12px;color:var(--text2);margin-bottom:12px">Export from iSolved or your payroll system. Expected columns: <strong>Week, Market, OT Amount, TS Admin Amount, Guaranteed Amount, Incentives Amount</strong></p>';
-  html+='<div class="upload-zone" id="otZone" onclick="document.getElementById('otFile').click()" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="handleDrop(event,'ot')">';
+  html+='<div class="upload-zone" id="otZone" onclick="document.getElementById(\'otFile\').click()" ondragover="event.preventDefault();this.classList.add(\'drag\')" ondragleave="this.classList.remove(\'drag\')" ondrop="handleDrop(event,\'ot\')">'; 
   html+='<div class="upload-zone-icon">💰</div>';
   html+='<div class="upload-zone-title">Drop OT & Incentives CSV here</div>';
   html+='<div class="upload-zone-sub">Columns: Week, Market, OT Amount, Incentives Amount</div>';
   html+='</div>';
-  html+='<input type="file" id="otFile" accept=".csv" style="display:none" onchange="loadCSV(this,'ot')">';
+  html+='<input type="file" id="otFile" accept=".csv" style="display:none" onchange="loadCSV(this,\'ot\')">'; 
   html+='<div class="upload-status" id="otStatus"></div>';
   html+='</div>';
 
