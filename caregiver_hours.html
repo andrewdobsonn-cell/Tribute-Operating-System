@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tribute — Caregiver Hours</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#fff;--bg2:#f7f7f5;--bg3:#ededea;--text:#1a1a18;--text2:#6b6b67;--text3:#9e9c96;--border:rgba(0,0,0,0.09);--border2:rgba(0,0,0,0.16);--green:#1D9E75;--amber:#EF9F27;--red:#E24B4A;--blue:#185FA5;--green-bg:#E1F5EE;--amber-bg:#FAEEDA;--red-bg:#FCEBEB;--blue-bg:#E6F1FB;--green-text:#0F6E56;--amber-text:#633806;--red-text:#791F1F;--blue-text:#0C447C;--r:8px;--rl:12px}
+@media(prefers-color-scheme:dark){:root{--bg:#1a1a18;--bg2:#232320;--bg3:#2c2c29;--text:#e8e6e0;--text2:#9e9c96;--text3:#6b6b67;--border:rgba(255,255,255,0.09);--border2:rgba(255,255,255,0.16);--green-bg:#04342C;--amber-bg:#412402;--red-bg:#501313;--blue-bg:#042C53;--green-text:#9FE1CB;--amber-text:#FAC775;--red-text:#F09595;--blue-text:#85B7EB}}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);padding:20px;max-width:1100px;margin:0 auto;font-size:14px;line-height:1.5}
+.hdr{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:14px;border-bottom:.5px solid var(--border);margin-bottom:16px;flex-wrap:wrap;gap:10px}
+.logo{font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--text3)}
+.title{font-size:22px;font-weight:500;margin-top:3px}
+.sub{font-size:11px;color:var(--text3);margin-top:2px}
+.dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--green);margin-right:4px;animation:pulse 2s infinite}
+.adot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--amber);margin-right:4px;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.loading{text-align:center;padding:60px 20px;color:var(--text3);font-size:13px}
+.spin{width:24px;height:24px;border:2px solid var(--border2);border-top-color:var(--text);border-radius:50%;animation:sp .8s linear infinite;margin:0 auto 12px}
+@keyframes sp{to{transform:rotate(360deg)}}
+.err{background:var(--red-bg);color:var(--red-text);border-radius:var(--r);padding:12px 16px;margin-bottom:16px;font-size:13px}
+.period-bar{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;align-items:center}
+.period-label{font-size:11px;color:var(--text3);margin-right:4px;white-space:nowrap}
+.pbtn{font-size:11px;font-weight:500;padding:5px 12px;border-radius:20px;cursor:pointer;border:.5px solid var(--border2);color:var(--text2);background:var(--bg2);user-select:none;white-space:nowrap}
+.pbtn.on{background:var(--text);color:var(--bg);border-color:var(--text)}
+.tabs{display:flex;border-bottom:.5px solid var(--border);margin-bottom:16px;overflow-x:auto}
+.tab{font-size:12px;font-weight:500;color:var(--text2);padding:8px 16px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-.5px;white-space:nowrap;user-select:none}
+.tab.on{color:var(--text);border-bottom-color:var(--text)}
+.banner{border-radius:var(--r);padding:12px 16px;margin-bottom:16px;border-left:3px solid var(--green);background:var(--bg2);font-size:13px;line-height:1.6}
+.banner.w{border-left-color:var(--amber)}.banner.r{border-left-color:var(--red)}
+.bl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--green);margin-bottom:4px}
+.bl.w{color:var(--amber)}.bl.r{color:var(--red)}
+.kg{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:16px}
+.kg5{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-bottom:16px}
+@media(max-width:800px){.kg,.kg5{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:500px){.kg,.kg5{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.kpi{background:var(--bg2);border-radius:var(--r);padding:14px 16px}
+.kl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text2);margin-bottom:6px}
+.kv{font-size:24px;font-weight:500;line-height:1;margin-bottom:4px;font-variant-numeric:tabular-nums}
+.ks{font-size:11px;color:var(--text3)}
+.kv.g{color:var(--green)}.kv.b{color:var(--blue)}.kv.a{color:var(--amber)}.kv.r{color:var(--red)}
+.fc{background:var(--bg);border:.5px solid var(--border);border-radius:var(--rl);padding:16px 18px;margin-bottom:12px}
+.ct{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text2);margin-bottom:12px}
+.cn{font-size:11px;color:var(--text3);line-height:1.5;margin-top:10px;border-top:.5px solid var(--border);padding-top:8px;font-style:italic}
+.tc{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+@media(max-width:700px){.tc{grid-template-columns:1fr}}
+.card{background:var(--bg);border:.5px solid var(--border);border-radius:var(--rl);padding:16px 18px}
+.tbl{width:100%;border-collapse:collapse;font-size:12px}
+.tbl th{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text2);padding:7px 10px;border-bottom:.5px solid var(--border2);text-align:right}
+.tbl th:first-child{text-align:left}
+.tbl td{padding:8px 10px;border-bottom:.5px solid var(--border);text-align:right;font-variant-numeric:tabular-nums}
+.tbl td:first-child{text-align:left;font-weight:500}
+.tbl tbody tr:last-child td{border-bottom:none}
+.tbl tfoot td{border-top:.5px solid var(--border2);font-weight:500;padding:8px 10px;text-align:right}
+.tbl tfoot td:first-child{text-align:left}
+.bdg{font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;display:inline-block}
+.bg{background:var(--green-bg);color:var(--green-text)}.ba{background:var(--amber-bg);color:var(--amber-text)}.br{background:var(--red-bg);color:var(--red-text)}.bb{background:var(--blue-bg);color:var(--blue-text)}
+.hbar{display:flex;height:20px;border-radius:4px;overflow:hidden;margin-bottom:4px}
+.hbar-g{background:var(--green)}.hbar-a{background:var(--amber)}.hbar-r{background:var(--red)}.hbar-x{background:var(--red);opacity:.6}
+.mbr{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:.5px solid var(--border)}
+.mbr:last-child{border-bottom:none}
+.mbl{font-size:12px;color:var(--text);width:150px;flex-shrink:0}
+.mbt{flex:1;height:12px;background:var(--bg3);border-radius:2px;overflow:hidden}
+.mbf{height:100%;border-radius:2px}
+.mbv{font-size:12px;font-weight:500;width:36px;text-align:right;flex-shrink:0}
+.mbv2{font-size:11px;color:var(--text3);width:70px;text-align:right;flex-shrink:0}
+.cg-row{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:var(--bg2);border-radius:var(--r);margin-bottom:5px}
+.cg-name{font-size:12px;font-weight:500}
+.cg-meta{font-size:10px;color:var(--text3);margin-top:2px}
+.cg-hrs{text-align:right}
+.cg-hrs-main{font-size:12px;font-weight:500}
+.cg-hrs-sub{font-size:10px;color:var(--text3)}
+.srch{width:100%;padding:8px 12px;border:.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text);font-size:12px;margin-bottom:12px}
+.ftr{margin-top:32px;padding-top:14px;border-top:.5px solid var(--border);font-size:11px;color:var(--text3);display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
+</style>
+</head>
+<body>
+<div class="hdr">
+  <div>
+    <div class="logo">Tribute Home Care</div>
+    <div class="title">Caregiver Hours & Happiness</div>
+    <div class="sub" id="sl"><span class="adot"></span>Select a week to load</div>
+  </div>
+  <div style="text-align:right;font-size:11px;color:var(--text3)" id="hr"></div>
+</div>
+
+<div class="period-bar">
+  <span class="period-label">Week:</span>
+  <div class="pbtn on" onclick="setWeek(0,this)">This week</div>
+  <div class="pbtn" onclick="setWeek(-1,this)">Last week</div>
+  <div class="pbtn" onclick="setWeek(-2,this)">2 weeks ago</div>
+  <div class="pbtn" onclick="setWeek(-3,this)">3 weeks ago</div>
+  <div class="pbtn" onclick="setWeek(-4,this)">4 weeks ago</div>
+</div>
+<div class="period-bar" style="margin-top:-6px">
+  <span class="period-label">Custom week:</span>
+  <input type="date" id="cs" style="font-size:11px;padding:4px 8px;border:.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text)">
+  <span style="font-size:11px;color:var(--text3)">to</span>
+  <input type="date" id="ce" style="font-size:11px;padding:4px 8px;border:.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text)">
+  <button onclick="setCustom()" style="font-size:11px;padding:5px 12px;border-radius:20px;border:.5px solid var(--border2);background:var(--bg2);color:var(--text);cursor:pointer">Go</button>
+</div>
+
+<div class="tabs">
+  <div class="tab on" onclick="setTab('overview',this)">Overview</div>
+  <div class="tab" onclick="setTab('markets',this)">By Market</div>
+  <div class="tab" onclick="setTab('coordinators',this)">By Coordinator</div>
+  <div class="tab" onclick="setTab('caregivers',this)">All Caregivers</div>
+</div>
+
+<div id="ct"><div class="loading"><div class="spin"></div>Select a week above to load caregiver hours data.</div></div>
+<div class="ftr"><span>Tribute Home Care LLC &middot; Caregiver Hours & Happiness</span><span id="ga"></span></div>
+
+<script>
+var API='https://tribute-api-prod-bkc4hfcwf3f2f6bf.centralus-01.azurewebsites.net/api/vivProxy';
+var data=null,curTab='overview',curStart=null,curEnd=null;
+
+function fn(n){return Math.round(n).toLocaleString()}
+function fh(n){return n.toFixed(1)+'h'}
+function fp(n){return(n*100).toFixed(1)+'%'}
+function gc(v){return v>0?'var(--green)':v<0?'var(--red)':'var(--text2)'}
+function hapCls(h){return h>=0.75?'g':h>=0.5?'a':'r'}
+function hapBdg(h){return h>=0.75?'bg':h>=0.5?'ba':'br'}
+function fmtDate(d){return d.toISOString().split('T')[0]}
+
+function getSunday(weeksAgo){
+  var now=new Date();
+  var day=now.getDay();
+  var sunday=new Date(now);
+  sunday.setDate(now.getDate()-day-(weeksAgo*7));
+  sunday.setHours(0,0,0,0);
+  return sunday;
+}
+
+function setWeek(weeksAgo,el){
+  var sun=getSunday(weeksAgo);
+  var sat=new Date(sun);sat.setDate(sun.getDate()+6);
+  curStart=fmtDate(sun);curEnd=fmtDate(sat);
+  document.querySelectorAll('.pbtn').forEach(function(x){x.classList.remove('on')});
+  el.classList.add('on');
+  fetchData();
+}
+
+function setCustom(){
+  var s=document.getElementById('cs').value;
+  var e=document.getElementById('ce').value;
+  if(!s||!e){alert('Please select both dates');return;}
+  curStart=s;curEnd=e;
+  document.querySelectorAll('.pbtn').forEach(function(x){x.classList.remove('on')});
+  fetchData();
+}
+
+function setTab(t,el){
+  curTab=t;
+  document.querySelectorAll('.tab').forEach(function(x){x.classList.remove('on')});
+  el.classList.add('on');
+  if(data)render();
+}
+
+async function fetchData(){
+  document.getElementById('sl').innerHTML='<span class="adot"></span>Loading... (60-90 sec)';
+  document.getElementById('ct').innerHTML='<div class="loading"><div class="spin"></div>Loading caregiver hours for '+curStart+' to '+curEnd+'...<br><span style="font-size:11px;color:var(--text3);margin-top:8px;display:block">Pulling caregiver records and visit data. Takes 60-90 seconds.</span></div>';
+  try{
+    var res=await fetch(API+'?endpoint=caregiver_hours&startDate='+curStart+'&endDate='+curEnd);
+    if(!res.ok)throw new Error('HTTP '+res.status);
+    data=await res.json();
+    var t=data.totals;
+    document.getElementById('sl').innerHTML='<span class="dot"></span>Live &middot; Viv Technologies &middot; Updated '+new Date().toLocaleTimeString();
+    document.getElementById('hr').innerHTML=fn(t.total)+' caregivers &middot; '+fp(t.goal75pct)+' at 75%+<br><span style="color:var(--text3)">Week: '+curStart+' to '+curEnd+'</span>';
+    document.getElementById('ga').textContent='Week: '+curStart+' to '+curEnd+' &middot; Generated: '+new Date(data.generatedAt).toLocaleString();
+    render();
+  }catch(e){
+    document.getElementById('ct').innerHTML='<div class="err">Error: '+e.message+'</div>';
+    document.getElementById('sl').innerHTML='<span style="color:var(--red)">&#9679;</span> Error loading data';
+  }
+}
+
+function render(){
+  if(!data)return;
+  if(curTab==='overview')renderOverview();
+  else if(curTab==='markets')renderMarkets();
+  else if(curTab==='coordinators')renderCoordinators();
+  else renderCaregivers();
+}
+
+function stackBar(b0,b25,b50,b75,total){
+  if(!total)return '<div class="hbar" style="background:var(--bg3)"></div>';
+  var p0=Math.round(b0/total*100);
+  var p25=Math.round(b25/total*100);
+  var p50=Math.round(b50/total*100);
+  var p75=100-p0-p25-p50;
+  var html='<div class="hbar">';
+  if(p0>0)html+='<div class="hbar-x" style="width:'+p0+'%" title="0-25%: '+b0+'"></div>';
+  if(p25>0)html+='<div class="hbar-r" style="width:'+p25+'%" title="25-50%: '+b25+'"></div>';
+  if(p50>0)html+='<div class="hbar-a" style="width:'+p50+'%" title="50-75%: '+b50+'"></div>';
+  if(p75>0)html+='<div class="hbar-g" style="width:'+p75+'%" title="75-100%: '+b75+'"></div>';
+  html+='</div>';
+  return html;
+}
+
+function renderOverview(){
+  var t=data.totals;
+  var goal75met=t.goal75pct>=0.9;
+  var bc=goal75met?'':'w';
+
+  var html='';
+  html+='<div class="banner '+bc+'"><div class="bl '+bc+'">Caregiver Hours &amp; Happiness &mdash; '+curStart+' to '+curEnd+'</div>';
+  html+=fn(t.total)+' active caregivers. '+fp(t.goal75pct)+' are receiving 75%+ of their desired hours ';
+  html+='(goal: &gt;90% &mdash; '+(goal75met?'<strong style="color:var(--green)">On track</strong>':'<strong style="color:var(--amber)">Below goal</strong>')+').';
+  html+=' Total desired: '+fn(t.totalDesired)+'h &middot; Total scheduled: '+fn(t.totalScheduled)+'h &middot; Utilization: '+fp(t.utilization)+'.</div>';
+
+  html+='<div class="kg5">';
+  html+='<div class="kpi"><div class="kl">Active Caregivers</div><div class="kv b">'+fn(t.total)+'</div><div class="ks">This week</div></div>';
+  html+='<div class="kpi"><div class="kl">Avg Happiness</div><div class="kv '+hapCls(t.avgHappiness)+'">'+fp(t.avgHappiness)+'</div><div class="ks">% of desired hrs</div></div>';
+  html+='<div class="kpi"><div class="kl">75%+ of Desired Hrs</div><div class="kv '+(goal75met?'g':'a')+'">'+fp(t.goal75pct)+'</div><div class="ks">Goal: &gt;90%</div></div>';
+  html+='<div class="kpi"><div class="kl">Hours Scheduled</div><div class="kv g">'+fn(t.totalScheduled)+'h</div><div class="ks">of '+fn(t.totalDesired)+'h desired</div></div>';
+  html+='<div class="kpi"><div class="kl">Unhappy Caregivers</div><div class="kv r">'+fn(t.b0+t.b25)+'</div><div class="ks">Under 50% of desired hrs</div></div>';
+  html+='</div>';
+
+  // Happiness distribution
+  html+='<div class="fc"><div class="ct">Happiness distribution &mdash; all '+fn(t.total)+' caregivers</div>';
+  html+=stackBar(t.b0,t.b25,t.b50,t.b75,t.total);
+  html+='<div style="display:flex;gap:16px;margin-top:10px;font-size:11px;flex-wrap:wrap">';
+  html+='<span><span style="display:inline-block;width:10px;height:10px;background:var(--red);opacity:.6;border-radius:2px;margin-right:4px;vertical-align:middle"></span>0-25%: '+fn(t.b0)+' ('+fp(t.b0/t.total)+')</span>';
+  html+='<span><span style="display:inline-block;width:10px;height:10px;background:var(--red);border-radius:2px;margin-right:4px;vertical-align:middle"></span>25-50%: '+fn(t.b25)+' ('+fp(t.b25/t.total)+')</span>';
+  html+='<span><span style="display:inline-block;width:10px;height:10px;background:var(--amber);border-radius:2px;margin-right:4px;vertical-align:middle"></span>50-75%: '+fn(t.b50)+' ('+fp(t.b50/t.total)+')</span>';
+  html+='<span><span style="display:inline-block;width:10px;height:10px;background:var(--green);border-radius:2px;margin-right:4px;vertical-align:middle"></span>75-100%: '+fn(t.b75)+' ('+fp(t.b75/t.total)+')</span>';
+  html+='</div>';
+  html+='<div class="cn">Goal: &gt;90% of caregivers receiving 75%+ of desired hours. Current: '+fp(t.goal75pct)+'.</div></div>';
+
+  // Market summary
+  var mktRows='';
+  data.byMarket.forEach(function(m){
+    if(!m.total)return;
+    var util=m.desired>0?m.scheduled/m.desired:0;
+    var g75=m.total>0?m.b75/m.total:0;
+    mktRows+='<tr>';
+    mktRows+='<td>'+m.market+'</td>';
+    mktRows+='<td>'+fn(m.total)+'</td>';
+    mktRows+='<td>'+fh(m.scheduled)+' / '+fh(m.desired)+'</td>';
+    mktRows+='<td><span class="bdg '+(util>=0.75?'bg':util>=0.5?'ba':'br')+'">'+fp(util)+'</span></td>';
+    mktRows+='<td><span class="bdg '+(g75>=0.9?'bg':g75>=0.7?'ba':'br')+'">'+fp(g75)+'</span></td>';
+    mktRows+='<td style="min-width:100px">'+stackBar(m.b0,m.b25,m.b50,m.b75,m.total)+'</td>';
+    mktRows+='</tr>';
+  });
+
+  html+='<div class="fc"><div class="ct">By market</div>';
+  html+='<table class="tbl"><thead><tr><th>Market</th><th>Caregivers</th><th>Scheduled / Desired</th><th>Utilization</th><th>75%+ Happy</th><th>Distribution</th></tr></thead>';
+  html+='<tbody>'+mktRows+'</tbody></table></div>';
+
+  document.getElementById('ct').innerHTML=html;
+}
+
+function renderMarkets(){
+  var t=data.totals;
+  var html='';
+
+  html+='<div class="banner"><div class="bl">By market &mdash; '+curStart+' to '+curEnd+'</div>';
+  html+='Caregiver happiness and hours utilization broken down by market.</div>';
+
+  data.byMarket.forEach(function(m){
+    if(!m.total)return;
+    var util=m.desired>0?m.scheduled/m.desired:0;
+    var g75=m.total>0?m.b75/m.total:0;
+    html+='<div class="fc">';
+    html+='<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">';
+    html+='<div><div class="ct" style="margin-bottom:2px">'+m.market+'</div><div style="font-size:11px;color:var(--text3)">'+m.total+' caregivers &middot; '+fh(m.scheduled)+' scheduled of '+fh(m.desired)+'h desired</div></div>';
+    html+='<div style="text-align:right"><span class="bdg '+(g75>=0.9?'bg':g75>=0.7?'ba':'br')+'">'+fp(g75)+' at 75%+</span></div>';
+    html+='</div>';
+    html+=stackBar(m.b0,m.b25,m.b50,m.b75,m.total);
+    html+='<div style="display:flex;gap:12px;margin-top:8px;font-size:11px">';
+    html+='<span style="color:var(--red)">'+m.b0+' at 0-25%</span>';
+    html+='<span style="color:var(--red)">'+m.b25+' at 25-50%</span>';
+    html+='<span style="color:var(--amber)">'+m.b50+' at 50-75%</span>';
+    html+='<span style="color:var(--green)">'+m.b75+' at 75-100%</span>';
+    html+='<span style="color:var(--text2);margin-left:auto">Utilization: <strong>'+fp(util)+'</strong></span>';
+    html+='</div>';
+    html+='</div>';
+  });
+
+  document.getElementById('ct').innerHTML=html;
+}
+
+function renderCoordinators(){
+  var html='';
+  html+='<div class="banner"><div class="bl">By coordinator &mdash; '+curStart+' to '+curEnd+'</div>';
+  html+='Caregiver happiness by care manager/coordinator.</div>';
+
+  var sorted=data.byAssignee.slice().sort(function(a,b){
+    var ga=a.total>0?a.b75/a.total:0;
+    var gb=b.total>0?b.b75/b.total:0;
+    return ga-gb;
+  });
+
+  var tblRows='';
+  sorted.forEach(function(a){
+    var util=a.desired>0?a.scheduled/a.desired:0;
+    var g75=a.total>0?a.b75/a.total:0;
+    tblRows+='<tr>';
+    tblRows+='<td>'+a.assignee+'</td>';
+    tblRows+='<td>'+fn(a.total)+'</td>';
+    tblRows+='<td>'+fh(a.scheduled)+' / '+fh(a.desired)+'</td>';
+    tblRows+='<td><span class="bdg '+(util>=0.75?'bg':util>=0.5?'ba':'br')+'">'+fp(util)+'</span></td>';
+    tblRows+='<td style="color:var(--red)">'+a.b0+'</td>';
+    tblRows+='<td style="color:var(--red)">'+a.b25+'</td>';
+    tblRows+='<td style="color:var(--amber)">'+a.b50+'</td>';
+    tblRows+='<td style="color:var(--green)">'+a.b75+'</td>';
+    tblRows+='<td><span class="bdg '+(g75>=0.9?'bg':g75>=0.7?'ba':'br')+'">'+fp(g75)+'</span></td>';
+    tblRows+='</tr>';
+  });
+
+  html+='<div class="fc"><table class="tbl"><thead><tr><th>Coordinator</th><th>Caregivers</th><th>Sched / Desired</th><th>Utilization</th><th>0-25%</th><th>25-50%</th><th>50-75%</th><th>75-100%</th><th>75%+ Rate</th></tr></thead>';
+  html+='<tbody>'+tblRows+'</tbody></table>';
+  html+='<div class="cn">Sorted by 75%+ rate (lowest first). Goal: &gt;90% of caregivers at 75%+ for each coordinator.</div></div>';
+
+  document.getElementById('ct').innerHTML=html;
+}
+
+function renderCaregivers(){
+  var html='';
+  html+='<input class="srch" type="text" placeholder="Search caregivers by name, market, or coordinator..." oninput="filterCaregivers(this.value)" id="cgSearch">';
+
+  var sorted=data.caregivers.slice().sort(function(a,b){return a.happiness-b.happiness});
+
+  html+='<div id="cgList">';
+  html+=buildCGList(sorted);
+  html+='</div>';
+  html+='<div class="cn" style="margin-top:8px;font-size:11px;color:var(--text3)">'+sorted.length+' caregivers &middot; Sorted by happiness (lowest first)</div>';
+
+  document.getElementById('ct').innerHTML=html;
+}
+
+function buildCGList(list){
+  var html='';
+  list.slice(0,200).forEach(function(c){
+    var col=c.happiness>=0.75?'var(--green)':c.happiness>=0.5?'var(--amber)':'var(--red)';
+    var pct=Math.round(c.happiness*100);
+    html+='<div class="cg-row">';
+    html+='<div style="flex:1"><div class="cg-name">'+c.name+'</div><div class="cg-meta">'+c.market+' &middot; '+c.assignee+'</div></div>';
+    html+='<div style="flex:1;padding:0 12px">';
+    html+='<div style="height:6px;background:var(--bg3);border-radius:3px;overflow:hidden"><div style="height:100%;width:'+pct+'%;background:'+col+';border-radius:3px"></div></div>';
+    html+='</div>';
+    html+='<div class="cg-hrs">';
+    html+='<div class="cg-hrs-main" style="color:'+col+'">'+pct+'%</div>';
+    html+='<div class="cg-hrs-sub">'+fh(c.scheduledHrs)+' / '+fh(c.desiredHrs)+'</div>';
+    html+='</div>';
+    html+='</div>';
+  });
+  if(list.length>200)html+='<div style="text-align:center;padding:12px;font-size:11px;color:var(--text3)">Showing 200 of '+list.length+' caregivers. Use search to filter.</div>';
+  return html;
+}
+
+function filterCaregivers(q){
+  if(!data)return;
+  var lq=q.toLowerCase();
+  var filtered=data.caregivers.filter(function(c){
+    return c.name.toLowerCase().includes(lq)||c.market.toLowerCase().includes(lq)||c.assignee.toLowerCase().includes(lq)||c.bucket.includes(lq);
+  }).sort(function(a,b){return a.happiness-b.happiness});
+  document.getElementById('cgList').innerHTML=buildCGList(filtered);
+}
+
+// Auto-load this week on page load
+(function(){
+  var sun=getSunday(0);
+  var sat=new Date(sun);sat.setDate(sun.getDate()+6);
+  curStart=fmtDate(sun);curEnd=fmtDate(sat);
+  document.getElementById('cs').value=curStart;
+  document.getElementById('ce').value=curEnd;
+  fetchData();
+})();
+</script>
+</body>
+</html>
