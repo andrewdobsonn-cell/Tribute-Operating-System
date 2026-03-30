@@ -121,6 +121,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <!-- View tabs -->
 <div class="view-tabs">
   <div class="vtab on" onclick="setView('overview',this)">Overview</div>
+  <div class="vtab" onclick="setView('utilization',this)">Utilization</div>
+  <div class="vtab" onclick="setView('openhours',this)">Open Hours</div>
   <div class="vtab" onclick="setView('types',this)">Caregiver Types</div>
   <div class="vtab" onclick="setView('heatmap',this)">Heatmap</div>
   <div class="vtab" onclick="setView('mce',this)">By MCE</div>
@@ -239,6 +241,8 @@ function stackBar(b0,b25,b50,b75,total,h){
 function render(){
   if(!data)return;
   if(curView==='overview')renderOverview();
+  else if(curView==='utilization')renderUtilization();
+  else if(curView==='openhours')renderOpenHours();
   else if(curView==='types')renderTypes();
   else if(curView==='heatmap')renderHeatmap();
   else if(curView==='mce')renderMCE();
@@ -266,10 +270,13 @@ function renderOverview(){
   html+='(goal: &gt;90% &mdash; '+(agg.goal75>=0.9?'<strong style="color:var(--green)">On track</strong>':'<strong style="color:'+(agg.goal75>=0.7?'var(--amber)':'var(--red)')+'">Below goal</strong>')+').';
   html+=' '+fn(Math.round(agg.gap))+'h of desired hours unmet this week.</div>';
 
+  var unhappy=cgs.filter(function(c){return c.scheduledHrs<c.desiredHrs}).length;
+  var unhappyPct=agg.total>0?unhappy/agg.total:0;
   html+='<div class="kg">';
   html+='<div class="kpi"><div class="kl">Active Caregivers</div><div class="kv b">'+fn(agg.total)+'</div><div class="ks">'+navLabel()+'</div></div>';
-  html+='<div class="kpi"><div class="kl">Avg Happiness</div><div class="kv '+hapCls(agg.avgH)+'">'+fp(agg.avgH)+'</div><div class="ks">% of desired hrs</div></div>';
-  html+='<div class="kpi"><div class="kl">75%+ of Desired</div><div class="kv '+(agg.goal75>=0.9?'g':agg.goal75>=0.7?'a':'r')+'">'+fp(agg.goal75)+'</div><div class="ks">Goal: &gt;90%</div></div>';
+  html+='<div class="kpi"><div class="kl">Unhappy Caregivers</div><div class="kv r">'+fn(unhappy)+'</div><div class="ks">'+fp(unhappyPct)+' under desired hrs</div></div>';
+  html+='<div class="kpi"><div class="kl">75%+ of Desired</div><div class="kv '+(agg.goal75>=0.9?'g':agg.goal75>=0.7?'a':'r')+'">'+fp(agg.goal75)+'</div><div class="ks" style="color:'+(agg.goal75>=0.9?'var(--green)':'var(--red)')+'">Goal: &gt;90%</div></div>';
+  html+='<div class="kpi"><div class="kl">75-100% Goal</div><div class="kv '+(agg.goal75>=0.7?'g':'r')+'">'+fp(agg.goal75)+'</div><div class="ks" style="color:'+(agg.goal75>=0.7?'var(--green)':'var(--red)')+'">Goal: &gt;70%</div></div>';
   html+='<div class="kpi"><div class="kl">Hours Utilization</div><div class="kv '+(agg.util>=0.85?'g':agg.util>=0.7?'a':'r')+'">'+fp(agg.util)+'</div><div class="ks">'+fn(Math.round(agg.scheduled))+'h / '+fn(Math.round(agg.desired))+'h</div></div>';
   html+='<div class="kpi"><div class="kl">Hours Gap</div><div class="kv r">'+fn(Math.round(agg.gap))+'h</div><div class="ks">Unmet desired hours</div></div>';
   html+='</div>';
@@ -318,6 +325,183 @@ function renderOverview(){
   html+='<div class="fc"><div class="ct">By market &mdash; '+navLabel()+'</div>';
   html+='<table class="tbl"><thead><tr><th>Market</th><th>Caregivers</th><th>Scheduled / Desired</th><th>Utilization</th><th>0-25% / 25-50%</th><th>50-75%</th><th>75%+ Rate</th><th>Hours Gap</th></tr></thead>';
   html+='<tbody>'+mktRows+'</tbody></table></div>';
+
+  document.getElementById('ct').innerHTML=html;
+}
+
+function renderUtilization(){
+  var cgs=getFiltered();
+  var CANONICAL=['Boston','MetroWest Boston','North of Boston','South of Boston','Chicago','Baltimore','Annapolis','Bethesda'];
+  var STATE_MARKETS_MAP={MA:['Boston','MetroWest Boston','North of Boston','South of Boston'],IL:['Chicago'],MD:['Baltimore','Annapolis','Bethesda']};
+  var STATE_NAMES_MAP={MA:'Massachusetts',IL:'Illinois',MD:'Maryland'};
+  var pl=curStart+' to '+curEnd;
+
+  function mktUtil(mktCgs){
+    var avail=mktCgs.reduce(function(s,c){return s+c.desiredHrs},0);
+    var sched=mktCgs.reduce(function(s,c){return s+c.scheduledHrs},0);
+    var gap=Math.max(0,avail-sched);
+    var util=avail>0?sched/avail:0;
+    var count=mktCgs.length;
+    return{avail,sched,gap,util,count};
+  }
+
+  var overallAgg=aggregateGroup(cgs);
+  var html='';
+  html+='<div class="banner '+(overallAgg.util>=0.85?'':'w')+'"><div class="bl '+(overallAgg.util>=0.85?'':'w')+'">Caregiver Utilization &mdash; '+navLabel()+' &mdash; '+pl+'</div>';
+  html+='Available capacity: '+fn(Math.round(overallAgg.desired))+'h desired &middot; '+fn(Math.round(overallAgg.scheduled))+'h scheduled &middot; <strong>'+fp(overallAgg.util)+'</strong> utilization. ';
+  html+=fn(Math.round(overallAgg.gap))+'h of caregiver capacity is going unused this week.</div>';
+
+  // Top KPIs
+  html+='<div class="kg">';
+  html+='<div class="kpi"><div class="kl">Available Capacity</div><div class="kv b">'+fn(Math.round(overallAgg.desired))+'h</div><div class="ks">Total desired hours</div></div>';
+  html+='<div class="kpi"><div class="kl">Scheduled Hours</div><div class="kv g">'+fn(Math.round(overallAgg.scheduled))+'h</div><div class="ks">Billable hours filled</div></div>';
+  html+='<div class="kpi"><div class="kl">Utilization Rate</div><div class="kv '+(overallAgg.util>=0.85?'g':overallAgg.util>=0.7?'a':'r')+'">'+fp(overallAgg.util)+'</div><div class="ks">Scheduled &divide; available</div></div>';
+  html+='<div class="kpi"><div class="kl">Unused Capacity</div><div class="kv r">'+fn(Math.round(overallAgg.gap))+'h</div><div class="ks">Hours going unfilled</div></div>';
+  html+='<div class="kpi"><div class="kl">Caregivers</div><div class="kv p">'+fn(overallAgg.total)+'</div><div class="ks">Active this week</div></div>';
+  html+='</div>';
+
+  // Build market/state data based on nav
+  var rows=[];
+  if(curNav==='company'){
+    // Show by state first, then all markets
+    ['MA','IL','MD'].forEach(function(stAbbr){
+      var stName=STATE_NAMES_MAP[stAbbr];
+      var stCgs=cgs.filter(function(c){return c.state===stName});
+      if(!stCgs.length)return;
+      var su=mktUtil(stCgs);
+      rows.push({name:stName,type:'state',count:su.count,avail:su.avail,sched:su.sched,gap:su.gap,util:su.util});
+
+      var mktNames=STATE_MARKETS_MAP[stAbbr]||[];
+      mktNames.forEach(function(m){
+        var mcgs=stCgs.filter(function(c){return c.market===m});
+        if(!mcgs.length)return;
+        var mu=mktUtil(mcgs);
+        rows.push({name:m,type:'market',count:mu.count,avail:mu.avail,sched:mu.sched,gap:mu.gap,util:mu.util});
+      });
+    });
+  } else {
+    var stName2=STATE_NAMES_MAP[curNav.toUpperCase()]||'';
+    var mktNames2=STATE_MARKETS_MAP[curNav.toUpperCase()]||[];
+    mktNames2.forEach(function(m){
+      var mcgs=cgs.filter(function(c){return c.market===m});
+      if(!mcgs.length)return;
+      var mu=mktUtil(mcgs);
+      rows.push({name:m,type:'market',count:mu.count,avail:mu.avail,sched:mu.sched,gap:mu.gap,util:mu.util});
+    });
+  }
+
+  // Utilization bar chart
+  var maxAvail=Math.max.apply(null,rows.map(function(r){return r.avail}));
+  html+='<div class="fc"><div class="ct">Capacity utilization by '+(curNav==='company'?'state & market':'market')+'</div>';
+  rows.forEach(function(r){
+    var bwAvail=maxAvail>0?Math.round(r.avail/maxAvail*100):0;
+    var bwSched=maxAvail>0?Math.round(r.sched/maxAvail*100):0;
+    var col=r.util>=0.85?'var(--green)':r.util>=0.7?'var(--amber)':'var(--red)';
+    var indent=r.type==='market'?'padding-left:16px;':'';
+    html+='<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:.5px solid var(--border);'+indent+'">';
+    html+='<div style="font-size:12px;'+(r.type==='state'?'font-weight:500;':'color:var(--text2);')+';width:160px;flex-shrink:0">'+(r.type==='state'?'<strong>':'')+r.name+(r.type==='state'?'</strong>':'')+'</div>';
+    html+='<div style="flex:1;position:relative;height:16px;background:var(--bg3);border-radius:2px;overflow:hidden">';
+    html+='<div style="position:absolute;left:0;top:0;height:100%;width:'+bwAvail+'%;background:var(--bg3);border-radius:2px"></div>';
+    html+='<div style="position:absolute;left:0;top:0;height:100%;width:'+bwSched+'%;background:'+col+';border-radius:2px"></div>';
+    html+='</div>';
+    html+='<div style="font-size:11px;font-weight:500;width:50px;text-align:right;color:'+col+'">'+fp(r.util)+'</div>';
+    html+='<div style="font-size:11px;color:var(--text3);width:130px;text-align:right">'+fn(Math.round(r.sched))+'h / '+fn(Math.round(r.avail))+'h</div>';
+    html+='<div style="font-size:11px;color:var(--red);width:60px;text-align:right">-'+fn(Math.round(r.gap))+'h</div>';
+    html+='</div>';
+  });
+  html+='<div style="display:flex;gap:16px;margin-top:10px;font-size:11px">';
+  html+='<span><span style="display:inline-block;width:10px;height:10px;background:var(--green);border-radius:2px;margin-right:4px;vertical-align:middle"></span>Scheduled hours (utilization)</span>';
+  html+='<span><span style="display:inline-block;width:10px;height:10px;background:var(--bg3);border-radius:2px;margin-right:4px;vertical-align:middle"></span>Available capacity</span>';
+  html+='<span style="color:var(--text3)">Red bar = under 70% &middot; Amber = 70-85% &middot; Green = 85%+</span>';
+  html+='</div></div>';
+
+  // Detail table
+  var tblRows='';
+  rows.forEach(function(r){
+    var indent=r.type==='market'?'padding-left:24px':'';
+    tblRows+='<tr>';
+    tblRows+='<td style="'+indent+';'+(r.type==='state'?'font-weight:700':'font-weight:normal;color:var(--text2)')+'">'+r.name+'</td>';
+    tblRows+='<td>'+fn(r.count)+'</td>';
+    tblRows+='<td>'+fn(Math.round(r.avail))+'h</td>';
+    tblRows+='<td>'+fn(Math.round(r.sched))+'h</td>';
+    tblRows+='<td style="color:var(--red)">'+fn(Math.round(r.gap))+'h</td>';
+    tblRows+='<td><span class="bdg '+(r.util>=0.85?'bg':r.util>=0.7?'ba':'br')+'">'+fp(r.util)+'</span></td>';
+    tblRows+='</tr>';
+  });
+
+  html+='<div class="fc"><div class="ct">Utilization detail</div>';
+  html+='<table class="tbl"><thead><tr><th>Market / State</th><th>Caregivers</th><th>Available Hrs</th><th>Scheduled Hrs</th><th>Unused Capacity</th><th>Utilization</th></tr></thead>';
+  html+='<tbody>'+tblRows+'</tbody>';
+  html+='<tfoot><tr><td>Total ('+navLabel()+')</td><td>'+fn(overallAgg.total)+'</td><td>'+fn(Math.round(overallAgg.desired))+'h</td><td>'+fn(Math.round(overallAgg.scheduled))+'h</td><td style="color:var(--red)">'+fn(Math.round(overallAgg.gap))+'h</td><td><span class="bdg '+(overallAgg.util>=0.85?'bg':overallAgg.util>=0.7?'ba':'br')+'">'+fp(overallAgg.util)+'</span></td></tr></tfoot>';
+  html+='</table><div class="cn">Utilization = scheduled hours &divide; available (desired) hours. Available hours = sum of all active caregivers' weekly desired hours. Green &ge;85% &middot; Amber 70-85% &middot; Red &lt;70%.</div></div>';
+
+  document.getElementById('ct').innerHTML=html;
+}
+
+function renderOpenHours(){
+  var oh=data.openHours||{MA:{day:0,shortday:0,longday:0,night:0},IL:{day:0,shortday:0,longday:0,night:0},MD:{day:0,shortday:0,longday:0,night:0}};
+  var SHIFT_LABELS={day:'Day (8-10h)',shortday:'Short Day (<8h)',longday:'Long Day (12h+)',night:'Overnight (20h+)'};
+  var SHIFT_ICONS={day:'☀️',shortday:'🌤️',longday:'⏰',night:'🌙'};
+  var STATE_NAMES={MA:'Massachusetts',IL:'Illinois',MD:'Maryland'};
+
+  // Filter by nav
+  var states=curNav==='company'?['MA','IL','MD']:curNav==='ma'?['MA']:curNav==='il'?['IL']:['MD'];
+
+  var html='';
+  html+='<div class="banner"><div class="bl">Open Unfilled Hours by Shift Type &mdash; '+curStart+' to '+curEnd+'</div>';
+  html+='Unfilled shifts broken down by shift duration type. These represent scheduling supply gaps by state.</div>';
+
+  // Summary cards
+  var shifts=['day','shortday','longday','night'];
+  html+='<div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:16px">';
+  shifts.forEach(function(s){
+    var total=states.reduce(function(sum,st){return sum+(oh[st]&&oh[st][s]||0)},0);
+    html+='<div class="kpi"><div class="kl">'+SHIFT_ICONS[s]+' '+SHIFT_LABELS[s]+'</div>';
+    html+='<div class="kv r">'+fn(Math.round(total))+'h</div>';
+    html+='<div class="ks">Open unfilled</div></div>';
+  });
+  html+='</div>';
+
+  // By state breakdown
+  states.forEach(function(stAbbr){
+    var stData=oh[stAbbr]||{};
+    var stName=STATE_NAMES[stAbbr];
+    var stTotal=shifts.reduce(function(s,k){return s+(stData[k]||0)},0);
+    if(!stTotal&&states.length>1)return;
+
+    html+='<div class="fc"><div class="ct">'+stName+' &mdash; Open hours by shift type</div>';
+    html+='<div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:12px">';
+    shifts.forEach(function(s){
+      var hrs=stData[s]||0;
+      html+='<div style="background:var(--bg2);border-radius:var(--r);padding:12px 14px">';
+      html+='<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text2);margin-bottom:6px">'+SHIFT_ICONS[s]+' '+s.replace('shortday','Short Day').replace('longday','Long Day').replace('day','Day').replace('night','Overnight')+'</div>';
+      html+='<div style="font-size:20px;font-weight:500;color:'+(hrs>0?'var(--red)':'var(--green)')+'">'+fn(Math.round(hrs))+'h</div>';
+      html+='<div style="font-size:11px;color:var(--text3)">'+(hrs>0?'Unfilled':'No open hrs')+'</div>';
+      html+='</div>';
+    });
+    html+='</div>';
+
+    // Shift type bar
+    if(stTotal>0){
+      html+='<div style="display:flex;height:20px;border-radius:4px;overflow:hidden;margin-bottom:8px">';
+      var colors={day:'var(--amber)',shortday:'var(--blue)',longday:'var(--green)',night:'var(--purple)'};
+      shifts.forEach(function(s){
+        var pct=Math.round((stData[s]||0)/stTotal*100);
+        if(pct>0)html+='<div style="width:'+pct+'%;background:'+colors[s]+'" title="'+SHIFT_LABELS[s]+': '+fn(Math.round(stData[s]||0))+'h"></div>';
+      });
+      html+='</div>';
+      html+='<div style="display:flex;gap:12px;font-size:11px;flex-wrap:wrap">';
+      shifts.forEach(function(s){
+        if((stData[s]||0)>0)html+='<span><span style="display:inline-block;width:10px;height:10px;background:'+{day:'var(--amber)',shortday:'var(--blue)',longday:'var(--green)',night:'var(--purple)'}[s]+';border-radius:2px;margin-right:4px;vertical-align:middle"></span>'+SHIFT_ICONS[s]+' '+fn(Math.round(stData[s]||0))+'h</span>';
+      });
+      html+='</div>';
+    } else {
+      html+='<div style="font-size:12px;color:var(--green)">No open unfilled hours this week.</div>';
+    }
+    html+='</div>';
+  });
+
+  html+='<div class="fc" style="background:var(--bg2)"><div style="font-size:11px;color:var(--text3);line-height:1.6"><strong>Shift type definitions:</strong> Short Day = visits under 8h &middot; Day = 8-10h &middot; Long Day = 12h+ &middot; Overnight = 20h+ (starts at night, crosses midnight). Open hours represent unfilled shifts where no caregiver has been assigned.</div></div>';
 
   document.getElementById('ct').innerHTML=html;
 }
