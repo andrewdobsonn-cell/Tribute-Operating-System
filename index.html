@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tribute Operating System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root {
+  --orange: #E8541A;
+  --orange-dark: #C4441A;
+  --orange-light: #F47A4A;
+  --orange-pale: #FDF2ED;
+  --orange-50: #FEF8F5;
+  --charcoal: #2C2C2C;
+  --charcoal-mid: #4A4A4A;
+  --gray-text: #6B6B6B;
+  --gray-light: #9B9B9B;
+  --gray-100: #F5F5F5;
+  --gray-200: #EBEBEB;
+  --gray-300: #D8D8D8;
+  --white: #FFFFFF;
+  --cream: #FAFAF8;
+  --shadow-sm: 0 1px 4px rgba(44,44,44,0.06), 0 1px 2px rgba(44,44,44,0.04);
+  --shadow-md: 0 4px 20px rgba(44,44,44,0.09), 0 2px 6px rgba(44,44,44,0.05);
+  --shadow-lg: 0 12px 40px rgba(44,44,44,0.12), 0 4px 12px rgba(44,44,44,0.06);
+  --r: 10px;
+  --rl: 14px;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--cream);
+  color: var(--charcoal);
+  min-height: 100vh;
+  font-size: 14px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── TOPBAR ── */
+.topbar {
+  background: var(--white);
+  border-bottom: 1px solid var(--gray-200);
+  padding: 0 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 56px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: var(--shadow-sm);
+}
+
+.topbar-brand {
+  display: flex;
+  align-items: baseline;
+  gap: 0;
+}
+
+.topbar-tribute {
+  font-family: 'DM Serif Display', Georgia, serif;
+  font-size: 22px;
+  font-weight: 400;
+  color: var(--orange);
+  letter-spacing: -.01em;
+}
+
+.topbar-sub {
+  font-size: 11px;
+  color: var(--gray-text);
+  margin-left: 4px;
+  font-weight: 400;
+  letter-spacing: .01em;
+}
+
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.topbar-live {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--gray-text);
+}
+
+.live-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: #3DAA7A;
+  animation: pulse 2.5s ease-in-out infinite;
+}
+
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+.topbar-time {
+  font-size: 11px;
+  color: var(--gray-light);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── HERO ── */
+.hero {
+  background: var(--white);
+  padding: 52px 48px 44px;
+  border-bottom: 1px solid var(--gray-200);
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 40px;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 4px;
+  height: 100%;
+  background: var(--orange);
+}
+
+.hero::after {
+  content: '';
+  position: absolute;
+  top: 0; right: 0;
+  width: 360px; height: 100%;
+  background: radial-gradient(ellipse at right center, rgba(232,84,26,0.04) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.hero-left { padding-left: 20px; }
+
+.hero-eyebrow {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--orange);
+  margin-bottom: 12px;
+}
+
+.hero-title {
+  font-family: 'DM Serif Display', Georgia, serif;
+  font-size: 46px;
+  font-weight: 400;
+  color: var(--charcoal);
+  line-height: 1.05;
+  letter-spacing: -.025em;
+  margin-bottom: 12px;
+}
+
+.hero-title span { color: var(--orange); font-style: italic; }
+
+.hero-sub {
+  font-size: 15px;
+  font-weight: 300;
+  color: var(--gray-text);
+  max-width: 440px;
+  line-height: 1.65;
+}
+
+.hero-stats {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
+  align-items: stretch;
+}
+
+.hero-stat {
+  background: var(--gray-100);
+  border-radius: var(--r);
+  padding: 18px 24px;
+  text-align: center;
+  min-width: 120px;
+}
+
+.hero-stat:first-child { border-radius: var(--r) 0 0 var(--r); }
+.hero-stat:last-child { border-radius: 0 var(--r) var(--r) 0; }
+
+.hero-stat-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--gray-light);
+  margin-bottom: 6px;
+}
+
+.hero-stat-value {
+  font-size: 26px;
+  font-weight: 500;
+  color: var(--charcoal);
+  letter-spacing: -.03em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.hero-stat-value.orange { color: var(--orange); }
+.hero-stat-value.green { color: #3DAA7A; }
+
+/* ── SNAPSHOT STRIP ── */
+.snapshot {
+  background: var(--orange);
+  padding: 0 48px;
+  display: flex;
+  align-items: stretch;
+  overflow-x: auto;
+}
+
+.snap-item {
+  padding: 14px 28px 14px 0;
+  margin-right: 28px;
+  border-right: 1px solid rgba(255,255,255,0.2);
+  flex-shrink: 0;
+}
+
+.snap-item:last-child { border-right: none; }
+
+.snap-label {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.65);
+  margin-bottom: 4px;
+}
+
+.snap-value {
+  font-size: 20px;
+  font-weight: 500;
+  color: var(--white);
+  letter-spacing: -.02em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.snap-sub {
+  font-size: 10px;
+  color: rgba(255,255,255,0.5);
+  margin-top: 3px;
+}
+
+/* ── MAIN ── */
+.main {
+  padding: 40px 48px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* ── SECTION HEADER ── */
+.section-hdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.section-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--gray-light);
+}
+
+/* ── DASHBOARD TILES ── */
+.dash-nav {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+  margin-bottom: 28px;
+}
+
+@media(max-width:900px){.dash-nav{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:580px){.dash-nav{grid-template-columns:1fr 1fr}}
+
+.dash-tile {
+  background: var(--white);
+  border: 1.5px solid var(--gray-200);
+  border-radius: var(--rl);
+  padding: 18px 18px 16px;
+  cursor: pointer;
+  transition: all .18s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.dash-tile::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: var(--orange);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform .2s ease;
+}
+
+.dash-tile:hover {
+  border-color: var(--orange-light);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.dash-tile:hover::before { transform: scaleX(1); }
+
+.dash-tile.active {
+  border-color: var(--orange);
+  background: var(--orange-50);
+  box-shadow: 0 4px 16px rgba(232,84,26,0.12);
+}
+
+.dash-tile.active::before { transform: scaleX(1); }
+
+.tile-icon {
+  width: 34px; height: 34px;
+  border-radius: 8px;
+  background: var(--gray-100);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  margin-bottom: 10px;
+  transition: background .18s;
+}
+
+.dash-tile.active .tile-icon { background: var(--orange-pale); }
+
+.tile-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--charcoal);
+  margin-bottom: 4px;
+  line-height: 1.3;
+}
+
+.tile-desc {
+  font-size: 10px;
+  color: var(--gray-text);
+  line-height: 1.5;
+}
+
+/* ── DASHBOARD FRAME ── */
+.dash-frame-wrap {
+  background: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--rl);
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+  margin-bottom: 28px;
+}
+
+.dash-frame-bar {
+  background: var(--charcoal);
+  padding: 10px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.dash-frame-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.frame-dots {
+  display: flex;
+  gap: 5px;
+}
+
+.frame-dot {
+  width: 9px; height: 9px;
+  border-radius: 50%;
+}
+
+.frame-dot.r { background: #FF5F57; }
+.frame-dot.y { background: #FFBD2E; }
+.frame-dot.g { background: #28C840; }
+
+.dash-frame-title {
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(255,255,255,0.55);
+  letter-spacing: .01em;
+}
+
+.dash-frame-actions { display: flex; gap: 6px; }
+
+.dash-frame-btn {
+  font-size: 10px;
+  font-weight: 500;
+  color: rgba(255,255,255,0.45);
+  padding: 4px 10px;
+  border-radius: 5px;
+  border: 1px solid rgba(255,255,255,0.12);
+  cursor: pointer;
+  text-decoration: none;
+  transition: all .15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.dash-frame-btn:hover {
+  background: rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.8);
+  border-color: rgba(255,255,255,0.25);
+}
+
+.dash-frame-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 220px;
+  flex-direction: column;
+  gap: 14px;
+  color: var(--gray-light);
+  font-size: 13px;
+}
+
+.dash-frame-loading-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.spinner {
+  width: 22px; height: 22px;
+  border: 2.5px solid var(--gray-200);
+  border-top-color: var(--orange);
+  border-radius: 50%;
+  animation: spin .75s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.dash-iframe {
+  width: 100%;
+  border: none;
+  display: block;
+  height: 950px;
+}
+
+/* ── BOTTOM GRID ── */
+.bottom-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+@media(max-width:800px){.bottom-grid{grid-template-columns:1fr}}
+
+.panel {
+  background: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--rl);
+  padding: 26px 28px;
+  box-shadow: var(--shadow-sm);
+}
+
+.panel-eyebrow {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--orange);
+  margin-bottom: 6px;
+}
+
+.panel-title {
+  font-family: 'DM Serif Display', Georgia, serif;
+  font-size: 19px;
+  font-weight: 400;
+  color: var(--charcoal);
+  margin-bottom: 2px;
+  line-height: 1.2;
+}
+
+.panel-sub {
+  font-size: 12px;
+  color: var(--gray-light);
+  margin-bottom: 20px;
+}
+
+.insight-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--gray-100);
+}
+
+.insight-item:last-child { border-bottom: none; padding-bottom: 0; }
+.insight-item:first-child { padding-top: 0; }
+
+.insight-pip {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 6px;
+}
+
+.insight-pip.red { background: #E05252; }
+.insight-pip.amber { background: var(--orange); }
+.insight-pip.green { background: #3DAA7A; }
+
+.insight-text {
+  font-size: 13px;
+  color: var(--charcoal-mid);
+  line-height: 1.55;
+}
+
+.insight-text strong { color: var(--charcoal); font-weight: 600; }
+
+.action-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 10px;
+  border-radius: var(--r);
+  cursor: pointer;
+  transition: background .15s;
+  margin: 0 -10px;
+}
+
+.action-item:hover { background: var(--orange-50); }
+.action-item:hover .action-arrow { opacity: 1; color: var(--orange); transform: translateX(3px); }
+
+.action-num {
+  width: 26px; height: 26px;
+  border-radius: 7px;
+  background: var(--gray-100);
+  color: var(--gray-text);
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all .15s;
+}
+
+.action-item:hover .action-num {
+  background: var(--orange);
+  color: var(--white);
+}
+
+.action-text {
+  flex: 1;
+  font-size: 13px;
+  color: var(--charcoal-mid);
+  line-height: 1.45;
+}
+
+.action-text strong { color: var(--charcoal); font-weight: 600; }
+
+.action-arrow {
+  font-size: 15px;
+  color: var(--gray-300);
+  opacity: 0;
+  transition: all .15s;
+}
+
+/* ── FOOTER ── */
+.footer {
+  background: var(--white);
+  border-top: 1px solid var(--gray-200);
+  padding: 18px 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 28px;
+}
+
+.footer-brand {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+}
+
+.footer-tribute {
+  font-family: 'DM Serif Display', Georgia, serif;
+  font-size: 16px;
+  color: var(--orange);
+}
+
+.footer-hc {
+  font-size: 11px;
+  color: var(--gray-light);
+}
+
+.footer-meta {
+  font-size: 11px;
+  color: var(--gray-light);
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.footer-live {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #3DAA7A;
+}
+
+.footer-live-dot {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: #3DAA7A;
+  animation: pulse 2.5s infinite;
+}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="topbar-brand">
+    <span class="topbar-tribute">Tribute</span>
+    <span class="topbar-sub">Home Care · Operating System</span>
+  </div>
+  <div class="topbar-right">
+    <div class="topbar-live">
+      <div class="live-dot"></div>
+      Live · Viv Technologies
+    </div>
+    <div class="topbar-time" id="topbarTime">—</div>
+  </div>
+</div>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-left">
+    <div class="hero-eyebrow">Executive Operating System</div>
+    <h1 class="hero-title">Run the company.<br><span>See everything.</span></h1>
+    <p class="hero-sub">Real-time performance across all markets — revenue, caregivers, clients, and operational constraints in one place.</p>
+  </div>
+  <div class="hero-stats">
+    <div class="hero-stat">
+      <div class="hero-stat-label">Revenue</div>
+      <div class="hero-stat-value orange" id="heroRevenue">—</div>
+    </div>
+    <div class="hero-stat">
+      <div class="hero-stat-label">Fill Rate</div>
+      <div class="hero-stat-value green" id="heroFill">—</div>
+    </div>
+    <div class="hero-stat">
+      <div class="hero-stat-label">Open</div>
+      <div class="hero-stat-value" id="heroOpen">—</div>
+    </div>
+  </div>
+</div>
+
+<!-- SNAPSHOT STRIP -->
+<div class="snapshot">
+  <div class="snap-item">
+    <div class="snap-label">Weekly Revenue</div>
+    <div class="snap-value" id="snapRev">—</div>
+    <div class="snap-sub" id="snapRevSub">This week</div>
+  </div>
+  <div class="snap-item">
+    <div class="snap-label">Fill Rate</div>
+    <div class="snap-value" id="snapFill">—</div>
+    <div class="snap-sub" id="snapFillSub">Filled / scheduled</div>
+  </div>
+  <div class="snap-item">
+    <div class="snap-label">Active Caregivers</div>
+    <div class="snap-value" id="snapCG">—</div>
+    <div class="snap-sub">Hired status</div>
+  </div>
+  <div class="snap-item">
+    <div class="snap-label">Billed Hours</div>
+    <div class="snap-value" id="snapHrs">—</div>
+    <div class="snap-sub">This week</div>
+  </div>
+  <div class="snap-item">
+    <div class="snap-label">Gross Margin</div>
+    <div class="snap-value" id="snapMargin">—</div>
+    <div class="snap-sub">Profit / revenue</div>
+  </div>
+  <div class="snap-item">
+    <div class="snap-label">Open Visits</div>
+    <div class="snap-value" id="snapOpen">—</div>
+    <div class="snap-sub">Unfilled this week</div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- DASHBOARD NAV -->
+  <div class="section-hdr">
+    <div class="section-label">Dashboards</div>
+  </div>
+
+  <div class="dash-nav">
+    <div class="dash-tile active" onclick="loadDash('executive',this)">
+      <div class="tile-icon">📊</div>
+      <div class="tile-name">Executive Dashboard</div>
+      <div class="tile-desc">Revenue, fill rate, margins and market performance</div>
+    </div>
+    <div class="dash-tile" onclick="loadDash('caregiver_hours',this)">
+      <div class="tile-icon">⏱️</div>
+      <div class="tile-name">Caregiver Hours</div>
+      <div class="tile-desc">Happiness, utilization, open shifts and MCE performance</div>
+    </div>
+    <div class="dash-tile" onclick="loadDash('revenue_trends',this)">
+      <div class="tile-icon">📈</div>
+      <div class="tile-name">Revenue Trends</div>
+      <div class="tile-desc">Monthly billable hours and revenue history</div>
+    </div>
+    <div class="dash-tile" onclick="loadDash('client_dashboard',this)">
+      <div class="tile-icon">👥</div>
+      <div class="tile-name">Client Census</div>
+      <div class="tile-desc">Active clients, status changes and market distribution</div>
+    </div>
+    <div class="dash-tile" onclick="loadDash('caregiver_dashboard',this)">
+      <div class="tile-icon">🤝</div>
+      <div class="tile-name">Caregiver Engine</div>
+      <div class="tile-desc">Hiring, retention, tenure and workforce composition</div>
+    </div>
+  </div>
+
+  <!-- ACTIVE DASHBOARD FRAME -->
+  <div class="dash-frame-wrap">
+    <div class="dash-frame-bar">
+      <div class="dash-frame-left">
+        <div class="frame-dots">
+          <div class="frame-dot r"></div>
+          <div class="frame-dot y"></div>
+          <div class="frame-dot g"></div>
+        </div>
+        <div class="dash-frame-title" id="frameTitle">Executive Dashboard</div>
+      </div>
+      <div class="dash-frame-actions">
+        <a id="frameLink" href="https://andrewdobsonn-cell.github.io/Tribute-Operating-System/tribute_dashboard.html" target="_blank" class="dash-frame-btn">Open full screen ↗</a>
+      </div>
+    </div>
+    <div id="frameLoading" class="dash-frame-loading">
+      <div class="dash-frame-loading-inner">
+        <div class="spinner"></div>
+        Loading dashboard...
+      </div>
+    </div>
+    <iframe
+      id="dashFrame"
+      class="dash-iframe"
+      src="https://andrewdobsonn-cell.github.io/Tribute-Operating-System/tribute_dashboard.html"
+      style="display:none"
+      onload="onFrameLoad()"
+    ></iframe>
+  </div>
+
+  <!-- BOTTOM GRID -->
+  <div class="bottom-grid">
+
+    <div class="panel">
+      <div class="panel-eyebrow">Operations</div>
+      <div class="panel-title">What matters right now</div>
+      <div class="panel-sub">Key signals from this week</div>
+
+      <div class="insight-item">
+        <div class="insight-pip amber"></div>
+        <div class="insight-text"><strong>Caregiver happiness below goal</strong> — review MCEs below the 90% threshold and target scheduling gaps before end of week.</div>
+      </div>
+      <div class="insight-item">
+        <div class="insight-pip green"></div>
+        <div class="insight-text"><strong>Baltimore leading volume</strong> — highest visit count this week with consistent fill rates across long-day and overnight shifts.</div>
+      </div>
+      <div class="insight-item">
+        <div class="insight-pip red"></div>
+        <div class="insight-text"><strong>New hire onboarding risk</strong> — caregivers in their first 90 days without hours assigned are highest churn risk. Check the First 90 Days view.</div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-eyebrow">Leadership</div>
+      <div class="panel-title">Current Focus</div>
+      <div class="panel-sub">Operational priorities this week</div>
+
+      <div class="action-item" onclick="loadDash('caregiver_hours',null)">
+        <div class="action-num">1</div>
+        <div class="action-text"><strong>Caregiver utilization by MCE</strong> — who is below 70%? Identify and address scheduling gaps today.</div>
+        <div class="action-arrow">→</div>
+      </div>
+      <div class="action-item" onclick="loadDash('caregiver_hours',null)">
+        <div class="action-num">2</div>
+        <div class="action-text"><strong>Open shift audit</strong> — review overnight and long-day gaps by day. These carry the highest revenue impact.</div>
+        <div class="action-arrow">→</div>
+      </div>
+      <div class="action-item" onclick="loadDash('executive',null)">
+        <div class="action-num">3</div>
+        <div class="action-text"><strong>Fill rate by market</strong> — any market below 95% needs coordinator attention this week.</div>
+        <div class="action-arrow">→</div>
+      </div>
+      <div class="action-item" onclick="loadDash('caregiver_hours',null)">
+        <div class="action-num">4</div>
+        <div class="action-text"><strong>First 90 days cohort</strong> — every new hire needs visits in their first two weeks to reduce early attrition.</div>
+        <div class="action-arrow">→</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- FOOTER -->
+<div class="footer">
+  <div class="footer-brand">
+    <span class="footer-tribute">Tribute</span>
+    <span class="footer-hc">Home Care LLC</span>
+  </div>
+  <div class="footer-meta">
+    <div class="footer-live">
+      <div class="footer-live-dot"></div>
+      Live · Viv Technologies
+    </div>
+    <span id="footerUpdated">—</span>
+  </div>
+</div>
+
+<script>
+var API = 'https://tribute-api-prod-bkc4hfcwf3f2f6bf.centralus-01.azurewebsites.net/api/vivProxy';
+var BASE = 'https://andrewdobsonn-cell.github.io/Tribute-Operating-System/';
+
+var DASHES = {
+  executive:           { title:'Executive Dashboard',   file:'tribute_dashboard.html' },
+  caregiver_hours:     { title:'Caregiver Hours',       file:'caregiver_hours.html' },
+  revenue_trends:      { title:'Revenue Trends',        file:'revenue_trends.html' },
+  client_dashboard:    { title:'Client Census',         file:'client_dashboard.html' },
+  caregiver_dashboard: { title:'Caregiver Engine',      file:'caregiver_dashboard.html' },
+};
+
+var curDash = 'executive';
+
+function fmt(n){ return Math.round(n).toLocaleString(); }
+function fmtM(n){ return n>=1000000?'$'+(n/1000000).toFixed(2)+'M':'$'+fmt(n); }
+function fmtP(n){ return (n*100).toFixed(1)+'%'; }
+function fmtD(d){ return d.toISOString().split('T')[0]; }
+
+function sunOfWeek(){
+  var d=new Date(); d.setDate(d.getDate()-d.getDay()); d.setHours(0,0,0,0); return d;
+}
+
+function setEl(id,v){ var e=document.getElementById(id); if(e)e.textContent=v; }
+
+function updateClock(){
+  var t=new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+  setEl('topbarTime',t);
+  setEl('footerUpdated','Updated '+t);
+}
+
+async function loadMetrics(){
+  try{
+    var sun=sunOfWeek(), sat=new Date(sun);
+    sat.setDate(sun.getDate()+6);
+    var s=fmtD(sun),e=fmtD(sat);
+
+    var r=await fetch(API+'?endpoint=visits&startDate='+s+'&endDate='+e);
+    if(!r.ok)throw new Error('visits API');
+    var d=await r.json(), t=d.totals;
+
+    setEl('heroRevenue', fmtM(t.revenue));
+    setEl('heroFill', fmtP(t.fillRate));
+    setEl('heroOpen', fmt(t.openVisits));
+    setEl('snapRev', fmtM(t.revenue));
+    setEl('snapFill', fmtP(t.fillRate));
+    setEl('snapHrs', fmt(Math.round(t.billedHours))+'h');
+    setEl('snapMargin', fmtP(t.grossMarginPct));
+    setEl('snapOpen', fmt(t.openVisits));
+    setEl('snapFillSub', fmt(t.filledVisits)+' of '+fmt(t.totalVisits)+' visits');
+
+    var cgR=await fetch(API+'?endpoint=caregivers&fast=true');
+    if(cgR.ok){
+      var cgD=await cgR.json();
+      setEl('snapCG', fmt(cgD.totals.active));
+    }
+  }catch(err){
+    console.warn('Metrics error:',err.message);
+  }
+}
+
+function onFrameLoad(){
+  document.getElementById('frameLoading').style.display='none';
+  document.getElementById('dashFrame').style.display='block';
+}
+
+function loadDash(key, tile){
+  // Update tiles
+  document.querySelectorAll('.dash-tile').forEach(function(t){t.classList.remove('active');});
+  if(tile){
+    tile.classList.add('active');
+  } else {
+    var keys=Object.keys(DASHES), idx=keys.indexOf(key);
+    var tiles=document.querySelectorAll('.dash-tile');
+    if(tiles[idx])tiles[idx].classList.add('active');
+  }
+
+  curDash=key;
+  var cfg=DASHES[key]; if(!cfg)return;
+  var url=BASE+cfg.file;
+
+  setEl('frameTitle', cfg.title);
+  document.getElementById('frameLink').href=url;
+
+  var loading=document.getElementById('frameLoading');
+  var frame=document.getElementById('dashFrame');
+  loading.style.display='flex';
+  frame.style.display='none';
+  frame.src=url;
+
+  // Smooth scroll to frame
+  setTimeout(function(){
+    document.querySelector('.dash-frame-wrap').scrollIntoView({behavior:'smooth',block:'start'});
+  },100);
+}
+
+// Init
+updateClock();
+setInterval(updateClock, 60000);
+loadMetrics();
+</script>
+</body>
+</html>
