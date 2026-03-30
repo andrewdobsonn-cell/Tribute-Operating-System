@@ -627,7 +627,7 @@ function renderMCE(){
       html+='<td>'+fh(c.scheduledHrs)+'</td>';
       html+='<td>'+fh(c.desiredHrs)+'</td>';
       html+='<td style="color:'+(c.differential>=0?'var(--green)':'var(--red)')+'">'+(c.differential>=0?'+':'')+fh(c.differential)+'</td>';
-      html+='<td style="color:'+(c.ptoHrs>0?'var(--amber)':'var(--text3)');+">'+(c.ptoHrs>0?fh(c.ptoHrs):'&mdash;')+'</td>';
+      html+='<td style="color:'+(c.ptoHrs>0?'var(--amber)':'var(--text3)')+'">'+(c.ptoHrs>0?fh(c.ptoHrs):'&mdash;')+'</td>';
       html+='</tr>';
     });
     html+='</tbody></table></div></div>';
@@ -657,7 +657,7 @@ function buildList(cgs){
     html+='<td>'+fh(c.scheduledHrs)+'</td>';
     html+='<td>'+fh(c.desiredHrs)+'</td>';
     html+='<td style="color:'+(c.differential>=0?'var(--green)':'var(--red)')+'">'+(c.differential>=0?'+':'')+fh(c.differential)+'</td>';
-    html+='<td style="color:'+(c.ptoHrs>0?'var(--amber)':'var(--text3)');+">'+(c.ptoHrs>0?fh(c.ptoHrs):'&mdash;')+'</td>';
+    html+='<td style="color:'+(c.ptoHrs>0?'var(--amber)':'var(--text3)')+'">'+(c.ptoHrs>0?fh(c.ptoHrs):'&mdash;')+'</td>';
     html+='</tr>';
   });
   html+='</tbody></table>';
