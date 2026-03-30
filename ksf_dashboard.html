@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tribute — KSF Scheduling Dashboard</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --orange:#E8541A;--orange-pale:#FDF2ED;--orange-50:#FEF8F5;
+  --charcoal:#2C2C2C;--text2:#4A4A4A;--text3:#6B6B6B;--text4:#9B9B9B;
+  --gray100:#F5F5F5;--gray200:#EBEBEB;--gray300:#D8D8D8;
+  --white:#FFFFFF;--cream:#FAFAF8;
+  --green:#3DAA7A;--green-bg:#EAF6F0;--green-text:#1A7A52;
+  --red:#E05252;--red-bg:#FDEEEE;--red-text:#8B1F1F;
+  --amber:#F59E0B;--amber-bg:#FEF3C7;--amber-text:#7C3E00;
+  --blue:#2563EB;--blue-bg:#EFF6FF;--blue-text:#1E3A8A;
+  --shadow:0 1px 4px rgba(44,44,44,0.07),0 1px 2px rgba(44,44,44,0.04);
+  --shadow-md:0 4px 16px rgba(44,44,44,0.09),0 2px 6px rgba(44,44,44,0.04);
+  --r:8px;--rl:12px
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--cream);color:var(--charcoal);font-size:13px;line-height:1.5;-webkit-font-smoothing:antialiased}
+.hdr{background:var(--white);border-bottom:1px solid var(--gray200);padding:12px 32px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:var(--shadow)}
+.hdr-brand{display:flex;align-items:baseline;gap:6px}
+.hdr-title{font-size:16px;font-weight:600;color:var(--orange)}
+.hdr-sub{font-size:11px;color:var(--text3)}
+.hdr-right{display:flex;align-items:center;gap:16px;font-size:11px;color:var(--text4)}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--green);display:inline-block;margin-right:4px;animation:pulse 2.5s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.loading{text-align:center;padding:60px;color:var(--text4);font-size:13px}
+.spin{width:22px;height:22px;border:2px solid var(--gray200);border-top-color:var(--orange);border-radius:50%;animation:sp .75s linear infinite;margin:0 auto 10px}
+@keyframes sp{to{transform:rotate(360deg)}}
+.period-bar{background:var(--white);border-bottom:1px solid var(--gray200);padding:10px 32px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.pbtn{font-size:11px;font-weight:500;padding:4px 12px;border-radius:20px;cursor:pointer;border:.5px solid var(--gray300);color:var(--text3);background:var(--gray100);user-select:none}
+.pbtn.on{background:var(--charcoal);color:var(--white);border-color:var(--charcoal)}
+.nav-tabs{display:flex;border-bottom:1px solid var(--gray200);background:var(--white);padding:0 32px;overflow-x:auto}
+.ntab{font-size:12px;font-weight:500;color:var(--text3);padding:10px 16px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap;user-select:none}
+.ntab.on{color:var(--charcoal);border-bottom-color:var(--orange)}
+.main{padding:24px 32px;max-width:1300px;margin:0 auto}
+.kg{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-bottom:16px}
+.kg4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:16px}
+.kg3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:16px}
+@media(max-width:900px){.kg,.kg4,.kg3{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:600px){.kg,.kg4,.kg3{grid-template-columns:1fr 1fr}}
+.kpi{background:var(--white);border:.5px solid var(--gray200);border-radius:var(--r);padding:14px 16px;box-shadow:var(--shadow)}
+.kl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text4);margin-bottom:5px}
+.kv{font-size:24px;font-weight:500;line-height:1;margin-bottom:3px;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.kv.g{color:var(--green)}.kv.r{color:var(--red)}.kv.a{color:var(--amber)}.kv.o{color:var(--orange)}.kv.b{color:var(--blue)}
+.ks{font-size:10px;color:var(--text4)}
+.ks.good{color:var(--green)}.ks.bad{color:var(--red)}
+.fc{background:var(--white);border:.5px solid var(--gray200);border-radius:var(--rl);padding:16px 20px;margin-bottom:14px;box-shadow:var(--shadow)}
+.ct{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-bottom:12px}
+.tbl{width:100%;border-collapse:collapse;font-size:12px}
+.tbl th{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);padding:6px 10px;border-bottom:.5px solid var(--gray200);text-align:right;cursor:pointer;user-select:none;white-space:nowrap}
+.tbl th:first-child,.tbl th:nth-child(2){text-align:left}
+.tbl th:hover{color:var(--orange)}
+.tbl td{padding:8px 10px;border-bottom:.5px solid var(--gray100);text-align:right;font-variant-numeric:tabular-nums}
+.tbl td:first-child,.tbl td:nth-child(2){text-align:left;font-weight:500}
+.tbl tbody tr:last-child td{border-bottom:none}
+.tbl tfoot td{border-top:.5px solid var(--gray200);font-weight:600;padding:8px 10px;text-align:right;background:var(--gray100)}
+.tbl tfoot td:first-child,.tbl tfoot td:nth-child(2){text-align:left}
+.bdg{font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;display:inline-block}
+.bg{background:var(--green-bg);color:var(--green-text)}.br{background:var(--red-bg);color:var(--red-text)}.ba{background:var(--amber-bg);color:var(--amber-text)}.bb{background:var(--blue-bg);color:var(--blue-text)}
+.vs{font-size:10px;font-weight:500}
+.vs.up{color:var(--green)}.vs.dn{color:var(--red)}.vs.eq{color:var(--text4)}
+.bar-wrap{height:8px;background:var(--gray100);border-radius:4px;overflow:hidden;min-width:60px}
+.bar-fill{height:100%;border-radius:4px}
+.upload-zone{border:1.5px dashed var(--gray300);border-radius:var(--rl);padding:24px;text-align:center;cursor:pointer;transition:all .2s;background:var(--gray100);margin-bottom:14px}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--orange);background:var(--orange-50)}
+.upload-zone-icon{font-size:28px;margin-bottom:8px}
+.upload-zone-title{font-size:13px;font-weight:500;color:var(--charcoal);margin-bottom:4px}
+.upload-zone-sub{font-size:11px;color:var(--text4)}
+.upload-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+@media(max-width:700px){.upload-grid{grid-template-columns:1fr}}
+.upload-status{font-size:11px;margin-top:8px;padding:6px 10px;border-radius:6px;display:none}
+.upload-status.loaded{display:block;background:var(--green-bg);color:var(--green-text)}
+.upload-status.error{display:block;background:var(--red-bg);color:var(--red-text)}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+@media(max-width:800px){.two-col{grid-template-columns:1fr}}
+.ftr{border-top:1px solid var(--gray200);padding:14px 32px;display:flex;justify-content:space-between;font-size:10px;color:var(--text4);background:var(--white);margin-top:16px}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-brand">
+    <span class="hdr-title">Tribute</span>
+    <span class="hdr-sub">Home Care · KSF Scheduling Dashboard</span>
+  </div>
+  <div class="hdr-right">
+    <span><span class="live-dot"></span>Live · Viv Technologies</span>
+    <span id="clock">—</span>
+  </div>
+</div>
+
+<div class="period-bar">
+  <span style="font-size:11px;color:var(--text4);margin-right:4px">Week:</span>
+  <div class="pbtn on" onclick="setWeek(0,this)">This week</div>
+  <div class="pbtn" onclick="setWeek(-1,this)">Last week</div>
+  <div class="pbtn" onclick="setWeek(-2,this)">2 weeks ago</div>
+  <div class="pbtn" onclick="setWeek(-3,this)">3 weeks ago</div>
+  <div class="pbtn" onclick="setWeek(-4,this)">4 weeks ago</div>
+  <div style="display:flex;gap:6px;align-items:center;margin-left:8px">
+    <input type="date" id="cs" style="font-size:11px;padding:4px 8px;border:.5px solid var(--gray300);border-radius:var(--r);background:var(--gray100);color:var(--charcoal)">
+    <span style="font-size:11px;color:var(--text4)">to</span>
+    <input type="date" id="ce" style="font-size:11px;padding:4px 8px;border:.5px solid var(--gray300);border-radius:var(--r);background:var(--gray100);color:var(--charcoal)">
+    <button onclick="setCustom()" style="font-size:11px;padding:4px 12px;border-radius:20px;border:.5px solid var(--gray300);background:var(--gray100);color:var(--charcoal);cursor:pointer">Go</button>
+  </div>
+</div>
+
+<div class="nav-tabs">
+  <div class="ntab on" onclick="setTab('overview',this)">Overview</div>
+  <div class="ntab" onclick="setTab('markets',this)">By Market</div>
+  <div class="ntab" onclick="setTab('openvisits',this)">Open Visits</div>
+  <div class="ntab" onclick="setTab('budget',this)">vs. Budget</div>
+  <div class="ntab" onclick="setTab('callmetrics',this)">Call Metrics</div>
+  <div class="ntab" onclick="setTab('uber',this)">Uber / Lyft</div>
+</div>
+
+<div class="main">
+  <div id="ct"><div class="loading"><div class="spin"></div>Loading KSF data...</div></div>
+</div>
+<div class="ftr"><span>Tribute Home Care LLC · KSF Scheduling Dashboard</span><span id="updated">—</span></div>
+
+<script>
+var API='https://tribute-api-prod-bkc4hfcwf3f2f6bf.centralus-01.azurewebsites.net/api/vivProxy';
+var curTab='overview', curStart=null, curEnd=null;
+var visitsData=null, cgData=null, callData=null, uberData=null;
+
+// ── BAKED-IN BUDGET DATA (from KSF Excel) ──────────────────────────
+var BUDGET = {
+  'Baltimore':        { revenueWeekly:139790/4.33, grossMarginPct:0.401, otPct:0.184, lyftPct:0.0049 },
+  'Annapolis':        { revenueWeekly:12201/4.33,  grossMarginPct:0.468, otPct:0.139, lyftPct:0.008  },
+  'Bethesda':         { revenueWeekly:1590/4.33,   grossMarginPct:0.418, otPct:0.188, lyftPct:0.0185 },
+  'Boston':           { revenueWeekly:116392/4.33, grossMarginPct:0.438, otPct:0.172, lyftPct:0.005  },
+  'MetroWest Boston': { revenueWeekly:59535/4.33,  grossMarginPct:0.400, otPct:0.190, lyftPct:0.0075 },
+  'North of Boston':  { revenueWeekly:2452/4.33,   grossMarginPct:0.179, otPct:0.418, lyftPct:0.0034 },
+  'South of Boston':  { revenueWeekly:3360/4.33,   grossMarginPct:0.430, otPct:0.160, lyftPct:0.005  },
+  'Chicago':          { revenueWeekly:5198/4.33,   grossMarginPct:0.404, otPct:0.146, lyftPct:0.0061 },
+  'Northern Virginia':{ revenueWeekly:2100/4.33,   grossMarginPct:0.408, otPct:0.145, lyftPct:0.006  },
+};
+
+function fn(n){return Math.round(n).toLocaleString()}
+function fh(n){return parseFloat(n).toFixed(1)+'h'}
+function fp(n){return(n*100).toFixed(1)+'%'}
+function fm(n){return n>=1000000?'$'+(n/1000000).toFixed(2)+'M':'$'+fn(n)}
+function fk(n){return n>=1000?'$'+(n/1000).toFixed(1)+'K':'$'+fn(n)}
+function fmtD(d){return d.toISOString().split('T')[0]}
+function vsBudget(actual,budget){
+  if(!budget)return '';
+  var diff=(actual-budget)/budget;
+  var pct=(diff*100).toFixed(1);
+  if(diff>0.02)return '<span class="vs up">▲ '+pct+'%</span>';
+  if(diff<-0.02)return '<span class="vs dn">▼ '+Math.abs(pct)+'%</span>';
+  return '<span class="vs eq">~ On budget</span>';
+}
+function budgBdg(actual,budget){
+  if(!budget)return '';
+  var ratio=actual/budget;
+  if(ratio>=0.95)return '<span class="bdg bg">On target</span>';
+  if(ratio>=0.80)return '<span class="bdg ba">Near target</span>';
+  return '<span class="bdg br">Below target</span>';
+}
+
+function getSunday(wa){
+  var d=new Date();d.setDate(d.getDate()-d.getDay()-(wa*7));d.setHours(0,0,0,0);return d;
+}
+function setWeek(wa,el){
+  var s=getSunday(wa),e=new Date(s);e.setDate(s.getDate()+6);
+  curStart=fmtD(s);curEnd=fmtD(e);
+  document.querySelectorAll('.pbtn').forEach(x=>x.classList.remove('on'));
+  el.classList.add('on');
+  fetchData();
+}
+function setCustom(){
+  var s=document.getElementById('cs').value,e=document.getElementById('ce').value;
+  if(!s||!e){alert('Select both dates');return;}
+  curStart=s;curEnd=e;
+  document.querySelectorAll('.pbtn').forEach(x=>x.classList.remove('on'));
+  fetchData();
+}
+function setTab(t,el){
+  curTab=t;
+  document.querySelectorAll('.ntab').forEach(x=>x.classList.remove('on'));
+  el.classList.add('on');
+  if(visitsData)render();
+}
+
+async function fetchData(){
+  document.getElementById('ct').innerHTML='<div class="loading"><div class="spin"></div>Loading data for '+curStart+' to '+curEnd+'...</div>';
+  try{
+    var [vr,cr]=await Promise.all([
+      fetch(API+'?endpoint=visits&startDate='+curStart+'&endDate='+curEnd),
+      fetch(API+'?endpoint=caregivers&fast=true')
+    ]);
+    visitsData=vr.ok?await vr.json():null;
+    cgData=cr.ok?await cr.json():null;
+    document.getElementById('updated').textContent='Updated '+new Date().toLocaleTimeString();
+    render();
+  }catch(e){
+    document.getElementById('ct').innerHTML='<div style="color:var(--red);padding:20px">Error: '+e.message+'</div>';
+  }
+}
+
+function render(){
+  if(!visitsData)return;
+  if(curTab==='overview')renderOverview();
+  else if(curTab==='markets')renderMarkets();
+  else if(curTab==='openvisits')renderOpenVisits();
+  else if(curTab==='budget')renderBudget();
+  else if(curTab==='callmetrics')renderCallMetrics();
+  else if(curTab==='uber')renderUber();
+}
+
+function renderOverview(){
+  var t=visitsData.totals, mkts=visitsData.markets||[];
+  var html='';
+
+  // Top KPIs
+  html+='<div class="kg">';
+  html+='<div class="kpi"><div class="kl">Weekly Revenue</div><div class="kv o">'+fm(t.revenue)+'</div><div class="ks">'+curStart+' to '+curEnd+'</div></div>';
+  html+='<div class="kpi"><div class="kl">Fill Rate</div><div class="kv '+(t.fillRate>=0.97?'g':t.fillRate>=0.95?'a':'r')+'">'+fp(t.fillRate)+'</div><div class="ks '+(t.fillRate>=0.97?'good':'bad')+'">'+fn(t.filledVisits)+' of '+fn(t.totalVisits)+'</div></div>';
+  html+='<div class="kpi"><div class="kl">Open Visits</div><div class="kv '+(t.openVisits===0?'g':t.openVisits<20?'a':'r')+'">'+fn(t.openVisits)+'</div><div class="ks">Unfilled this week</div></div>';
+  html+='<div class="kpi"><div class="kl">Billed Hours</div><div class="kv b">'+fn(Math.round(t.billedHours))+'h</div><div class="ks">This week</div></div>';
+  html+='<div class="kpi"><div class="kl">Gross Margin</div><div class="kv '+(t.grossMarginPct>=0.44?'g':t.grossMarginPct>=0.40?'a':'r')+'">'+fp(t.grossMarginPct)+'</div><div class="ks">'+fm(t.grossProfit)+' profit</div></div>';
+  html+='</div>';
+
+  // Market summary table
+  var activeMkts=mkts.filter(m=>m.totalVisits>0);
+  html+='<div class="fc"><div class="ct">Performance by market — '+curStart+' to '+curEnd+'</div>';
+  html+='<table class="tbl"><thead><tr><th>Market</th><th>State</th><th>Visits</th><th>Fill Rate</th><th>Revenue</th><th>vs. Budget</th><th>Gross Margin</th><th>Open</th><th>Billed Hrs</th></tr></thead><tbody>';
+  activeMkts.forEach(function(m){
+    var bgt=BUDGET[m.market];
+    var bgtRev=bgt?bgt.revenueWeekly:null;
+    var bgtGM=bgt?bgt.grossMarginPct:null;
+    html+='<tr>';
+    html+='<td>'+m.market+'</td>';
+    html+='<td style="color:var(--text3);font-weight:normal">'+m.state+'</td>';
+    html+='<td>'+fn(m.totalVisits)+'</td>';
+    html+='<td><span class="bdg '+(m.fillRate>=0.97?'bg':m.fillRate>=0.95?'ba':'br')+'">'+fp(m.fillRate)+'</span></td>';
+    html+='<td>'+fk(m.revenue)+'</td>';
+    html+='<td>'+vsBudget(m.revenue,bgtRev)+'</td>';
+    html+='<td><span class="bdg '+(m.grossMarginPct>=(bgtGM||0.40)?'bg':m.grossMarginPct>=0.38?'ba':'br')+'">'+fp(m.grossMarginPct)+'</span></td>';
+    html+='<td style="color:'+(m.openVisits>5?'var(--red)':'var(--charcoal)')+'">'+fn(m.openVisits)+'</td>';
+    html+='<td>'+fn(Math.round(m.billedHours))+'h</td>';
+    html+='</tr>';
+  });
+  // Totals row
+  html+='</tbody><tfoot><tr><td>Total</td><td></td><td>'+fn(t.totalVisits)+'</td><td>'+fp(t.fillRate)+'</td><td>'+fm(t.revenue)+'</td><td></td><td>'+fp(t.grossMarginPct)+'</td><td>'+fn(t.openVisits)+'</td><td>'+fn(Math.round(t.billedHours))+'h</td></tr></tfoot>';
+  html+='</table></div>';
+
+  document.getElementById('ct').innerHTML=html;
+}
+
+function renderMarkets(){
+  var mkts=(visitsData.markets||[]).filter(m=>m.totalVisits>0);
+  var html='';
+  html+='<div class="fc"><div class="ct">Market detail — '+curStart+' to '+curEnd+'</div>';
+  html+='<table class="tbl"><thead><tr><th>Market</th><th>State</th><th>Total Visits</th><th>Filled</th><th>Open</th><th>Fill Rate</th><th>Revenue</th><th>Budget Rev</th><th>vs Budget</th><th>Gross Margin</th><th>Budget GM</th><th>Billed Hrs</th><th>Avg Bill Rate</th></tr></thead><tbody>';
+  mkts.forEach(function(m){
+    var bgt=BUDGET[m.market]||{};
+    html+='<tr>';
+    html+='<td>'+m.market+'</td>';
+    html+='<td style="color:var(--text3);font-weight:normal">'+m.state+'</td>';
+    html+='<td>'+fn(m.totalVisits)+'</td>';
+    html+='<td>'+fn(m.filledVisits)+'</td>';
+    html+='<td style="color:'+(m.openVisits>5?'var(--red)':'inherit')+'">'+fn(m.openVisits)+'</td>';
+    html+='<td><span class="bdg '+(m.fillRate>=0.97?'bg':m.fillRate>=0.95?'ba':'br')+'">'+fp(m.fillRate)+'</span></td>';
+    html+='<td>'+fk(m.revenue)+'</td>';
+    html+='<td style="color:var(--text3)">'+( bgt.revenueWeekly?fk(bgt.revenueWeekly):'—')+'</td>';
+    html+='<td>'+vsBudget(m.revenue,bgt.revenueWeekly||null)+'</td>';
+    html+='<td><span class="bdg '+(m.grossMarginPct>=(bgt.grossMarginPct||0.40)?'bg':m.grossMarginPct>=0.38?'ba':'br')+'">'+fp(m.grossMarginPct)+'</span></td>';
+    html+='<td style="color:var(--text3)">'+(bgt.grossMarginPct?fp(bgt.grossMarginPct):'—')+'</td>';
+    html+='<td>'+fn(Math.round(m.billedHours))+'h</td>';
+    html+='<td>$'+(m.avgBillRate?m.avgBillRate.toFixed(2):'—')+'</td>';
+    html+='</tr>';
+  });
+  html+='</tbody></table></div>';
+  document.getElementById('ct').innerHTML=html;
+}
+
+function renderOpenVisits(){
+  var mkts=(visitsData.markets||[]).filter(m=>m.totalVisits>0);
+  var t=visitsData.totals;
+  var html='';
+
+  // KPIs
+  html+='<div class="kg3">';
+  html+='<div class="kpi"><div class="kl">Total Open Visits</div><div class="kv '+(t.openVisits===0?'g':t.openVisits<20?'a':'r')+'">'+fn(t.openVisits)+'</div><div class="ks">This week unfilled</div></div>';
+  html+='<div class="kpi"><div class="kl">Fill Rate</div><div class="kv '+(t.fillRate>=0.97?'g':t.fillRate>=0.95?'a':'r')+'">'+fp(t.fillRate)+'</div><div class="ks">Goal: 97%+</div></div>';
+  html+='<div class="kpi"><div class="kl">Revenue at Risk</div><div class="kv r">$'+fn(Math.round(t.openVisits*t.revenue/Math.max(t.totalVisits,1)))+'</div><div class="ks">Est. from avg visit revenue</div></div>';
+  html+='</div>';
+
+  // Open visits by market bar chart
+  html+='<div class="fc"><div class="ct">Open visits by market</div>';
+  var maxOpen=Math.max(...mkts.map(m=>m.openVisits),1);
+  mkts.sort((a,b)=>b.openVisits-a.openVisits).forEach(function(m){
+    var pct=Math.round(m.openVisits/maxOpen*100);
+    var fillPct=Math.round(m.fillRate*100);
+    html+='<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:.5px solid var(--gray100)">';
+    html+='<div style="font-size:12px;font-weight:500;width:160px;flex-shrink:0">'+m.market+'</div>';
+    html+='<div style="flex:1;height:14px;background:var(--gray100);border-radius:3px;overflow:hidden">';
+    html+='<div style="height:100%;width:'+pct+'%;background:'+(m.openVisits>10?'var(--red)':m.openVisits>3?'var(--amber)':'var(--green)')+'"></div></div>';
+    html+='<div style="font-size:12px;font-weight:500;width:30px;text-align:right;color:'+(m.openVisits>10?'var(--red)':m.openVisits>3?'var(--amber)':'var(--green)')+'">'+fn(m.openVisits)+'</div>';
+    html+='<div style="font-size:11px;color:var(--text4);width:70px;text-align:right">'+fp(m.fillRate)+' fill</div>';
+    html+='</div>';
+  });
+  html+='</div>';
+
+  // Daily breakdown
+  html+='<div class="fc"><div class="ct">Daily breakdown — filled vs total</div>';
+  html+='<table class="tbl"><thead><tr><th>Market</th>';
+  var days=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  var sun=new Date(curStart+'T12:00:00');
+  for(var d=0;d<7;d++){var dd=new Date(sun);dd.setDate(sun.getDate()+d);html+='<th>'+days[d]+'<br><span style="font-weight:400;letter-spacing:0">'+dd.toLocaleDateString('en-US',{month:'short',day:'numeric'})+'</span></th>';}
+  html+='<th>Total</th></tr></thead><tbody>';
+  mkts.forEach(function(m){
+    html+='<tr><td>'+m.market+'</td>';
+    var db=m.dailyBreakdown||{};
+    for(var d=0;d<7;d++){
+      var dd=new Date(sun);dd.setDate(sun.getDate()+d);
+      var dk=dd.toISOString().split('T')[0];
+      var day=db[dk];
+      if(day){
+        var dr=day.filled/Math.max(day.visits,1);
+        html+='<td><span style="font-size:11px;color:'+(dr>=0.97?'var(--green)':dr>=0.95?'var(--amber)':'var(--red)')+'">'+fn(day.filled)+'/'+fn(day.visits)+'</span></td>';
+      } else html+='<td style="color:var(--text4)">—</td>';
+    }
+    html+='<td>'+fn(m.filledVisits)+'/'+fn(m.totalVisits)+'</td>';
+    html+='</tr>';
+  });
+  html+='</tbody></table></div>';
+  document.getElementById('ct').innerHTML=html;
+}
+
+function renderBudget(){
+  var mkts=(visitsData.markets||[]).filter(m=>m.totalVisits>0);
+  var t=visitsData.totals;
+  var html='';
+
+  // Company totals vs budget
+  var totalBudgetRev=Object.values(BUDGET).reduce((s,b)=>s+b.revenueWeekly,0);
+  var totalBudgetGM=mkts.reduce((s,m)=>{var b=BUDGET[m.market];return b?s+b.grossMarginPct*m.revenue:s;},0)/Math.max(t.revenue,1);
+
+  html+='<div class="kg3">';
+  html+='<div class="kpi"><div class="kl">Actual Revenue</div><div class="kv o">'+fm(t.revenue)+'</div><div class="ks">vs. budget '+fk(totalBudgetRev)+' '+vsBudget(t.revenue,totalBudgetRev)+'</div></div>';
+  html+='<div class="kpi"><div class="kl">Actual Gross Margin</div><div class="kv '+(t.grossMarginPct>=0.42?'g':t.grossMarginPct>=0.38?'a':'r')+'">'+fp(t.grossMarginPct)+'</div><div class="ks">Budget avg ~42%</div></div>';
+  html+='<div class="kpi"><div class="kl">Fill Rate</div><div class="kv '+(t.fillRate>=0.97?'g':'a')+'">'+fp(t.fillRate)+'</div><div class="ks">Goal: 97%+</div></div>';
+  html+='</div>';
+
+  html+='<div class="fc"><div class="ct">Revenue vs. budget by market</div>';
+  html+='<table class="tbl"><thead><tr><th>Market</th><th>State</th><th>Actual Revenue</th><th>Budget Revenue</th><th>Variance $</th><th>Variance %</th><th>Status</th><th>Actual GM%</th><th>Budget GM%</th><th>GM Status</th></tr></thead><tbody>';
+  mkts.forEach(function(m){
+    var bgt=BUDGET[m.market];
+    var bRev=bgt?bgt.revenueWeekly:null;
+    var bGM=bgt?bgt.grossMarginPct:null;
+    var varD=bRev?m.revenue-bRev:null;
+    var varP=bRev?(m.revenue-bRev)/bRev:null;
+    html+='<tr>';
+    html+='<td>'+m.market+'</td>';
+    html+='<td style="color:var(--text3);font-weight:normal">'+m.state+'</td>';
+    html+='<td>'+fk(m.revenue)+'</td>';
+    html+='<td style="color:var(--text3)">'+( bRev?fk(bRev):'—')+'</td>';
+    html+='<td style="color:'+(varD===null?'inherit':varD>=0?'var(--green)':'var(--red)')+'">'+( varD!==null?(varD>=0?'+':'')+fk(varD):'—')+'</td>';
+    html+='<td style="color:'+(varP===null?'inherit':varP>=0?'var(--green)':'var(--red)')+'">'+( varP!==null?(varP>=0?'+':'')+fp(varP):'—')+'</td>';
+    html+='<td>'+( bRev?budgBdg(m.revenue,bRev):'—')+'</td>';
+    html+='<td><span class="bdg '+(m.grossMarginPct>=(bGM||0.40)?'bg':m.grossMarginPct>=0.38?'ba':'br')+'">'+fp(m.grossMarginPct)+'</span></td>';
+    html+='<td style="color:var(--text3)">'+(bGM?fp(bGM):'—')+'</td>';
+    html+='<td>'+(bGM?budgBdg(m.grossMarginPct,bGM):'—')+'</td>';
+    html+='</tr>';
+  });
+  // Totals
+  var totalVar=t.revenue-totalBudgetRev;
+  html+='</tbody><tfoot><tr><td>Total</td><td></td><td>'+fm(t.revenue)+'</td><td>'+fk(totalBudgetRev)+'</td><td style="color:'+(totalVar>=0?'var(--green)':'var(--red)')+'">'+(totalVar>=0?'+':'')+fk(totalVar)+'</td><td style="color:'+(totalVar>=0?'var(--green)':'var(--red)')+'">'+(totalVar>=0?'+':'')+fp(totalVar/totalBudgetRev)+'</td><td>'+budgBdg(t.revenue,totalBudgetRev)+'</td><td>'+fp(t.grossMarginPct)+'</td><td>~42%</td><td>'+budgBdg(t.grossMarginPct,0.42)+'</td></tr></tfoot>';
+  html+='</table></div>';
+  document.getElementById('ct').innerHTML=html;
+}
+
+function renderCallMetrics(){
+  var html='';
+  html+='<div class="fc" style="background:var(--orange-50);border-color:var(--orange)">';
+  html+='<div class="ct" style="color:var(--orange)">Upload Call Metrics CSV</div>';
+  html+='<p style="font-size:12px;color:var(--text2);margin-bottom:14px">Drop a CSV exported from your phone system with columns: <strong>Week, SP Name, Outbound Calls, Inbound Calls</strong></p>';
+  html+='<div class="upload-zone" id="callZone" onclick="document.getElementById(\'callFile\').click()" ondragover="event.preventDefault();this.classList.add(\'drag\')" ondragleave="this.classList.remove(\'drag\')" ondrop="handleDrop(event,\'call\')">';
+  html+='<div class="upload-zone-icon">📞</div>';
+  html+='<div class="upload-zone-title">Drop call metrics CSV here or click to upload</div>';
+  html+='<div class="upload-zone-sub">Expected columns: Week, SP Name, Outbound Calls, Inbound Calls</div>';
+  html+='</div>';
+  html+='<input type="file" id="callFile" accept=".csv" style="display:none" onchange="loadCSV(this,\'call\')">';
+  html+='<div class="upload-status" id="callStatus"></div>';
+  html+='</div>';
+
+  if(callData && callData.length>0){
+    html+='<div class="fc"><div class="ct">Call metrics — loaded from CSV</div>';
+    html+='<table class="tbl"><thead><tr><th>Week</th><th>SP Name</th><th>Outbound Calls</th><th>Inbound Calls</th><th>Total Calls</th></tr></thead><tbody>';
+    callData.forEach(function(r){
+      var total=(parseFloat(r['Outbound Calls'])||0)+(parseFloat(r['Inbound Calls'])||0);
+      html+='<tr><td>'+( r['Week']||r['week']||'—')+'</td><td>'+( r['SP Name']||r['sp_name']||'—')+'</td>';
+      html+='<td>'+fn(parseFloat(r['Outbound Calls']||r['outbound_calls'])||0)+'</td>';
+      html+='<td>'+fn(parseFloat(r['Inbound Calls']||r['inbound_calls'])||0)+'</td>';
+      html+='<td><strong>'+fn(total)+'</strong></td></tr>';
+    });
+    html+='</tbody></table></div>';
+  }
+
+  document.getElementById('ct').innerHTML=html;
+}
+
+function renderUber(){
+  var html='';
+  html+='<div class="fc" style="background:var(--orange-50);border-color:var(--orange)">';
+  html+='<div class="ct" style="color:var(--orange)">Upload Uber / Lyft Data CSV</div>';
+  html+='<p style="font-size:12px;color:var(--text2);margin-bottom:14px">Drop a CSV exported from your Uber for Business or Lyft Business account. Expected columns: <strong>Date, Caregiver Name, Market, Amount, Trip Purpose</strong></p>';
+  html+='<div class="upload-zone" id="uberZone" onclick="document.getElementById(\'uberFile\').click()" ondragover="event.preventDefault();this.classList.add(\'drag\')" ondragleave="this.classList.remove(\'drag\')" ondrop="handleDrop(event,\'uber\')">';
+  html+='<div class="upload-zone-icon">🚗</div>';
+  html+='<div class="upload-zone-title">Drop Uber / Lyft CSV here or click to upload</div>';
+  html+='<div class="upload-zone-sub">Expected columns: Date, Caregiver Name, Market, Amount, Trip Purpose</div>';
+  html+='</div>';
+  html+='<input type="file" id="uberFile" accept=".csv" style="display:none" onchange="loadCSV(this,\'uber\')">';
+  html+='<div class="upload-status" id="uberStatus"></div>';
+  html+='</div>';
+
+  if(uberData && uberData.length>0){
+    // Aggregate by market
+    var byMarket={};
+    uberData.forEach(function(r){
+      var mkt=r['Market']||r['market']||'Unknown';
+      var amt=parseFloat(r['Amount']||r['amount']||0);
+      if(!byMarket[mkt])byMarket[mkt]={market:mkt,trips:0,total:0};
+      byMarket[mkt].trips++;
+      byMarket[mkt].total+=amt;
+    });
+    var totalTrips=uberData.length;
+    var totalAmt=Object.values(byMarket).reduce((s,m)=>s+m.total,0);
+
+    html+='<div class="kg3">';
+    html+='<div class="kpi"><div class="kl">Total Trips</div><div class="kv b">'+fn(totalTrips)+'</div><div class="ks">This period</div></div>';
+    html+='<div class="kpi"><div class="kl">Total Cost</div><div class="kv r">$'+totalAmt.toFixed(2)+'</div><div class="ks">Uber / Lyft</div></div>';
+    html+='<div class="kpi"><div class="kl">Avg Cost / Trip</div><div class="kv a">$'+(totalAmt/Math.max(totalTrips,1)).toFixed(2)+'</div><div class="ks">Per ride</div></div>';
+    html+='</div>';
+
+    html+='<div class="fc"><div class="ct">Uber / Lyft by market</div>';
+    html+='<table class="tbl"><thead><tr><th>Market</th><th>Trips</th><th>Total Cost</th><th>Avg / Trip</th><th>% of Revenue</th></tr></thead><tbody>';
+    Object.values(byMarket).sort((a,b)=>b.total-a.total).forEach(function(m){
+      var mktRev=(visitsData.markets||[]).find(x=>x.market===m.market);
+      var revPct=mktRev?m.total/mktRev.revenue:null;
+      var bgt=BUDGET[m.market];
+      html+='<tr>';
+      html+='<td>'+m.market+'</td>';
+      html+='<td>'+fn(m.trips)+'</td>';
+      html+='<td>$'+m.total.toFixed(2)+'</td>';
+      html+='<td>$'+(m.total/Math.max(m.trips,1)).toFixed(2)+'</td>';
+      html+='<td>'+(revPct?'<span class="bdg '+(revPct<=(bgt?bgt.lyftPct:0.01)?'bg':'br')+'">'+fp(revPct)+'</span>':'—')+'</td>';
+      html+='</tr>';
+    });
+    html+='</tbody><tfoot><tr><td>Total</td><td>'+fn(totalTrips)+'</td><td>$'+totalAmt.toFixed(2)+'</td><td>$'+(totalAmt/Math.max(totalTrips,1)).toFixed(2)+'</td><td></td></tr></tfoot>';
+    html+='</table></div>';
+
+    // Detail table
+    html+='<div class="fc"><div class="ct">All trips — loaded from CSV</div>';
+    html+='<table class="tbl"><thead><tr>';
+    Object.keys(uberData[0]).forEach(k=>html+='<th>'+k+'</th>');
+    html+='</tr></thead><tbody>';
+    uberData.slice(0,100).forEach(function(r){
+      html+='<tr>'+Object.values(r).map(v=>'<td>'+( v||'—')+'</td>').join('')+'</tr>';
+    });
+    html+='</tbody></table>';
+    if(uberData.length>100)html+='<div style="font-size:11px;color:var(--text4);padding:8px">Showing 100 of '+uberData.length+' rows.</div>';
+    html+='</div>';
+  }
+
+  document.getElementById('ct').innerHTML=html;
+}
+
+// ── CSV HANDLING ──────────────────────────────────────────────────
+function loadCSV(input, type){
+  var file=input.files[0];
+  if(!file)return;
+  var reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      var rows=parseCSV(e.target.result);
+      if(type==='call'){callData=rows;showStatus('callStatus','✓ Loaded '+rows.length+' rows from '+file.name,'loaded');}
+      else if(type==='uber'){uberData=rows;showStatus('uberStatus','✓ Loaded '+rows.length+' rows from '+file.name,'loaded');}
+      render();
+    }catch(err){
+      showStatus(type+'Status','Error parsing CSV: '+err.message,'error');
+    }
+  };
+  reader.readAsText(file);
+}
+
+function handleDrop(e, type){
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag');
+  var file=e.dataTransfer.files[0];
+  if(!file||!file.name.endsWith('.csv')){alert('Please drop a CSV file');return;}
+  var reader=new FileReader();
+  reader.onload=function(ev){
+    try{
+      var rows=parseCSV(ev.target.result);
+      if(type==='call'){callData=rows;showStatus('callStatus','✓ Loaded '+rows.length+' rows from '+file.name,'loaded');}
+      else if(type==='uber'){uberData=rows;showStatus('uberStatus','✓ Loaded '+rows.length+' rows from '+file.name,'loaded');}
+      render();
+    }catch(err){showStatus(type+'Status','Error: '+err.message,'error');}
+  };
+  reader.readAsText(file);
+}
+
+function parseCSV(text){
+  var lines=text.trim().split('\n');
+  var headers=lines[0].split(',').map(h=>h.trim().replace(/^"|"$/g,''));
+  return lines.slice(1).filter(l=>l.trim()).map(function(line){
+    var vals=line.match(/(".*?"|[^,]+)(?=,|$)/g)||line.split(',');
+    var obj={};
+    headers.forEach((h,i)=>obj[h]=(vals[i]||'').trim().replace(/^"|"$/g,''));
+    return obj;
+  });
+}
+
+function showStatus(id, msg, cls){
+  var el=document.getElementById(id);
+  if(el){el.textContent=msg;el.className='upload-status '+cls;}
+}
+
+// ── CLOCK ──────────────────────────────────────────────────────────
+function updateClock(){
+  document.getElementById('clock').textContent=new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+}
+
+// ── INIT ───────────────────────────────────────────────────────────
+updateClock();setInterval(updateClock,60000);
+var s=getSunday(0),e=new Date(s);e.setDate(s.getDate()+6);
+curStart=fmtD(s);curEnd=fmtD(e);
+document.getElementById('cs').value=curStart;
+document.getElementById('ce').value=curEnd;
+fetchData();
+</script>
+</body>
+</html>
