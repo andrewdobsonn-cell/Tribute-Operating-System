@@ -433,7 +433,7 @@ function renderUtilization(){
   html+='<table class="tbl"><thead><tr><th>Market / State</th><th>Caregivers</th><th>Available Hrs</th><th>Scheduled Hrs</th><th>Unused Capacity</th><th>Utilization</th></tr></thead>';
   html+='<tbody>'+tblRows+'</tbody>';
   html+='<tfoot><tr><td>Total ('+navLabel()+')</td><td>'+fn(overallAgg.total)+'</td><td>'+fn(Math.round(overallAgg.desired))+'h</td><td>'+fn(Math.round(overallAgg.scheduled))+'h</td><td style="color:var(--red)">'+fn(Math.round(overallAgg.gap))+'h</td><td><span class="bdg '+(overallAgg.util>=0.85?'bg':overallAgg.util>=0.7?'ba':'br')+'">'+fp(overallAgg.util)+'</span></td></tr></tfoot>';
-  html+='</table><div class="cn">Utilization = scheduled hours &divide; available (desired) hours. Available hours = sum of all active caregivers' weekly desired hours. Green &ge;85% &middot; Amber 70-85% &middot; Red &lt;70%.</div></div>';
+  html+='</table><div class="cn">Utilization = scheduled hours &divide; available (desired) hours. Available hours = sum of all active caregiver weekly desired hours. Green &ge;85% &middot; Amber 70-85% &middot; Red &lt;70%.</div></div>';
 
   document.getElementById('ct').innerHTML=html;
 }
