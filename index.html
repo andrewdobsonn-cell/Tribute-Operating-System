@@ -775,17 +775,11 @@ body {
       <div class="panel-title">What matters right now</div>
       <div class="panel-sub">Key signals from this week</div>
 
-      <div class="insight-item">
-        <div class="insight-pip amber"></div>
-        <div class="insight-text"><strong>Caregiver happiness below goal</strong> — review MCEs below the 90% threshold and target scheduling gaps before end of week.</div>
-      </div>
-      <div class="insight-item">
-        <div class="insight-pip green"></div>
-        <div class="insight-text"><strong>Baltimore leading volume</strong> — highest visit count this week with consistent fill rates across long-day and overnight shifts.</div>
-      </div>
-      <div class="insight-item">
-        <div class="insight-pip red"></div>
-        <div class="insight-text"><strong>New hire onboarding risk</strong> — caregivers in their first 90 days without hours assigned are highest churn risk. Check the First 90 Days view.</div>
+      <div id="insightList">
+        <div class="insight-item">
+          <div class="insight-pip amber"></div>
+          <div class="insight-text">Loading insights from Viv...</div>
+        </div>
       </div>
     </div>
 
@@ -871,28 +865,203 @@ async function loadMetrics(){
     sat.setDate(sun.getDate()+6);
     var s=fmtD(sun),e=fmtD(sat);
 
-    var r=await fetch(API+'?endpoint=visits&startDate='+s+'&endDate='+e);
-    if(!r.ok)throw new Error('visits API');
-    var d=await r.json(), t=d.totals;
+    // Load visits, caregiver hours, and caregivers in parallel
+    var [visitsRes, cgHoursRes, cgRes] = await Promise.all([
+      fetch(API+'?endpoint=visits&startDate='+s+'&endDate='+e),
+      fetch(API+'?endpoint=caregiver_hours&startDate='+s+'&endDate='+e),
+      fetch(API+'?endpoint=caregivers&fast=true')
+    ]);
 
-    setEl('heroRevenue', fmtM(t.revenue));
-    setEl('heroFill', fmtP(t.fillRate));
-    setEl('heroOpen', fmt(t.openVisits));
-    setEl('snapRev', fmtM(t.revenue));
-    setEl('snapFill', fmtP(t.fillRate));
-    setEl('snapHrs', fmt(Math.round(t.billedHours))+'h');
-    setEl('snapMargin', fmtP(t.grossMarginPct));
-    setEl('snapOpen', fmt(t.openVisits));
-    setEl('snapFillSub', fmt(t.filledVisits)+' of '+fmt(t.totalVisits)+' visits');
+    var visitsData = visitsRes.ok ? await visitsRes.json() : null;
+    var cgHoursData = cgHoursRes.ok ? await cgHoursRes.json() : null;
+    var cgData = cgRes.ok ? await cgRes.json() : null;
 
-    var cgR=await fetch(API+'?endpoint=caregivers&fast=true');
-    if(cgR.ok){
-      var cgD=await cgR.json();
-      setEl('snapCG', fmt(cgD.totals.active));
+    // ── KPI STRIP ──
+    if(visitsData){
+      var t=visitsData.totals;
+      setEl('heroRevenue', fmtM(t.revenue));
+      setEl('heroFill', fmtP(t.fillRate));
+      setEl('heroOpen', fmt(t.openVisits));
+      setEl('snapRev', fmtM(t.revenue));
+      setEl('snapFill', fmtP(t.fillRate));
+      setEl('snapHrs', fmt(Math.round(t.billedHours))+'h');
+      setEl('snapMargin', fmtP(t.grossMarginPct));
+      setEl('snapOpen', fmt(t.openVisits));
+      setEl('snapFillSub', fmt(t.filledVisits)+' of '+fmt(t.totalVisits)+' visits');
     }
+
+    if(cgData){
+      setEl('snapCG', fmt(cgData.totals.active));
+    }
+
+    // ── DYNAMIC INSIGHTS ──
+    generateInsights(visitsData, cgHoursData, cgData, s, e);
+
   }catch(err){
     console.warn('Metrics error:',err.message);
   }
+}
+
+function generateInsights(visits, cgHours, cg, weekStart, weekEnd){
+  var insights = [];
+  var actions = [];
+
+  // ── VISIT / FILL RATE INSIGHTS ──
+  if(visits){
+    var t = visits.totals;
+    var markets = visits.markets || [];
+
+    // Fill rate signal
+    if(t.fillRate < 0.95){
+      insights.push({
+        type:'red',
+        text:'<strong>Fill rate at '+fmtP(t.fillRate)+'</strong> — below the 95% target with '+fmt(t.openVisits)+' open visits this week. Review open shifts immediately.'
+      });
+      actions.push({
+        num:1, dash:'executive',
+        text:'<strong>Fill rate is '+fmtP(t.fillRate)+'</strong> — identify which markets are dragging below 95% and escalate to coordinators today.'
+      });
+    } else {
+      insights.push({
+        type:'green',
+        text:'<strong>Fill rate strong at '+fmtP(t.fillRate)+'</strong> — '+fmt(t.filledVisits)+' of '+fmt(t.totalVisits)+' visits filled this week.'
+      });
+    }
+
+    // Worst market by fill rate
+    var activeMkts = markets.filter(function(m){return m.totalVisits>5;});
+    if(activeMkts.length>0){
+      var worst = activeMkts.reduce(function(a,b){return a.fillRate<b.fillRate?a:b;});
+      if(worst.fillRate < 0.95){
+        insights.push({
+          type:'amber',
+          text:'<strong>'+worst.market+' has the lowest fill rate</strong> at '+fmtP(worst.fillRate)+' — '+fmt(worst.openVisits)+' open visits need coverage.'
+        });
+        actions.push({
+          num:2, dash:'executive',
+          text:'<strong>'+worst.market+' fill rate is '+fmtP(worst.fillRate)+'</strong> — this market needs immediate coordinator attention to close '+fmt(worst.openVisits)+' open visits.'
+        });
+      }
+
+      // Best revenue market
+      var bestRev = activeMkts.reduce(function(a,b){return a.revenue>b.revenue?a:b;});
+      if(bestRev && bestRev.revenue > 0){
+        insights.push({
+          type:'green',
+          text:'<strong>'+bestRev.market+' leading revenue</strong> at '+fmtM(bestRev.revenue)+' this week with a '+fmtP(bestRev.grossMarginPct)+' gross margin.'
+        });
+      }
+    }
+
+    // Gross margin signal
+    if(t.grossMarginPct < 0.44){
+      insights.push({
+        type:'red',
+        text:'<strong>Gross margin at '+fmtP(t.grossMarginPct)+'</strong> — below the 44% threshold. Review pay rates and bill rates for any anomalies.'
+      });
+    }
+  }
+
+  // ── CAREGIVER HOURS INSIGHTS ──
+  if(cgHours){
+    var ch = cgHours.totals;
+    var byMCE = cgHours.byAssignee || [];
+    var caregivers = cgHours.caregivers || [];
+
+    // Overall happiness goal
+    if(ch.goal75pct < 0.9){
+      insights.push({
+        type:'amber',
+        text:'<strong>Caregiver happiness at '+fmtP(ch.goal75pct)+'</strong> of goal (target: 90%) — '+fmt(ch.b0+ch.b25)+' caregivers are receiving less than 50% of their desired hours.'
+      });
+    }
+
+    // Worst MCE
+    var activeMCEs = byMCE.filter(function(m){return m.total>3;});
+    if(activeMCEs.length>0){
+      var worstMCE = activeMCEs.reduce(function(a,b){
+        var ag=a.total>0?a.b75/a.total:0, bg=b.total>0?b.b75/b.total:0;
+        return ag<bg?a:b;
+      });
+      var worstRate = worstMCE.total>0?worstMCE.b75/worstMCE.total:0;
+      if(worstRate < 0.7){
+        insights.push({
+          type:'red',
+          text:'<strong>'+worstMCE.assignee+'</strong> has the lowest caregiver happiness at '+fmtP(worstRate)+' — only '+fmt(worstMCE.b75)+' of '+fmt(worstMCE.total)+' caregivers are at 75%+ of desired hours.'
+        });
+        actions.push({
+          num:3, dash:'caregiver_hours',
+          text:'<strong>'+worstMCE.assignee+' needs support</strong> — review their caregiver roster in the Hours dashboard and identify who needs shifts assigned urgently.'
+        });
+      }
+    }
+
+    // First 90 days with zero hours
+    var today = new Date();
+    var newWithNoHours = caregivers.filter(function(c){
+      if(!c.hireDate)return false;
+      var days = Math.floor((today-new Date(c.hireDate))/(1000*60*60*24));
+      return days>=0 && days<=90 && c.scheduledHrs===0 && c.desiredHrs>0;
+    });
+    if(newWithNoHours.length>0){
+      insights.push({
+        type:'red',
+        text:'<strong>'+fmt(newWithNoHours.length)+' new hire'+(newWithNoHours.length>1?'s':'')+' with zero hours</strong> this week — caregivers in their first 90 days with no visits are at high attrition risk.'
+      });
+      actions.push({
+        num:4, dash:'caregiver_hours',
+        text:'<strong>'+fmt(newWithNoHours.length)+' new hires have zero hours</strong> — open the First 90 Days view and assign shifts before end of week to prevent early churn.'
+      });
+    }
+
+    // Hours utilization
+    if(ch.utilization < 0.75){
+      insights.push({
+        type:'amber',
+        text:'<strong>Overall utilization at '+fmtP(ch.utilization)+'</strong> — '+fmt(Math.round(ch.totalHoursGap))+'h of caregiver capacity is going unfilled this week.'
+      });
+    }
+
+    // Unused capacity action
+    if(ch.totalHoursGap > 500){
+      actions.push({
+        num:actions.length+1, dash:'caregiver_hours',
+        text:'<strong>'+fmt(Math.round(ch.totalHoursGap))+'h of unused caregiver capacity</strong> this week — match unhappy caregivers to open shifts to recover revenue and improve retention.'
+      });
+    }
+  }
+
+  // ── FALLBACK IF NO DATA ──
+  if(insights.length===0){
+    insights = [
+      {type:'amber', text:'<strong>Loading insights</strong> — data is being pulled from Viv. Refresh in a moment.'}
+    ];
+  }
+  if(actions.length===0){
+    actions = [
+      {num:1, dash:'executive', text:'<strong>Review fill rate by market</strong> — any market below 95% needs coordinator attention this week.'},
+      {num:2, dash:'caregiver_hours', text:'<strong>Check caregiver utilization by MCE</strong> — identify who is below 70% and address scheduling gaps.'},
+      {num:3, dash:'caregiver_hours', text:'<strong>Review first 90 days cohort</strong> — every new hire needs visits assigned within their first two weeks.'},
+    ];
+  }
+
+  // Limit to 3 insights, 4 actions
+  insights = insights.slice(0,3);
+  actions = actions.slice(0,4);
+
+  // Render insights
+  var insightHtml = insights.map(function(i){
+    return '<div class="insight-item"><div class="insight-pip '+i.type+'"></div><div class="insight-text">'+i.text+'</div></div>';
+  }).join('');
+  var insightEl = document.getElementById('insightList');
+  if(insightEl) insightEl.innerHTML = insightHtml;
+
+  // Render actions
+  var actionHtml = actions.map(function(a){
+    return '<div class="action-item" onclick="loadDash(''+a.dash+'',null)"><div class="action-num">'+a.num+'</div><div class="action-text">'+a.text+'</div><div class="action-arrow">→</div></div>';
+  }).join('');
+  var actionEl = document.getElementById('actionList');
+  if(actionEl) actionEl.innerHTML = actionHtml;
 }
 
 function onFrameLoad(){
