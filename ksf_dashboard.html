@@ -938,6 +938,51 @@ function showStatus(id, msg, cls){
   if(el){el.textContent=msg;el.className='upload-status '+cls;}
 }
 
+// ── DRAG/DROP FOR UPLOAD ZONES ───────────────────────────────────
+document.addEventListener('dragover', function(e){ e.preventDefault(); });
+document.addEventListener('drop', function(e){
+  e.preventDefault();
+  var zone = e.target.closest('.upload-zone');
+  if(!zone) return;
+  var id = zone.id;
+  var type = id==='uberZone'?'uber':id==='otZone'?'ot':id==='callZone'?'call':null;
+  if(!type) return;
+  var file = e.dataTransfer.files[0];
+  if(!file||!file.name.endsWith('.csv')){ alert('Please drop a CSV file'); return; }
+  var reader = new FileReader();
+  reader.onload = function(ev){
+    try{
+      var rows = parseCSV(ev.target.result);
+      if(type==='call'){ callData=rows; showStatus('callStatus','✓ Loaded '+rows.length+' rows from '+file.name,'loaded'); }
+      else if(type==='uber'){
+        uberData=rows;
+        var tr=rows.filter(function(r){ var c=(r['Expense Code']||'').toUpperCase(); return c.includes('- TRIBUTE')||c.includes('-TRIBUTE'); });
+        showStatus('uberStatus','✓ '+tr.length+' Tribute-paid trips loaded from '+file.name,'loaded');
+      }
+      else if(type==='ot'){
+        rows.forEach(function(r){
+          var geo=r['Market']||r['market']; var week=r['Week']||r['week'];
+          var ot=parseFloat(r['OT Amount']||0); var inc=parseFloat(r['Incentives Amount']||0);
+          var ts=parseFloat(r['TS Admin Amount']||0); var guar=parseFloat(r['Guaranteed Amount']||0);
+          if(geo&&week){
+            if(!ACTUALS[geo])ACTUALS[geo]={};
+            var m=ACTUALS[geo];
+            if(!m['Hourly OT'])m['Hourly OT']={};
+            if(!m['Incentives (Actual)'])m['Incentives (Actual)']={};
+            if(!m['TS Admin (Actual)'])m['TS Admin (Actual)']={};
+            if(!m['4 Week Guaranteed Admin (Actual) '])m['4 Week Guaranteed Admin (Actual) ']={};
+            if(ot)m['Hourly OT'][week]=ot; if(inc)m['Incentives (Actual)'][week]=inc;
+            if(ts)m['TS Admin (Actual)'][week]=ts; if(guar)m['4 Week Guaranteed Admin (Actual) '][week]=guar;
+          }
+        });
+        showStatus('otStatus','✓ Loaded '+rows.length+' rows','loaded');
+      }
+      render();
+    } catch(err){ console.error(err); }
+  };
+  reader.readAsText(file);
+});
+
 // ── CLOCK ──────────────────────────────────────────────────────────
 function updateClock(){
   document.getElementById('clock').textContent=new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
