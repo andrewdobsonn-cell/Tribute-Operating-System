@@ -665,9 +665,7 @@ function sortTable(tableId,col,type){
     th.textContent=base+(c===col?(ts.dir===1?' ▲':' ▼'):'');
   });
 }
-function makeSortableTh(label,colIdx,type){
-  return '<th data-col="'+colIdx+'" data-label="'+label+'" style="cursor:pointer;user-select:none" onclick="sortTable('currentTable','+colIdx+',''+type+'')">'+label+'</th>';
-}
+
 
 function renderList(){
   var html='';
