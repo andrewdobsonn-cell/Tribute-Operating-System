@@ -126,6 +126,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <div class="vtab" onclick="setView('types',this)">Caregiver Types</div>
   <div class="vtab" onclick="setView('heatmap',this)">Heatmap</div>
   <div class="vtab" onclick="setView('mce',this)">By MCE</div>
+  <div class="vtab" onclick="setView('newhires',this)">First 90 Days</div>
   <div class="vtab" onclick="setView('list',this)">All Caregivers</div>
 </div>
 
@@ -246,6 +247,7 @@ function render(){
   else if(curView==='types')renderTypes();
   else if(curView==='heatmap')renderHeatmap();
   else if(curView==='mce')renderMCE();
+  else if(curView==='newhires')renderNewHires();
   else renderList();
 }
 
@@ -634,17 +636,70 @@ function renderMCE(){
   document.getElementById('ct').innerHTML=html;
 }
 
+var listSort={col:'happiness',dir:1};
+var listSearch='';
+
 function renderList(){
-  var cgs=getFiltered().slice().sort(function(a,b){return a.happiness-b.happiness});
   var html='';
-  html+='<input class="srch" type="text" id="cgSrch" placeholder="Search by name, market, MCE, or type..." oninput="filterList(this.value)">';
-  html+='<div id="cgListWrap">'+buildList(cgs)+'</div>';
+  html+='<div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">';
+  html+='<input class="srch" type="text" id="cgSrch" placeholder="Search by name, market, MCE, or type..." oninput="listSearch=this.value;renderListTable()" style="flex:1;min-width:200px;margin:0">';
+  html+='<select onchange="filterByType(this.value)" style="font-size:11px;padding:7px 10px;border:.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text);cursor:pointer">';
+  html+='<option value="">All types</option>';
+  ['Live-In','Overnight','Long Hour','Short Hour','Standard'].forEach(function(t){html+='<option>'+t+'</option>';});
+  html+='</select>';
+  html+='<select onchange="filterByBucket(this.value)" style="font-size:11px;padding:7px 10px;border:.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text);cursor:pointer">';
+  html+='<option value="">All happiness</option>';
+  html+='<option value="0-25">0-25% (Critical)</option>';
+  html+='<option value="25-50">25-50% (Low)</option>';
+  html+='<option value="50-75">50-75% (Medium)</option>';
+  html+='<option value="75-100">75-100% (Happy)</option>';
+  html+='</select>';
+  html+='</div>';
+  html+='<div id="cgListWrap"></div>';
   document.getElementById('ct').innerHTML=html;
+  renderListTable();
 }
 
-function buildList(cgs){
-  var html='<table class="tbl"><thead><tr><th>Caregiver</th><th>Market</th><th>Type</th><th>MCE</th><th>Happiness</th><th>Scheduled</th><th>Desired</th><th>Gap</th><th>PTO</th></tr></thead><tbody>';
-  cgs.slice(0,300).forEach(function(c){
+var listTypeFilter='';
+var listBucketFilter='';
+
+function filterByType(v){listTypeFilter=v;renderListTable();}
+function filterByBucket(v){listBucketFilter=v;renderListTable();}
+
+function renderListTable(){
+  var cgs=getFiltered();
+  var lq=listSearch.toLowerCase();
+  if(lq)cgs=cgs.filter(function(c){return c.name.toLowerCase().includes(lq)||c.market.toLowerCase().includes(lq)||c.assignee.toLowerCase().includes(lq)||c.cgType.toLowerCase().includes(lq);});
+  if(listTypeFilter)cgs=cgs.filter(function(c){return c.cgType===listTypeFilter;});
+  if(listBucketFilter)cgs=cgs.filter(function(c){return c.bucket===listBucketFilter;});
+
+  var col=listSort.col,dir=listSort.dir;
+  cgs=cgs.slice().sort(function(a,b){
+    var av=a[col],bv=b[col];
+    if(typeof av==='string')return dir*av.localeCompare(bv);
+    return dir*(av-bv);
+  });
+
+  function thSort(label,colName){
+    var active=listSort.col===colName;
+    var arrow=active?(listSort.dir===1?' ▲':' ▼'):'';
+    return '<th onclick="sortList(''+colName+'')" style="cursor:pointer;user-select:none;'+(active?'color:var(--text);':'')+'">'+label+arrow+'</th>';
+  }
+
+  var html='<div style="font-size:11px;color:var(--text3);margin-bottom:8px">'+cgs.length+' caregivers &middot; Click column headers to sort</div>';
+  html+='<table class="tbl"><thead><tr>';
+  html+=thSort('Caregiver','name');
+  html+=thSort('Market','market');
+  html+=thSort('Type','cgType');
+  html+=thSort('MCE','assignee');
+  html+=thSort('Happiness','happiness');
+  html+=thSort('Scheduled','scheduledHrs');
+  html+=thSort('Desired','desiredHrs');
+  html+=thSort('Gap','differential');
+  html+=thSort('PTO','ptoHrs');
+  html+='</tr></thead><tbody>';
+
+  cgs.slice(0,500).forEach(function(c){
     var pct=Math.round(c.happiness*100);
     html+='<tr>';
     html+='<td>'+c.name+'</td>';
@@ -655,21 +710,89 @@ function buildList(cgs){
     html+='<td>'+fh(c.scheduledHrs)+'</td>';
     html+='<td>'+fh(c.desiredHrs)+'</td>';
     html+='<td style="color:'+(c.differential>=0?'var(--green)':'var(--red)')+'">'+(c.differential>=0?'+':'')+fh(c.differential)+'</td>';
-    html+='<td style="color:'+(c.ptoHrs>0?'var(--amber)':'var(--text3)')+'">'+(c.ptoHrs>0?fh(c.ptoHrs):'&mdash;')+'</td>';
+    html+='<td style="color:'+(c.ptoHrs>0?'var(--amber)':'var(--text3)')+'">'+( c.ptoHrs>0?fh(c.ptoHrs):'&mdash;')+'</td>';
     html+='</tr>';
   });
   html+='</tbody></table>';
-  if(cgs.length>300)html+='<div style="text-align:center;padding:10px;font-size:11px;color:var(--text3)">Showing 300 of '+cgs.length+'. Use search to filter.</div>';
-  return html;
+  if(cgs.length>500)html+='<div style="text-align:center;padding:10px;font-size:11px;color:var(--text3)">Showing 500 of '+cgs.length+'. Use filters to narrow down.</div>';
+  document.getElementById('cgListWrap').innerHTML=html;
 }
 
-function filterList(q){
-  if(!data)return;
-  var lq=q.toLowerCase();
+function sortList(col){
+  if(listSort.col===col)listSort.dir*=-1;
+  else{listSort.col=col;listSort.dir=1;}
+  renderListTable();
+}
+
+function renderNewHires(){
+  var today=new Date();
   var cgs=getFiltered().filter(function(c){
-    return c.name.toLowerCase().includes(lq)||c.market.toLowerCase().includes(lq)||c.assignee.toLowerCase().includes(lq)||c.cgType.toLowerCase().includes(lq)||c.bucket.includes(lq);
-  }).sort(function(a,b){return a.happiness-b.happiness});
-  document.getElementById('cgListWrap').innerHTML=buildList(cgs);
+    if(!c.hireDate)return false;
+    var hd=new Date(c.hireDate);
+    var days=Math.floor((today-hd)/(1000*60*60*24));
+    c._daysSinceHire=days;
+    c._hirePhase=days<=30?'0-30 days':days<=60?'31-60 days':'61-90 days';
+    return days>=0&&days<=90;
+  }).sort(function(a,b){return a._daysSinceHire-b._daysSinceHire});
+
+  var agg=aggregateGroup(cgs);
+  var html='';
+
+  html+='<div class="banner '+(agg.goal75>=0.9?'':'w')+'"><div class="bl '+(agg.goal75>=0.9?'':'w')+'">First 90 Days &mdash; '+navLabel()+' &mdash; '+curStart+' to '+curEnd+'</div>';
+  html+=cgs.length+' caregivers in their first 90 days. '+fp(agg.goal75)+' receiving 75%+ of desired hours. ';
+  html+='New hires getting enough hours early on is critical for retention.</div>';
+
+  html+='<div class="kg">';
+  html+='<div class="kpi"><div class="kl">New Hires (90 days)</div><div class="kv b">'+fn(cgs.length)+'</div><div class="ks">'+navLabel()+'</div></div>';
+  html+='<div class="kpi"><div class="kl">75%+ of Desired</div><div class="kv '+(agg.goal75>=0.9?'g':agg.goal75>=0.7?'a':'r')+'">'+fp(agg.goal75)+'</div><div class="ks">Goal: &gt;90%</div></div>';
+  html+='<div class="kpi"><div class="kl">Avg Happiness</div><div class="kv '+hapCls(agg.avgH)+'">'+fp(agg.avgH)+'</div><div class="ks">% of desired hrs</div></div>';
+  html+='<div class="kpi"><div class="kl">Hours Gap</div><div class="kv r">'+fn(Math.round(agg.gap))+'h</div><div class="ks">Unmet desired hours</div></div>';
+  html+='</div>';
+
+  // Happiness distribution
+  html+='<div class="fc"><div class="ct">Happiness distribution &mdash; first 90 days</div>';
+  html+=stackBar(agg.b0,agg.b25,agg.b50,agg.b75,agg.total,16);
+  html+='<div style="display:flex;gap:16px;margin-top:8px;font-size:11px">';
+  html+='<span style="color:var(--red)">Critical (0-25%): '+agg.b0+'</span>';
+  html+='<span style="color:var(--red)">Low (25-50%): '+agg.b25+'</span>';
+  html+='<span style="color:var(--amber)">Mid (50-75%): '+agg.b50+'</span>';
+  html+='<span style="color:var(--green)">Happy (75%+): '+agg.b75+'</span>';
+  html+='</div></div>';
+
+  // Phase breakdown
+  ['0-30 days','31-60 days','61-90 days'].forEach(function(phase){
+    var phaseCgs=cgs.filter(function(c){return c._hirePhase===phase});
+    if(!phaseCgs.length)return;
+    var pa=aggregateGroup(phaseCgs);
+
+    html+='<div class="fc"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">';
+    html+='<div class="ct" style="margin:0">'+phase+' &mdash; '+phaseCgs.length+' caregivers</div>';
+    html+='<span class="bdg '+(pa.goal75>=0.9?'bg':pa.goal75>=0.7?'ba':'br')+'">'+fp(pa.goal75)+' at 75%+</span>';
+    html+='</div>';
+    html+=stackBar(pa.b0,pa.b25,pa.b50,pa.b75,pa.total,10);
+    html+='<table class="tbl" style="margin-top:10px"><thead><tr><th>Caregiver</th><th>Market</th><th>Type</th><th>MCE</th><th>Days Hired</th><th>Happiness</th><th>Scheduled</th><th>Desired</th><th>Gap</th></tr></thead><tbody>';
+    phaseCgs.forEach(function(c){
+      var pct=Math.round(c.happiness*100);
+      html+='<tr>';
+      html+='<td>'+c.name+'</td>';
+      html+='<td style="font-weight:normal;color:var(--text2)">'+c.market+'</td>';
+      html+='<td style="font-weight:normal">'+TYPE_ICONS[c.cgType]+' '+c.cgType+'</td>';
+      html+='<td style="font-weight:normal;color:var(--text2)">'+c.assignee+'</td>';
+      html+='<td>Day '+c._daysSinceHire+'</td>';
+      html+='<td><span class="bdg '+hapBdg(c.happiness)+'">'+pct+'%</span></td>';
+      html+='<td>'+fh(c.scheduledHrs)+'</td>';
+      html+='<td>'+fh(c.desiredHrs)+'</td>';
+      html+='<td style="color:'+(c.differential>=0?'var(--green)':'var(--red)')+'">'+(c.differential>=0?'+':'')+fh(c.differential)+'</td>';
+      html+='</tr>';
+    });
+    html+='</tbody></table></div>';
+  });
+
+  if(!cgs.length){
+    html+='<div class="fc" style="text-align:center;padding:40px;color:var(--text3)">No caregivers in their first 90 days for '+navLabel()+' this week.</div>';
+  }
+
+  document.getElementById('ct').innerHTML=html;
 }
 
 function toggleMCE(id){
