@@ -711,7 +711,7 @@ function renderListTable(){
   function thSort(label,colName){
     var active=listSort.col===colName;
     var arrow=active?(listSort.dir===1?' &#9650;':' &#9660;'):'';
-    return '<th onclick="sortList(''+colName+'')" style="cursor:pointer;user-select:none;'+(active?'color:var(--text);':'')+'">'+label+arrow+'</th>';
+    return '<th onclick="sortList(\'' + colName + '\')" style="cursor:pointer;user-select:none;' + (active ? 'color:var(--text);' : '') + '">' + label + arrow + '</th>';
   }
 
   var html='<div style="font-size:11px;color:var(--text3);margin-bottom:8px">'+cgs.length+' caregivers &middot; Click column headers to sort</div>';
