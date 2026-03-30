@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tribute — Revenue Trends</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#fff;--bg2:#f7f7f5;--bg3:#ededea;--text:#1a1a18;--text2:#6b6b67;--text3:#9e9c96;--border:rgba(0,0,0,0.09);--border2:rgba(0,0,0,0.16);--green:#1D9E75;--amber:#EF9F27;--red:#E24B4A;--blue:#185FA5;--purple:#7B4FBE;--green-bg:#E1F5EE;--amber-bg:#FAEEDA;--red-bg:#FCEBEB;--blue-bg:#E6F1FB;--green-text:#0F6E56;--amber-text:#633806;--red-text:#791F1F;--blue-text:#0C447C;--r:8px;--rl:12px}
+@media(prefers-color-scheme:dark){:root{--bg:#1a1a18;--bg2:#232320;--bg3:#2c2c29;--text:#e8e6e0;--text2:#9e9c96;--text3:#6b6b67;--border:rgba(255,255,255,0.09);--border2:rgba(255,255,255,0.16);--green-bg:#04342C;--amber-bg:#412402;--red-bg:#501313;--blue-bg:#042C53;--green-text:#9FE1CB;--amber-text:#FAC775;--red-text:#F09595;--blue-text:#85B7EB}}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);padding:20px;max-width:1100px;margin:0 auto;font-size:14px;line-height:1.5}
+.hdr{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:14px;border-bottom:.5px solid var(--border);margin-bottom:16px;flex-wrap:wrap;gap:10px}
+.logo{font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--text3)}
+.title{font-size:22px;font-weight:500;margin-top:3px}
+.sub{font-size:11px;color:var(--text3);margin-top:2px}
+.dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--green);margin-right:4px;animation:pulse 2s infinite}
+.adot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--amber);margin-right:4px;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.loading{text-align:center;padding:60px 20px;color:var(--text3);font-size:13px}
+.spin{width:24px;height:24px;border:2px solid var(--border2);border-top-color:var(--text);border-radius:50%;animation:sp .8s linear infinite;margin:0 auto 12px}
+@keyframes sp{to{transform:rotate(360deg)}}
+.err{background:var(--red-bg);color:var(--red-text);border-radius:var(--r);padding:12px 16px;margin-bottom:16px;font-size:13px}
+.tabs{display:flex;border-bottom:.5px solid var(--border);margin-bottom:16px;overflow-x:auto}
+.tab{font-size:12px;font-weight:500;color:var(--text2);padding:8px 16px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-.5px;white-space:nowrap;user-select:none}
+.tab.on{color:var(--text);border-bottom-color:var(--text)}
+.banner{border-radius:var(--r);padding:12px 16px;margin-bottom:16px;border-left:3px solid var(--green);background:var(--bg2);font-size:13px;line-height:1.6}
+.banner.b{border-left-color:var(--blue)}.banner.a{border-left-color:var(--amber)}
+.bl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--green);margin-bottom:4px}
+.bl.b{color:var(--blue)}.bl.a{color:var(--amber)}
+.kg{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:16px}
+@media(max-width:700px){.kg{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.kpi{background:var(--bg2);border-radius:var(--r);padding:14px 16px}
+.kl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text2);margin-bottom:6px}
+.kv{font-size:24px;font-weight:500;line-height:1;margin-bottom:4px;font-variant-numeric:tabular-nums}
+.ks{font-size:11px;color:var(--text3)}
+.kv.g{color:var(--green)}.kv.b{color:var(--blue)}.kv.a{color:var(--amber)}.kv.p{color:var(--purple)}.kv.r{color:var(--red)}
+.fc{background:var(--bg);border:.5px solid var(--border);border-radius:var(--rl);padding:16px 18px;margin-bottom:12px}
+.ct{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text2);margin-bottom:16px}
+.cn{font-size:11px;color:var(--text3);line-height:1.5;margin-top:12px;border-top:.5px solid var(--border);padding-top:8px;font-style:italic}
+.tc{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+@media(max-width:700px){.tc{grid-template-columns:1fr}}
+.card{background:var(--bg);border:.5px solid var(--border);border-radius:var(--rl);padding:16px 18px}
+.tbl{width:100%;border-collapse:collapse;font-size:12px}
+.tbl th{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text2);padding:7px 10px;border-bottom:.5px solid var(--border2);text-align:right}
+.tbl th:first-child{text-align:left}
+.tbl td{padding:9px 10px;border-bottom:.5px solid var(--border);text-align:right;font-variant-numeric:tabular-nums}
+.tbl td:first-child{text-align:left;font-weight:500}
+.tbl tbody tr:last-child td{border-bottom:none}
+.tbl tfoot td{border-top:.5px solid var(--border2);font-weight:500;padding:9px 10px;text-align:right}
+.tbl tfoot td:first-child{text-align:left}
+.bdg{font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;display:inline-block}
+.bg{background:var(--green-bg);color:var(--green-text)}.ba{background:var(--amber-bg);color:var(--amber-text)}.br{background:var(--red-bg);color:var(--red-text)}
+.chart{display:flex;align-items:flex-end;gap:4px;height:180px;padding:0 0 8px;border-bottom:.5px solid var(--border)}
+.bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;height:100%}
+.bar-col{width:100%;background:var(--blue);border-radius:3px 3px 0 0;transition:opacity .2s;cursor:pointer;min-height:2px}
+.bar-col:hover{opacity:.75}
+.bar-col.hi{background:var(--green)}
+.bar-col.lo{background:var(--amber)}
+.bar-label{font-size:9px;color:var(--text3);text-align:center;white-space:nowrap;transform:rotate(-45deg);transform-origin:top right;margin-top:4px}
+.chart-wrap{position:relative}
+.chart-yaxis{position:absolute;left:0;top:0;bottom:24px;display:flex;flex-direction:column;justify-content:space-between;pointer-events:none}
+.chart-yaxis span{font-size:9px;color:var(--text3);white-space:nowrap}
+.growth-pos{color:var(--green);font-size:11px;font-weight:500}
+.growth-neg{color:var(--red);font-size:11px;font-weight:500}
+.growth-flat{color:var(--text3);font-size:11px}
+.mbr{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:.5px solid var(--border)}
+.mbr:last-child{border-bottom:none}
+.mbl{font-size:12px;color:var(--text);width:150px;flex-shrink:0}
+.mbt{flex:1;height:14px;background:var(--bg3);border-radius:2px;overflow:hidden}
+.mbf{height:100%;border-radius:2px}
+.mbv{font-size:12px;font-weight:500;width:60px;text-align:right;flex-shrink:0}
+.mbv2{font-size:11px;color:var(--text3);width:50px;text-align:right;flex-shrink:0}
+.ftr{margin-top:32px;padding-top:14px;border-top:.5px solid var(--border);font-size:11px;color:var(--text3);display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
+</style>
+</head>
+<body>
+<div class="hdr">
+  <div>
+    <div class="logo">Tribute Home Care</div>
+    <div class="title">Revenue Trends</div>
+    <div class="sub" id="sl"><span class="adot"></span>Loading...</div>
+  </div>
+  <div style="text-align:right;font-size:11px;color:var(--text3)" id="hr"></div>
+</div>
+
+<div class="tabs">
+  <div class="tab on" onclick="setTab('overview',this)">Overview</div>
+  <div class="tab" onclick="setTab('monthly',this)">Monthly Detail</div>
+  <div class="tab" onclick="setTab('markets',this)">By Market</div>
+</div>
+
+<div id="ct"><div class="loading"><div class="spin"></div>Loading revenue trends...</div></div>
+<div class="ftr"><span>Tribute Home Care LLC &middot; Revenue Trends</span><span id="ga"></span></div>
+
+<script>
+var API='https://tribute-api-prod-bkc4hfcwf3f2f6bf.centralus-01.azurewebsites.net/api/vivProxy';
+var trendData=null,visitsData=null,curTab='overview';
+
+function fm(n){return '$'+(n>=1000000?(n/1000000).toFixed(2)+'M':(n>=1000?(n/1000).toFixed(0)+'K':Math.round(n).toLocaleString()));}
+function fn(n){return Math.round(n).toLocaleString()}
+function fp(n){return(n*100).toFixed(1)+'%'}
+function gc(v){return v>0?'var(--green)':v<0?'var(--red)':'var(--text2)'}
+function fmtMonth(m){
+  var parts=m.split('-');
+  var months=['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return months[parseInt(parts[1])]+' '+parts[0].slice(2);
+}
+
+async function init(){
+  try{
+    // Load both trend data and current week visits in parallel
+    var [tr, vr] = await Promise.all([
+      fetch(API+'?endpoint=revenue_trends'),
+      fetch(API+'?endpoint=visits&period=month')
+    ]);
+    if(!tr.ok)throw new Error('Trends HTTP '+tr.status);
+    trendData=await tr.json();
+    if(vr.ok)visitsData=await vr.json();
+
+    document.getElementById('sl').innerHTML='<span class="dot"></span>Live &middot; Viv Technologies &middot; Updated '+new Date().toLocaleTimeString();
+    document.getElementById('ga').textContent='15-month trend &middot; Oct 2024 &mdash; Dec 2025';
+
+    var latest=trendData.company[trendData.company.length-1];
+    var prev=trendData.company[trendData.company.length-2];
+    var growth=(latest.revenue-prev.revenue)/prev.revenue;
+    document.getElementById('hr').innerHTML=fm(latest.revenue)+' &mdash; '+fmtMonth(latest.month)+'<br><span style="color:'+(growth>=0?'var(--green)':'var(--red)')+'">'+( growth>=0?'&#9650;':'&#9660;')+' '+(Math.abs(growth)*100).toFixed(1)+'% vs prior month</span>';
+
+    render();
+  }catch(e){
+    document.getElementById('ct').innerHTML='<div class="err">Error: '+e.message+'</div>';
+  }
+}
+
+function setTab(t,el){
+  curTab=t;
+  document.querySelectorAll('.tab').forEach(function(x){x.classList.remove('on')});
+  el.classList.add('on');
+  render();
+}
+
+function render(){
+  if(!trendData)return;
+  if(curTab==='overview')renderOverview();
+  else if(curTab==='monthly')renderMonthly();
+  else renderMarkets();
+}
+
+function renderOverview(){
+  var co=trendData.company;
+  var latest=co[co.length-1];
+  var first=co[0];
+  var peak=co.reduce(function(a,b){return a.revenue>b.revenue?a:b});
+  var low=co.reduce(function(a,b){return a.revenue<b.revenue?a:b});
+  var totalRev=co.reduce(function(s,m){return s+m.revenue},0);
+  var totalHrs=co.reduce(function(s,m){return s+m.hours},0);
+  var overallGrowth=(latest.revenue-first.revenue)/first.revenue;
+  var last3=co.slice(-3);
+  var avg3=last3.reduce(function(s,m){return s+m.revenue},0)/3;
+  var prev3=co.slice(-6,-3);
+  var avgPrev3=prev3.reduce(function(s,m){return s+m.revenue},0)/3;
+  var momentum=(avg3-avgPrev3)/avgPrev3;
+
+  // Growth rates for each month
+  var growthRates=[];
+  for(var i=1;i<co.length;i++){
+    growthRates.push((co[i].revenue-co[i-1].revenue)/co[i-1].revenue);
+  }
+  var avgGrowth=growthRates.reduce(function(s,g){return s+g},0)/growthRates.length;
+
+  var html='';
+  html+='<div class="banner"><div class="bl">15-Month Revenue Trend &mdash; Oct 2024 to Dec 2025</div>';
+  html+='Company revenue grew <strong>'+fp(overallGrowth)+'</strong> from '+fm(first.revenue)+' to '+fm(latest.revenue)+' over 15 months. ';
+  html+='Average monthly growth rate: '+fp(avgGrowth)+'. ';
+  html+='Recent momentum (last 3 months vs prior 3): <strong style="color:'+(momentum>=0?'var(--green)':'var(--red)')+'">'+( momentum>=0?'+':'')+fp(momentum)+'</strong>.</div>';
+
+  html+='<div class="kg">';
+  html+='<div class="kpi"><div class="kl">Latest Month Revenue</div><div class="kv g">'+fm(latest.revenue)+'</div><div class="ks">'+fmtMonth(latest.month)+'</div></div>';
+  html+='<div class="kpi"><div class="kl">15-Month Growth</div><div class="kv '+(overallGrowth>=0?'g':'r')+'">'+fp(overallGrowth)+'</div><div class="ks">'+fm(first.revenue)+' &rarr; '+fm(latest.revenue)+'</div></div>';
+  html+='<div class="kpi"><div class="kl">Peak Month</div><div class="kv b">'+fm(peak.revenue)+'</div><div class="ks">'+fmtMonth(peak.month)+'</div></div>';
+  html+='<div class="kpi"><div class="kl">Avg Monthly Revenue</div><div class="kv p">'+fm(totalRev/co.length)+'</div><div class="ks">Over 15 months</div></div>';
+  html+='</div>';
+
+  // Bar chart
+  var maxRev=Math.max.apply(null,co.map(function(m){return m.revenue}));
+  var bars='';
+  co.forEach(function(m,i){
+    var pct=Math.round(m.revenue/maxRev*100);
+    var cls=m===peak?'bar-col hi':m===low?'bar-col lo':'bar-col';
+    var gr=i>0?((m.revenue-co[i-1].revenue)/co[i-1].revenue*100).toFixed(1):'';
+    bars+='<div class="bar-wrap" title="'+fmtMonth(m.month)+': '+fm(m.revenue)+(gr?' ('+( gr>0?'+':'')+gr+'%)':'')+'"><div class="'+cls+'" style="height:'+pct+'%"></div></div>';
+  });
+
+  var yMax=fm(maxRev);
+  var yMid=fm(maxRev/2);
+
+  html+='<div class="fc"><div class="ct">Monthly revenue &mdash; Oct 2024 to Dec 2025</div>';
+  html+='<div style="display:flex;gap:8px">';
+  html+='<div style="display:flex;flex-direction:column;justify-content:space-between;padding-bottom:8px;min-width:40px">';
+  html+='<span style="font-size:9px;color:var(--text3)">'+yMax+'</span>';
+  html+='<span style="font-size:9px;color:var(--text3)">'+yMid+'</span>';
+  html+='<span style="font-size:9px;color:var(--text3)">$0</span>';
+  html+='</div>';
+  html+='<div style="flex:1"><div class="chart">'+bars+'</div>';
+  html+='<div style="display:flex;gap:4px;margin-top:6px">';
+  co.forEach(function(m){
+    html+='<div style="flex:1;font-size:8px;color:var(--text3);text-align:center;overflow:hidden">'+fmtMonth(m.month)+'</div>';
+  });
+  html+='</div></div></div>';
+  html+='<div style="display:flex;gap:16px;margin-top:10px;font-size:11px">';
+  html+='<span><span style="display:inline-block;width:10px;height:10px;background:var(--green);border-radius:2px;margin-right:4px"></span>Peak: '+fmtMonth(peak.month)+'</span>';
+  html+='<span><span style="display:inline-block;width:10px;height:10px;background:var(--amber);border-radius:2px;margin-right:4px"></span>Lowest: '+fmtMonth(low.month)+'</span>';
+  html+='<span><span style="display:inline-block;width:10px;height:10px;background:var(--blue);border-radius:2px;margin-right:4px"></span>Other months</span>';
+  html+='</div>';
+  html+='<div class="cn">Hover over bars to see exact figures. Green = peak month ($'+fn(Math.round(peak.revenue/1000))+'K). Amber = lowest month ($'+fn(Math.round(low.revenue/1000))+'K).</div></div>';
+
+  // Month-over-month growth chart
+  var maxAbs=Math.max.apply(null,growthRates.map(function(g){return Math.abs(g)}));
+  var growthBars='';
+  for(var i=1;i<co.length;i++){
+    var g=(co[i].revenue-co[i-1].revenue)/co[i-1].revenue;
+    var pct=Math.round(Math.abs(g)/maxAbs*100);
+    var col=g>=0?'var(--green)':'var(--red)';
+    growthBars+='<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px">';
+    growthBars+='<div style="font-size:8px;color:'+col+';font-weight:500">'+(g>=0?'+':'')+( g*100).toFixed(1)+'%</div>';
+    growthBars+='<div style="width:100%;height:'+pct+'px;background:'+col+';border-radius:2px;min-height:2px"></div>';
+    growthBars+='<div style="font-size:8px;color:var(--text3)">'+fmtMonth(co[i].month)+'</div>';
+    growthBars+='</div>';
+  }
+
+  html+='<div class="fc"><div class="ct">Month-over-month growth rate</div>';
+  html+='<div style="display:flex;align-items:flex-end;gap:4px;height:80px;padding-bottom:20px">'+growthBars+'</div>';
+  html+='<div class="cn">Average monthly growth: '+fp(avgGrowth)+' &middot; Best month: '+fp(Math.max.apply(null,growthRates))+' &middot; Worst month: '+fp(Math.min.apply(null,growthRates))+'</div></div>';
+
+  document.getElementById('ct').innerHTML=html;
+}
+
+function renderMonthly(){
+  var co=trendData.company;
+  var html='';
+
+  html+='<div class="banner b"><div class="bl b">Monthly detail &mdash; all 15 months</div>';
+  html+='Full month-by-month breakdown of billed hours and revenue with growth vs prior month.</div>';
+
+  html+='<div class="fc"><table class="tbl">';
+  html+='<thead><tr><th>Month</th><th>Revenue</th><th>vs Prior Month</th><th>Growth %</th><th>Billed Hours</th><th>Avg Bill Rate</th></tr></thead>';
+  html+='<tbody>';
+  co.forEach(function(m,i){
+    var prev=i>0?co[i-1]:null;
+    var diff=prev?m.revenue-prev.revenue:0;
+    var pct=prev?(m.revenue-prev.revenue)/prev.revenue:0;
+    var avgRate=m.hours>0?m.revenue/m.hours:0;
+    html+='<tr>';
+    html+='<td style="font-weight:500">'+fmtMonth(m.month)+'</td>';
+    html+='<td style="color:var(--blue);font-weight:500">'+fm(m.revenue)+'</td>';
+    if(prev){
+      html+='<td style="color:'+gc(diff)+'">'+(diff>=0?'+':'')+fm(diff)+'</td>';
+      html+='<td><span class="bdg '+(pct>=0?'bg':'br')+'">'+(pct>=0?'+':'')+fp(pct)+'</span></td>';
+    } else {
+      html+='<td style="color:var(--text3)">—</td><td style="color:var(--text3)">—</td>';
+    }
+    html+='<td>'+fn(Math.round(m.hours))+'</td>';
+    html+='<td>$'+avgRate.toFixed(2)+'/hr</td>';
+    html+='</tr>';
+  });
+  html+='</tbody>';
+
+  var totalRev=co.reduce(function(s,m){return s+m.revenue},0);
+  var totalHrs=co.reduce(function(s,m){return s+m.hours},0);
+  html+='<tfoot><tr><td>15-Month Total</td><td style="color:var(--blue)">'+fm(totalRev)+'</td><td colspan="2" style="color:var(--text3);font-size:11px">Oct 2024 &mdash; Dec 2025</td><td>'+fn(Math.round(totalHrs))+'</td><td>$'+(totalRev/totalHrs).toFixed(2)+'/hr</td></tr></tfoot>';
+  html+='</table></div>';
+
+  document.getElementById('ct').innerHTML=html;
+}
+
+function renderMarkets(){
+  var html='';
+
+  if(!visitsData){
+    html+='<div class="banner a"><div class="bl a">Market data unavailable</div>Could not load current market breakdown. Check your connection and try again.</div>';
+    document.getElementById('ct').innerHTML=html;
+    return;
+  }
+
+  var markets=visitsData.markets||[];
+  var totals=visitsData.totals;
+  var period=visitsData.dateRange;
+  var co=trendData.company;
+  var latest=co[co.length-1];
+  var prev=co[co.length-2];
+  var growth=(latest.revenue-prev.revenue)/prev.revenue;
+
+  html+='<div class="banner"><div class="bl">Current market breakdown &mdash; '+( period?period.start+' to '+period.end:'this month')+'</div>';
+  html+='Live revenue by market for the current period, plus 15-month company trend context.</div>';
+
+  html+='<div class="kg">';
+  html+='<div class="kpi"><div class="kl">Current Period Revenue</div><div class="kv g">'+fm(totals.revenue)+'</div><div class="ks">'+(period?period.start+' to '+period.end:'')+'</div></div>';
+  html+='<div class="kpi"><div class="kl">Latest Month (Trend)</div><div class="kv b">'+fm(latest.revenue)+'</div><div class="ks">'+fmtMonth(latest.month)+' &mdash; full month</div></div>';
+  html+='<div class="kpi"><div class="kl">Month-over-Month</div><div class="kv '+(growth>=0?'g':'r')+'">'+(growth>=0?'+':'')+fp(growth)+'</div><div class="ks">'+fmtMonth(prev.month)+' vs '+fmtMonth(latest.month)+'</div></div>';
+  html+='<div class="kpi"><div class="kl">Billed Hours (Period)</div><div class="kv p">'+fn(Math.round(totals.billedHours))+'</div><div class="ks">Current period</div></div>';
+  html+='</div>';
+
+  var maxRev=Math.max.apply(null,markets.map(function(m){return m.revenue}));
+  var mktBars='';
+  markets.forEach(function(m){
+    var bw=maxRev>0?Math.round(m.revenue/maxRev*100):0;
+    var margin=m.revenue>0?m.grossProfit/m.revenue:0;
+    var marCol=margin>=0.32?'var(--green)':margin>=0.28?'var(--amber)':'var(--red)';
+    mktBars+='<div class="mbr">';
+    mktBars+='<div class="mbl">'+m.market+'</div>';
+    mktBars+='<div class="mbt"><div class="mbf" style="width:'+bw+'%;background:var(--blue)"></div></div>';
+    mktBars+='<div class="mbv">'+fm(m.revenue)+'</div>';
+    mktBars+='<div class="mbv2" style="color:'+marCol+'">'+fp(margin)+' margin</div>';
+    mktBars+='</div>';
+  });
+
+  html+='<div class="fc"><div class="ct">Revenue by market &mdash; current period</div>'+mktBars+'</div>';
+
+  // Market table
+  var tblRows='';
+  markets.forEach(function(m){
+    var margin=m.revenue>0?m.grossProfit/m.revenue:0;
+    var share=totals.revenue>0?m.revenue/totals.revenue:0;
+    tblRows+='<tr>';
+    tblRows+='<td>'+m.market+'</td>';
+    tblRows+='<td style="color:var(--blue);font-weight:500">'+fm(m.revenue)+'</td>';
+    tblRows+='<td>'+fp(share)+'</td>';
+    tblRows+='<td>'+fn(Math.round(m.billedHours))+'</td>';
+    tblRows+='<td><span class="bdg '+(margin>=0.32?'bg':margin>=0.28?'ba':'br')+'">'+fp(margin)+'</span></td>';
+    tblRows+='<td>'+fp(m.fillRate)+'</td>';
+    tblRows+='</tr>';
+  });
+
+  html+='<div class="fc"><div class="ct">Market detail &mdash; current period</div>';
+  html+='<table class="tbl"><thead><tr><th>Market</th><th>Revenue</th><th>Share</th><th>Billed Hrs</th><th>Margin</th><th>Fill Rate</th></tr></thead>';
+  html+='<tbody>'+tblRows+'</tbody>';
+  html+='<tfoot><tr><td>Total</td><td style="color:var(--blue)">'+fm(totals.revenue)+'</td><td>100%</td><td>'+fn(Math.round(totals.billedHours))+'</td><td><span class="bdg '+(totals.grossMarginPct>=0.32?'bg':totals.grossMarginPct>=0.28?'ba':'br')+'">'+fp(totals.grossMarginPct)+'</span></td><td>'+fp(totals.fillRate)+'</td></tr></tfoot></table>';
+  html+='<div class="cn">Margin benchmark: Green &ge;32% &middot; Amber 28-32% &middot; Red &lt;28%. Market revenue from current period live data.</div></div>';
+
+  document.getElementById('ct').innerHTML=html;
+}
+
+init();
+</script>
+</body>
+</html>
