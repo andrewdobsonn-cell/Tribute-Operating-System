@@ -24,110 +24,116 @@
     --green-text:#9FE1CB;--amber-text:#FAC775;--red-text:#F09595;
   }
 }
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);padding:20px;max-width:1200px;margin:0 auto;font-size:14px;line-height:1.5}
-.hdr{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:14px;border-bottom:0.5px solid var(--border);margin-bottom:16px;flex-wrap:wrap;gap:10px}
-.logo{font-size:10px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--text3)}
-.title{font-size:22px;font-weight:500;margin-top:3px}
-.subtitle{font-size:11px;color:var(--text3);margin-top:2px}
-.hdr-r{text-align:right;font-size:11px;color:var(--text3)}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);padding:16px 20px;max-width:1200px;margin:0 auto;font-size:13px;line-height:1.5;-webkit-font-smoothing:antialiased}
+.hdr{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:12px;margin-bottom:0;flex-wrap:wrap;gap:10px}
+.logo{font-size:10px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:var(--text3)}
+.title{font-size:26px;font-weight:600;letter-spacing:-0.02em;line-height:1.1;margin-top:2px;color:var(--text)}
+.subtitle{font-size:11px;color:var(--text3);margin-top:4px}
 .live-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--green);margin-right:4px;animation:pulse 2s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
-
-.period-bar{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap;align-items:center}
-.period-btn{font-size:11px;font-weight:500;padding:5px 12px;border-radius:20px;cursor:pointer;border:0.5px solid var(--border2);color:var(--text2);background:var(--bg2);transition:all .15s;user-select:none}
-.period-btn.on{background:var(--text);color:var(--bg);border-color:var(--text)}
-.period-label{font-size:11px;color:var(--text3);margin-right:4px}
-.custom-range{display:flex;gap:6px;align-items:center;margin-left:8px}
+.hdr-r{text-align:right}
+.hdr-date{font-size:15px;font-weight:500;color:var(--text);font-variant-numeric:tabular-nums;letter-spacing:-0.01em}
+.hdr-meta{font-size:11px;color:var(--text3);margin-top:2px}
+.hdr-rule{height:2px;border-radius:1px;margin:12px 0 16px 0;background:var(--border2);transition:background 0.4s ease}
+.period-bar{display:flex;gap:0;margin-bottom:16px;flex-wrap:wrap;align-items:center;row-gap:8px}
+.period-btn{font-size:11px;font-weight:500;padding:5px 11px;border-radius:0;cursor:pointer;border:0.5px solid var(--border2);border-right:none;color:var(--text2);background:transparent;transition:all .12s;user-select:none;white-space:nowrap}
+.period-btn:first-of-type{border-radius:6px 0 0 6px}
+.period-btn.last-preset{border-radius:0 6px 6px 0;border-right:0.5px solid var(--border2)}
+.period-btn.on{background:var(--bg3);color:var(--text);font-weight:600}
+.period-label{font-size:11px;color:var(--text3);margin-right:6px}
+.custom-range{display:flex;gap:6px;align-items:center;margin-left:12px}
 .custom-range input{font-size:11px;padding:4px 8px;border:0.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text)}
 .custom-range button{font-size:11px;padding:4px 10px;border-radius:var(--r);border:0.5px solid var(--border2);background:var(--bg2);color:var(--text);cursor:pointer}
-
 .tabs{display:flex;border-bottom:0.5px solid var(--border);margin-bottom:16px;overflow-x:auto}
 .tab{font-size:12px;font-weight:500;color:var(--text2);padding:8px 16px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-0.5px;white-space:nowrap;transition:color .15s;user-select:none}
 .tab.on{color:var(--text);border-bottom-color:var(--text)}
 .tab:hover:not(.on){color:var(--text)}
-
 .stabs{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap}
 .stab{font-size:11px;font-weight:500;padding:4px 12px;border-radius:20px;cursor:pointer;border:0.5px solid var(--border2);color:var(--text2);background:var(--bg2);transition:all .15s;user-select:none}
 .stab.on{background:var(--text);color:var(--bg);border-color:var(--text)}
-
 .loading{text-align:center;padding:60px 20px;color:var(--text3);font-size:13px}
 .spinner{width:24px;height:24px;border:2px solid var(--border2);border-top-color:var(--text);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 12px}
 @keyframes spin{to{transform:rotate(360deg)}}
-
 .error-banner{background:var(--red-bg);color:var(--red-text);border-radius:var(--r);padding:12px 16px;margin-bottom:16px;font-size:13px}
-
-.banner{border-radius:var(--r);padding:12px 16px;margin-bottom:16px;border-left:3px solid var(--green);background:var(--bg2);font-size:13px;line-height:1.6}
-.banner.w{border-left-color:var(--amber)}.banner.r{border-left-color:var(--red)}
-.blabel{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--green);margin-bottom:4px}
-.blabel.w{color:var(--amber)}.blabel.r{color:var(--red)}
-
+.banner{background:transparent;border:none;padding:12px 0 16px 0;border-bottom:0.5px solid var(--border);margin-bottom:20px}
+.blabel{font-size:10px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:var(--text3);margin-bottom:5px}
+.banner-insight{font-size:15px;font-weight:400;color:var(--text);line-height:1.55;max-width:820px}
+.banner-signal{font-weight:600}
+.banner-signal.g{color:var(--green)}
+.banner-signal.a{color:var(--amber)}
+.banner-signal.r{color:var(--red)}
 .kgrid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-bottom:16px}
 @media(max-width:800px){.kgrid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:500px){.kgrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-.kpi{background:var(--bg2);border-radius:var(--r);padding:14px 16px}
-.klabel{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text2);margin-bottom:6px}
-.kval{font-size:24px;font-weight:500;line-height:1;margin-bottom:4px;font-variant-numeric:tabular-nums}
+.kpi{background:var(--bg2);border-radius:var(--r);padding:14px 16px;border:0.5px solid transparent;transition:border-color .2s}
+.kpi.primary{background:var(--bg);border:0.5px solid var(--border2)}
+.kpi.primary .kval{font-size:28px;font-weight:600;letter-spacing:-0.02em}
+.kpi.status-green{border-left:3px solid var(--green)}
+.kpi.status-amber{border-left:3px solid var(--amber)}
+.kpi.status-red{border-left:3px solid var(--red)}
+.klabel{font-size:11px;font-weight:500;color:var(--text3);margin-bottom:6px;letter-spacing:0}
+.kval{font-size:24px;font-weight:500;line-height:1;margin-bottom:4px;font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
 .ksub{font-size:11px;color:var(--text3)}
 .kval.g{color:var(--green)}.kval.a{color:var(--amber)}.kval.r{color:var(--red)}
-
 .tcol{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
 @media(max-width:700px){.tcol{grid-template-columns:1fr}}
-.card{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--rl);padding:16px 18px}
-.ctitle{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text2);margin-bottom:12px}
-.cnote{font-size:11px;color:var(--text3);line-height:1.5;margin-top:10px;border-top:0.5px solid var(--border);padding-top:8px;font-style:italic}
-.fcard{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--rl);padding:16px 18px;margin-bottom:12px}
-
+.card,.fcard{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--rl);padding:18px 20px;margin-bottom:12px}
+.tcol .card{margin-bottom:0}
+.ctitle{font-size:13px;font-weight:600;color:var(--text);letter-spacing:-0.01em;margin-bottom:14px}
+.cnote{font-size:11px;color:var(--text3);line-height:1.5;margin-top:10px;border-top:0.5px solid var(--border);padding-top:8px}
 .mtbl{width:100%;border-collapse:collapse;font-size:12px}
-.mtbl th{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--text2);padding:7px 10px;border-bottom:0.5px solid var(--border2);text-align:right}
-.mtbl th:first-child{text-align:left}
-.mtbl td{padding:9px 10px;border-bottom:0.5px solid var(--border);text-align:right;font-variant-numeric:tabular-nums}
+.mtbl th{font-size:10px;font-weight:600;color:var(--text2);padding:7px 10px;border-bottom:0.5px solid var(--border2);text-align:right;letter-spacing:0.04em;text-transform:uppercase}
+.mtbl th:first-child{text-align:left;font-size:11px;font-weight:600;text-transform:none;letter-spacing:0}
+.mtbl td{padding:12px 10px;border-bottom:0.5px solid var(--border);text-align:right;font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
 .mtbl td:first-child{text-align:left;font-weight:500}
+.mtbl td .mkt-state{font-size:11px;color:var(--text3);margin-top:2px;display:block;font-weight:400}
 .mtbl tbody tr:last-child td{border-bottom:none}
 .mtbl tbody tr:hover td{background:var(--bg2);cursor:pointer}
-
+.mtbl tbody tr.watch-row td{background:var(--red-bg)}
+.mtbl tbody tr.watch-row:hover td{background:var(--red-bg)}
+.sig-col{text-align:center!important;font-size:13px}
 .etbl{width:100%;border-collapse:collapse;font-size:13px}
-.etbl td{padding:8px 0;border-bottom:0.5px solid var(--border)}
+.etbl td{padding:9px 0;border-bottom:0.5px solid var(--border)}
 .etbl td:last-child{text-align:right;font-variant-numeric:tabular-nums}
 .etbl tr:last-child td{border-bottom:none}
-
 .badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;display:inline-block}
-.bg{background:var(--green-bg);color:var(--green-text)}
-.ba{background:var(--amber-bg);color:var(--amber-text)}
-.br{background:var(--red-bg);color:var(--red-text)}
-
-.mbarrow{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:0.5px solid var(--border)}
+.bg{background:var(--green-bg);color:var(--green-text)}.ba{background:var(--amber-bg);color:var(--amber-text)}.br{background:var(--red-bg);color:var(--red-text)}
+.mbarrow{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:0.5px solid var(--border)}
 .mbarrow:last-child{border-bottom:none}
 .mbarlabel{font-size:11px;color:var(--text);width:140px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.mbartrack{flex:1;height:12px;background:var(--bg3);border-radius:2px;overflow:hidden}
-.mbarfill{height:100%;border-radius:2px;transition:width .5s ease}
+.mbartrack{flex:1;height:12px;background:var(--bg3);border-radius:2px;overflow:visible;position:relative}
+.mbartrack-inner{height:12px;background:var(--bg3);border-radius:2px;overflow:hidden;position:relative}
+.mbarfill{height:100%;border-radius:2px;transition:width 0.5s ease}
+.mbartrack::after{content:"";position:absolute;left:46.67%;top:-3px;bottom:-3px;width:1.5px;background:var(--border2);pointer-events:none;border-radius:1px}
 .mbarval{font-size:11px;font-weight:500;width:46px;text-align:right;flex-shrink:0}
-
 .barrow{display:flex;align-items:center;gap:8px;padding:4px 0}
-.barlabel{font-size:11px;color:var(--text2);width:120px;flex-shrink:0;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.barlabel{font-size:11px;color:var(--text2);width:140px;flex-shrink:0;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .bartrack{flex:1;height:18px;background:var(--bg3);border-radius:3px;overflow:hidden;position:relative}
 .barfill{height:100%;border-radius:3px;display:flex;align-items:center;justify-content:flex-end;padding-right:6px;transition:width .5s ease}
 .barval{font-size:10px;font-weight:700;color:#fff;white-space:nowrap}
-
 .trend-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:8px}
 .trend-day{background:var(--bg2);border-radius:4px;padding:6px 4px;text-align:center}
 .trend-day-label{font-size:9px;color:var(--text3);margin-bottom:3px}
 .trend-day-val{font-size:11px;font-weight:500;color:var(--text)}
 .trend-day-sub{font-size:9px;color:var(--text3)}
-
+.exceptions-footer{margin-top:12px;padding:10px 14px;background:var(--bg2);border-radius:var(--r);font-size:11px;color:var(--text2);display:flex;gap:16px;flex-wrap:wrap;align-items:center}
+.exception-item{display:flex;align-items:center;gap:6px}
+.exception-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;display:inline-block}
 .ftr{margin-top:32px;padding-top:14px;border-top:0.5px solid var(--border);font-size:11px;color:var(--text3);display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
 </style>
 </head>
 <body>
-
 <div class="hdr">
   <div>
     <div class="logo">Tribute Home Care</div>
     <div class="title">Executive Dashboard</div>
     <div class="subtitle"><span class="live-dot"></span>Live data &middot; Viv Technologies API &middot; Updated <span id="ud">now</span></div>
   </div>
-  <div class="hdr-r" id="dateRangeDisplay"></div>
+  <div class="hdr-r">
+    <div class="hdr-date" id="dateRangeDisplay"></div>
+  </div>
 </div>
-
+<div class="hdr-rule" id="hdrRule"></div>
 <div class="period-bar">
   <span class="period-label">Period:</span>
   <div class="period-btn on" onclick="setPeriod('week',this)">This week</div>
@@ -136,7 +142,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <div class="period-btn" onclick="setPeriod('last_month',this)">Last month</div>
   <div class="period-btn" onclick="setPeriod('ytd',this)">Year to date</div>
   <div class="period-btn" onclick="setPeriod('last_year',this)">Last year</div>
-  <div class="period-btn" onclick="setPeriod('13weeks',this)">13 weeks</div>
+  <div class="period-btn last-preset" onclick="setPeriod('13weeks',this)">13 weeks</div>
   <div class="custom-range">
     <input type="date" id="customStart">
     <span style="font-size:11px;color:var(--text3)">to</span>
@@ -144,136 +150,119 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <button onclick="setCustomRange()">Go</button>
   </div>
 </div>
-
 <div class="tabs">
   <div class="tab on" onclick="setTab('co',this)">Company</div>
   <div class="tab" onclick="setTab('ma',this)">Massachusetts</div>
   <div class="tab" onclick="setTab('il',this)">Illinois</div>
   <div class="tab" onclick="setTab('md',this)">Maryland</div>
 </div>
-
 <div class="stabs" id="sr" style="display:none"></div>
 <div id="ct"></div>
-
 <div class="ftr">
   <span>Tribute Home Care LLC &middot; Executive Operating System</span>
   <span id="genAt"></span>
 </div>
-
 <script>
 const API = 'https://tribute-api-prod-bkc4hfcwf3f2f6bf.centralus-01.azurewebsites.net/api/vivProxy';
-
-const f  = n => n>=1e6?'$'+(n/1e6).toFixed(2)+'M':n>=1e3?'$'+(n/1e3).toFixed(0)+'K':'$'+Math.round(n);
+const f = n => n>=1e6?'$'+(n/1e6).toFixed(2)+'M':n>=1e3?'$'+(n/1e3).toFixed(0)+'K':'$'+Math.round(n);
 const fp = n => (n*100).toFixed(1)+'%';
 const fn = n => n>=1e3?(n/1e3).toFixed(1)+'K':Math.round(n).toString();
 const mc = m => m>=0.32?'g':m>=0.28?'a':'r';
 const mb = m => m>=0.32?'bg':m>=0.28?'ba':'br';
 const mcolor = m => m>=0.32?'var(--green)':m>=0.28?'var(--amber)':'var(--red)';
 const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-
 let curPeriod = 'week';
 let curTab = 'co';
 let curMkt = null;
 let apiData = null;
-let cgData = null;
-
 const STATES = {ma:['Boston','MetroWest Boston','North of Boston','South of Boston'],il:['Chicago'],md:['Baltimore','Annapolis','Bethesda']};
 const STNAME = {ma:'Massachusetts',il:'Illinois',md:'Maryland'};
-
-function showLoading() {
-  document.getElementById('ct').innerHTML = `<div class="loading"><div class="spinner"></div>Loading live data from Viv...</div>`;
+function showLoading() { document.getElementById('ct').innerHTML = '<div class="loading"><div class="spinner"></div>Loading live data from Viv...</div>'; }
+function showError(msg) { document.getElementById('ct').innerHTML = '<div class="error-banner">Error loading data: ' + msg + '. Check Azure Function logs.</div>'; }
+function setHdrRule(fillRate) {
+  const rule = document.getElementById('hdrRule');
+  if (!rule) return;
+  rule.style.background = fillRate >= 0.95 ? 'var(--green)' : fillRate >= 0.85 ? 'var(--amber)' : 'var(--red)';
 }
-
-function showError(msg) {
-  document.getElementById('ct').innerHTML = `<div class="error-banner">Error loading data: ${msg}. Check Azure Function logs.</div>`;
-}
-
 async function fetchData(period, startDate, endDate) {
   showLoading();
   try {
-    let url = `${API}?endpoint=visits&period=${period}`;
-    if (startDate) url += `&startDate=${startDate}&endDate=${endDate}`;
+    let url = API + '?endpoint=visits&period=' + period;
+    if (startDate) url += '&startDate=' + startDate + '&endDate=' + endDate;
     const res = await fetch(url);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
     apiData = await res.json();
     document.getElementById('ud').textContent = new Date().toLocaleTimeString();
-    document.getElementById('genAt').textContent = `Generated: ${new Date(apiData.generatedAt).toLocaleString()}`;
-    document.getElementById('dateRangeDisplay').innerHTML = `${apiData.dateRange.start} &ndash; ${apiData.dateRange.end}<br><span style="color:var(--text3)">${apiData.totals.totalVisits.toLocaleString()} visits &middot; ${apiData.markets.length} markets</span>`;
+    document.getElementById('genAt').textContent = 'Generated: ' + new Date(apiData.generatedAt).toLocaleString();
+    document.getElementById('dateRangeDisplay').innerHTML = apiData.dateRange.start + ' &ndash; ' + apiData.dateRange.end + '<div class="hdr-meta">' + apiData.totals.totalVisits.toLocaleString() + ' visits &middot; ' + apiData.markets.length + ' markets</div>';
     render();
-  } catch(e) {
-    showError(e.message);
-  }
+  } catch(e) { showError(e.message); }
 }
-
 function getMarkets(tabKey) {
   if (tabKey === 'co') return apiData.markets;
   return apiData.markets.filter(m => STATES[tabKey]?.includes(m.market));
 }
-
 function rollup(markets) {
   return markets.reduce((acc, m) => {
-    acc.revenue += m.revenue;
-    acc.cost += m.cost;
-    acc.grossProfit += m.grossProfit;
-    acc.billedHours += m.billedHours;
-    acc.totalVisits += m.totalVisits;
-    acc.filledVisits += m.filledVisits;
-    acc.openVisits += m.openVisits;
+    acc.revenue += m.revenue; acc.cost += m.cost; acc.grossProfit += m.grossProfit;
+    acc.billedHours += m.billedHours; acc.totalVisits += m.totalVisits;
+    acc.filledVisits += m.filledVisits; acc.openVisits += m.openVisits;
     return acc;
   }, {revenue:0,cost:0,grossProfit:0,billedHours:0,totalVisits:0,filledVisits:0,openVisits:0});
 }
-
 function kgrid(d, cgLabel) {
   const margin = d.revenue > 0 ? d.grossProfit/d.revenue : 0;
   const fillRate = (d.filledVisits+d.openVisits)>0 ? d.filledVisits/(d.filledVisits+d.openVisits) : 1;
-  return `<div class="kgrid">
-    <div class="kpi"><div class="klabel">Revenue</div><div class="kval">${f(d.revenue)}</div><div class="ksub">${apiData.dateRange.start} &ndash; ${apiData.dateRange.end}</div></div>
-    <div class="kpi"><div class="klabel">Gross Profit</div><div class="kval">${f(d.grossProfit)}</div><div class="ksub">${fp(margin)} margin</div></div>
-    <div class="kpi"><div class="klabel">Gross Margin</div><div class="kval ${mc(margin)}">${fp(margin)}</div><div class="ksub">${margin>=0.28?'Above 28% floor':'Below 28% floor'}</div></div>
-    <div class="kpi"><div class="klabel">Fill Rate</div><div class="kval ${fillRate>=0.9?'g':fillRate>=0.85?'a':'r'}">${fp(fillRate)}</div><div class="ksub">${d.filledVisits.toLocaleString()} of ${(d.filledVisits+d.openVisits).toLocaleString()} shifts</div></div>
-    <div class="kpi"><div class="klabel">Billed Hours</div><div class="kval">${fn(d.billedHours)}</div><div class="ksub">${cgLabel||''}</div></div>
-  </div>`;
+  const marginStatus = margin>=0.32?'status-green':margin>=0.28?'status-amber':'status-red';
+  const fillStatus = fillRate>=0.9?'status-green':fillRate>=0.85?'status-amber':'status-red';
+  const openShifts = d.openVisits;
+  const openMarketsCount = (d._openMarkets || 0);
+  const ppAboveFloor = margin >= 0.28 ? ((margin - 0.28)*100).toFixed(1) + 'pp above floor' : ((0.28-margin)*100).toFixed(1) + 'pp below floor';
+  const fillSub = openShifts > 0 ? openShifts.toLocaleString() + ' open shifts' : 'All shifts filled';
+  const hrsSub = cgLabel || (fn(d.billedHours) + ' hrs billed');
+  return '<div class="kgrid">'
+    + '<div class="kpi primary"><div class="klabel">Revenue</div><div class="kval">' + f(d.revenue) + '</div><div class="ksub">' + apiData.dateRange.start + ' &ndash; ' + apiData.dateRange.end + '</div></div>'
+    + '<div class="kpi"><div class="klabel">Gross Profit</div><div class="kval">' + f(d.grossProfit) + '</div><div class="ksub">' + fp(margin) + ' margin</div></div>'
+    + '<div class="kpi ' + marginStatus + '"><div class="klabel">Gross Margin</div><div class="kval ' + mc(margin) + '">' + fp(margin) + '</div><div class="ksub">' + ppAboveFloor + '</div></div>'
+    + '<div class="kpi primary ' + fillStatus + '"><div class="klabel">Fill Rate</div><div class="kval ' + (fillRate>=0.9?'g':fillRate>=0.85?'a':'r') + '">' + fp(fillRate) + '</div><div class="ksub">' + fillSub + '</div></div>'
+    + '<div class="kpi"><div class="klabel">Billed Hours</div><div class="kval">' + fn(d.billedHours) + '</div><div class="ksub">' + hrsSub + '</div></div>'
+    + '</div>';
 }
-
 function marginBars(markets) {
   return markets.map(m => {
     const w = Math.round((m.grossMarginPct*100)/60*100);
-    return `<div class="mbarrow">
-      <div class="mbarlabel">${m.market}</div>
-      <div class="mbartrack"><div class="mbarfill" style="width:${Math.min(w,100)}%;background:${mcolor(m.grossMarginPct)}"></div></div>
-      <div class="mbarval" style="color:${mcolor(m.grossMarginPct)}">${fp(m.grossMarginPct)}</div>
-    </div>`;
+    return '<div class="mbarrow"><div class="mbarlabel">' + m.market + '</div><div class="mbartrack"><div class="mbartrack-inner"><div class="mbarfill" style="width:' + Math.min(w,100) + '%;background:' + mcolor(m.grossMarginPct) + '"></div></div></div><div class="mbarval" style="color:' + mcolor(m.grossMarginPct) + '">' + fp(m.grossMarginPct) + '</div></div>';
   }).join('');
 }
-
 function revBars(markets) {
   const maxR = Math.max(...markets.map(m=>m.revenue));
   return markets.map(m => {
     const w = Math.round(m.revenue/maxR*100);
-    return `<div class="barrow">
-      <div class="barlabel">${m.market.replace(' Boston','').replace('MetroWest','MWB')}</div>
-      <div class="bartrack"><div class="barfill" style="width:${w}%;background:var(--blue)"><span class="barval">${f(m.revenue)}</span></div></div>
-    </div>`;
+    return '<div class="barrow"><div class="barlabel">' + m.market + '</div><div class="bartrack"><div class="barfill" style="width:' + w + '%;background:var(--blue)"><span class="barval">' + f(m.revenue) + '</span></div></div></div>';
   }).join('');
 }
-
 function mktRows(markets, showState) {
   const maxR = Math.max(...markets.map(m=>m.revenue));
+  const belowFloor = markets.filter(m => m.grossMarginPct < 0.28).map(m => m.market);
   return markets.map(m => {
     const bw = Math.round(m.revenue/maxR*60);
     const fr = (m.filledVisits+m.openVisits)>0?m.filledVisits/(m.filledVisits+m.openVisits):1;
-    return `<tr>
-      <td>${m.market}${showState?`<div style="font-size:10px;color:var(--text3)">${m.state}</div>`:''}</td>
-      <td>${f(m.revenue)}<span style="display:inline-block;width:${bw}px;height:3px;background:var(--blue);border-radius:2px;vertical-align:middle;margin-left:4px"></span></td>
-      <td>${f(m.grossProfit)}</td>
-      <td><span class="badge ${mb(m.grossMarginPct)}">${fp(m.grossMarginPct)}</span></td>
-      <td><span class="badge ${fr>=0.9?'bg':fr>=0.85?'ba':'br'}">${fp(fr)}</span></td>
-      <td>${fn(m.billedHours)}</td>
-      <td>${m.totalVisits.toLocaleString()}</td>
-    </tr>`;
+    const sig = (m.grossMarginPct >= 0.32 && fr >= 0.95) ? '&#9679;'
+              : (m.grossMarginPct >= 0.28 && fr >= 0.85) ? '&#9681;' : '&#9675;';
+    const sigColor = (m.grossMarginPct >= 0.32 && fr >= 0.95) ? 'var(--green)'
+                   : (m.grossMarginPct >= 0.28 && fr >= 0.85) ? 'var(--amber)' : 'var(--red)';
+    const watchCls = belowFloor.includes(m.market) ? ' class="watch-row"' : '';
+    const stateHtml = showState ? '<span class="mkt-state">' + m.state + '</span>' : '';
+    return '<tr' + watchCls + '><td style="color:' + sigColor + ';text-align:center;font-size:13px" class="sig-col">' + sig + '</td>'
+      + '<td>' + m.market + stateHtml + '</td>'
+      + '<td>' + f(m.revenue) + '<span style="display:inline-block;width:' + bw + 'px;height:3px;background:var(--blue);border-radius:2px;vertical-align:middle;margin-left:4px"></span></td>'
+      + '<td>' + f(m.grossProfit) + '</td>'
+      + '<td><span class="badge ' + mb(m.grossMarginPct) + '">' + fp(m.grossMarginPct) + '</span></td>'
+      + '<td><span class="badge ' + (fr>=0.9?'bg':fr>=0.85?'ba':'br') + '">' + fp(fr) + '</span></td>'
+      + '<td>' + fn(m.billedHours) + '</td>'
+      + '<td>' + m.totalVisits.toLocaleString() + '</td></tr>';
   }).join('');
 }
-
 function trendGrid(market) {
   if (!market.dailyBreakdown) return '';
   const entries = Object.entries(market.dailyBreakdown).sort((a,b)=>a[0].localeCompare(b[0]));
@@ -281,21 +270,21 @@ function trendGrid(market) {
     const dt = new Date(date+'T12:00:00');
     const dayName = days[dt.getDay()];
     const fr = d.visits>0?d.filled/d.visits:1;
-    return `<div class="trend-day">
-      <div class="trend-day-label">${dayName} ${dt.getDate()}</div>
-      <div class="trend-day-val">${f(d.revenue)}</div>
-      <div class="trend-day-sub" style="color:${fr>=0.95?'var(--green)':fr>=0.85?'var(--amber)':'var(--red)'}">${fp(fr)} fill</div>
-    </div>`;
+    return '<div class="trend-day"><div class="trend-day-label">' + dayName + ' ' + dt.getDate() + '</div><div class="trend-day-val">' + f(d.revenue) + '</div><div class="trend-day-sub" style="color:' + (fr>=0.95?'var(--green)':fr>=0.85?'var(--amber)':'var(--red)') + '">' + fp(fr) + ' fill</div></div>';
   }).join('');
-  return `<div class="trend-grid">${cells}</div>`;
+  return '<div class="trend-grid">' + cells + '</div>';
 }
-
-function render() {
-  if (!apiData) return;
-  if (curTab === 'co') renderCo();
-  else renderSt(curTab);
+function exceptionsFooter(markets) {
+  const items = [];
+  const belowMargin = markets.filter(m => m.grossMarginPct < 0.28);
+  const belowFill = markets.filter(m => { const fr=(m.filledVisits+m.openVisits)>0?m.filledVisits/(m.filledVisits+m.openVisits):1; return fr<0.9; });
+  const allClean = belowMargin.length===0 && belowFill.length===0;
+  if (allClean) items.push('<span class="exception-item"><span class="exception-dot" style="background:var(--green)"></span>All markets above margin floor and fill target</span>');
+  if (belowMargin.length) items.push('<span class="exception-item"><span class="exception-dot" style="background:var(--red)"></span>' + belowMargin.map(m=>m.market).join(', ') + ' below 28% margin floor</span>');
+  if (belowFill.length) items.push('<span class="exception-item"><span class="exception-dot" style="background:var(--amber)"></span>' + belowFill.map(m=>m.market).join(', ') + ' fill rate under 90%</span>');
+  return '<div class="exceptions-footer">' + items.join('') + '</div>';
 }
-
+function render() { if (!apiData) return; if (curTab === 'co') renderCo(); else renderSt(curTab); }
 function renderCo() {
   document.getElementById('sr').style.display = 'none';
   const markets = apiData.markets;
@@ -304,111 +293,98 @@ function renderCo() {
   const fillRate = (d.filledVisits+d.openVisits)>0?d.filledVisits/(d.filledVisits+d.openVisits):1;
   const topTwo = markets.filter(m=>['Boston','Baltimore'].includes(m.market)).reduce((s,m)=>s+m.revenue,0);
   const belowFloor = markets.filter(m=>m.grossMarginPct<0.28).map(m=>m.market);
-
-  let insightText = `Fill rate is ${fp(fillRate)} &mdash; `;
-  if (fillRate >= 0.95) insightText += `operations are strong across all markets.`;
-  else if (fillRate >= 0.85) insightText += `operations are healthy but watch markets with open shifts.`;
-  else insightText += `fill rate is below target. Investigate open shifts by market.`;
-  if (belowFloor.length > 0) insightText += ` ${belowFloor.join(', ')} ${belowFloor.length===1?'is':'are'} below the 28% gross margin floor and require pricing review.`;
-  insightText += ` Boston + Baltimore represent ${fp(topTwo/d.revenue)} of revenue.`;
-
-  document.getElementById('ct').innerHTML = `
-    <div class="banner w"><div class="blabel w">Company &mdash; ${curPeriod.replace('_',' ')}</div>${insightText}</div>
-    ${kgrid(d, `${fn(d.billedHours)} hrs billed`)}
-    <div class="tcol">
-      <div class="card"><div class="ctitle">Gross margin by market</div>${marginBars(markets)}<div class="cnote">Green &ge;32% &middot; Amber 28&ndash;32% &middot; Red &lt;28% floor</div></div>
-      <div class="card"><div class="ctitle">Revenue by market</div>${revBars(markets)}</div>
-    </div>
-    <div class="fcard">
-      <div class="ctitle">All markets &mdash; live comparison</div>
-      <table class="mtbl">
-        <thead><tr><th>Market</th><th>Revenue</th><th>Gross Profit</th><th>Margin</th><th>Fill Rate</th><th>Billed Hrs</th><th>Visits</th></tr></thead>
-        <tbody>${mktRows(markets,true)}</tbody>
-      </table>
-      <div class="cnote">Live data from Viv Technologies API &middot; ${apiData.dateRange.start} &ndash; ${apiData.dateRange.end}</div>
-    </div>`;
+  setHdrRule(fillRate);
+  const statusWord = fillRate >= 0.95 ? '<span class="banner-signal g">Strong</span>' : fillRate >= 0.85 ? '<span class="banner-signal a">Watch</span>' : '<span class="banner-signal r">Alert</span>';
+  let insightText = statusWord;
+  insightText += ' &mdash; fill rate at <strong>' + fp(fillRate) + '</strong>';
+  if (fillRate >= 0.95) insightText += ', operations across all markets are on target.';
+  else if (fillRate >= 0.85) insightText += ', healthy but watch open shifts by market.';
+  else insightText += '. Fill rate is below target &mdash; investigate open shifts.';
+  if (belowFloor.length > 0) insightText += ' ' + belowFloor.join(', ') + ' ' + (belowFloor.length===1?'is':'are') + ' below the 28% gross margin floor.';
+  insightText += ' Boston + Baltimore represent <strong>' + fp(topTwo/d.revenue) + '</strong> of revenue.';
+  const periodLabel = curPeriod.replace('_', ' ');
+  let html = '<div class="banner"><div class="blabel">Company &mdash; ' + periodLabel + '</div><div class="banner-insight">' + insightText + '</div></div>';
+  html += kgrid(d, fn(d.billedHours) + ' hrs billed');
+  html += '<div class="tcol">';
+  html += '<div class="card"><div class="ctitle">Gross margin by market</div>' + marginBars(markets) + '<div class="cnote">&#9679; Green &ge;32% &nbsp;&#9681; Amber 28&ndash;32% &nbsp;&#9675; Red &lt;28% &nbsp;&middot;&nbsp; vertical line = 28% floor</div></div>';
+  html += '<div class="card"><div class="ctitle">Revenue by market</div>' + revBars(markets) + '</div>';
+  html += '</div>';
+  html += '<div class="fcard">';
+  html += '<div class="ctitle">All markets &mdash; live comparison</div>';
+  html += '<table class="mtbl"><thead><tr><th></th><th style="text-align:left">Market</th><th>Revenue</th><th>Gross Profit</th><th>Margin</th><th>Fill Rate</th><th>Billed Hrs</th><th>Visits</th></tr></thead><tbody>' + mktRows(markets,true) + '</tbody></table>';
+  html += exceptionsFooter(markets);
+  html += '<div class="cnote">Live data from Viv Technologies API &middot; ' + apiData.dateRange.start + ' &ndash; ' + apiData.dateRange.end + '</div>';
+  html += '</div>';
+  document.getElementById('ct').innerHTML = html;
 }
-
 function renderSt(t) {
   const markets = getMarkets(t);
   const sr = document.getElementById('sr');
   sr.style.display = 'flex';
-  sr.innerHTML = markets.map(m=>`<div class="stab${curMkt===m.market?' on':''}" onclick="setMkt('${m.market}')">${m.market}</div>`).join('');
+  sr.innerHTML = markets.map(m=>'<div class="stab' + (curMkt===m.market?' on':'') + '" onclick="setMkt(\''+ m.market +'\')">' + m.market + '</div>').join('');
   if (curMkt && markets.find(m=>m.market===curMkt)) { renderMkt(curMkt); return; }
   const d = rollup(markets);
   const margin = d.revenue>0?d.grossProfit/d.revenue:0;
-
-  document.getElementById('ct').innerHTML = `
-    <div class="banner"><div class="blabel">${STNAME[t]}</div>${f(d.revenue)} revenue &middot; ${fp(margin)} blended margin &middot; ${fn(d.billedHours)} billed hours</div>
-    ${kgrid(d)}
-    <div class="tcol">
-      <div class="card"><div class="ctitle">Gross margin &mdash; ${STNAME[t]}</div>${marginBars(markets)}</div>
-      <div class="card"><div class="ctitle">Revenue &mdash; ${STNAME[t]}</div>${revBars(markets)}</div>
-    </div>
-    <div class="fcard">
-      <div class="ctitle">${STNAME[t]} &mdash; market detail</div>
-      <table class="mtbl">
-        <thead><tr><th>Market</th><th>Revenue</th><th>Gross Profit</th><th>Margin</th><th>Fill Rate</th><th>Billed Hrs</th><th>Visits</th></tr></thead>
-        <tbody>${mktRows(markets,false)}</tbody>
-      </table>
-    </div>`;
+  const fillRate = (d.filledVisits+d.openVisits)>0?d.filledVisits/(d.filledVisits+d.openVisits):1;
+  setHdrRule(fillRate);
+  const statusWord = fillRate >= 0.95 ? '<span class="banner-signal g">Strong</span>' : fillRate >= 0.85 ? '<span class="banner-signal a">Watch</span>' : '<span class="banner-signal r">Alert</span>';
+  let html = '<div class="banner"><div class="blabel">' + STNAME[t] + '</div>';
+  html += '<div class="banner-insight">' + statusWord + ' &mdash; ' + f(d.revenue) + ' revenue &middot; ' + fp(margin) + ' blended margin &middot; ' + fn(d.billedHours) + ' billed hours</div></div>';
+  html += kgrid(d);
+  html += '<div class="tcol">';
+  html += '<div class="card"><div class="ctitle">Gross margin &mdash; ' + STNAME[t] + '</div>' + marginBars(markets) + '</div>';
+  html += '<div class="card"><div class="ctitle">Revenue &mdash; ' + STNAME[t] + '</div>' + revBars(markets) + '</div>';
+  html += '</div>';
+  html += '<div class="fcard"><div class="ctitle">' + STNAME[t] + ' &mdash; market detail</div>';
+  html += '<table class="mtbl"><thead><tr><th></th><th style="text-align:left">Market</th><th>Revenue</th><th>Gross Profit</th><th>Margin</th><th>Fill Rate</th><th>Billed Hrs</th><th>Visits</th></tr></thead><tbody>' + mktRows(markets,false) + '</tbody></table>';
+  html += exceptionsFooter(markets);
+  html += '</div>';
+  document.getElementById('ct').innerHTML = html;
 }
-
 function renderMkt(name) {
   const m = apiData.markets.find(x=>x.market===name);
   if (!m) return;
   const col = mc(m.grossMarginPct);
   const colv = mcolor(m.grossMarginPct);
   const fr = (m.filledVisits+m.openVisits)>0?m.filledVisits/(m.filledVisits+m.openVisits):1;
+  setHdrRule(fr);
+  const statusWord = col==='r' ? '<span class="banner-signal r">Alert</span>' : col==='a' ? '<span class="banner-signal a">Watch</span>' : '<span class="banner-signal g">On Target</span>';
   const insight = col==='r'
-    ?`Gross margin of ${fp(m.grossMarginPct)} is below the 28% floor. Every 1pp recovered is worth ${f(m.revenue*0.01)} in gross profit for this period.`
-    :col==='a'
-    ?`Gross margin of ${fp(m.grossMarginPct)} is in the watch zone. Above floor but below 32% target.`
-    :`Gross margin of ${fp(m.grossMarginPct)} is healthy. Fill rate is ${fp(fr)} with ${m.billedHours.toFixed(0)} billed hours.`;
-
-  document.getElementById('ct').innerHTML = `
-    <div class="banner ${col==='r'?'r':col==='a'?'w':''}">
-      <div class="blabel ${col==='r'?'r':col==='a'?'w':''}">${name} &middot; ${m.state}</div>
-      ${insight}
-    </div>
-    <div class="kgrid">
-      <div class="kpi"><div class="klabel">Revenue</div><div class="kval">${f(m.revenue)}</div><div class="ksub">${apiData.dateRange.start} &ndash; ${apiData.dateRange.end}</div></div>
-      <div class="kpi"><div class="klabel">Gross Profit</div><div class="kval">${f(m.grossProfit)}</div><div class="ksub">After direct costs</div></div>
-      <div class="kpi"><div class="klabel">Gross Margin</div><div class="kval ${col}">${fp(m.grossMarginPct)}</div><div class="ksub">${m.grossMarginPct>=0.28?'Above floor':'Below 28% floor'}</div></div>
-      <div class="kpi"><div class="klabel">Fill Rate</div><div class="kval ${fr>=0.9?'g':fr>=0.85?'a':'r'}">${fp(fr)}</div><div class="ksub">${m.filledVisits} filled &middot; ${m.openVisits} open</div></div>
-      <div class="kpi"><div class="klabel">Billed Hours</div><div class="kval">${fn(m.billedHours)}</div><div class="ksub">${m.totalVisits} total visits</div></div>
-    </div>
-    <div class="tcol">
-      <div class="card">
-        <div class="ctitle">Economics</div>
-        <table class="etbl">
-          <tr><td>Revenue</td><td>${f(m.revenue)}</td></tr>
-          <tr><td>Cost of services</td><td>${f(m.cost)}</td></tr>
-          <tr><td style="font-weight:500">Gross profit</td><td style="color:var(--green);font-weight:500">${f(m.grossProfit)}</td></tr>
-          <tr><td style="font-weight:500">Gross margin</td><td style="color:${colv};font-weight:500">${fp(m.grossMarginPct)}</td></tr>
-          <tr><td>Avg bill rate</td><td>${f(m.avgBillRate)}/hr</td></tr>
-          <tr><td>Avg pay rate</td><td>${f(m.avgPayRate)}/hr</td></tr>
-          <tr><td>Spread per hour</td><td style="color:var(--green)">${f(m.avgBillRate-m.avgPayRate)}/hr</td></tr>
-        </table>
-      </div>
-      <div class="card">
-        <div class="ctitle">Daily breakdown</div>
-        ${trendGrid(m)}
-        <div class="cnote">Revenue and fill rate by day for this period.</div>
-      </div>
-    </div>
-    ${col==='r'?`
-    <div class="fcard" style="border-left:3px solid var(--red);border-radius:0 var(--rl) var(--rl) 0">
-      <div class="ctitle" style="color:var(--red)">Margin recovery analysis</div>
-      <table class="etbl">
-        <tr><td>Current margin</td><td style="color:var(--red)">${fp(m.grossMarginPct)}</td></tr>
-        <tr><td>Floor target</td><td>28.0%</td></tr>
-        <tr><td>Gap to floor</td><td style="color:var(--red)">${((0.28-m.grossMarginPct)*100).toFixed(1)}pp</td></tr>
-        <tr><td>Value of each 1pp improvement</td><td style="color:var(--green);font-weight:500">${f(m.revenue*0.01)}</td></tr>
-      </table>
-    </div>`:''}`;
+    ? statusWord + ' &mdash; gross margin at <strong>' + fp(m.grossMarginPct) + '</strong> is below the 28% floor. Every 1pp recovered is worth <strong>' + f(m.revenue*0.01) + '</strong> in gross profit.'
+    : col==='a'
+    ? statusWord + ' &mdash; gross margin at <strong>' + fp(m.grossMarginPct) + '</strong> is in the watch zone. Above floor but below 32% target.'
+    : statusWord + ' &mdash; gross margin at <strong>' + fp(m.grossMarginPct) + '</strong>. Fill rate is <strong>' + fp(fr) + '</strong> with ' + m.billedHours.toFixed(0) + ' billed hours.';
+  let html = '<div class="banner"><div class="blabel">' + name + ' &middot; ' + m.state + '</div><div class="banner-insight">' + insight + '</div></div>';
+  html += '<div class="kgrid">';
+  html += '<div class="kpi primary"><div class="klabel">Revenue</div><div class="kval">' + f(m.revenue) + '</div><div class="ksub">' + apiData.dateRange.start + ' &ndash; ' + apiData.dateRange.end + '</div></div>';
+  html += '<div class="kpi"><div class="klabel">Gross Profit</div><div class="kval">' + f(m.grossProfit) + '</div><div class="ksub">After direct costs</div></div>';
+  html += '<div class="kpi ' + (col==='g'?'status-green':col==='a'?'status-amber':'status-red') + '"><div class="klabel">Gross Margin</div><div class="kval ' + col + '">' + fp(m.grossMarginPct) + '</div><div class="ksub">' + (m.grossMarginPct>=0.28?'Above floor':'Below 28% floor') + '</div></div>';
+  html += '<div class="kpi primary ' + (fr>=0.9?'status-green':fr>=0.85?'status-amber':'status-red') + '"><div class="klabel">Fill Rate</div><div class="kval ' + (fr>=0.9?'g':fr>=0.85?'a':'r') + '">' + fp(fr) + '</div><div class="ksub">' + m.filledVisits + ' filled &middot; ' + m.openVisits + ' open</div></div>';
+  html += '<div class="kpi"><div class="klabel">Billed Hours</div><div class="kval">' + fn(m.billedHours) + '</div><div class="ksub">' + m.totalVisits + ' total visits</div></div>';
+  html += '</div>';
+  html += '<div class="tcol">';
+  html += '<div class="card"><div class="ctitle">Economics</div><table class="etbl">';
+  html += '<tr><td>Revenue</td><td>' + f(m.revenue) + '</td></tr>';
+  html += '<tr><td>Cost of services</td><td>' + f(m.cost) + '</td></tr>';
+  html += '<tr><td style="font-weight:500">Gross profit</td><td style="color:var(--green);font-weight:500">' + f(m.grossProfit) + '</td></tr>';
+  html += '<tr><td style="font-weight:500">Gross margin</td><td style="color:' + colv + ';font-weight:500">' + fp(m.grossMarginPct) + '</td></tr>';
+  html += '<tr><td>Avg bill rate</td><td>' + f(m.avgBillRate) + '/hr</td></tr>';
+  html += '<tr><td>Avg pay rate</td><td>' + f(m.avgPayRate) + '/hr</td></tr>';
+  html += '<tr><td>Spread per hour</td><td style="color:var(--green)">' + f(m.avgBillRate-m.avgPayRate) + '/hr</td></tr>';
+  html += '</table></div>';
+  html += '<div class="card"><div class="ctitle">Daily breakdown</div>' + trendGrid(m) + '<div class="cnote">Revenue and fill rate by day for this period.</div></div>';
+  html += '</div>';
+  if (col==='r') {
+    html += '<div class="fcard" style="border-left:3px solid var(--red);border-radius:0 var(--rl) var(--rl) 0">';
+    html += '<div class="ctitle" style="color:var(--red)">Margin recovery analysis</div><table class="etbl">';
+    html += '<tr><td>Current margin</td><td style="color:var(--red)">' + fp(m.grossMarginPct) + '</td></tr>';
+    html += '<tr><td>Floor target</td><td>28.0%</td></tr>';
+    html += '<tr><td>Gap to floor</td><td style="color:var(--red)">' + ((0.28-m.grossMarginPct)*100).toFixed(1) + 'pp</td></tr>';
+    html += '<tr><td>Value of each 1pp improvement</td><td style="color:var(--green);font-weight:500">' + f(m.revenue*0.01) + '</td></tr>';
+    html += '</table></div>';
+  }
+  document.getElementById('ct').innerHTML = html;
 }
-
 function setPeriod(p, el) {
   curPeriod = p;
   document.querySelectorAll('.period-btn').forEach(x=>x.classList.remove('on'));
@@ -416,7 +392,6 @@ function setPeriod(p, el) {
   curMkt = null;
   fetchData(p);
 }
-
 function setCustomRange() {
   const s = document.getElementById('customStart').value;
   const e = document.getElementById('customEnd').value;
@@ -426,20 +401,18 @@ function setCustomRange() {
   curMkt = null;
   fetchData('custom', s, e);
 }
-
 function setTab(t, el) {
-  curTab = t; curMkt = null;
+  curTab = t;
+  curMkt = null;
   document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
   el.classList.add('on');
   if (apiData) render();
 }
-
 function setMkt(m) {
   curMkt = m;
   document.querySelectorAll('.stab').forEach(x=>x.classList.toggle('on',x.textContent===m));
   renderMkt(m);
 }
-
 fetchData('week');
 </script>
 </body>
