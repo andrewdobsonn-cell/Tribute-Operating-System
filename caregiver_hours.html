@@ -439,69 +439,67 @@ function renderUtilization(){
 }
 
 function renderOpenHours(){
-  var oh=data.openHours||{MA:{day:0,shortday:0,longday:0,night:0},IL:{day:0,shortday:0,longday:0,night:0},MD:{day:0,shortday:0,longday:0,night:0}};
-  var SHIFT_LABELS={day:'Day (8-10h)',shortday:'Short Day (<8h)',longday:'Long Day (12h+)',night:'Overnight (20h+)'};
+  var shifts=data.openShifts||[];
   var SHIFT_ICONS={day:'☀️',shortday:'🌤️',longday:'⏰',night:'🌙'};
-  var STATE_NAMES={MA:'Massachusetts',IL:'Illinois',MD:'Maryland'};
+  var SHIFT_LABELS={day:'Day',shortday:'Short Day',longday:'Long Day',night:'Overnight'};
+  var DAYS=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 
   // Filter by nav
-  var states=curNav==='company'?['MA','IL','MD']:curNav==='ma'?['MA']:curNav==='il'?['IL']:['MD'];
+  var filtered=shifts;
+  if(curNav==='ma')filtered=shifts.filter(function(s){return s.state==='Massachusetts'});
+  else if(curNav==='il')filtered=shifts.filter(function(s){return s.state==='Illinois'});
+  else if(curNav==='md')filtered=shifts.filter(function(s){return s.state==='Maryland'});
 
   var html='';
-  html+='<div class="banner"><div class="bl">Open Unfilled Hours by Shift Type &mdash; '+curStart+' to '+curEnd+'</div>';
-  html+='Unfilled shifts broken down by shift duration type. These represent scheduling supply gaps by state.</div>';
+  html+='<div class="banner"><div class="bl">Open Unfilled Shifts &mdash; '+curStart+' to '+curEnd+'</div>';
+  html+=filtered.length+' open unfilled shifts this week across '+navLabel()+'. Each shift has a client but no caregiver assigned yet.</div>';
 
-  // Summary cards
-  var shifts=['day','shortday','longday','night'];
-  html+='<div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:16px">';
-  shifts.forEach(function(s){
-    var total=states.reduce(function(sum,st){return sum+(oh[st]&&oh[st][s]||0)},0);
-    html+='<div class="kpi"><div class="kl">'+SHIFT_ICONS[s]+' '+SHIFT_LABELS[s]+'</div>';
-    html+='<div class="kv r">'+fn(Math.round(total))+'h</div>';
-    html+='<div class="ks">Open unfilled</div></div>';
-  });
+  // Summary KPIs
+  var totalHrs=filtered.reduce(function(s,v){return s+v.hours},0);
+  var byType={day:0,shortday:0,longday:0,night:0};
+  filtered.forEach(function(v){if(byType[v.shiftType]!==undefined)byType[v.shiftType]++;});
+
+  html+='<div class="kg">';
+  html+='<div class="kpi"><div class="kl">Total Open Shifts</div><div class="kv r">'+filtered.length+'</div><div class="ks">Unfilled this week</div></div>';
+  html+='<div class="kpi"><div class="kl">Total Open Hours</div><div class="kv r">'+fn(Math.round(totalHrs))+'h</div><div class="ks">Across all open shifts</div></div>';
+  html+='<div class="kpi"><div class="kl">☀️ Day / 🌤️ Short</div><div class="kv a">'+(byType.day+byType.shortday)+'</div><div class="ks">Day shifts open</div></div>';
+  html+='<div class="kpi"><div class="kl">⏰ Long / 🌙 Overnight</div><div class="kv b">'+(byType.longday+byType.night)+'</div><div class="ks">Long shifts open</div></div>';
   html+='</div>';
 
-  // By state breakdown
-  states.forEach(function(stAbbr){
-    var stData=oh[stAbbr]||{};
-    var stName=STATE_NAMES[stAbbr];
-    var stTotal=shifts.reduce(function(s,k){return s+(stData[k]||0)},0);
-    if(!stTotal&&states.length>1)return;
+  if(!filtered.length){
+    html+='<div class="fc" style="text-align:center;padding:40px;color:var(--green)">No open unfilled shifts this week for '+navLabel()+'.</div>';
+    document.getElementById('ct').innerHTML=html;
+    return;
+  }
 
-    html+='<div class="fc"><div class="ct">'+stName+' &mdash; Open hours by shift type</div>';
-    html+='<div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:12px">';
-    shifts.forEach(function(s){
-      var hrs=stData[s]||0;
-      html+='<div style="background:var(--bg2);border-radius:var(--r);padding:12px 14px">';
-      html+='<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text2);margin-bottom:6px">'+SHIFT_ICONS[s]+' '+s.replace('shortday','Short Day').replace('longday','Long Day').replace('day','Day').replace('night','Overnight')+'</div>';
-      html+='<div style="font-size:20px;font-weight:500;color:'+(hrs>0?'var(--red)':'var(--green)')+'">'+fn(Math.round(hrs))+'h</div>';
-      html+='<div style="font-size:11px;color:var(--text3)">'+(hrs>0?'Unfilled':'No open hrs')+'</div>';
-      html+='</div>';
+  // Group by day of week
+  var byDay={};
+  DAYS.forEach(function(d){byDay[d]=[]});
+  filtered.forEach(function(v){if(byDay[v.dow])byDay[v.dow].push(v);});
+
+  html+='<div class="fc"><div class="ct">Open shifts by day</div>';
+  DAYS.forEach(function(day){
+    var dayShifts=byDay[day];
+    if(!dayShifts.length)return;
+    var dayHrs=dayShifts.reduce(function(s,v){return s+v.hours},0);
+
+    html+='<div style="margin-bottom:16px">';
+    html+='<div style="font-size:12px;font-weight:500;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between">';
+    html+='<span>'+day+'</span>';
+    html+='<span style="font-size:11px;color:var(--text3)">'+dayShifts.length+' shifts &middot; '+fn(Math.round(dayHrs))+'h total</span>';
+    html+='</div>';
+    html+='<table class="tbl"><thead><tr><th>Market</th><th>Shift Type</th><th>Hours</th><th>Date</th></tr></thead><tbody>';
+    dayShifts.sort(function(a,b){return b.hours-a.hours}).forEach(function(v){
+      html+='<tr>';
+      html+='<td>'+v.market+'<div style="font-size:10px;color:var(--text3)">'+v.state+'</div></td>';
+      html+='<td style="font-weight:normal"><span class="bdg bb">'+SHIFT_ICONS[v.shiftType]+' '+SHIFT_LABELS[v.shiftType]+'</span></td>';
+      html+='<td style="color:var(--red);font-weight:500">'+v.hours.toFixed(1)+'h</td>';
+      html+='<td style="color:var(--text2)">'+v.date+'</td>';
+      html+='</tr>';
     });
-    html+='</div>';
-
-    // Shift type bar
-    if(stTotal>0){
-      html+='<div style="display:flex;height:20px;border-radius:4px;overflow:hidden;margin-bottom:8px">';
-      var colors={day:'var(--amber)',shortday:'var(--blue)',longday:'var(--green)',night:'var(--purple)'};
-      shifts.forEach(function(s){
-        var pct=Math.round((stData[s]||0)/stTotal*100);
-        if(pct>0)html+='<div style="width:'+pct+'%;background:'+colors[s]+'" title="'+SHIFT_LABELS[s]+': '+fn(Math.round(stData[s]||0))+'h"></div>';
-      });
-      html+='</div>';
-      html+='<div style="display:flex;gap:12px;font-size:11px;flex-wrap:wrap">';
-      shifts.forEach(function(s){
-        if((stData[s]||0)>0)html+='<span><span style="display:inline-block;width:10px;height:10px;background:'+{day:'var(--amber)',shortday:'var(--blue)',longday:'var(--green)',night:'var(--purple)'}[s]+';border-radius:2px;margin-right:4px;vertical-align:middle"></span>'+SHIFT_ICONS[s]+' '+fn(Math.round(stData[s]||0))+'h</span>';
-      });
-      html+='</div>';
-    } else {
-      html+='<div style="font-size:12px;color:var(--green)">No open unfilled hours this week.</div>';
-    }
-    html+='</div>';
+    html+='</tbody></table></div>';
   });
-
-  html+='<div class="fc" style="background:var(--bg2)"><div style="font-size:11px;color:var(--text3);line-height:1.6"><strong>Shift type definitions:</strong> Short Day = visits under 8h &middot; Day = 8-10h &middot; Long Day = 12h+ &middot; Overnight = 20h+ (starts at night, crosses midnight). Open hours represent unfilled shifts where no caregiver has been assigned.</div></div>';
+  html+='<div class="cn">Short Day &lt;8h &middot; Day 8-10h &middot; Long Day 12h+ &middot; Overnight 20h+. Shifts where a client needs care but no caregiver is scheduled.</div></div>';
 
   document.getElementById('ct').innerHTML=html;
 }
