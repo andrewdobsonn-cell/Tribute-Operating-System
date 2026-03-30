@@ -91,6 +91,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <div class="pbtn" onclick="setPeriod('ytd',this)">Year to date</div>
   <div class="pbtn" onclick="setPeriod('last_year',this)">Last year</div>
   <div class="pbtn" onclick="setPeriod('13weeks',this)">13 weeks</div>
+  <div style="display:flex;gap:6px;align-items:center;margin-left:4px">
+    <input type="date" id="cs" style="font-size:11px;padding:4px 8px;border:.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text)">
+    <span style="font-size:11px;color:var(--text3)">to</span>
+    <input type="date" id="ce" style="font-size:11px;padding:4px 8px;border:.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text)">
+    <button onclick="setCustom()" style="font-size:11px;padding:5px 12px;border-radius:20px;border:.5px solid var(--border2);background:var(--bg2);color:var(--text);cursor:pointer">Go</button>
+  </div>
 </div>
 
 <div class="tabs">
@@ -106,7 +112,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 <script>
 var API='https://tribute-api-prod-bkc4hfcwf3f2f6bf.centralus-01.azurewebsites.net/api/vivProxy';
-var visitsData=null,trendData=null,curTab='co',curPeriod='week';
+var visitsData=null,trendData=null,curTab='co',curPeriod='week',curStart=null,curEnd=null;
 var MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 var STATE_MARKETS={ma:['Boston','MetroWest Boston','North of Boston','South of Boston'],il:['Chicago'],md:['Baltimore','Annapolis','Bethesda']};
 var STATE_NAMES={ma:'Massachusetts',il:'Illinois',md:'Maryland'};
@@ -135,7 +141,9 @@ async function init(){
 async function fetchVisits(){
   try{
     document.getElementById('ct').innerHTML='<div class="loading"><div class="spin"></div>Loading visit data for '+curPeriod+'...</div>';
-    var res=await fetch(API+'?endpoint=visits&period='+curPeriod);
+    var url=API+'?endpoint=visits&period='+curPeriod;
+    if(curPeriod==='custom'&&curStart&&curEnd)url=API+'?endpoint=visits&startDate='+curStart+'&endDate='+curEnd;
+    var res=await fetch(url);
     if(!res.ok)throw new Error('HTTP '+res.status);
     visitsData=await res.json();
     var t=visitsData.totals;
@@ -147,9 +155,18 @@ async function fetchVisits(){
 }
 
 function setPeriod(p,el){
-  curPeriod=p;
+  curPeriod=p; curStart=null; curEnd=null;
   document.querySelectorAll('.pbtn').forEach(function(x){x.classList.remove('on')});
   el.classList.add('on');
+  if(curTab!=='trend')fetchVisits();
+}
+
+function setCustom(){
+  var s=document.getElementById('cs').value;
+  var e=document.getElementById('ce').value;
+  if(!s||!e){alert('Please select both dates');return;}
+  curPeriod='custom'; curStart=s; curEnd=e;
+  document.querySelectorAll('.pbtn').forEach(function(x){x.classList.remove('on')});
   if(curTab!=='trend')fetchVisits();
 }
 
@@ -169,6 +186,7 @@ function render(){
 }
 
 function periodLabel(){
+  if(curPeriod==='custom'&&curStart&&curEnd)return curStart+' to '+curEnd;
   var labels={week:'This week',last_week:'Last week',month:'This month',last_month:'Last month',ytd:'Year to date',last_year:'Last year','13weeks':'13 weeks'};
   return labels[curPeriod]||curPeriod;
 }
