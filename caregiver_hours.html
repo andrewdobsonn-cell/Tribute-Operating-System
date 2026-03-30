@@ -748,9 +748,9 @@ function renderListTable(){
   // Attach sort handlers via event delegation
   var wrap=document.getElementById('cgListWrap');
   if(wrap){
-    var ths=wrap.querySelectorAll('th[data-sort]');
-    ths.forEach(function(th){
-      th.addEventListener('click',function(){sortList(th.getAttribute('data-sort'));});
+    wrap.querySelectorAll('th[data-sort]').forEach(function(th){
+      var col=th.getAttribute('data-sort');
+      th.addEventListener('click',function(){sortList(col);});
     });
   }
 }
