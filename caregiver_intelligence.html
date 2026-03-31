@@ -297,12 +297,24 @@ function getActiveCGs(){
   if(!curWeek||!allHoursWeeks[curWeek])return [];
   return allHoursWeeks[curWeek].caregivers||[];
 }
+var MKT_TO_STATE={
+  'Boston':'Massachusetts','MetroWest Boston':'Massachusetts',
+  'North of Boston':'Massachusetts','South of Boston':'Massachusetts',
+  'Chicago':'Illinois','Baltimore':'Maryland',
+  'Annapolis':'Maryland','Bethesda':'Maryland'
+};
+function cgState(cg){
+  // Use cg.state if it's a real state name, otherwise derive from market
+  var s=cg.state||'';
+  if(s==='Massachusetts'||s==='Illinois'||s==='Maryland')return s;
+  return MKT_TO_STATE[cg.market||'']||'';
+}
 function getFilteredCGs(){
   var state=document.getElementById('scopeFilter').value;
   var mkt=document.getElementById('mktFilter').value;
   var type=document.getElementById('typeFilter').value;
   return getActiveCGs().filter(function(cg){
-    if(state&&cg.state!==state)return false;
+    if(state&&cgState(cg)!==state)return false;
     if(mkt&&cg.market!==mkt)return false;
     if(type&&(cg.cgType||'Standard')!==type)return false;
     return true;
@@ -597,7 +609,7 @@ function renderLifecycle(){
     var city=cg.gcity||'';
     if(!city||city==='Tribute')return false;
     if(state){
-      var s=MARKET_STATE[city]||'';
+      var s=MKT_TO_STATE[city]||'';
       if(s!==state)return false;
     }
     if(mkt&&city!==mkt)return false;
