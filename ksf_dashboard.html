@@ -441,8 +441,23 @@ function renderUber(){
     weeks=Object.keys(UBER_DATA).sort();
   }
 
-  var latest=weeks[weeks.length-1];
-  var prev=weeks[weeks.length-2]||null;
+  // Match curStart to nearest week in UBER_DATA
+  function nearestUberWeek(targetDate){
+    if(UBER_DATA[targetDate])return targetDate;
+    // Find closest week
+    var td=new Date(targetDate);
+    var best=null,bestDiff=999999;
+    weeks.forEach(function(w){
+      var diff=Math.abs(new Date(w)-td)/86400000;
+      if(diff<bestDiff){bestDiff=diff;best=w;}
+    });
+    return best;
+  }
+
+  var latest=nearestUberWeek(curStart)||weeks[weeks.length-1];
+  // Find prev week
+  var latestIdx=weeks.indexOf(latest);
+  var prev=latestIdx>0?weeks[latestIdx-1]:null;
 
   function weekTotal(week){
     if(!UBER_DATA[week])return{trips:0,amount:0};
@@ -453,18 +468,24 @@ function renderUber(){
 
   var latestTot=weekTotal(latest);
   var prevTot=prev?weekTotal(prev):null;
+  var isExact=UBER_DATA[curStart]?true:false;
+  var weekLabel=isExact?latest:'~'+latest+' (nearest)';
 
   // KPIs
   html+='<div class="kg4">';
-  html+='<div class="kpi"><div class="kl">Trips This Week</div><div class="kv b">'+fn(latestTot.trips)+'</div><div class="ks">Week of '+latest+(prevTot?' · prev '+fn(prevTot.trips):'')+'</div></div>';
+  html+='<div class="kpi"><div class="kl">Trips This Week</div><div class="kv b">'+fn(latestTot.trips)+'</div><div class="ks">Week of '+weekLabel+(prevTot?' · prev '+fn(prevTot.trips):'')+'</div></div>';
   html+='<div class="kpi"><div class="kl">Total Cost</div><div class="kv r">$'+latestTot.amount.toFixed(2)+'</div><div class="ks">Tribute-paid only'+(prevTot?' · prev $'+prevTot.amount.toFixed(2):'')+'</div></div>';
   html+='<div class="kpi"><div class="kl">Avg Cost / Trip</div><div class="kv a">$'+(latestTot.trips>0?(latestTot.amount/latestTot.trips).toFixed(2):'—')+'</div><div class="ks">Per ride this week</div></div>';
-  html+='<div class="kpi"><div class="kl">Weeks of History</div><div class="kv">'+fn(weeks.length)+'</div><div class="ks">'+weeks[0]+' to '+latest+'</div></div>';
+  html+='<div class="kpi"><div class="kl">Weeks of History</div><div class="kv">'+fn(weeks.length)+'</div><div class="ks">'+weeks[0]+' to '+weeks[weeks.length-1]+'</div></div>';
   html+='</div>';
 
+  if(!isExact){
+    html+='<div style="background:var(--amber-bg);border-left:3px solid var(--amber);border-radius:var(--r);padding:10px 14px;margin-bottom:12px;font-size:12px;color:var(--amber-text)">No Uber data for week of '+curStart+' — showing nearest available week ('+latest+'). Upload the latest CSV to add current week.</div>';
+  }
+
   // Market breakdown this week
-  html+='<div class="fc"><div class="ct">By market — week of '+latest+'</div>';
-  html+='<table class="tbl"><thead><tr><th>Market</th><th>Trips</th><th>Total Cost</th><th>Avg / Trip</th><th>% of Revenue</th><th>Lyft Budget %</th></tr></thead><tbody>';
+  html+='<div class="fc"><div class="ct">By market — week of '+weekLabel+'</div>';
+  html+='<table class="tbl"><thead><tr><th>Market</th><th>Trips</th><th>Total Cost</th><th>Avg / Trip</th><th>% of Revenue</th><th>Budget %</th></tr></thead><tbody>';
   var mktsThisWeek=UBER_DATA[latest]||{};
   var revMkts=(visitsData&&visitsData.markets)||[];
   MKTS.forEach(function(mkt){
@@ -555,6 +576,10 @@ function renderOT(){
   var totalOT=sumMetric('Hourly OT',latestDate);
   var totalInc=sumMetric('Incentives (Actual)',latestDate);
   var totalLyft=sumMetric('Lyft/Uber Costs (Actual)',latestDate);
+  // Also add Uber from UBER_DATA for nearest week
+  var uberWeeksSorted=Object.keys(UBER_DATA).sort();
+  var nearestUberWk=uberWeeksSorted[uberWeeksSorted.length-1];
+  var totalUberAmt=Object.values(UBER_DATA[nearestUberWk]||{}).reduce(function(s,v){return s+(v.amount||0);},0);
   var totalRev=sumMetric('Hourly Revenue',latestDate);
   var prevOT=prevDate?sumMetric('Hourly OT',prevDate):null;
   var prevInc=prevDate?sumMetric('Incentives (Actual)',prevDate):null;
@@ -572,20 +597,20 @@ function renderOT(){
   var totalGuar=sumMetric('4 Week Guaranteed Admin (Actual) ',latestDate);
   var prevTS=prevDate?sumMetric('TS Admin (Actual)',prevDate):null;
   var prevGuar=prevDate?sumMetric('4 Week Guaranteed Admin (Actual) ',prevDate):null;
-  var totalCost=totalOT+totalInc+totalLyft+totalTS+totalGuar;
+  var totalCost=totalOT+totalInc+totalUberAmt+totalTS+totalGuar;
 
   // KPIs
   html+='<div class="kg">';
   html+='<div class="kpi"><div class="kl">Total OT</div><div class="kv '+(otPct<budgetOTPct?'g':'r')+'">$'+fn(Math.round(totalOT))+'</div><div class="ks">'+fp(otPct)+' of rev · budget '+fp(budgetOTPct)+'</div></div>';
-  html+='<div class="kpi"><div class="kl">TS Admin</div><div class="kv a">$'+fn(Math.round(totalTS))+'</div><div class="ks">Time-on-salary admin pay'+(prevTS?' · prev $'+fn(Math.round(prevTS)):'')+'</div></div>';
-  html+='<div class="kpi"><div class="kl">4-Week Guaranteed</div><div class="kv a">$'+fn(Math.round(totalGuar))+'</div><div class="ks">Guaranteed pay payout'+(prevGuar?' · prev $'+fn(Math.round(prevGuar)):'')+'</div></div>';
+  html+='<div class="kpi"><div class="kl">Tribute Secure</div><div class="kv a">$'+fn(Math.round(totalTS+totalGuar))+'</div><div class="ks">Tribute Secure admin + guaranteed pay'+(prevTS?' · prev $'+fn(Math.round(prevTS+( prevGuar||0))):'')+'</div></div>';
   html+='<div class="kpi"><div class="kl">Incentives</div><div class="kv b">$'+fn(Math.round(totalInc))+'</div><div class="ks">Latest week'+(prevInc?' · prev $'+fn(Math.round(prevInc)):'')+'</div></div>';
-  html+='<div class="kpi"><div class="kl">Total Extra Costs</div><div class="kv r">$'+fn(Math.round(totalCost))+'</div><div class="ks">OT + Tribute Secure + Inc + Lyft</div></div>';
+  html+='<div class="kpi"><div class="kl">Ubers</div><div class="kv o">$'+totalUberAmt.toFixed(0)+'</div><div class="ks">Week of '+nearestUberWk+'</div></div>';
+  html+='<div class="kpi"><div class="kl">Total Extra Costs</div><div class="kv r">$'+fn(Math.round(totalCost))+'</div><div class="ks">OT + Tribute Secure + Inc + Ubers</div></div>';
   html+='</div>';
 
   // Market table
   html+='<div class="fc"><div class="ct">Cost detail by market — week of '+latestDate+'</div>';
-  html+='<table class="tbl"><thead><tr><th>Market</th><th>OT $</th><th>OT Budget</th><th>OT % Rev</th><th>TS Admin $</th><th>4-Wk Guar $</th><th>Incentives $</th><th>Ubers $</th><th>Total Extra Cost</th></tr></thead><tbody>';
+  html+='<table class="tbl"><thead><tr><th>Market</th><th>OT $</th><th>OT Budget</th><th>OT % Rev</th><th>Tribute Secure</th><th>Incentives $</th><th>Ubers $</th><th>Total Extra Cost</th></tr></thead><tbody>';
   GEOS.forEach(function(geo){
     var bgt=BUDGET[geo]||{};
     var g=function(m){return ACTUALS[geo]&&ACTUALS[geo][m]&&ACTUALS[geo][m][latestDate]||0;};
@@ -601,11 +626,11 @@ function renderOT(){
     html+='<td>$'+fn(Math.round(ot))+'</td>';
     html+='<td style="color:var(--text3)">'+( budgetOTAmt?'<span class="bdg '+(ot<=budgetOTAmt?'bg':'br')+'">'+fp(otPctMkt)+' / '+fp(budgetOTPctMkt)+'</span>':'—')+'</td>';
     html+='<td><span class="bdg '+(otPctMkt<=budgetOTPctMkt?'bg':'br')+'">'+fp(otPctMkt)+'</span></td>';
-    html+='<td style="color:'+(ts>500?'var(--amber)':'inherit')+'">$'+fn(Math.round(ts))+'</td>';
-    html+='<td style="color:'+(guar>200?'var(--amber)':'inherit')+'">$'+fn(Math.round(guar))+'</td>';
+    var uberMktAmt=(UBER_DATA[nearestUberWk]&&UBER_DATA[nearestUberWk][geo]&&UBER_DATA[nearestUberWk][geo].amount)||0;
+    html+='<td style="color:'+(ts+guar>500?'var(--amber)':'inherit')+'">$'+fn(Math.round(ts+guar))+'</td>';
     html+='<td>$'+fn(Math.round(inc))+'</td>';
-    html+='<td>$'+fn(Math.round(lyft))+'</td>';
-    html+='<td><strong>$'+fn(Math.round(ot+ts+guar+inc+lyft))+'</strong></td>';
+    html+='<td>$'+uberMktAmt.toFixed(0)+'</td>';
+    html+='<td><strong>$'+fn(Math.round(ot+ts+guar+inc+uberMktAmt))+'</strong></td>';
     html+='</tr>';
   });
   html+='</tbody></table>';
@@ -616,7 +641,7 @@ function renderOT(){
   var trendDates=sortedDates.slice(-8);
   html+='<div class="fc"><div class="ct">Weekly cost trend — last 8 weeks</div>';
   html+='<table class="tbl">';
-  html+='<thead><tr><th>Week</th><th>OT $</th><th>vs Budget</th><th>TS Admin $</th><th>4-Wk Guar $</th><th>Incentives $</th><th>Ubers $</th><th>Total</th></tr></thead><tbody>';
+  html+='<thead><tr><th>Week</th><th>OT $</th><th>vs Budget</th><th>Tribute Secure</th><th>Incentives $</th><th>Ubers $</th><th>Total</th></tr></thead><tbody>';
   trendDates.forEach(function(date){
     var ot=sumMetric('Hourly OT',date);
     var inc=sumMetric('Incentives (Actual)',date);
@@ -630,11 +655,12 @@ function renderOT(){
     html+='<td>'+date+'</td>';
     html+='<td>$'+fn(Math.round(ot))+'</td>';
     html+='<td style="color:'+(diff<=0?'var(--green)':'var(--red)')+'">'+(diff<=0?'':'+')+'$'+fn(Math.round(Math.abs(diff)))+(diff<=0?' under':' over')+'</td>';
-    html+='<td style="color:'+(ts>1000?'var(--amber)':'inherit')+'">$'+fn(Math.round(ts))+'</td>';
-    html+='<td style="color:'+(guar>200?'var(--amber)':'inherit')+'">$'+fn(Math.round(guar))+'</td>';
+    var uberWkAmt=Object.values(UBER_DATA[date]||{}).reduce(function(s,v){return s+(v.amount||0);},0);
+    var realTotal=ot+ts+guar+inc+uberWkAmt;
+    html+='<td style="color:'+(ts+guar>1000?'var(--amber)':'inherit')+'">$'+fn(Math.round(ts+guar))+'</td>';
     html+='<td>$'+fn(Math.round(inc))+'</td>';
-    html+='<td>$'+fn(Math.round(lyft))+'</td>';
-    html+='<td><strong>$'+fn(Math.round(total))+'</strong></td>';
+    html+='<td>$'+uberWkAmt.toFixed(0)+'</td>';
+    html+='<td><strong>$'+fn(Math.round(realTotal))+'</strong></td>';
     html+='</tr>';
   });
   html+='</tbody></table></div>';
@@ -642,7 +668,7 @@ function renderOT(){
   // CSV upload for new data
   html+='<div class="fc" style="background:var(--orange-50);border-color:var(--orange)">';
   html+='<div class="ct" style="color:var(--orange)">Upload New Weekly Cost Data CSV</div>';
-  html+='<p style="font-size:12px;color:var(--text2);margin-bottom:12px">Export from iSolved or your payroll system. Expected columns: <strong>Week, Market, OT Amount, TS Admin Amount, Guaranteed Amount, Incentives Amount</strong></p>';
+  html+='<p style="font-size:12px;color:var(--text2);margin-bottom:12px">Export from iSolved or your payroll system. Expected columns: <strong>Week, Market, OT Amount, Tribute Secure Amount, Incentives Amount</strong></p>';
   html+='<div class="upload-zone" id="otZone" onclick="document.getElementById(\'otFile\').click()" ondragover="event.preventDefault();this.classList.add(\'drag\')" ondragleave="this.classList.remove(\'drag\')" ondrop="handleDrop(event,\'ot\')">'; 
   html+='<div class="upload-zone-icon">💰</div>';
   html+='<div class="upload-zone-title">Drop OT & Incentives CSV here</div>';
@@ -788,7 +814,7 @@ function renderGM(){
   // ── HISTORICAL WEEKLY GM TREND (from KSF actuals) ──
   var histWeeks=Array.from(allOTDates).sort().slice(-12);
   html+='<div class="fc"><div class="ct">Historical weekly gross margin — last 12 weeks from KSF</div>';
-  html+='<table class="tbl"><thead><tr><th>Week</th><th>Revenue</th><th>OT</th><th>TS Admin</th><th>4-Wk Guar</th><th>Incentives</th><th>Ubers</th><th>Total Cost</th><th>GM $</th><th>GM %</th><th>Budget</th></tr></thead><tbody>';
+  html+='<table class="tbl"><thead><tr><th>Week</th><th>Revenue</th><th>OT</th><th>Tribute Secure</th><th>Incentives</th><th>Ubers</th><th>Total Cost</th><th>GM $</th><th>GM %</th><th>Budget</th></tr></thead><tbody>';
   histWeeks.forEach(function(week){
     var wRev=GEOS.reduce(function(s,g){return s+getActual(g,'Hourly Revenue',week);},0);
     var wOT=GEOS.reduce(function(s,g){return s+getActual(g,'Hourly OT',week);},0);
@@ -804,8 +830,7 @@ function renderGM(){
     html+='<td>'+week+'</td>';
     html+='<td>'+fm(wRev)+'</td>';
     html+='<td style="color:var(--red)">'+fm(wOT)+'</td>';
-    html+='<td style="color:'+(wTS>1000?'var(--amber)':'inherit')+'">'+fm(wTS)+'</td>';
-    html+='<td style="color:'+(wGuar>500?'var(--amber)':'inherit')+'">'+fm(wGuar)+'</td>';
+    html+='<td style="color:'+((wTS+wGuar)>1000?'var(--amber)':'inherit')+'">'+fm(wTS+wGuar)+'</td>';
     html+='<td>'+fm(wInc)+'</td>';
     html+='<td>$'+(wUber?wUber.toFixed(0):'—')+'</td>';
     html+='<td><strong>'+fm(wCost)+'</strong></td>';
@@ -821,7 +846,7 @@ function renderGM(){
   var items=[
     {label:'Revenue',amt:curTotRev,color:'var(--green)',isRev:true},
     {label:'Pay Cost (Reg + OT)',amt:curTotPayCost,color:'var(--red)',pct:curTotRev>0?curTotPayCost/curTotRev:0},
-    {label:'TS Admin',amt:curTotTS,color:'var(--amber)',pct:curTotRev>0?curTotTS/curTotRev:0},
+    {label:'Tribute Secure',amt:curTotTS+curTotGuar,color:'var(--amber)',pct:curTotRev>0?(curTotTS+curTotGuar)/curTotRev:0},
     {label:'4-Wk Guaranteed',amt:curTotGuar,color:'var(--amber)',pct:curTotRev>0?curTotGuar/curTotRev:0},
     {label:'Incentives',amt:curTotInc,color:'var(--orange)',pct:curTotRev>0?curTotInc/curTotRev:0},
     {label:'Ubers',amt:curTotUber,color:'var(--orange)',pct:curTotRev>0?curTotUber/curTotRev:0},
