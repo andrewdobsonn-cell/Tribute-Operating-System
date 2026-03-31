@@ -477,7 +477,10 @@ function renderHours(){
   function cgTable(list,colFn,emptyMsg){
     if(!list.length)return '<div style="color:var(--text4);padding:8px">'+emptyMsg+'</div>';
     var t='<table class="tbl"><thead><tr><th>Name</th><th>Market</th><th>Hrs</th></tr></thead><tbody>';
-    t+=list.map(function(cg){return '<tr onclick="openModal(\'' + cg._id + '\')">'+colFn(cg)+'</tr>';}).join('');
+    t+=list.map(function(cg){
+      var row='<tr data-cgid="'+cg._id+'" class="cgrow">'+colFn(cg)+'</tr>';
+      return row;
+    }).join('');
     return t+'</tbody></table>';
   }
 
@@ -494,6 +497,9 @@ function renderHours(){
   html+='</div>';
 
   document.getElementById('main').innerHTML=html;
+  document.querySelectorAll('.cgrow').forEach(function(row){
+    row.addEventListener('click',function(){openModal(this.getAttribute('data-cgid'));});
+  });
 }
 
 // ─────────────────────────────────────────────
@@ -639,7 +645,7 @@ function renderRoster(){
     var stBdg=isActive(cg)?'bg':isTerminated(cg)?'br':'ba';
     var skills=(cg.attrs||[]).filter(function(a){return a.type==='experience'||a.type==='certification';}).slice(0,3);
     var lb=cg.queries&&cg.queries.lastBooking;
-    return '<tr onclick="openModal(\''+cg._id+'\')">'+
+    return '<tr data-cgid="'+cg._id+'" class="cgrow">'+
       '<td><strong>'+cg.fn+' '+cg.ln+'</strong></td>'+
       '<td>'+normalizeMarket(cg)+'</td>'+
       '<td><span class="bdg '+stBdg+'">'+st+'</span></td>'+
@@ -655,6 +661,9 @@ function renderRoster(){
   html+='<div style="margin-top:8px;font-size:10px;color:var(--text4)">Showing '+show.length+' of '+list.length+' caregivers</div>';
   html+='</div>';
   document.getElementById('main').innerHTML=html;
+  document.querySelectorAll('.cgrow').forEach(function(row){
+    row.addEventListener('click',function(){openModal(this.getAttribute('data-cgid'));});
+  });
 }
 function sortRoster(col){
   if(rosterSort.col===col)rosterSort.dir*=-1;else{rosterSort.col=col;rosterSort.dir=1;}
