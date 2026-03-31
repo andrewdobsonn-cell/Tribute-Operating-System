@@ -591,7 +591,8 @@ function renderOT(){
   var otPct=totalRev>0?totalOT/totalRev:0;
   var budgetOTPct=Object.values(BUDGET).reduce(function(s,b){return s+(b.otPct||0);},0)/Object.keys(BUDGET).length;
 
-  html+='<div style="font-size:11px;color:var(--text4);margin-bottom:12px">Actuals shown from KSF data — most recent entry: <strong>'+latestDate+'</strong>. Upload new weekly data via CSV below.</div>';
+  var otDataNote=otCostData?'Live from Viv · '+curStart+' to '+curEnd:'KSF data — most recent entry: '+latestDate;
+  html+='<div style="font-size:11px;color:var(--text4);margin-bottom:12px">'+otDataNote+'</div>';
 
   var totalTS=sumMetric('TS Admin (Actual)',latestDate);
   var totalGuar=sumMetric('4 Week Guaranteed Admin (Actual) ',latestDate);
@@ -690,44 +691,76 @@ function renderGM(){
   var allOTDates=new Set();
   GEOS.forEach(function(g){Object.keys((ACTUALS[g]&&ACTUALS[g]['Hourly OT'])||{}).forEach(function(d){allOTDates.add(d);});});
   var latestKSFWeek=Array.from(allOTDates).sort().pop();
+  // Use live otCostData for Tribute Secure and Incentives if available
+  var otMktsOT=(otCostData&&otCostData.byMarket)||[];
 
   function getActual(geo,metric,week){return (ACTUALS[geo]&&ACTUALS[geo][metric]&&ACTUALS[geo][metric][week])||0;}
   function getUber(geo,week){return (UBER_DATA[week]&&UBER_DATA[week][geo]&&UBER_DATA[week][geo].amount)||0;}
 
-  // Use live Viv totalCost as pay cost (includes regular + OT)
+  // Use KSF actuals as primary source — fall back to Viv only if week is newer than KSF
+  var ksf_hasCurrentWeek = !!getActual(GEOS[0],'Hourly Revenue',curStart);
+  var useKSF = ksf_hasCurrentWeek || latestKSFWeek >= curStart;
+
+  // Find nearest KSF week to curStart
+  var ksfWeekToUse = latestKSFWeek;
+  if(getActual('Baltimore','Hourly Revenue',curStart)) ksfWeekToUse = curStart;
+
+  // Viv fallback for current week pay cost
   var otMkts=(otCostData&&otCostData.byMarket)||[];
 
   function currentGM(mktName){
     var bgt=BUDGET[mktName]||{};
-    // Get live data from ot_costs endpoint
+
+    // Try KSF actuals first for the selected week
+    var ksfRev=getActual(mktName,'Hourly Revenue',ksfWeekToUse);
+    var ksfReg=getActual(mktName,'Hourly Regular Pay',ksfWeekToUse);
+    var ksfOT=getActual(mktName,'Hourly OT',ksfWeekToUse);
+
+    // Viv fallback
     var otMkt=otMkts.find(function(m){return m.market===mktName;});
-    // Also get visit revenue from visits endpoint for cross-check
     var vMkt=(visitsData&&visitsData.markets||[]).find(function(m){return m.market===mktName;});
-    if(!otMkt&&!vMkt)return null;
-    var rev=otMkt?otMkt.revenue:(vMkt?vMkt.revenue:0);
+
+    // Revenue: always use visitsData (Viv scheduling) — never otMkt.revenue which overcounts
+    var rev=vMkt?vMkt.revenue:(ksfRev||0);
     if(!rev)return null;
-    // totalCost from Viv = regular pay + OT (blended, no need to split)
-    var totalPayCost=otMkt?otMkt.totalCost:(rev*(1-(bgt.grossMarginPct||0.40)));
-    var vivGM=otMkt?otMkt.grossMargin:(rev-totalPayCost);
-    var payHrs=otMkt?otMkt.payableHours:0;
-    var billHrs=otMkt?otMkt.billableHours:0;
-    // Additional costs still from KSF/CSV (not in Viv)
-    var ts=getActual(mktName,'TS Admin (Actual)',latestKSFWeek)||0;
-    var guar=getActual(mktName,'4 Week Guaranteed Admin (Actual) ',latestKSFWeek)||0;
-    var inc=getActual(mktName,'Incentives (Actual)',latestKSFWeek)||0;
+
+    var totalPayCost, vivGM, dataSource;
+    if(otMkt && otMkt.totalCost){
+      // Use Viv totalCost for pay (reg + OT blended) — most accurate
+      totalPayCost = otMkt.totalCost;
+      vivGM = rev - totalPayCost;
+      dataSource = 'Live Viv';
+    } else if(ksfReg||ksfOT){
+      // Fall back to KSF reg + OT
+      totalPayCost = ksfReg + ksfOT;
+      vivGM = rev - totalPayCost;
+      dataSource = 'KSF '+ksfWeekToUse;
+    } else {
+      // Last resort: budget estimate
+      totalPayCost = rev*(1-(bgt.grossMarginPct||0.40));
+      vivGM = rev-totalPayCost;
+      dataSource = 'Budget est.';
+    }
+
+    var ts=getActual(mktName,'TS Admin (Actual)',ksfWeekToUse)||0;
+    var guar=getActual(mktName,'4 Week Guaranteed Admin (Actual) ',ksfWeekToUse)||0;
+    var inc=getActual(mktName,'Incentives (Actual)',ksfWeekToUse)||0;
     var uberWeeks=Object.keys(UBER_DATA).sort();
-    var nearestUber=uberWeeks[uberWeeks.length-1];
+    // Find nearest Uber week to selected week
+    var td=new Date(curStart);
+    var nearestUber=uberWeeks.reduce(function(best,w){
+      return Math.abs(new Date(w)-td)<Math.abs(new Date(best)-td)?w:best;
+    },uberWeeks[uberWeeks.length-1]);
     var uber=getUber(mktName,nearestUber);
-    // Final scheduling GM
+
     var schedGM=vivGM-ts-guar-inc-uber;
     var schedGMPct=rev>0?schedGM/rev:0;
     var budgetGMPct=bgt.grossMarginPct||0;
     return{market:mktName,state:STATE_MAP[mktName]||'',rev,
-      totalPayCost,vivGM,vivGMPct:rev>0?vivGM/rev:0,
+      totalPayCost,ksfOT,ksfReg,vivGM,vivGMPct:rev>0?vivGM/rev:0,
       ts,guar,inc,uber,
       schedGM,schedGMPct,budgetGMPct,
-      payHrs,billHrs,
-      dataSource:otMkt?'Live Viv':'Budget estimate'};
+      dataSource};
   }
 
   var curMkts=GEOS.map(currentGM).filter(Boolean).filter(function(m){return m.rev>0;});
@@ -755,7 +788,8 @@ function renderGM(){
   var dataNote=liveCount+'/'+curMkts.length+' markets live from Viv'+(liveCount<curMkts.length?' · '+( curMkts.length-liveCount)+' estimated':'');
   html+='<div class="kg">';
   html+='<div class="kpi"><div class="kl">Revenue</div><div class="kv o">'+fm(curTotRev)+'</div><div class="ks">This week · '+dataNote+'</div></div>';
-  html+='<div class="kpi"><div class="kl">Pay Cost (Viv)</div><div class="kv r">'+fm(curTotPayCost)+'</div><div class="ks">'+fp(curTotRev>0?curTotPayCost/curTotRev:0)+' of rev · Reg + OT blended</div></div>';
+  var ksfSources=curMkts.filter(function(m){return m.dataSource&&m.dataSource.indexOf('KSF')>-1;}).length;
+  html+='<div class="kpi"><div class="kl">Pay Cost (Reg + OT)</div><div class="kv r">'+fm(curTotPayCost)+'</div><div class="ks">'+fp(curTotRev>0?curTotPayCost/curTotRev:0)+' of rev · '+ksfSources+'/'+curMkts.length+' from KSF</div></div>';
   html+='<div class="kpi"><div class="kl">Tribute Secure + Inc + Uber</div><div class="kv a">'+fm(curTotTS+curTotGuar+curTotInc+curTotUber)+'</div><div class="ks">Additional cost items</div></div>';
   html+='<div class="kpi"><div class="kl">Viv GM (before extras)</div><div class="kv b">'+fp(curTotRev>0?curTotVivGM/curTotRev:0)+'</div><div class="ks">Rev minus pay cost only</div></div>';
   html+='<div class="kpi"><div class="kl">Scheduling GM</div><div class="kv '+(curTotGMPct>=0.40?'g':'r')+'">'+fp(curTotGMPct)+'</div><div class="ks">'+fm(curTotGM)+' after all costs</div></div>';
@@ -770,7 +804,7 @@ function renderGM(){
       '<td style="'+ind+'">'+(indent?'<span style="color:var(--text3)">'+m.market+'</span>':m.market)+'</td>'+
       '<td style="color:var(--text3);font-weight:normal">'+(indent?'':m.state)+'</td>'+
       '<td>'+fk(m.rev)+'</td>'+
-      '<td style="color:var(--red)">'+fk(m.totalPayCost)+'<div style="font-size:9px;color:var(--text4)">'+fp(m.rev>0?m.totalPayCost/m.rev:0)+' of rev · '+m.dataSource+'</div></td>'+
+      '<td style="color:var(--red)">'+fk(m.totalPayCost)+'<div style="font-size:9px;color:var(--text4)">'+(m.ksfReg?'Reg '+fk(m.ksfReg)+' · OT '+fk(m.ksfOT):fp(m.rev>0?m.totalPayCost/m.rev:0)+' of rev')+' · '+m.dataSource+'</div></td>'+
       '<td style="color:var(--amber)">'+fk(m.ts+m.guar)+'</td>'+
       '<td style="color:var(--amber)">'+fk(m.inc+m.uber)+'</td>'+
       '<td><span class="bdg '+(m.schedGMPct>=m.budgetGMPct?'bg':'br')+'">'+fp(m.schedGMPct)+'</span></td>'+
@@ -804,7 +838,7 @@ function renderGM(){
 
   html+='<div class="fc"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">';
   html+='<div class="ct" style="margin:0">Gross margin by market — '+curStart+' to '+curEnd+'</div>';
-  html+='<div style="font-size:10px;color:var(--text4)">OT & TS from KSF week of '+latestKSFWeek+' · Uber from '+Object.keys(UBER_DATA).sort().pop()+'</div>';
+  html+='<div style="font-size:10px;color:var(--text4)">Pay data from KSF week of '+ksfWeekToUse+(ksfWeekToUse!==curStart?' (nearest to selected)':' ✓')+'</div>';
   html+='</div>';
   html+='<table class="tbl"><thead><tr><th>Market</th><th>State</th><th>Revenue</th><th>Pay Cost (Viv)</th><th>Tribute Secure</th><th>Inc + Uber</th><th>Sched GM %</th><th>Budget GM</th><th>vs Budget</th></tr></thead><tbody>';
   STATES.forEach(function(st){html+=stateRows(st);});
