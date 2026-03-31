@@ -578,7 +578,9 @@ function renderOT(){
   var totalLyft=sumMetric('Lyft/Uber Costs (Actual)',latestDate);
   // Also add Uber from UBER_DATA for nearest week
   var uberWeeksSorted=Object.keys(UBER_DATA).sort();
-  var nearestUberWk=uberWeeksSorted[uberWeeksSorted.length-1];
+  var nearestUberWk=UBER_DATA[curStart]?curStart:uberWeeksSorted.reduce(function(best,w){
+    return Math.abs(new Date(w)-new Date(curStart))<Math.abs(new Date(best)-new Date(curStart))?w:best;
+  },uberWeeksSorted[uberWeeksSorted.length-1]);
   var totalUberAmt=Object.values(UBER_DATA[nearestUberWk]||{}).reduce(function(s,v){return s+(v.amount||0);},0);
   var totalRev=sumMetric('Hourly Revenue',latestDate);
   var prevOT=prevDate?sumMetric('Hourly OT',prevDate):null;
