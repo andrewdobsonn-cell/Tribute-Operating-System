@@ -234,8 +234,10 @@ function getWeeks(n){
   return w;
 }
 function cgAvgHrs(cgid,weeks){
-  if(!cgHoursMap[cgid])return 0;
-  var vals=weeks.map(function(w){return cgHoursMap[cgid][w]||0;});
+  // Try _id first, then id field
+  var map=cgHoursMap[cgid];
+  if(!map)return 0;
+  var vals=weeks.map(function(w){return map[w]||0;});
   var nonZero=vals.filter(function(v){return v>0;});
   return nonZero.length?nonZero.reduce(function(s,v){return s+v;},0)/nonZero.length:0;
 }
@@ -266,10 +268,31 @@ async function load(){
   var cgRes=await fetch(API+'?endpoint=caregivers&startDate='+weeks8[0]+'&endDate='+curWeek);
   var cgData=await cgRes.json();
   allCaregivers=(cgData.caregivers||[]).filter(function(cg){return !isStaff(cg);});
+  // Also index hours by alternate id fields in case of mismatch
+  // caregiver_hours returns 'id', caregivers endpoint returns '_id' — should be same value
   // Fetch hours for last 4 weeks
   cgHoursMap={};
   var weeks4=getWeeks(4);
   await Promise.all(weeks4.map(fetchHours));
+  // Debug: check ID alignment between caregivers and hours
+  var sampleCG=allCaregivers[0];
+  if(sampleCG){
+    var weeks4=getWeeks(4);
+    var hasHoursById=!!cgHoursMap[sampleCG._id];
+    var hasHoursByIdField=!!cgHoursMap[sampleCG.id];
+    console.log('Sample CG _id:',sampleCG._id,'has hours:',hasHoursById);
+    console.log('Sample CG .id:',sampleCG.id,'has hours:',hasHoursByIdField);
+    console.log('Total CGs:',allCaregivers.length,'Hours map keys:',Object.keys(cgHoursMap).length);
+    // If mismatch, try to remap
+    if(!hasHoursById&&hasHoursByIdField){
+      console.log('Remapping hours from .id to ._id');
+      allCaregivers.forEach(function(cg){
+        if(cg.id&&cgHoursMap[cg.id]&&!cgHoursMap[cg._id]){
+          cgHoursMap[cg._id]=cgHoursMap[cg.id];
+        }
+      });
+    }
+  }
   document.getElementById('updated').textContent='Updated '+new Date().toLocaleTimeString();
   renderTab();
 }
@@ -280,14 +303,15 @@ async function fetchHours(wk){
   try{
     var r=await fetch(API+'?endpoint=caregiver_hours&startDate='+wk+'&endDate='+endStr);
     var d=await r.json();
-    var list=d.caregivers||d.byCaregiver||[];
+    var list=d.caregivers||[];
     list.forEach(function(cg){
-      var id=cg.cgid||cg._id||cg.id;
+      // caregiver_hours uses 'id' field, scheduledHrs for actual worked hours
+      var id=cg.id||cg.cgid||cg._id;
       if(!id)return;
       if(!cgHoursMap[id])cgHoursMap[id]={};
-      cgHoursMap[id][wk]=cg.payableHours||cg.hours||0;
+      cgHoursMap[id][wk]=cg.scheduledHrs||cg.payableHours||0;
     });
-  }catch(e){}
+  }catch(e){console.error('fetchHours error',wk,e);}
 }
 
 function renderTab(){
