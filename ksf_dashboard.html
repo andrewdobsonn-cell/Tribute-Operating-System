@@ -592,7 +592,11 @@ function renderOT(){
   var budgetOTPct=Object.values(BUDGET).reduce(function(s,b){return s+(b.otPct||0);},0)/Object.keys(BUDGET).length;
 
   var otDataNote=otCostData?'Live from Viv · '+curStart+' to '+curEnd:'KSF data — most recent entry: '+latestDate;
-  html+='<div style="font-size:11px;color:var(--text4);margin-bottom:12px">'+otDataNote+'</div>';
+  var otStale=(otCostData&&otCostData.totals&&otCostData.totals.staleVisits)||0;
+  var otSettled=(otCostData&&otCostData.totals&&otCostData.totals.payrollSettled);
+  var otTotal=(otCostData&&otCostData.totals&&otCostData.totals.totalVisits)||0;
+  var freshnessNote=otCostData?(otSettled?'<span style="color:var(--green)">✓ Payroll settled</span>':'<span style="color:var(--amber)">⏳ '+otStale+'/'+otTotal+' visits pending payroll</span>'):'';
+  html+='<div style="font-size:11px;color:var(--text4);margin-bottom:12px">'+otDataNote+(freshnessNote?' · '+freshnessNote:'')+'</div>';
 
   var totalTS=sumMetric('TS Admin (Actual)',latestDate);
   var totalGuar=sumMetric('4 Week Guaranteed Admin (Actual) ',latestDate);
@@ -806,7 +810,8 @@ function renderGM(){
       '<td>'+fk(m.rev)+'</td>'+
       '<td style="color:var(--red)">'+fk(m.totalPayCost)+'<div style="font-size:9px;color:var(--text4)">'+(m.ksfReg?'Reg '+fk(m.ksfReg)+' · OT '+fk(m.ksfOT):fp(m.rev>0?m.totalPayCost/m.rev:0)+' of rev')+' · '+m.dataSource+'</div></td>'+
       '<td style="color:var(--amber)">'+fk(m.ts+m.guar)+'</td>'+
-      '<td style="color:var(--amber)">'+fk(m.inc+m.uber)+'</td>'+
+      '<td style="color:var(--amber)">'+fk(m.inc)+'</td>'+
+      '<td style="color:var(--orange)">'+fk(m.uber)+'</td>'+
       '<td><span class="bdg '+(m.schedGMPct>=m.budgetGMPct?'bg':'br')+'">'+fp(m.schedGMPct)+'</span></td>'+
       '<td style="color:var(--text3)">'+fp(m.budgetGMPct)+'</td>'+
       '<td><span class="vs '+vsCls+'">'+vsStr+'</span></td>'+
@@ -829,7 +834,8 @@ function renderGM(){
       '<td><strong>'+fk(sRev)+'</strong></td>'+
       '<td style="color:var(--red)"><strong>'+fk(sOT)+'</strong></td>'+
       '<td style="color:var(--amber)"><strong>'+fk(sTS)+'</strong></td>'+
-      '<td style="color:var(--amber)"><strong>'+fk(sInc)+'</strong></td>'+
+      '<td style="color:var(--amber)"><strong>'+fk(sMkts.reduce(function(s,m){return s+m.inc;},0))+'</strong></td>'+
+      '<td style="color:var(--orange)"><strong>'+fk(sMkts.reduce(function(s,m){return s+m.uber;},0))+'</strong></td>'+
       '<td><strong><span class="bdg '+(sGMPct>=0.40?'bg':'br')+'">'+fp(sGMPct)+'</span></strong></td>'+
       '<td></td><td></td></tr>';
     sMkts.forEach(function(m){html+=gmRow(m,true);});
@@ -840,7 +846,7 @@ function renderGM(){
   html+='<div class="ct" style="margin:0">Gross margin by market — '+curStart+' to '+curEnd+'</div>';
   html+='<div style="font-size:10px;color:var(--text4)">Pay data from KSF week of '+ksfWeekToUse+(ksfWeekToUse!==curStart?' (nearest to selected)':' ✓')+'</div>';
   html+='</div>';
-  html+='<table class="tbl"><thead><tr><th>Market</th><th>State</th><th>Revenue</th><th>Pay Cost (Viv)</th><th>Tribute Secure</th><th>Inc + Uber</th><th>Sched GM %</th><th>Budget GM</th><th>vs Budget</th></tr></thead><tbody>';
+  html+='<table class="tbl"><thead><tr><th>Market</th><th>State</th><th>Revenue</th><th>Hourly Pay Cost</th><th>Tribute Secure</th><th>Incentives</th><th>Ubers</th><th>Sched GM %</th><th>Budget GM</th><th>vs Budget</th></tr></thead><tbody>';
   STATES.forEach(function(st){html+=stateRows(st);});
   html+='</tbody><tfoot><tr><td>Company Total</td><td></td><td>'+fm(curTotRev)+'</td><td style="color:var(--red)">'+fm(curTotPayCost)+'</td><td style="color:var(--amber)">'+fm(curTotTS+curTotGuar)+'</td><td style="color:var(--amber)">'+fm(curTotInc+curTotUber)+'</td><td><span class="bdg '+(curTotGMPct>=0.40?'bg':'br')+'">'+fp(curTotGMPct)+'</span></td><td>~42%</td><td></td></tr></tfoot>';
   html+='</table></div>';
