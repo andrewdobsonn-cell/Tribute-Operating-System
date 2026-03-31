@@ -279,7 +279,7 @@ body {
 /* ── DASHBOARD TILES ── */
 .dash-nav {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 10px;
   margin-bottom: 28px;
 }
@@ -735,6 +735,11 @@ body {
       <div class="tile-name">Caregiver Engine</div>
       <div class="tile-desc">Hiring, retention, tenure and workforce composition</div>
     </div>
+    <div class="dash-tile" onclick="loadDash('caregiver_intelligence',this)">
+      <div class="tile-icon">🧠</div>
+      <div class="tile-name">Caregiver Intelligence</div>
+      <div class="tile-desc">Hours distribution, lifecycle, roster and utilization by market</div>
+    </div>
   </div>
 
   <!-- ACTIVE DASHBOARD FRAME -->
@@ -836,7 +841,8 @@ var DASHES = {
   caregiver_hours:     { title:'Caregiver Hours',       file:'caregiver_hours.html' },
   revenue_trends:      { title:'Revenue Trends',        file:'revenue_trends.html' },
   client_dashboard:    { title:'Client Census',         file:'client_dashboard.html' },
-  caregiver_dashboard: { title:'Caregiver Engine',      file:'caregiver_dashboard.html' },
+  caregiver_dashboard:    { title:'Caregiver Engine',         file:'caregiver_dashboard.html' },
+  caregiver_intelligence: { title:'Caregiver Intelligence',  file:'caregiver_intelligence.html' },
 };
 
 var curDash = 'executive';
