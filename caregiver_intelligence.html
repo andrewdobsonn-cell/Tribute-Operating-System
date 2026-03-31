@@ -609,7 +609,13 @@ function renderLifecycle(){
     var city=cg.gcity||'';
     if(!city||city==='Tribute')return false;
     if(state){
-      var s=MKT_TO_STATE[city]||'';
+      // gcity can be a market name ("Boston"), a state name ("Massachusetts"), or a code
+      var CITY_STATE={
+        'Boston':'Massachusetts','MetroWest Boston':'Massachusetts','North of Boston':'Massachusetts','South of Boston':'Massachusetts',
+        'Chicago':'Illinois','Baltimore':'Maryland','Annapolis':'Maryland','Bethesda':'Maryland',
+        'Massachusetts':'Massachusetts','Illinois':'Illinois','Maryland':'Maryland'
+      };
+      var s=CITY_STATE[city]||'';
       if(s!==state)return false;
     }
     if(mkt&&city!==mkt)return false;
