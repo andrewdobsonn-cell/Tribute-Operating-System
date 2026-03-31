@@ -3,1004 +3,702 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Tribute · Caregiver Intelligence</title>
+<title>Tribute — Caregiver Intelligence</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap');
-
-:root {
-  --bg:       #0f1117;
-  --bg2:      #161b26;
-  --bg3:      #1e2535;
-  --border:   #2a3348;
-  --text1:    #f0f4ff;
-  --text2:    #8b9abf;
-  --text3:    #4d5e80;
-  --teal:     #00d4aa;
-  --teal2:    #00a884;
-  --amber:    #f5a623;
-  --red:      #ff5c5c;
-  --blue:     #4d8eff;
-  --purple:   #a78bfa;
-  --green:    #22c55e;
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --orange:#E8541A;--orange-pale:#FDF2ED;--orange-50:#FEF8F5;
+  --charcoal:#2C2C2C;--text2:#4A4A4A;--text3:#6B6B6B;--text4:#9B9B9B;
+  --gray100:#F5F5F5;--gray200:#EBEBEB;--gray300:#D8D8D8;
+  --white:#FFFFFF;--cream:#FAFAF8;
+  --green:#3DAA7A;--green-bg:#EAF6F0;--green-text:#1A7A52;
+  --red:#E05252;--red-bg:#FDEEEE;--red-text:#8B1F1F;
+  --amber:#F59E0B;--amber-bg:#FEF3C7;--amber-text:#7C3E00;
+  --blue:#2563EB;--blue-bg:#EFF6FF;--blue-text:#1E3A8A;
+  --purple:#7C3AED;--purple-bg:#F5F3FF;--purple-text:#4C1D95;
+  --shadow:0 1px 4px rgba(44,44,44,0.07),0 1px 2px rgba(44,44,44,0.04);
+  --shadow-md:0 4px 16px rgba(44,44,44,0.09),0 2px 6px rgba(44,44,44,0.04);
+  --r:8px;--rl:12px
 }
-
-* { box-sizing: border-box; margin: 0; padding: 0; }
-
-body {
-  font-family: 'DM Sans', sans-serif;
-  background: var(--bg);
-  color: var(--text1);
-  min-height: 100vh;
-  font-size: 13px;
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--cream);color:var(--charcoal);font-size:13px;line-height:1.5;-webkit-font-smoothing:antialiased}
+.hdr{background:var(--white);border-bottom:1px solid var(--gray200);padding:12px 32px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:var(--shadow)}
+.hdr-brand{display:flex;align-items:baseline;gap:6px}
+.hdr-title{font-size:16px;font-weight:600;color:var(--orange)}
+.hdr-sub{font-size:11px;color:var(--text3)}
+.hdr-right{display:flex;align-items:center;gap:16px;font-size:11px;color:var(--text4)}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--green);display:inline-block;margin-right:4px;animation:pulse 2.5s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.loading{text-align:center;padding:60px;color:var(--text4);font-size:13px}
+.spin{width:22px;height:22px;border:2px solid var(--gray200);border-top-color:var(--orange);border-radius:50%;animation:sp .75s linear infinite;margin:0 auto 10px}
+@keyframes sp{to{transform:rotate(360deg)}}
+.period-bar{background:var(--white);border-bottom:1px solid var(--gray200);padding:10px 32px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.pbtn{font-size:11px;font-weight:500;padding:4px 12px;border-radius:20px;cursor:pointer;border:.5px solid var(--gray300);color:var(--text3);background:var(--gray100);user-select:none}
+.pbtn.on{background:var(--charcoal);color:var(--white);border-color:var(--charcoal)}
+.nav-tabs{display:flex;border-bottom:1px solid var(--gray200);background:var(--white);padding:0 32px;overflow-x:auto}
+.ntab{font-size:12px;font-weight:500;color:var(--text3);padding:10px 16px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap;user-select:none}
+.ntab.on{color:var(--charcoal);border-bottom-color:var(--orange)}
+.main{padding:24px 32px;max-width:1300px;margin:0 auto}
+.kg{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-bottom:16px}
+.kg6{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;margin-bottom:16px}
+.kg4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:16px}
+.kg3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:16px}
+@media(max-width:900px){.kg,.kg6,.kg4,.kg3{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:600px){.kg,.kg6,.kg4,.kg3{grid-template-columns:1fr 1fr}}
+.kpi{background:var(--white);border:.5px solid var(--gray200);border-radius:var(--r);padding:14px 16px;box-shadow:var(--shadow)}
+.kl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text4);margin-bottom:5px}
+.kv{font-size:24px;font-weight:500;line-height:1;margin-bottom:3px;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.kv.g{color:var(--green)}.kv.r{color:var(--red)}.kv.a{color:var(--amber)}.kv.o{color:var(--orange)}.kv.b{color:var(--blue)}
+.ks{font-size:10px;color:var(--text4)}
+.fc{background:var(--white);border:.5px solid var(--gray200);border-radius:var(--rl);padding:16px 20px;margin-bottom:14px;box-shadow:var(--shadow)}
+.ct{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-bottom:12px;display:flex;align-items:center;justify-content:space-between}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px}
+@media(max-width:800px){.two-col,.three-col{grid-template-columns:1fr}}
+.tbl{width:100%;border-collapse:collapse;font-size:12px}
+.tbl th{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);padding:6px 10px;border-bottom:.5px solid var(--gray200);text-align:left;cursor:pointer;user-select:none;white-space:nowrap}
+.tbl th:hover{color:var(--orange)}
+.tbl td{padding:8px 10px;border-bottom:.5px solid var(--gray100);vertical-align:middle}
+.tbl tbody tr:hover td{background:var(--orange-50)}
+.tbl tbody tr{cursor:pointer}
+.tbl tbody tr:last-child td{border-bottom:none}
+.bdg{font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;display:inline-block}
+.bg{background:var(--green-bg);color:var(--green-text)}
+.br{background:var(--red-bg);color:var(--red-text)}
+.ba{background:var(--amber-bg);color:var(--amber-text)}
+.bb{background:var(--blue-bg);color:var(--blue-text)}
+.bp{background:var(--purple-bg);color:var(--purple-text)}
+.bar-wrap{height:6px;background:var(--gray100);border-radius:3px;overflow:hidden;min-width:60px}
+.bar-fill{height:100%;border-radius:3px;transition:width .4s ease}
+.mkt-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:.5px solid var(--gray100)}
+.mkt-row:last-child{border-bottom:none}
+.mkt-name{width:150px;font-size:12px;font-weight:500;flex-shrink:0}
+.mkt-bar-wrap{flex:1;height:6px;background:var(--gray100);border-radius:3px}
+.mkt-bar{height:6px;border-radius:3px;background:var(--orange);transition:width .4s ease}
+.mkt-val{width:50px;text-align:right;font-size:12px;font-weight:600;flex-shrink:0}
+.mkt-sub{width:60px;text-align:right;font-size:10px;color:var(--text4);flex-shrink:0}
+.hist{display:flex;align-items:flex-end;gap:3px;height:72px}
+.hist-bar{flex:1;border-radius:2px 2px 0 0;min-width:8px;transition:opacity .2s}
+.hist-bar:hover{opacity:.7}
+.hist-labels{display:flex;gap:3px;margin-top:4px}
+.hist-label{flex:1;font-size:9px;color:var(--text4);text-align:center}
+.tenure-row{display:flex;align-items:center;gap:8px;padding:5px 0}
+.tenure-label{width:110px;font-size:11px;color:var(--text2);flex-shrink:0}
+.tenure-bar-bg{flex:1;height:8px;background:var(--gray100);border-radius:4px}
+.tenure-bar-fill{height:8px;border-radius:4px;background:var(--blue);transition:width .4s}
+.tenure-n{width:28px;text-align:right;font-size:11px;color:var(--text3)}
+.tenure-pct{width:32px;text-align:right;font-size:11px;font-weight:600;color:var(--text2)}
+input[type=text],input[type=date],select{
+  font-family:inherit;font-size:12px;padding:5px 10px;
+  border:.5px solid var(--gray300);border-radius:var(--r);
+  background:var(--gray100);color:var(--charcoal);outline:none
 }
-
-/* ── HEADER ── */
-.hdr {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 16px 28px;
-  border-bottom: 1px solid var(--border);
-  background: var(--bg);
-  position: sticky; top: 0; z-index: 100;
-}
-.hdr-left { display: flex; align-items: center; gap: 14px; }
-.hdr-logo { font-family: 'DM Serif Display', serif; font-size: 18px; color: var(--teal); letter-spacing: -0.3px; }
-.hdr-sep { width: 1px; height: 20px; background: var(--border); }
-.hdr-title { font-size: 13px; color: var(--text2); font-weight: 500; }
-.hdr-right { display: flex; gap: 8px; align-items: center; }
-
-/* ── CONTROLS ── */
-.controls {
-  display: flex; gap: 8px; align-items: center;
-  padding: 12px 28px;
-  background: var(--bg2);
-  border-bottom: 1px solid var(--border);
-  flex-wrap: wrap;
-}
-.ctrl-group { display: flex; gap: 6px; align-items: center; }
-.ctrl-label { color: var(--text3); font-size: 11px; text-transform: uppercase; letter-spacing: .8px; }
-select, input[type=text] {
-  background: var(--bg3); border: 1px solid var(--border);
-  color: var(--text1); font-family: 'DM Sans', sans-serif;
-  font-size: 12px; padding: 5px 10px; border-radius: 6px;
-  outline: none; cursor: pointer;
-}
-select:focus, input[type=text]:focus { border-color: var(--teal); }
-.btn {
-  background: var(--teal); color: #000; border: none;
-  font-family: 'DM Sans', sans-serif; font-weight: 600;
-  font-size: 12px; padding: 6px 14px; border-radius: 6px;
-  cursor: pointer; transition: opacity .15s;
-}
-.btn:hover { opacity: .85; }
-.btn-ghost {
-  background: var(--bg3); color: var(--text2); border: 1px solid var(--border);
-  font-family: 'DM Sans', sans-serif; font-weight: 500;
-  font-size: 12px; padding: 5px 12px; border-radius: 6px;
-  cursor: pointer; transition: all .15s;
-}
-.btn-ghost:hover { border-color: var(--teal); color: var(--teal); }
-.btn-ghost.active { border-color: var(--teal); color: var(--teal); background: rgba(0,212,170,.08); }
-.divider { width: 1px; height: 20px; background: var(--border); margin: 0 4px; }
-
-/* ── TABS ── */
-.tabs {
-  display: flex; gap: 0;
-  padding: 0 28px;
-  border-bottom: 1px solid var(--border);
-  background: var(--bg);
-}
-.tab {
-  padding: 12px 18px; font-size: 12px; font-weight: 500;
-  color: var(--text3); cursor: pointer; border-bottom: 2px solid transparent;
-  transition: all .15s; white-space: nowrap;
-}
-.tab:hover { color: var(--text2); }
-.tab.active { color: var(--teal); border-bottom-color: var(--teal); }
-
-/* ── MAIN ── */
-.main { padding: 24px 28px; }
-
-/* ── KPI ROW ── */
-.kpi-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; margin-bottom: 24px; }
-.kpi {
-  background: var(--bg2); border: 1px solid var(--border);
-  border-radius: 10px; padding: 16px;
-}
-.kpi-label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: .7px; margin-bottom: 8px; }
-.kpi-value { font-size: 26px; font-family: 'DM Serif Display', serif; color: var(--text1); line-height: 1; }
-.kpi-value.teal { color: var(--teal); }
-.kpi-value.amber { color: var(--amber); }
-.kpi-value.red { color: var(--red); }
-.kpi-value.green { color: var(--green); }
-.kpi-sub { font-size: 11px; color: var(--text3); margin-top: 4px; }
-.kpi-delta { font-size: 11px; margin-top: 4px; }
-.kpi-delta.up { color: var(--green); }
-.kpi-delta.dn { color: var(--red); }
-
-/* ── TWO COLUMN ── */
-.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
-.three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 20px; }
-
-/* ── CARD ── */
-.card {
-  background: var(--bg2); border: 1px solid var(--border);
-  border-radius: 10px; padding: 18px;
-}
-.card-title {
-  font-size: 11px; color: var(--text3); text-transform: uppercase;
-  letter-spacing: .8px; margin-bottom: 16px; display: flex;
-  align-items: center; justify-content: space-between;
-}
-.card-title span { color: var(--text2); font-size: 12px; text-transform: none; letter-spacing: 0; }
-
-/* ── MARKET ROWS ── */
-.mkt-row {
-  display: flex; align-items: center; gap: 10px;
-  padding: 8px 0; border-bottom: 1px solid var(--border);
-}
-.mkt-row:last-child { border-bottom: none; }
-.mkt-name { width: 140px; font-size: 12px; color: var(--text1); flex-shrink: 0; }
-.mkt-bar-wrap { flex: 1; height: 6px; background: var(--bg3); border-radius: 3px; }
-.mkt-bar { height: 6px; border-radius: 3px; background: var(--teal); transition: width .5s ease; }
-.mkt-bar.amber { background: var(--amber); }
-.mkt-bar.red { background: var(--red); }
-.mkt-val { width: 50px; text-align: right; font-size: 12px; color: var(--text2); flex-shrink: 0; }
-.mkt-val2 { width: 60px; text-align: right; font-size: 11px; color: var(--text3); flex-shrink: 0; }
-
-/* ── HISTOGRAM ── */
-.hist { display: flex; align-items: flex-end; gap: 4px; height: 80px; margin-bottom: 8px; }
-.hist-bar { flex: 1; border-radius: 3px 3px 0 0; background: var(--teal); opacity: .7; transition: all .3s; min-width: 8px; }
-.hist-bar:hover { opacity: 1; }
-.hist-bar.red { background: var(--red); }
-.hist-bar.amber { background: var(--amber); }
-.hist-labels { display: flex; gap: 4px; }
-.hist-label { flex: 1; font-size: 9px; color: var(--text3); text-align: center; min-width: 8px; }
-
-/* ── TABLE ── */
-.tbl-wrap { overflow-x: auto; }
-table { width: 100%; border-collapse: collapse; }
-th {
-  text-align: left; font-size: 10px; color: var(--text3);
-  text-transform: uppercase; letter-spacing: .7px;
-  padding: 8px 10px; border-bottom: 1px solid var(--border);
-  white-space: nowrap; cursor: pointer;
-}
-th:hover { color: var(--text2); }
-td { padding: 9px 10px; border-bottom: 1px solid rgba(42,51,72,.5); font-size: 12px; }
-tr:hover td { background: rgba(255,255,255,.02); }
-tr.clickable { cursor: pointer; }
-.badge {
-  display: inline-block; padding: 2px 8px; border-radius: 4px;
-  font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .5px;
-}
-.badge.active { background: rgba(34,197,94,.15); color: var(--green); }
-.badge.terminated { background: rgba(255,92,92,.15); color: var(--red); }
-.badge.inactive { background: rgba(139,154,191,.1); color: var(--text3); }
-.badge.ot { background: rgba(245,166,35,.15); color: var(--amber); }
-.badge.zero { background: rgba(77,94,128,.2); color: var(--text3); }
-
-/* ── SEARCH ── */
-.search-wrap { position: relative; margin-bottom: 14px; }
-.search-wrap input {
-  width: 100%; padding: 8px 12px 8px 34px;
-  font-size: 13px; border-radius: 8px;
-}
-.search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text3); font-size: 14px; }
-
-/* ── SPARKLINE ── */
-.spark { display: inline-flex; align-items: flex-end; gap: 2px; height: 20px; vertical-align: middle; }
-.spark-bar { width: 4px; border-radius: 1px; background: var(--teal); opacity: .6; }
-
-/* ── MODAL ── */
-.modal-bg {
-  display: none; position: fixed; inset: 0;
-  background: rgba(0,0,0,.7); z-index: 200;
-  align-items: center; justify-content: center;
-}
-.modal-bg.open { display: flex; }
-.modal {
-  background: var(--bg2); border: 1px solid var(--border);
-  border-radius: 14px; width: min(760px, 95vw);
-  max-height: 85vh; overflow-y: auto;
-  padding: 28px;
-}
-.modal-hdr {
-  display: flex; justify-content: space-between; align-items: flex-start;
-  margin-bottom: 22px;
-}
-.modal-name { font-family: 'DM Serif Display', serif; font-size: 22px; color: var(--text1); }
-.modal-sub { font-size: 12px; color: var(--text3); margin-top: 3px; }
-.modal-close {
-  background: var(--bg3); border: 1px solid var(--border);
-  color: var(--text2); width: 28px; height: 28px; border-radius: 6px;
-  cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center;
-}
-.modal-close:hover { color: var(--text1); }
-.modal-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 20px; }
-.modal-stat { background: var(--bg3); border-radius: 8px; padding: 12px; }
-.modal-stat-label { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: .7px; margin-bottom: 6px; }
-.modal-stat-val { font-size: 18px; font-family: 'DM Serif Display', serif; }
-.modal-section { margin-bottom: 18px; }
-.modal-section-title { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: .8px; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
-.skill-tag { display: inline-block; background: rgba(0,212,170,.1); color: var(--teal); border: 1px solid rgba(0,212,170,.2); border-radius: 4px; padding: 3px 8px; font-size: 11px; margin: 2px; }
-.week-bars { display: flex; gap: 3px; align-items: flex-end; height: 48px; }
-.week-bar { flex: 1; border-radius: 2px 2px 0 0; min-width: 6px; }
-
-/* ── LOADING ── */
-.loading { display: flex; align-items: center; gap: 10px; color: var(--text3); padding: 40px; justify-content: center; }
-.spinner { width: 18px; height: 18px; border: 2px solid var(--border); border-top-color: var(--teal); border-radius: 50%; animation: spin .7s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
-
-/* ── TENURE BARS ── */
-.tenure-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
-.tenure-label { width: 100px; font-size: 11px; color: var(--text2); flex-shrink: 0; }
-.tenure-bar-wrap { flex: 1; height: 8px; background: var(--bg3); border-radius: 4px; }
-.tenure-bar { height: 8px; border-radius: 4px; background: var(--blue); }
-.tenure-count { width: 30px; text-align: right; font-size: 11px; color: var(--text3); }
-.tenure-pct { width: 36px; text-align: right; font-size: 11px; color: var(--text2); }
-
-/* ── DONUT ── */
-.donut-wrap { display: flex; align-items: center; gap: 16px; }
-.donut-legend { display: flex; flex-direction: column; gap: 6px; }
-.donut-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text2); }
-.donut-dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
-
-/* ── RESPONSIVE ── */
-@media (max-width: 900px) {
-  .two-col, .three-col { grid-template-columns: 1fr; }
-  .modal-grid { grid-template-columns: 1fr 1fr; }
-}
+input[type=text]:focus,input[type=date]:focus,select:focus{border-color:var(--orange)}
+.search-wrap{position:relative;margin-bottom:12px}
+.search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text4);pointer-events:none}
+.search-wrap input{width:100%;padding-left:30px}
+.month-bar{display:flex;gap:2px;align-items:flex-end;height:56px}
+.month-col{flex:1;display:flex;gap:1px;align-items:flex-end}
+.month-h{flex:1;border-radius:2px 2px 0 0;min-width:3px}
+.month-labels{display:flex;gap:2px;margin-top:4px}
+.month-label{flex:1;font-size:8px;color:var(--text4);text-align:center}
+.skill-tag{display:inline-block;background:var(--orange-pale);color:var(--orange);border-radius:4px;padding:2px 7px;font-size:10px;margin:1px;font-weight:500}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:var(--white);border-radius:14px;width:min(720px,94vw);max-height:88vh;overflow-y:auto;padding:28px;box-shadow:var(--shadow-md)}
+.modal-hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px}
+.modal-name{font-size:20px;font-weight:600;color:var(--charcoal)}
+.modal-sub{font-size:11px;color:var(--text4);margin-top:2px}
+.modal-close{background:var(--gray100);border:.5px solid var(--gray300);color:var(--text3);width:28px;height:28px;border-radius:6px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center}
+.modal-close:hover{background:var(--gray200)}
+.modal-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:18px}
+.modal-kpi{background:var(--gray100);border-radius:var(--r);padding:10px 12px}
+.modal-kpi-l{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text4);margin-bottom:4px}
+.modal-kpi-v{font-size:18px;font-weight:500;letter-spacing:-.01em}
+.modal-sec{margin-bottom:16px}
+.modal-sec-title{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-bottom:10px;padding-bottom:6px;border-bottom:.5px solid var(--gray200)}
+.week-chart{display:flex;gap:3px;align-items:flex-end;height:48px}
+.week-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px}
+.week-bar{width:100%;border-radius:2px 2px 0 0;min-height:2px}
+.week-lbl{font-size:8px;color:var(--text4)}
+.detail-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.detail-item .dl{font-size:10px;color:var(--text4);margin-bottom:2px}
+.detail-item .dv{font-size:12px;font-weight:500}
+.ftr{border-top:1px solid var(--gray200);padding:14px 32px;display:flex;justify-content:space-between;font-size:10px;color:var(--text4);background:var(--white);margin-top:16px}
+select.filter{font-size:11px;padding:4px 8px}
 </style>
 </head>
 <body>
 
 <div class="hdr">
-  <div class="hdr-left">
-    <div class="hdr-logo">Tribute</div>
-    <div class="hdr-sep"></div>
-    <div class="hdr-title">Caregiver Intelligence</div>
+  <div class="hdr-brand">
+    <span class="hdr-title">Tribute</span>
+    <span class="hdr-sub">Home Care · Caregiver Intelligence</span>
   </div>
   <div class="hdr-right">
-    <div id="lastUpdated" style="font-size:11px;color:var(--text3)"></div>
+    <span><span class="live-dot"></span>Live · Viv Technologies</span>
+    <span id="clock">—</span>
   </div>
 </div>
 
-<div class="controls">
-  <div class="ctrl-group">
-    <span class="ctrl-label">Market</span>
-    <select id="mktFilter">
-      <option value="">All Markets</option>
-      <option value="Baltimore">Baltimore</option>
-      <option value="Boston">Boston</option>
-      <option value="MetroWest Boston">MetroWest Boston</option>
-      <option value="North of Boston">North of Boston</option>
-      <option value="South of Boston">South of Boston</option>
-      <option value="Chicago">Chicago</option>
-      <option value="Annapolis">Annapolis</option>
-      <option value="Bethesda">Bethesda</option>
-    </select>
-  </div>
-  <div class="ctrl-group">
-    <span class="ctrl-label">Status</span>
-    <select id="statusFilter">
-      <option value="">All</option>
-      <option value="active">Active</option>
-      <option value="terminated">Terminated</option>
-    </select>
-  </div>
-  <div class="ctrl-group">
-    <span class="ctrl-label">Hours</span>
-    <select id="hoursFilter">
-      <option value="">All</option>
-      <option value="zero">Zero Hours (4wk)</option>
-      <option value="low">Under 20 hrs/wk</option>
-      <option value="mid">20–40 hrs/wk</option>
-      <option value="high">40+ hrs/wk (OT)</option>
-    </select>
-  </div>
-  <div class="divider"></div>
-  <div class="ctrl-group">
-    <span class="ctrl-label">Week</span>
-    <input type="date" id="weekPicker" style="width:140px">
-  </div>
-  <button class="btn" onclick="loadAll()">Load</button>
+<div class="period-bar">
+  <span style="font-size:11px;color:var(--text4);margin-right:4px">As of week:</span>
+  <div class="pbtn on" id="pb0" onclick="setWeek(0,this)">This week</div>
+  <div class="pbtn" onclick="setWeek(-1,this)">Last week</div>
+  <div class="pbtn" onclick="setWeek(-2,this)">2 weeks ago</div>
+  <div class="pbtn" onclick="setWeek(-3,this)">3 weeks ago</div>
+  <div class="pbtn" onclick="setWeek(-4,this)">4 weeks ago</div>
+  <span style="font-size:11px;color:var(--text4);margin-left:12px">Filter:</span>
+  <select class="filter" id="mktFilter" onchange="applyFilter()">
+    <option value="">All Markets</option>
+    <option>Baltimore</option><option>Boston</option>
+    <option>MetroWest Boston</option><option>North of Boston</option>
+    <option>South of Boston</option><option>Chicago</option>
+    <option>Annapolis</option><option>Bethesda</option>
+  </select>
+  <select class="filter" id="statusFilter" onchange="applyFilter()">
+    <option value="">All Status</option>
+    <option value="active">Active</option>
+    <option value="terminated">Terminated</option>
+  </select>
 </div>
 
-<div class="tabs">
-  <div class="tab active" onclick="showTab('overview')">Overview</div>
-  <div class="tab" onclick="showTab('hours')">Hours Distribution</div>
-  <div class="tab" onclick="showTab('lifecycle')">Lifecycle</div>
-  <div class="tab" onclick="showTab('roster')">Roster</div>
+<div class="nav-tabs">
+  <div class="ntab on" onclick="setTab('overview',this)">Overview</div>
+  <div class="ntab" onclick="setTab('hours',this)">Hours Distribution</div>
+  <div class="ntab" onclick="setTab('lifecycle',this)">Lifecycle</div>
+  <div class="ntab" onclick="setTab('roster',this)">Roster</div>
 </div>
 
-<div class="main">
-
-<!-- OVERVIEW TAB -->
-<div id="tab-overview">
-  <div class="kpi-row" id="kpiRow">
-    <div class="loading"><div class="spinner"></div> Loading caregiver data…</div>
-  </div>
-  <div class="two-col">
-    <div class="card">
-      <div class="card-title">Avg Weekly Hours by Market <span id="avgHrsWeek"></span></div>
-      <div id="mktHrsBars"></div>
-    </div>
-    <div class="card">
-      <div class="card-title">Utilization vs Availability <span></span></div>
-      <div id="utilBars"></div>
-    </div>
-  </div>
-  <div class="two-col">
-    <div class="card">
-      <div class="card-title">Hours Distribution (Active Caregivers)</div>
-      <div class="hist" id="histBars"></div>
-      <div class="hist-labels" id="histLabels"></div>
-    </div>
-    <div class="card">
-      <div class="card-title">Zero-Hour Breakdown <span id="zeroTotal"></span></div>
-      <div id="zeroBreakdown"></div>
-    </div>
-  </div>
+<div class="main" id="main">
+  <div class="loading"><div class="spin"></div>Loading caregiver data…</div>
 </div>
 
-<!-- HOURS TAB -->
-<div id="tab-hours" style="display:none">
-  <div class="card" style="margin-bottom:16px">
-    <div class="card-title">Weekly Hours per Active Caregiver — Rolling 4 Weeks</div>
-    <div id="hoursDetailChart"></div>
-  </div>
-  <div class="three-col">
-    <div class="card">
-      <div class="card-title">OT Caregivers (40+ hrs)</div>
-      <div id="otCaregivers"></div>
-    </div>
-    <div class="card">
-      <div class="card-title">Underutilized (&lt;20 hrs)</div>
-      <div id="underCaregivers"></div>
-    </div>
-    <div class="card">
-      <div class="card-title">Zero Hours This Week</div>
-      <div id="zeroCaregivers"></div>
-    </div>
-  </div>
+<div class="ftr">
+  <span>Tribute Home Care LLC · Caregiver Intelligence Dashboard</span>
+  <span id="updated">—</span>
 </div>
 
-<!-- LIFECYCLE TAB -->
-<div id="tab-lifecycle" style="display:none">
-  <div class="kpi-row" id="lifecycleKpis"></div>
-  <div class="two-col">
-    <div class="card">
-      <div class="card-title">Tenure Distribution</div>
-      <div id="tenureBars"></div>
-    </div>
-    <div class="card">
-      <div class="card-title">Hire vs Termination Trend (12 months)</div>
-      <div id="hireTrend"></div>
-    </div>
-  </div>
-  <div class="two-col">
-    <div class="card">
-      <div class="card-title">Terminations by Market</div>
-      <div id="termByMkt"></div>
-    </div>
-    <div class="card">
-      <div class="card-title">New Hires by Market (last 90 days)</div>
-      <div id="hiresByMkt"></div>
-    </div>
-  </div>
-</div>
-
-<!-- ROSTER TAB -->
-<div id="tab-roster" style="display:none">
-  <div class="search-wrap">
-    <span class="search-icon">⌕</span>
-    <input type="text" id="cgSearch" placeholder="Search caregiver name, market, designation…" oninput="renderRoster()">
-  </div>
-  <div class="tbl-wrap">
-    <table id="rosterTable">
-      <thead>
-        <tr>
-          <th onclick="sortRoster('name')">Name ↕</th>
-          <th onclick="sortRoster('market')">Market ↕</th>
-          <th onclick="sortRoster('status')">Status ↕</th>
-          <th onclick="sortRoster('tenure')">Tenure ↕</th>
-          <th onclick="sortRoster('hireDate')">Hired ↕</th>
-          <th onclick="sortRoster('avgHrs')">Avg Hrs/Wk ↕</th>
-          <th onclick="sortRoster('availability')">Availability ↕</th>
-          <th onclick="sortRoster('utilization')">Utilization ↕</th>
-          <th>Last Visit</th>
-          <th>Skills</th>
-        </tr>
-      </thead>
-      <tbody id="rosterBody"></tbody>
-    </table>
-  </div>
-  <div id="rosterCount" style="margin-top:10px;font-size:11px;color:var(--text3)"></div>
-</div>
-
-</div><!-- /main -->
-
-<!-- CAREGIVER MODAL -->
-<div class="modal-bg" id="cgModal" onclick="closeModal(event)">
-  <div class="modal" id="modalContent">
-    <div class="modal-hdr">
-      <div>
-        <div class="modal-name" id="modalName"></div>
-        <div class="modal-sub" id="modalSub"></div>
-      </div>
-      <button class="modal-close" onclick="document.getElementById('cgModal').classList.remove('open')">✕</button>
-    </div>
-    <div class="modal-grid" id="modalStats"></div>
-    <div class="modal-section">
-      <div class="modal-section-title">Weekly Hours — Last 8 Weeks</div>
-      <div class="week-bars" id="modalWeekBars"></div>
-      <div style="display:flex;gap:3px;margin-top:4px" id="modalWeekLabels"></div>
-    </div>
-    <div class="modal-section" id="modalSkillsSection">
-      <div class="modal-section-title">Skills & Certifications</div>
-      <div id="modalSkills"></div>
-    </div>
-    <div class="modal-section">
-      <div class="modal-section-title">Profile Details</div>
-      <div id="modalDetails" style="display:grid;grid-template-columns:1fr 1fr;gap:8px"></div>
-    </div>
-  </div>
+<!-- MODAL -->
+<div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal" id="modalBody"></div>
 </div>
 
 <script>
-const PROXY='https://tribute-api-prod-bkc4hfcwf3f2f6bf.centralus-01.azurewebsites.net/api/vivProxy';
-const MARKETS=['Baltimore','Boston','MetroWest Boston','North of Boston','South of Boston','Chicago','Annapolis','Bethesda'];
+var API='https://tribute-api-prod-bkc4hfcwf3f2f6bf.centralus-01.azurewebsites.net/api/vivProxy';
+var allCaregivers=[], cgHoursMap={}, curWeek=null, curTab='overview';
+var rosterSort={col:'name',dir:1};
 
-let allCaregivers=[], cgHoursMap={}, visitWeeks=[], currentTab='overview', sortCol='name', sortDir=1;
+// ── TIME ──
+setInterval(function(){
+  document.getElementById('clock').textContent=new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+},1000);
 
-// ── UTILITIES ──
-function getSunday(d){
-  const dt=new Date(d);
-  dt.setUTCHours(0,0,0,0);
-  const day=dt.getUTCDay();
-  dt.setUTCDate(dt.getUTCDate()-day);
-  return dt.toISOString().split('T')[0];
+function getSunday(offset){
+  var d=new Date();d.setDate(d.getDate()-d.getDay()+(offset||0)*7);d.setHours(0,0,0,0);return d;
 }
-function fmtDate(s){if(!s)return '—'; const d=new Date(s); return d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});}
+function fmtD(d){return d instanceof Date?d.toISOString().split('T')[0]:'';}
+function fmtDate(s){if(!s)return '—';var d=new Date(s);return d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});}
 function tenure(hd,td){
-  if(!hd)return null;
-  const end=td?new Date(td):new Date();
-  const days=Math.floor((end-new Date(hd))/86400000);
+  if(!hd)return '—';
+  var end=td?new Date(td):new Date();
+  var days=Math.floor((end-new Date(hd))/86400000);
   if(days<30)return days+'d';
   if(days<365)return Math.floor(days/30)+'mo';
-  const yrs=Math.floor(days/365);
-  const mos=Math.floor((days%365)/30);
-  return yrs+'y'+(mos?` ${mos}mo`:'');
+  var y=Math.floor(days/365),m=Math.floor((days%365)/30);
+  return y+'y'+(m?' '+m+'mo':'');
 }
 function tenureDays(hd,td){
   if(!hd)return 0;
-  const end=td?new Date(td):new Date();
-  return Math.floor((end-new Date(hd))/86400000);
+  return Math.floor(((td?new Date(td):new Date())-new Date(hd))/86400000);
 }
 function normalizeMarket(cg){
-  const city=cg.gcity||'Unknown';
-  const known=['Baltimore','Boston','MetroWest Boston','North of Boston','South of Boston','Chicago','Annapolis','Bethesda','Northern Virginia'];
-  if(known.includes(city))return city;
-  return city;
+  var c=cg.gcity||'Unknown';
+  var known=['Baltimore','Boston','MetroWest Boston','North of Boston','South of Boston','Chicago','Annapolis','Bethesda','Northern Virginia'];
+  return known.includes(c)?c:c;
 }
-function isActive(cg){ return (cg.st||'').toLowerCase()==='hired'; }
-function isTerminated(cg){ return (cg.st||'').toLowerCase()==='terminated'; }
+function isActive(cg){return (cg.st||'').toLowerCase()==='hired';}
+function isTerminated(cg){return (cg.st||'').toLowerCase()==='terminated';}
 function isStaff(cg){
-  const email=(cg.email||'').toLowerCase();
-  const city=cg.gcity||'';
-  const name=((cg.fn||'')+' '+(cg.ln||'')).toLowerCase();
-  return city==='Tribute'||email.endsWith('@tributehomecare.com')||name.includes('office');
+  var email=(cg.email||'').toLowerCase();
+  var city=cg.gcity||'';
+  var name=((cg.fn||'')+' '+(cg.ln||'')).toLowerCase();
+  var adminName=((cg.queries&&cg.queries.adminName)||'').toLowerCase();
+  var excluded=['jen kulig','jennifer kulig','andrew dobson','tom o brien'];
+  if(excluded.some(function(n){return adminName.includes(n);}))return true;
+  return city==='Tribute'||email.endsWith('@tributehomecare.com')||name.includes('office')||city==='';
 }
-function avgHrs(cgid,weeks){
-  if(!cgHoursMap[cgid]||!weeks.length)return 0;
-  const vals=weeks.map(w=>cgHoursMap[cgid][w]||0);
-  return vals.reduce((s,v)=>s+v,0)/weeks.length;
-}
-
-// ── DATE SETUP ──
-(function(){
-  const sun=getSunday(new Date());
-  document.getElementById('weekPicker').value=sun;
-})();
-
-function getRecentWeeks(n, fromDate){
-  const weeks=[];
-  let d=new Date(fromDate||document.getElementById('weekPicker').value);
+function getWeeks(n){
+  var w=[],d=new Date(curWeek);
   d.setUTCHours(0,0,0,0);
-  const dow=d.getUTCDay();
-  d.setUTCDate(d.getUTCDate()-dow);
-  for(let i=0;i<n;i++){
-    weeks.unshift(d.toISOString().split('T')[0]);
-    d.setUTCDate(d.getUTCDate()-7);
-  }
-  return weeks;
+  for(var i=0;i<n;i++){w.unshift(fmtD(new Date(d)));d.setUTCDate(d.getUTCDate()-7);}
+  return w;
 }
-
-// ── LOAD ALL ──
-async function loadAll(){
-  showLoading();
-  const weeks=getRecentWeeks(8);
-  visitWeeks=weeks;
-  
-  // Fetch caregivers
-  const cgRes=await fetch(`${PROXY}?endpoint=caregivers&startDate=${weeks[0]}&endDate=${weeks[weeks.length-1]}`);
-  const cgData=await cgRes.json();
-  allCaregivers=(cgData.caregivers||[]).filter(cg=>!isStaff(cg));
-  
-  // Fetch hours for each week (use visits endpoint)
-  cgHoursMap={};
-  const weekFetches=weeks.slice(-4).map(w=>fetchWeekHours(w));
-  await Promise.all(weekFetches);
-  
-  document.getElementById('lastUpdated').textContent='Updated '+new Date().toLocaleTimeString();
-  renderCurrentTab();
+function cgAvgHrs(cgid,weeks){
+  if(!cgHoursMap[cgid])return 0;
+  var vals=weeks.map(function(w){return cgHoursMap[cgid][w]||0;});
+  var nonZero=vals.filter(function(v){return v>0;});
+  return nonZero.length?nonZero.reduce(function(s,v){return s+v;},0)/nonZero.length:0;
 }
-
-async function fetchWeekHours(weekStart){
-  const weekEnd=new Date(weekStart);
-  weekEnd.setUTCDate(weekEnd.getUTCDate()+6);
-  const endStr=weekEnd.toISOString().split('T')[0];
-  try {
-    const res=await fetch(`${PROXY}?endpoint=caregiver_hours&startDate=${weekStart}&endDate=${endStr}`);
-    const data=await res.json();
-    // caregiver_hours returns per-caregiver breakdown
-    const caregivers=data.caregivers||data.byCaregiver||[];
-    for(const cg of caregivers){
-      const id=cg.cgid||cg._id||cg.id;
-      if(!id)continue;
-      if(!cgHoursMap[id])cgHoursMap[id]={};
-      cgHoursMap[id][weekStart]=(cg.payableHours||cg.hours||0);
-    }
-  } catch(e){}
-}
-
-function showLoading(){
-  document.getElementById('kpiRow').innerHTML='<div class="loading"><div class="spinner"></div> Loading caregiver data…</div>';
-}
-
-// ── FILTERS ──
 function getFiltered(){
-  const mkt=document.getElementById('mktFilter').value;
-  const status=document.getElementById('statusFilter').value;
-  const hrs=document.getElementById('hoursFilter').value;
-  const weeks4=visitWeeks.slice(-4);
-  return allCaregivers.filter(cg=>{
-    const market=normalizeMarket(cg);
-    if(mkt&&market!==mkt)return false;
-    if(status==='active'&&!isActive(cg))return false;
-    if(status==='terminated'&&!isTerminated(cg))return false;
-    if(hrs){
-      const avg=avgHrs(cg._id,weeks4);
-      if(hrs==='zero'&&avg>0)return false;
-      if(hrs==='low'&&(avg===0||avg>=20))return false;
-      if(hrs==='mid'&&(avg<20||avg>=40))return false;
-      if(hrs==='high'&&avg<40)return false;
-    }
+  var mkt=document.getElementById('mktFilter').value;
+  var st=document.getElementById('statusFilter').value;
+  return allCaregivers.filter(function(cg){
+    if(mkt&&normalizeMarket(cg)!==mkt)return false;
+    if(st==='active'&&!isActive(cg))return false;
+    if(st==='terminated'&&!isTerminated(cg))return false;
     return true;
   });
 }
 
-// ── TAB NAVIGATION ──
-function showTab(t){
-  currentTab=t;
-  document.querySelectorAll('.tab').forEach((el,i)=>{
-    el.classList.toggle('active',['overview','hours','lifecycle','roster'][i]===t);
-  });
-  ['overview','hours','lifecycle','roster'].forEach(id=>{
-    document.getElementById('tab-'+id).style.display=id===t?'':'none';
-  });
-  renderCurrentTab();
+// ── LOAD ──
+function setWeek(offset,el){
+  curWeek=fmtD(getSunday(offset));
+  document.querySelectorAll('.pbtn').forEach(function(x){x.classList.remove('on');});
+  el.classList.add('on');
+  load();
 }
-function renderCurrentTab(){
-  if(currentTab==='overview')renderOverview();
-  else if(currentTab==='hours')renderHours();
-  else if(currentTab==='lifecycle')renderLifecycle();
-  else if(currentTab==='roster')renderRoster();
+function applyFilter(){renderTab();}
+
+async function load(){
+  document.getElementById('main').innerHTML='<div class="loading"><div class="spin"></div>Loading caregiver data…</div>';
+  var weeks8=getWeeks(8);
+  // Fetch caregivers
+  var cgRes=await fetch(API+'?endpoint=caregivers&startDate='+weeks8[0]+'&endDate='+curWeek);
+  var cgData=await cgRes.json();
+  allCaregivers=(cgData.caregivers||[]).filter(function(cg){return !isStaff(cg);});
+  // Fetch hours for last 4 weeks
+  cgHoursMap={};
+  var weeks4=getWeeks(4);
+  await Promise.all(weeks4.map(fetchHours));
+  document.getElementById('updated').textContent='Updated '+new Date().toLocaleTimeString();
+  renderTab();
 }
 
-// ── OVERVIEW TAB ──
+async function fetchHours(wk){
+  var end=new Date(wk);end.setUTCDate(end.getUTCDate()+6);
+  var endStr=fmtD(end);
+  try{
+    var r=await fetch(API+'?endpoint=caregiver_hours&startDate='+wk+'&endDate='+endStr);
+    var d=await r.json();
+    var list=d.caregivers||d.byCaregiver||[];
+    list.forEach(function(cg){
+      var id=cg.cgid||cg._id||cg.id;
+      if(!id)return;
+      if(!cgHoursMap[id])cgHoursMap[id]={};
+      cgHoursMap[id][wk]=cg.payableHours||cg.hours||0;
+    });
+  }catch(e){}
+}
+
+function renderTab(){
+  if(curTab==='overview')renderOverview();
+  else if(curTab==='hours')renderHours();
+  else if(curTab==='lifecycle')renderLifecycle();
+  else if(curTab==='roster')renderRoster();
+}
+function setTab(t,el){
+  curTab=t;
+  document.querySelectorAll('.ntab').forEach(function(x){x.classList.remove('on');});
+  el.classList.add('on');
+  renderTab();
+}
+
+// ─────────────────────────────────────────────
+// OVERVIEW
+// ─────────────────────────────────────────────
 function renderOverview(){
-  const filtered=getFiltered();
-  const active=filtered.filter(isActive);
-  const terminated=filtered.filter(isTerminated);
-  const weeks4=visitWeeks.slice(-4);
-  const curWeek=visitWeeks[visitWeeks.length-1];
+  var filtered=getFiltered();
+  var active=filtered.filter(isActive);
+  var weeks4=getWeeks(4);
+  var otCount=0,zeroCount=0,totalHrs=0,cgWithHrs=0;
+  active.forEach(function(cg){
+    var a=cgAvgHrs(cg._id,weeks4);
+    if(a>=40)otCount++;
+    if(a===0)zeroCount++;
+    else{totalHrs+=a;cgWithHrs++;}
+  });
+  var compAvg=cgWithHrs?totalHrs/cgWithHrs:0;
+  var newHires=active.filter(function(cg){return cg.d&&cg.d.h&&(new Date()-new Date(cg.d.h))<30*86400000;}).length;
 
-  // Calc hours stats
-  let totalHrs=0, cgWithHrs=0, otCount=0, zeroCount=0;
-  for(const cg of active){
-    const avg=avgHrs(cg._id,weeks4);
-    if(avg>0){cgWithHrs++;totalHrs+=avg;}
-    if(avg>=40)otCount++;
-    if(avg===0)zeroCount++;
-  }
-  const companyAvg=cgWithHrs>0?(totalHrs/cgWithHrs):0;
+  // Market hours data
+  var mktMap={};
+  active.forEach(function(cg){
+    var m=normalizeMarket(cg);
+    if(!mktMap[m])mktMap[m]={sum:0,count:0,availSum:0};
+    var a=cgAvgHrs(cg._id,weeks4);
+    mktMap[m].sum+=a;mktMap[m].count++;
+    mktMap[m].availSum+=(cg.availability&&cg.availability.hoursPerWeek)||40;
+  });
+  var mktArr=Object.entries(mktMap).filter(function(e){return e[1].count>0;}).sort(function(a,b){return b[1].sum/b[1].count-a[1].sum/a[1].count;});
+  var maxAvg=Math.max.apply(null,mktArr.map(function(e){return e[1].sum/e[1].count;})||[1]);
 
-  // KPIs
-  document.getElementById('kpiRow').innerHTML=`
-    <div class="kpi"><div class="kpi-label">Active Caregivers</div><div class="kpi-value teal">${active.length}</div><div class="kpi-sub">${terminated.length} terminated</div></div>
-    <div class="kpi"><div class="kpi-label">Avg Hrs / Caregiver</div><div class="kpi-value">${companyAvg.toFixed(1)}</div><div class="kpi-sub">per week (4wk avg)</div></div>
-    <div class="kpi"><div class="kpi-label">OT Caregivers</div><div class="kpi-value amber">${otCount}</div><div class="kpi-sub">${active.length>0?(otCount/active.length*100).toFixed(0):0}% of active</div></div>
-    <div class="kpi"><div class="kpi-label">Zero Hours</div><div class="kpi-value red">${zeroCount}</div><div class="kpi-sub">Active, no visits 4wk</div></div>
-    <div class="kpi"><div class="kpi-label">Utilization</div><div class="kpi-value">${cgWithHrs>0?(cgWithHrs/active.length*100).toFixed(0):0}%</div><div class="kpi-sub">Have hours this period</div></div>
-    <div class="kpi"><div class="kpi-label">New This Month</div><div class="kpi-value green">${countHiredThisMonth(active)}</div><div class="kpi-sub">hired last 30 days</div></div>
-  `;
-
-  // Market hours bars
-  const mktData={};
-  for(const cg of active){
-    const m=normalizeMarket(cg);
-    if(!mktData[m])mktData[m]={hrs:0,count:0,avail:0};
-    const avg=avgHrs(cg._id,weeks4);
-    mktData[m].hrs+=avg;
-    mktData[m].count++;
-    mktData[m].avail+=(cg.availability&&cg.availability.hoursPerWeek)||40;
-  }
-  const mktArr=Object.entries(mktData).filter(([,v])=>v.count>0).sort((a,b)=>b[1].hrs/b[1].count-a[1].hrs/a[1].count);
-  const maxAvg=Math.max(...mktArr.map(([,v])=>v.count>0?v.hrs/v.count:0),1);
-
-  document.getElementById('mktHrsBars').innerHTML=mktArr.map(([mkt,v])=>{
-    const avg=v.count>0?v.hrs/v.count:0;
-    const pct=avg/maxAvg*100;
-    const col=avg>=40?'amber':avg<25?'red':'';
-    return `<div class="mkt-row">
-      <div class="mkt-name">${mkt}</div>
-      <div class="mkt-bar-wrap"><div class="mkt-bar ${col}" style="width:${pct}%"></div></div>
-      <div class="mkt-val">${avg.toFixed(1)}</div>
-      <div class="mkt-val2">${v.count} CGs</div>
-    </div>`;
-  }).join('');
-
-  // Utilization bars
-  document.getElementById('utilBars').innerHTML=mktArr.map(([mkt,v])=>{
-    const actual=v.count>0?v.hrs/v.count:0;
-    const avail=v.count>0?v.avail/v.count:40;
-    const util=avail>0?Math.min(actual/avail*100,100):0;
-    const col=util>=85?'amber':util<50?'red':'';
-    return `<div class="mkt-row">
-      <div class="mkt-name">${mkt}</div>
-      <div class="mkt-bar-wrap"><div class="mkt-bar ${col}" style="width:${util}%"></div></div>
-      <div class="mkt-val">${util.toFixed(0)}%</div>
-      <div class="mkt-val2">${actual.toFixed(0)}/${avail.toFixed(0)}h</div>
-    </div>`;
-  }).join('');
-
-  // Hours histogram
-  const buckets=[0,0,0,0,0,0,0];
-  const bucketLabels=['0','1-10','11-20','21-30','31-40','41-55','55+'];
-  for(const cg of active){
-    const avg=avgHrs(cg._id,weeks4);
-    if(avg===0)buckets[0]++;
-    else if(avg<=10)buckets[1]++;
-    else if(avg<=20)buckets[2]++;
-    else if(avg<=30)buckets[3]++;
-    else if(avg<=40)buckets[4]++;
-    else if(avg<=55)buckets[5]++;
+  // Histogram buckets
+  var buckets=[0,0,0,0,0,0,0];
+  var bLabels=['0','1–10','11–20','21–30','31–40','41–55','55+'];
+  var bColors=['var(--red)','var(--amber)','var(--blue)','var(--blue)','var(--green)','var(--amber)','var(--red)'];
+  active.forEach(function(cg){
+    var a=cgAvgHrs(cg._id,weeks4);
+    if(a===0)buckets[0]++;
+    else if(a<=10)buckets[1]++;
+    else if(a<=20)buckets[2]++;
+    else if(a<=30)buckets[3]++;
+    else if(a<=40)buckets[4]++;
+    else if(a<=55)buckets[5]++;
     else buckets[6]++;
-  }
-  const maxB=Math.max(...buckets,1);
-  const colors=['red','','','','','amber','amber'];
-  document.getElementById('histBars').innerHTML=buckets.map((b,i)=>
-    `<div class="hist-bar ${colors[i]}" style="height:${b/maxB*100}%" title="${bucketLabels[i]} hrs: ${b} caregivers"></div>`
-  ).join('');
-  document.getElementById('histLabels').innerHTML=bucketLabels.map(l=>
-    `<div class="hist-label">${l}</div>`
-  ).join('');
+  });
+  var maxB=Math.max.apply(null,buckets)||1;
 
   // Zero hour breakdown
-  const zeroCGs=active.filter(cg=>avgHrs(cg._id,weeks4)===0);
-  document.getElementById('zeroTotal').textContent=zeroCGs.length+' caregivers';
-  
-  // Categorize zero-hour caregivers by what we know
-  const recentlyHired=zeroCGs.filter(cg=>cg.d&&cg.d.h&&(new Date()-new Date(cg.d.h))<30*86400000).length;
-  const longTerm=zeroCGs.filter(cg=>tenureDays(cg.d&&cg.d.h)>365).length;
-  const noLastBooking=zeroCGs.filter(cg=>!cg.queries||!cg.queries.lastBooking).length;
-  const dormant=zeroCGs.filter(cg=>{
-    if(!cg.queries||!cg.queries.lastBooking)return false;
-    return (new Date()-new Date(cg.queries.lastBooking))>60*86400000;
+  var zeroCGs=active.filter(function(cg){return cgAvgHrs(cg._id,weeks4)===0;});
+  var zRecent=zeroCGs.filter(function(cg){return cg.d&&cg.d.h&&(new Date()-new Date(cg.d.h))<30*86400000;}).length;
+  var zNever=zeroCGs.filter(function(cg){return !(cg.queries&&cg.queries.lastBooking);}).length;
+  var zDormant=zeroCGs.filter(function(cg){
+    var lb=cg.queries&&cg.queries.lastBooking;
+    return lb&&(new Date()-new Date(lb))>60*86400000;
   }).length;
+  var zMaxZ=Math.max(zRecent,zNever,zDormant,1);
 
-  document.getElementById('zeroBreakdown').innerHTML=`
-    ${makeZeroRow('Recently hired (<30d)', recentlyHired, zeroCGs.length, 'var(--blue)')}
-    ${makeZeroRow('Long-term (1yr+ tenure)', longTerm, zeroCGs.length, 'var(--purple)')}
-    ${makeZeroRow('Dormant (60+ days no visit)', dormant, zeroCGs.length, 'var(--red)')}
-    ${makeZeroRow('Never booked', noLastBooking, zeroCGs.length, 'var(--amber)')}
-  `;
+  var html='';
+  // KPIs
+  html+='<div class="kg6">';
+  html+='<div class="kpi"><div class="kl">Active Caregivers</div><div class="kv o">'+active.length+'</div><div class="ks">'+(filtered.filter(isTerminated).length)+' terminated</div></div>';
+  html+='<div class="kpi"><div class="kl">Avg Hrs / Week</div><div class="kv">'+compAvg.toFixed(1)+'</div><div class="ks">among working CGs</div></div>';
+  html+='<div class="kpi"><div class="kl">OT Caregivers</div><div class="kv a">'+otCount+'</div><div class="ks">'+(active.length?Math.round(otCount/active.length*100):0)+'% of active</div></div>';
+  html+='<div class="kpi"><div class="kl">Zero Hours</div><div class="kv r">'+zeroCount+'</div><div class="ks">active, no hrs 4wk avg</div></div>';
+  html+='<div class="kpi"><div class="kl">Utilization</div><div class="kv">'+(active.length?Math.round(cgWithHrs/active.length*100):0)+'%</div><div class="ks">have hours this period</div></div>';
+  html+='<div class="kpi"><div class="kl">New Hires (30d)</div><div class="kv g">'+newHires+'</div><div class="ks">hired last 30 days</div></div>';
+  html+='</div>';
+
+  // Two cols
+  html+='<div class="two-col">';
+  // Avg hrs by market
+  html+='<div class="fc"><div class="ct">Avg Weekly Hours by Market</div>';
+  html+=mktArr.map(function(e){
+    var avg=e[1].sum/e[1].count;
+    var pct=avg/maxAvg*100;
+    var col=avg>=40?'var(--amber)':avg<20?'var(--red)':'var(--orange)';
+    return '<div class="mkt-row"><div class="mkt-name">'+e[0]+'</div><div class="mkt-bar-wrap"><div class="mkt-bar" style="width:'+pct.toFixed(1)+'%;background:'+col+'"></div></div><div class="mkt-val">'+avg.toFixed(1)+'h</div><div class="mkt-sub">'+e[1].count+' CGs</div></div>';
+  }).join('')+'</div>';
+  // Utilization vs availability
+  html+='<div class="fc"><div class="ct">Utilization vs Stated Availability</div>';
+  html+=mktArr.map(function(e){
+    var actual=e[1].sum/e[1].count;
+    var avail=e[1].availSum/e[1].count;
+    var util=avail>0?Math.min(actual/avail*100,100):0;
+    var col=util>=85?'var(--amber)':util<50?'var(--red)':'var(--green)';
+    return '<div class="mkt-row"><div class="mkt-name">'+e[0]+'</div><div class="mkt-bar-wrap"><div class="mkt-bar" style="width:'+util.toFixed(1)+'%;background:'+col+'"></div></div><div class="mkt-val">'+util.toFixed(0)+'%</div><div class="mkt-sub">'+actual.toFixed(0)+'/'+avail.toFixed(0)+'h</div></div>';
+  }).join('')+'</div>';
+  html+='</div>';
+
+  // Two cols
+  html+='<div class="two-col">';
+  // Histogram
+  html+='<div class="fc"><div class="ct">Hours Distribution (Active, 4wk avg)</div>';
+  html+='<div class="hist">';
+  html+=buckets.map(function(b,i){return '<div class="hist-bar" style="height:'+(b/maxB*100).toFixed(0)+'%;background:'+bColors[i]+';opacity:.75" title="'+bLabels[i]+' hrs: '+b+' caregivers"></div>';}).join('');
+  html+='</div><div class="hist-labels">';
+  html+=bLabels.map(function(l){return '<div class="hist-label">'+l+'</div>';}).join('');
+  html+='</div></div>';
+  // Zero breakdown
+  html+='<div class="fc"><div class="ct">Zero-Hour Breakdown <span style="font-size:11px;text-transform:none;letter-spacing:0;color:var(--text3)">'+zeroCGs.length+' active caregivers</span></div>';
+  html+=makeZeroRow('Recently hired (<30d)',zRecent,zMaxZ,'var(--blue)');
+  html+=makeZeroRow('Dormant (60+ days)',zDormant,zMaxZ,'var(--red)');
+  html+=makeZeroRow('Never booked',zNever,zMaxZ,'var(--amber)');
+  html+='</div>';
+  html+='</div>';
+
+  document.getElementById('main').innerHTML=html;
 }
-function makeZeroRow(label,count,total,color){
-  const pct=total>0?count/total*100:0;
-  return `<div class="mkt-row">
-    <div class="mkt-name" style="color:var(--text2)">${label}</div>
-    <div class="mkt-bar-wrap"><div class="mkt-bar" style="width:${pct}%;background:${color}"></div></div>
-    <div class="mkt-val">${count}</div>
-    <div class="mkt-val2">${pct.toFixed(0)}%</div>
-  </div>`;
-}
-function countHiredThisMonth(active){
-  const cutoff=new Date();
-  cutoff.setDate(cutoff.getDate()-30);
-  return active.filter(cg=>cg.d&&cg.d.h&&new Date(cg.d.h)>=cutoff).length;
+function makeZeroRow(label,n,max,col){
+  return '<div class="mkt-row"><div class="mkt-name" style="color:var(--text2)">'+label+'</div><div class="mkt-bar-wrap"><div class="mkt-bar" style="width:'+(n/max*100).toFixed(0)+'%;background:'+col+'"></div></div><div class="mkt-val">'+n+'</div></div>';
 }
 
-// ── HOURS TAB ──
+// ─────────────────────────────────────────────
+// HOURS DISTRIBUTION
+// ─────────────────────────────────────────────
 function renderHours(){
-  const filtered=getFiltered();
-  const active=filtered.filter(isActive);
-  const weeks4=visitWeeks.slice(-4);
+  var filtered=getFiltered();
+  var active=filtered.filter(isActive);
+  var weeks4=getWeeks(4);
 
-  // Market-level weekly hours detail
-  const mktWeekData={};
-  for(const cg of active){
-    const m=normalizeMarket(cg);
-    if(!mktWeekData[m])mktWeekData[m]=[];
-    const weekHrs=weeks4.map(w=>cgHoursMap[cg._id]&&cgHoursMap[cg._id][w]||0);
-    mktWeekData[m].push(weekHrs);
-  }
-  
-  let chartHtml='';
-  for(const [mkt,cgWeeks] of Object.entries(mktWeekData)){
-    if(!cgWeeks.length)continue;
-    const weekAvgs=weeks4.map((_,wi)=>{
-      const vals=cgWeeks.map(cw=>cw[wi]);
-      const nonZero=vals.filter(v=>v>0);
-      return nonZero.length>0?nonZero.reduce((s,v)=>s+v,0)/nonZero.length:0;
+  var otCGs=active.filter(function(cg){return cgAvgHrs(cg._id,weeks4)>=40;}).sort(function(a,b){return cgAvgHrs(b._id,weeks4)-cgAvgHrs(a._id,weeks4);}).slice(0,12);
+  var underCGs=active.filter(function(cg){var a=cgAvgHrs(cg._id,weeks4);return a>0&&a<20;}).sort(function(a,b){return cgAvgHrs(a._id,weeks4)-cgAvgHrs(b._id,weeks4);}).slice(0,12);
+  var zeroCGs=active.filter(function(cg){return cgAvgHrs(cg._id,weeks4)===0;}).slice(0,12);
+
+  // Market weekly trend
+  var mktMap={};
+  active.forEach(function(cg){
+    var m=normalizeMarket(cg);
+    if(!mktMap[m])mktMap[m]=[];
+    mktMap[m].push(cg._id);
+  });
+
+  var html='<div class="fc"><div class="ct">Weekly Hours Trend by Market — Last 4 Weeks</div>';
+  html+='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px">';
+  Object.entries(mktMap).forEach(function(e){
+    var mkt=e[0],ids=e[1];
+    var wkAvgs=weeks4.map(function(w){
+      var vals=ids.map(function(id){return cgHoursMap[id]&&cgHoursMap[id][w]||0;}).filter(function(v){return v>0;});
+      return vals.length?vals.reduce(function(s,v){return s+v;},0)/vals.length:0;
     });
-    const maxW=Math.max(...weekAvgs,1);
-    chartHtml+=`<div style="margin-bottom:12px">
-      <div style="font-size:11px;color:var(--text2);margin-bottom:6px">${mkt}</div>
-      <div style="display:flex;gap:6px;align-items:flex-end;height:36px">
-        ${weekAvgs.map((avg,i)=>`<div style="flex:1;background:${avg>=40?'var(--amber)':avg>0?'var(--teal)':'var(--bg3)'};height:${avg/maxW*100}%;border-radius:3px 3px 0 0;opacity:.8" title="${weeks4[i]}: ${avg.toFixed(1)} hrs avg"></div>`).join('')}
-      </div>
-      <div style="display:flex;gap:6px;margin-top:4px">
-        ${weeks4.map(w=>`<div style="flex:1;font-size:9px;color:var(--text3);text-align:center">${w.slice(5)}</div>`).join('')}
-      </div>
-    </div>`;
-  }
-  document.getElementById('hoursDetailChart').innerHTML=chartHtml||'<div style="color:var(--text3);padding:20px">Load data first</div>';
+    var maxW=Math.max.apply(null,wkAvgs)||1;
+    html+='<div><div style="font-size:11px;font-weight:600;margin-bottom:6px">'+mkt+'</div>';
+    html+='<div style="display:flex;gap:4px;align-items:flex-end;height:36px">';
+    html+=wkAvgs.map(function(v,i){return '<div style="flex:1;height:'+(v/maxW*100).toFixed(0)+'%;background:'+(v>=40?'var(--amber)':v>0?'var(--orange)':'var(--gray200)')+';border-radius:2px 2px 0 0;opacity:.8" title="'+weeks4[i]+': '+v.toFixed(1)+'h"></div>';}).join('');
+    html+='</div><div style="display:flex;gap:4px;margin-top:3px">';
+    html+=weeks4.map(function(w){return '<div style="flex:1;font-size:8px;color:var(--text4);text-align:center">'+w.slice(5)+'</div>';}).join('');
+    html+='</div></div>';
+  });
+  html+='</div></div>';
 
-  // OT caregivers
-  const otCGs=active.filter(cg=>avgHrs(cg._id,weeks4)>=40).sort((a,b)=>avgHrs(b._id,weeks4)-avgHrs(a._id,weeks4)).slice(0,10);
-  document.getElementById('otCaregivers').innerHTML=otCGs.length?otCGs.map(cg=>`
-    <div class="mkt-row" style="cursor:pointer" onclick="openModal('${cg._id}')">
-      <div class="mkt-name">${cg.fn} ${cg.ln}</div>
-      <div style="flex:1;font-size:11px;color:var(--text3)">${normalizeMarket(cg)}</div>
-      <div class="mkt-val"><span class="badge ot">${avgHrs(cg._id,weeks4).toFixed(0)}h</span></div>
-    </div>`).join(''):'<div style="color:var(--text3);padding:8px">None in selection</div>';
+  html+='<div class="three-col">';
+  // OT
+  html+='<div class="fc"><div class="ct">OT Caregivers (40+ hrs avg)</div>';
+  html+=otCGs.length?'<table class="tbl"><thead><tr><th>Name</th><th>Market</th><th>Avg Hrs</th></tr></thead><tbody>';
+  html+=otCGs.map(function(cg){var a=cgAvgHrs(cg._id,weeks4);return '<tr onclick="openModal(\''+cg._id+'\')"><td>'+cg.fn+' '+cg.ln+'</td><td style="color:var(--text3)">'+normalizeMarket(cg)+'</td><td><span class="bdg ba">'+a.toFixed(0)+'h</span></td></tr>';}).join('');
+  html+='</tbody></table>':'<div style="color:var(--text4);padding:8px">None in selection</div>';
+  html+='</div>';
+  // Under
+  html+='<div class="fc"><div class="ct">Underutilized (&lt;20 hrs avg)</div>';
+  html+=underCGs.length?'<table class="tbl"><thead><tr><th>Name</th><th>Market</th><th>Avg Hrs</th></tr></thead><tbody>';
+  html+=underCGs.map(function(cg){var a=cgAvgHrs(cg._id,weeks4);return '<tr onclick="openModal(\''+cg._id+'\')"><td>'+cg.fn+' '+cg.ln+'</td><td style="color:var(--text3)">'+normalizeMarket(cg)+'</td><td style="color:var(--red)">'+a.toFixed(0)+'h</td></tr>';}).join('');
+  html+='</tbody></table>':'<div style="color:var(--text4);padding:8px">None in selection</div>';
+  html+='</div>';
+  // Zero
+  html+='<div class="fc"><div class="ct">Zero Hours This Period</div>';
+  html+=zeroCGs.length?'<table class="tbl"><thead><tr><th>Name</th><th>Market</th><th>Last Visit</th></tr></thead><tbody>';
+  html+=zeroCGs.map(function(cg){var lb=cg.queries&&cg.queries.lastBooking;return '<tr onclick="openModal(\''+cg._id+'\')"><td>'+cg.fn+' '+cg.ln+'</td><td style="color:var(--text3)">'+normalizeMarket(cg)+'</td><td style="color:var(--text4)">'+fmtDate(lb)+'</td></tr>';}).join('');
+  html+='</tbody></table>':'<div style="color:var(--text4);padding:8px">None in selection</div>';
+  html+='</div>';
+  html+='</div>';
 
-  // Under-utilized
-  const underCGs=active.filter(cg=>{const a=avgHrs(cg._id,weeks4);return a>0&&a<20;}).sort((a,b)=>avgHrs(a._id,weeks4)-avgHrs(b._id,weeks4)).slice(0,10);
-  document.getElementById('underCaregivers').innerHTML=underCGs.length?underCGs.map(cg=>`
-    <div class="mkt-row" style="cursor:pointer" onclick="openModal('${cg._id}')">
-      <div class="mkt-name">${cg.fn} ${cg.ln}</div>
-      <div style="flex:1;font-size:11px;color:var(--text3)">${normalizeMarket(cg)}</div>
-      <div class="mkt-val" style="color:var(--red)">${avgHrs(cg._id,weeks4).toFixed(0)}h</div>
-    </div>`).join(''):'<div style="color:var(--text3);padding:8px">None in selection</div>';
-
-  // Zero hours
-  const zeroCGs=active.filter(cg=>avgHrs(cg._id,weeks4)===0).slice(0,10);
-  document.getElementById('zeroCaregivers').innerHTML=zeroCGs.length?zeroCGs.map(cg=>`
-    <div class="mkt-row" style="cursor:pointer" onclick="openModal('${cg._id}')">
-      <div class="mkt-name">${cg.fn} ${cg.ln}</div>
-      <div style="flex:1;font-size:11px;color:var(--text3)">${normalizeMarket(cg)}</div>
-      <div class="mkt-val"><span class="badge zero">0h</span></div>
-    </div>`).join(''):'<div style="color:var(--text3);padding:8px">None in selection</div>';
+  document.getElementById('main').innerHTML=html;
 }
 
-// ── LIFECYCLE TAB ──
+// ─────────────────────────────────────────────
+// LIFECYCLE
+// ─────────────────────────────────────────────
 function renderLifecycle(){
-  const all=allCaregivers.filter(cg=>!isStaff(cg));
-  const active=all.filter(isActive);
-  const terminated=all.filter(isTerminated);
-  const now=new Date();
-  const last30=new Date(now-30*86400000);
-  const last90=new Date(now-90*86400000);
-  const last365=new Date(now-365*86400000);
+  var all=allCaregivers;
+  var filt=getFiltered();
+  var active=filt.filter(isActive);
+  var terminated=filt.filter(isTerminated);
+  var now=new Date();
+  var d30=new Date(now-30*86400000);
+  var d90=new Date(now-90*86400000);
+  var d365=new Date(now-365*86400000);
 
-  const newHires30=active.filter(cg=>cg.d&&cg.d.h&&new Date(cg.d.h)>=last30).length;
-  const terms30=terminated.filter(cg=>cg.d&&cg.d.terminated&&new Date(cg.d.terminated)>=last30).length;
-  const avgTenure=active.filter(cg=>cg.d&&cg.d.h).reduce((s,cg)=>s+tenureDays(cg.d.h),0)/Math.max(active.filter(cg=>cg.d&&cg.d.h).length,1);
+  var nh30=active.filter(function(cg){return cg.d&&cg.d.h&&new Date(cg.d.h)>=d30;}).length;
+  var t30=terminated.filter(function(cg){return cg.d&&cg.d.terminated&&new Date(cg.d.terminated)>=d30;}).length;
+  var tenures=active.filter(function(cg){return cg.d&&cg.d.h;}).map(function(cg){return tenureDays(cg.d.h);});
+  var avgTen=tenures.length?Math.round(tenures.reduce(function(s,v){return s+v;},0)/tenures.length/30):0;
+  var retRate=all.length?Math.round(active.length/all.length*100):0;
 
-  document.getElementById('lifecycleKpis').innerHTML=`
-    <div class="kpi"><div class="kpi-label">Total Roster</div><div class="kpi-value">${all.length}</div><div class="kpi-sub">all time</div></div>
-    <div class="kpi"><div class="kpi-label">Active</div><div class="kpi-value green">${active.length}</div><div class="kpi-sub">${(active.length/Math.max(all.length,1)*100).toFixed(0)}% of roster</div></div>
-    <div class="kpi"><div class="kpi-label">Terminated</div><div class="kpi-value red">${terminated.length}</div><div class="kpi-sub">all time</div></div>
-    <div class="kpi"><div class="kpi-label">New Hires (30d)</div><div class="kpi-value teal">${newHires30}</div><div class="kpi-sub">last 30 days</div></div>
-    <div class="kpi"><div class="kpi-label">Terms (30d)</div><div class="kpi-value ${terms30>newHires30?'red':'amber'}">${terms30}</div><div class="kpi-sub">last 30 days</div></div>
-    <div class="kpi"><div class="kpi-label">Avg Tenure</div><div class="kpi-value">${Math.floor(avgTenure/30)}mo</div><div class="kpi-sub">active caregivers</div></div>
-  `;
+  var html='<div class="kg">';
+  html+='<div class="kpi"><div class="kl">Total Roster</div><div class="kv">'+all.length+'</div><div class="ks">all time</div></div>';
+  html+='<div class="kpi"><div class="kl">Active</div><div class="kv g">'+active.length+'</div><div class="ks">'+retRate+'% retention</div></div>';
+  html+='<div class="kpi"><div class="kl">Terminated</div><div class="kv r">'+terminated.length+'</div><div class="ks">in filtered view</div></div>';
+  html+='<div class="kpi"><div class="kl">New Hires (30d)</div><div class="kv o">'+nh30+'</div><div class="ks">hired last 30 days</div></div>';
+  html+='<div class="kpi"><div class="kl">Terms (30d)</div><div class="kv '+(t30>nh30?'r':'a')+'">'+t30+'</div><div class="ks">last 30 days</div></div>';
+  html+='</div>';
 
+  // Tenure + hire/term trend
+  html+='<div class="two-col">';
   // Tenure distribution
-  const tenureBuckets={'<3 months':0,'3-6 months':0,'6-12 months':0,'1-2 years':0,'2-3 years':0,'3+ years':0};
-  for(const cg of active){
-    if(!cg.d||!cg.d.h)continue;
-    const days=tenureDays(cg.d.h);
-    if(days<90)tenureBuckets['<3 months']++;
-    else if(days<180)tenureBuckets['3-6 months']++;
-    else if(days<365)tenureBuckets['6-12 months']++;
-    else if(days<730)tenureBuckets['1-2 years']++;
-    else if(days<1095)tenureBuckets['2-3 years']++;
-    else tenureBuckets['3+ years']++;
-  }
-  const maxT=Math.max(...Object.values(tenureBuckets),1);
-  document.getElementById('tenureBars').innerHTML=Object.entries(tenureBuckets).map(([label,count])=>`
-    <div class="tenure-row">
-      <div class="tenure-label">${label}</div>
-      <div class="tenure-bar-wrap"><div class="tenure-bar" style="width:${count/maxT*100}%"></div></div>
-      <div class="tenure-count">${count}</div>
-      <div class="tenure-pct">${(count/Math.max(active.length,1)*100).toFixed(0)}%</div>
-    </div>`).join('');
+  var tBuckets={'<3 months':0,'3–6 months':0,'6–12 months':0,'1–2 years':0,'2–3 years':0,'3+ years':0};
+  active.forEach(function(cg){
+    if(!cg.d||!cg.d.h)return;
+    var d=tenureDays(cg.d.h);
+    if(d<90)tBuckets['<3 months']++;
+    else if(d<180)tBuckets['3–6 months']++;
+    else if(d<365)tBuckets['6–12 months']++;
+    else if(d<730)tBuckets['1–2 years']++;
+    else if(d<1095)tBuckets['2–3 years']++;
+    else tBuckets['3+ years']++;
+  });
+  var maxT=Math.max.apply(null,Object.values(tBuckets))||1;
+  html+='<div class="fc"><div class="ct">Tenure Distribution (Active)</div>';
+  html+=Object.entries(tBuckets).map(function(e){
+    return '<div class="tenure-row"><div class="tenure-label">'+e[0]+'</div><div class="tenure-bar-bg"><div class="tenure-bar-fill" style="width:'+(e[1]/maxT*100).toFixed(0)+'%"></div></div><div class="tenure-n">'+e[1]+'</div><div class="tenure-pct">'+(active.length?Math.round(e[1]/active.length*100):0)+'%</div></div>';
+  }).join('')+'</div>';
 
-  // Hire/term trend by month (12 months)
-  const months={};
-  for(let i=11;i>=0;i--){
-    const d=new Date(now);
-    d.setMonth(d.getMonth()-i);
-    const key=d.toISOString().slice(0,7);
-    months[key]={hires:0,terms:0};
+  // Hire/term trend 12 months
+  var months={};
+  for(var i=11;i>=0;i--){
+    var mo=new Date(now);mo.setMonth(mo.getMonth()-i);
+    months[mo.toISOString().slice(0,7)]={h:0,t:0};
   }
-  for(const cg of all){
-    if(cg.d&&cg.d.h){const k=cg.d.h.slice(0,7);if(months[k])months[k].hires++;}
-    if(cg.d&&cg.d.terminated){const k=cg.d.terminated.slice(0,7);if(months[k])months[k].terms++;}
-  }
-  const mArr=Object.entries(months);
-  const maxM=Math.max(...mArr.map(([,v])=>Math.max(v.hires,v.terms)),1);
-  document.getElementById('hireTrend').innerHTML=`
-    <div style="display:flex;gap:3px;align-items:flex-end;height:64px">
-      ${mArr.map(([mo,v])=>`
-        <div style="flex:1;display:flex;gap:1px;align-items:flex-end">
-          <div style="flex:1;height:${v.hires/maxM*100}%;background:var(--green);opacity:.7;border-radius:2px 2px 0 0" title="${mo}: ${v.hires} hires"></div>
-          <div style="flex:1;height:${v.terms/maxM*100}%;background:var(--red);opacity:.7;border-radius:2px 2px 0 0" title="${mo}: ${v.terms} terms"></div>
-        </div>`).join('')}
-    </div>
-    <div style="display:flex;gap:3px;margin-top:4px">
-      ${mArr.map(([mo])=>`<div style="flex:1;font-size:8px;color:var(--text3);text-align:center">${mo.slice(5)}</div>`).join('')}
-    </div>
-    <div style="display:flex;gap:12px;margin-top:8px">
-      <div style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text2)"><div style="width:10px;height:10px;background:var(--green);border-radius:2px"></div>Hires</div>
-      <div style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text2)"><div style="width:10px;height:10px;background:var(--red);border-radius:2px"></div>Terms</div>
-    </div>`;
+  all.forEach(function(cg){
+    if(cg.d&&cg.d.h){var k=cg.d.h.slice(0,7);if(months[k])months[k].h++;}
+    if(cg.d&&cg.d.terminated){var k=cg.d.terminated.slice(0,7);if(months[k])months[k].t++;}
+  });
+  var mArr=Object.entries(months);
+  var maxM=Math.max.apply(null,mArr.map(function(e){return Math.max(e[1].h,e[1].t);}));maxM=maxM||1;
+  html+='<div class="fc"><div class="ct">Hire vs Termination Trend</div>';
+  html+='<div class="month-bar">';
+  html+=mArr.map(function(e){
+    return '<div class="month-col"><div class="month-h" style="height:'+(e[1].h/maxM*100).toFixed(0)+'%;background:var(--green);opacity:.75;min-height:'+(e[1].h?2:0)+'px" title="'+e[0]+': '+e[1].h+' hires"></div><div class="month-h" style="height:'+(e[1].t/maxM*100).toFixed(0)+'%;background:var(--red);opacity:.75;min-height:'+(e[1].t?2:0)+'px" title="'+e[0]+': '+e[1].t+' terms"></div></div>';
+  }).join('');
+  html+='</div><div class="month-labels">';
+  html+=mArr.map(function(e){return '<div class="month-label">'+e[0].slice(5)+'</div>';}).join('');
+  html+='</div>';
+  html+='<div style="display:flex;gap:12px;margin-top:8px">';
+  html+='<div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text3)"><div style="width:10px;height:10px;background:var(--green);border-radius:2px;opacity:.75"></div>Hires</div>';
+  html+='<div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text3)"><div style="width:10px;height:10px;background:var(--red);border-radius:2px;opacity:.75"></div>Terms</div>';
+  html+='</div></div>';
+  html+='</div>';
 
-  // Terms by market
-  const termByMkt={};
-  for(const cg of terminated){
-    if(!cg.d||!cg.d.terminated)continue;
-    if(new Date(cg.d.terminated)<last365)continue;
-    const m=normalizeMarket(cg);
-    termByMkt[m]=(termByMkt[m]||0)+1;
-  }
-  const maxTerm=Math.max(...Object.values(termByMkt),1);
-  document.getElementById('termByMkt').innerHTML=Object.entries(termByMkt).sort((a,b)=>b[1]-a[1]).map(([m,c])=>`
-    <div class="mkt-row">
-      <div class="mkt-name">${m}</div>
-      <div class="mkt-bar-wrap"><div class="mkt-bar red" style="width:${c/maxTerm*100}%"></div></div>
-      <div class="mkt-val">${c}</div>
-    </div>`).join('')||'<div style="color:var(--text3);padding:8px">No data</div>';
+  // Terms + hires by market
+  html+='<div class="two-col">';
+  var termMkt={},hireMkt={};
+  filt.filter(isTerminated).forEach(function(cg){
+    if(!cg.d||!cg.d.terminated||new Date(cg.d.terminated)<d365)return;
+    var m=normalizeMarket(cg);termMkt[m]=(termMkt[m]||0)+1;
+  });
+  active.forEach(function(cg){
+    if(!cg.d||!cg.d.h||new Date(cg.d.h)<d90)return;
+    var m=normalizeMarket(cg);hireMkt[m]=(hireMkt[m]||0)+1;
+  });
+  var maxTM=Math.max.apply(null,Object.values(termMkt))||1;
+  var maxHM=Math.max.apply(null,Object.values(hireMkt))||1;
+  html+='<div class="fc"><div class="ct">Terminations by Market (12mo)</div>';
+  html+=Object.entries(termMkt).sort(function(a,b){return b[1]-a[1];}).map(function(e){
+    return '<div class="mkt-row"><div class="mkt-name">'+e[0]+'</div><div class="mkt-bar-wrap"><div class="mkt-bar" style="width:'+(e[1]/maxTM*100).toFixed(0)+'%;background:var(--red)"></div></div><div class="mkt-val">'+e[1]+'</div></div>';
+  }).join('')||'<div style="color:var(--text4);padding:8px">No data</div>';
+  html+='</div>';
+  html+='<div class="fc"><div class="ct">New Hires by Market (90d)</div>';
+  html+=Object.entries(hireMkt).sort(function(a,b){return b[1]-a[1];}).map(function(e){
+    return '<div class="mkt-row"><div class="mkt-name">'+e[0]+'</div><div class="mkt-bar-wrap"><div class="mkt-bar" style="width:'+(e[1]/maxHM*100).toFixed(0)+'%;background:var(--green)"></div></div><div class="mkt-val">'+e[1]+'</div></div>';
+  }).join('')||'<div style="color:var(--text4);padding:8px">No hires in last 90 days</div>';
+  html+='</div>';
+  html+='</div>';
 
-  // Hires by market (last 90d)
-  const hiresByMkt={};
-  for(const cg of active){
-    if(!cg.d||!cg.d.h||new Date(cg.d.h)<last90)continue;
-    const m=normalizeMarket(cg);
-    hiresByMkt[m]=(hiresByMkt[m]||0)+1;
-  }
-  const maxHire=Math.max(...Object.values(hiresByMkt),1);
-  document.getElementById('hiresByMkt').innerHTML=Object.entries(hiresByMkt).sort((a,b)=>b[1]-a[1]).map(([m,c])=>`
-    <div class="mkt-row">
-      <div class="mkt-name">${m}</div>
-      <div class="mkt-bar-wrap"><div class="mkt-bar" style="width:${c/maxHire*100}%;background:var(--green)"></div></div>
-      <div class="mkt-val">${c}</div>
-    </div>`).join('')||'<div style="color:var(--text3);padding:8px">No hires in last 90 days</div>';
+  document.getElementById('main').innerHTML=html;
 }
 
-// ── ROSTER TAB ──
-let rosterSortCol='name', rosterSortDir=1;
+// ─────────────────────────────────────────────
+// ROSTER
+// ─────────────────────────────────────────────
+function renderRoster(){
+  var filtered=getFiltered();
+  var weeks4=getWeeks(4);
+  var q=(document.getElementById('rosterSearch')||{value:''}).value||'';
+  var list=filtered;
+  if(q){
+    var ql=q.toLowerCase();
+    list=list.filter(function(cg){
+      return (cg.fn+' '+cg.ln).toLowerCase().includes(ql)||normalizeMarket(cg).toLowerCase().includes(ql)||(cg.designation||'').toLowerCase().includes(ql);
+    });
+  }
+  list=list.slice().sort(function(a,b){
+    var va,vb,col=rosterSort.col;
+    if(col==='name'){va=a.fn+' '+a.ln;vb=b.fn+' '+b.ln;}
+    else if(col==='market'){va=normalizeMarket(a);vb=normalizeMarket(b);}
+    else if(col==='status'){va=a.st||'';vb=b.st||'';}
+    else if(col==='tenure'){va=tenureDays(a.d&&a.d.h,a.d&&a.d.terminated);vb=tenureDays(b.d&&b.d.h,b.d&&b.d.terminated);}
+    else if(col==='hireDate'){va=a.d&&a.d.h||'';vb=b.d&&b.d.h||'';}
+    else if(col==='avgHrs'){va=cgAvgHrs(a._id,weeks4);vb=cgAvgHrs(b._id,weeks4);}
+    else if(col==='avail'){va=a.availability&&a.availability.hoursPerWeek||0;vb=b.availability&&b.availability.hoursPerWeek||0;}
+    else{va=0;vb=0;}
+    if(typeof va==='string')return rosterSort.dir*va.localeCompare(vb);
+    return rosterSort.dir*(va-vb);
+  });
+
+  var show=list.slice(0,200);
+  function th(label,col){return '<th onclick="sortRoster(\''+col+'\')">'+label+(rosterSort.col===col?(rosterSort.dir===1?' ↓':' ↑'):'')+'</th>';}
+  var html='<div class="fc">';
+  html+='<div class="search-wrap"><span class="search-icon">⌕</span><input type="text" id="rosterSearch" placeholder="Search name, market, designation…" oninput="renderRoster()" value="'+q+'" style="width:100%"></div>';
+  html+='<div style="overflow-x:auto"><table class="tbl"><thead><tr>';
+  html+=th('Name','name')+th('Market','market')+th('Status','status')+th('Hired','hireDate')+th('Tenure','tenure')+th('Avg Hrs/Wk','avgHrs')+th('Availability','avail')+'<th>Last Visit</th><th>Skills</th>';
+  html+='</tr></thead><tbody>';
+  html+=show.map(function(cg){
+    var a=cgAvgHrs(cg._id,weeks4);
+    var avail=cg.availability&&cg.availability.hoursPerWeek||'—';
+    var st=isActive(cg)?'active':isTerminated(cg)?'terminated':'inactive';
+    var stBdg=isActive(cg)?'bg':isTerminated(cg)?'br':'ba';
+    var skills=(cg.attrs||[]).filter(function(a){return a.type==='experience'||a.type==='certification';}).slice(0,3);
+    var lb=cg.queries&&cg.queries.lastBooking;
+    return '<tr onclick="openModal(\''+cg._id+'\')">'+
+      '<td><strong>'+cg.fn+' '+cg.ln+'</strong></td>'+
+      '<td>'+normalizeMarket(cg)+'</td>'+
+      '<td><span class="bdg '+stBdg+'">'+st+'</span></td>'+
+      '<td style="color:var(--text3)">'+fmtDate(cg.d&&cg.d.h)+'</td>'+
+      '<td>'+tenure(cg.d&&cg.d.h,cg.d&&cg.d.terminated)+'</td>'+
+      '<td style="font-weight:600;color:'+(a>=40?'var(--amber)':a===0?'var(--red)':'var(--charcoal)')+'">'+a.toFixed(1)+'h</td>'+
+      '<td style="color:var(--text3)">'+avail+(avail!=='—'?'h':'')+'</td>'+
+      '<td style="color:var(--text4)">'+fmtDate(lb)+'</td>'+
+      '<td>'+skills.map(function(s){return '<span class="skill-tag">'+s.text+'</span>';}).join('')+'</td>'+
+      '</tr>';
+  }).join('');
+  html+='</tbody></table></div>';
+  html+='<div style="margin-top:8px;font-size:10px;color:var(--text4)">Showing '+show.length+' of '+list.length+' caregivers</div>';
+  html+='</div>';
+  document.getElementById('main').innerHTML=html;
+}
 function sortRoster(col){
-  if(rosterSortCol===col)rosterSortDir*=-1; else{rosterSortCol=col;rosterSortDir=1;}
+  if(rosterSort.col===col)rosterSort.dir*=-1;else{rosterSort.col=col;rosterSort.dir=1;}
   renderRoster();
 }
-function renderRoster(){
-  const filtered=getFiltered();
-  const q=(document.getElementById('cgSearch').value||'').toLowerCase();
-  const weeks4=visitWeeks.slice(-4);
-  let list=filtered.filter(cg=>{
-    if(!q)return true;
-    const name=`${cg.fn} ${cg.ln}`.toLowerCase();
-    const mkt=normalizeMarket(cg).toLowerCase();
-    const des=(cg.designation||'').toLowerCase();
-    return name.includes(q)||mkt.includes(q)||des.includes(q);
-  });
-  list.sort((a,b)=>{
-    let va,vb;
-    if(rosterSortCol==='name'){va=`${a.fn} ${a.ln}`;vb=`${b.fn} ${b.ln}`;}
-    else if(rosterSortCol==='market'){va=normalizeMarket(a);vb=normalizeMarket(b);}
-    else if(rosterSortCol==='status'){va=a.st||'';vb=b.st||'';}
-    else if(rosterSortCol==='tenure'){va=tenureDays(a.d&&a.d.h,a.d&&a.d.terminated);vb=tenureDays(b.d&&b.d.h,b.d&&b.d.terminated);}
-    else if(rosterSortCol==='hireDate'){va=a.d&&a.d.h||'';vb=b.d&&b.d.h||'';}
-    else if(rosterSortCol==='avgHrs'){va=avgHrs(a._id,weeks4);vb=avgHrs(b._id,weeks4);}
-    else if(rosterSortCol==='availability'){va=a.availability&&a.availability.hoursPerWeek||0;vb=b.availability&&b.availability.hoursPerWeek||0;}
-    else if(rosterSortCol==='utilization'){
-      const aa=a.availability&&a.availability.hoursPerWeek||40;
-      const ba=b.availability&&b.availability.hoursPerWeek||40;
-      va=aa>0?avgHrs(a._id,weeks4)/aa:0;
-      vb=ba>0?avgHrs(b._id,weeks4)/ba:0;
-    }
-    else{va=0;vb=0;}
-    if(typeof va==='string')return rosterSortDir*(va.localeCompare(vb));
-    return rosterSortDir*(va-vb);
-  });
-  const show=list.slice(0,200);
-  document.getElementById('rosterCount').textContent=`Showing ${show.length} of ${list.length} caregivers`;
-  document.getElementById('rosterBody').innerHTML=show.map(cg=>{
-    const avg=avgHrs(cg._id,weeks4);
-    const avail=cg.availability&&cg.availability.hoursPerWeek||40;
-    const util=avail>0?Math.min(avg/avail*100,999):0;
-    const skills=(cg.attrs||[]).filter(a=>a.type==='experience'||a.type==='certification').slice(0,3);
-    const lastBook=cg.queries&&cg.queries.lastBooking;
-    const status=isActive(cg)?'active':isTerminated(cg)?'terminated':'inactive';
-    return `<tr class="clickable" onclick="openModal('${cg._id}')">
-      <td><strong>${cg.fn} ${cg.ln}</strong></td>
-      <td>${normalizeMarket(cg)}</td>
-      <td><span class="badge ${status}">${status}</span></td>
-      <td>${tenure(cg.d&&cg.d.h,cg.d&&cg.d.terminated)||'—'}</td>
-      <td>${fmtDate(cg.d&&cg.d.h)}</td>
-      <td><span style="color:${avg>=40?'var(--amber)':avg===0?'var(--red)':'var(--text1)'}">${avg.toFixed(1)}</span></td>
-      <td>${avail}h</td>
-      <td><span style="color:${util>=90?'var(--amber)':util<50&&avg>0?'var(--red)':'var(--text2)'}">${avg>0?util.toFixed(0)+'%':'—'}</span></td>
-      <td style="color:var(--text3)">${lastBook?fmtDate(lastBook):'Never'}</td>
-      <td>${skills.map(s=>`<span class="skill-tag" style="font-size:9px;padding:1px 5px">${s.text}</span>`).join('')}</td>
-    </tr>`;
-  }).join('');
-}
 
-// ── MODAL ──
+// ─────────────────────────────────────────────
+// MODAL
+// ─────────────────────────────────────────────
 function openModal(cgId){
-  const cg=allCaregivers.find(c=>c._id===cgId);
+  var cg=allCaregivers.find(function(c){return c._id===cgId;});
   if(!cg)return;
-  const weeks8=visitWeeks.slice(-8);
-  const weeks4=visitWeeks.slice(-4);
-  document.getElementById('modalName').textContent=`${cg.fn} ${cg.ln}`;
-  document.getElementById('modalSub').textContent=`${normalizeMarket(cg)} · ${cg.designation||'Caregiver'} · ${isActive(cg)?'Active':'Terminated'}`;
-  const avg=avgHrs(cg._id,weeks4);
-  const avail=cg.availability&&cg.availability.hoursPerWeek||40;
-  const util=avail>0?avg/avail*100:0;
-  document.getElementById('modalStats').innerHTML=`
-    <div class="modal-stat"><div class="modal-stat-label">Hire Date</div><div class="modal-stat-val" style="font-size:14px">${fmtDate(cg.d&&cg.d.h)}</div></div>
-    <div class="modal-stat"><div class="modal-stat-label">Tenure</div><div class="modal-stat-val">${tenure(cg.d&&cg.d.h,cg.d&&cg.d.terminated)||'—'}</div></div>
-    <div class="modal-stat"><div class="modal-stat-label">Status</div><div class="modal-stat-val" style="font-size:14px"><span class="badge ${isActive(cg)?'active':'terminated'}">${cg.st||'unknown'}</span></div></div>
-    <div class="modal-stat"><div class="modal-stat-label">Avg Hrs/Wk</div><div class="modal-stat-val" style="color:${avg>=40?'var(--amber)':avg===0?'var(--red)':'var(--teal)'}">${avg.toFixed(1)}</div></div>
-    <div class="modal-stat"><div class="modal-stat-label">Availability</div><div class="modal-stat-val">${avail}h/wk</div></div>
-    <div class="modal-stat"><div class="modal-stat-label">Utilization</div><div class="modal-stat-val">${avg>0?util.toFixed(0)+'%':'—'}</div></div>
-  `;
-  // Week bars
-  const weekHrs=weeks8.map(w=>cgHoursMap[cgId]&&cgHoursMap[cgId][w]||0);
-  const maxWH=Math.max(...weekHrs,1);
-  document.getElementById('modalWeekBars').innerHTML=weekHrs.map((h,i)=>
-    `<div class="week-bar" style="flex:1;height:${h/maxWH*100}%;background:${h>=40?'var(--amber)':h>0?'var(--teal)':'var(--bg3)'}" title="${weeks8[i]}: ${h.toFixed(1)}h"></div>`
-  ).join('');
-  document.getElementById('modalWeekLabels').innerHTML=weeks8.map(w=>
-    `<div style="flex:1;font-size:9px;color:var(--text3);text-align:center">${w.slice(5)}</div>`
-  ).join('');
-  // Skills
-  const skills=(cg.attrs||[]).filter(a=>a.type==='experience'||a.type==='certification');
-  document.getElementById('modalSkills').innerHTML=skills.length?skills.map(s=>`<span class="skill-tag">${s.text}</span>`).join(''):'<span style="color:var(--text3);font-size:12px">No skills listed</span>';
-  // Details
-  document.getElementById('modalDetails').innerHTML=`
-    <div><span style="color:var(--text3);font-size:11px">Designation</span><br><span style="font-size:13px">${cg.designation||'—'}</span></div>
-    <div><span style="color:var(--text3);font-size:11px">Gender</span><br><span style="font-size:13px">${cg.gender||'—'}</span></div>
-    <div><span style="color:var(--text3);font-size:11px">Drive</span><br><span style="font-size:13px">${cg.drive||'—'}</span></div>
-    <div><span style="color:var(--text3);font-size:11px">Last App Login</span><br><span style="font-size:13px">${fmtDate(cg.queries&&cg.queries.lastAppLogin)}</span></div>
-    <div><span style="color:var(--text3);font-size:11px">Last Booking</span><br><span style="font-size:13px">${fmtDate(cg.queries&&cg.queries.lastBooking)}</span></div>
-    <div><span style="color:var(--text3);font-size:11px">iSolved #</span><br><span style="font-size:13px">${cg.integrations&&cg.integrations.iSolved&&cg.integrations.iSolved.employeeNumber||'—'}</span></div>
-    ${isTerminated(cg)?`<div><span style="color:var(--text3);font-size:11px">Terminated</span><br><span style="font-size:13px;color:var(--red)">${fmtDate(cg.d&&cg.d.terminated)}</span></div>`:''}
-  `;
-  document.getElementById('cgModal').classList.add('open');
-}
-function closeModal(e){
-  if(e.target===document.getElementById('cgModal'))document.getElementById('cgModal').classList.remove('open');
-}
+  var weeks8=getWeeks(8);
+  var weeks4=getWeeks(4);
+  var avg=cgAvgHrs(cg._id,weeks4);
+  var avail=cg.availability&&cg.availability.hoursPerWeek||40;
+  var weekHrs=weeks8.map(function(w){return cgHoursMap[cgId]&&cgHoursMap[cgId][w]||0;});
+  var maxWH=Math.max.apply(null,weekHrs)||1;
+  var skills=(cg.attrs||[]).filter(function(a){return a.type==='experience'||a.type==='certification';});
+  var st=isActive(cg);
 
-// Auto-load on page open
-window.addEventListener('load', loadAll);
+  var html='<div class="modal-hdr">';
+  html+='<div><div class="modal-name">'+cg.fn+' '+cg.ln+'</div>';
+  html+='<div class="modal-sub">'+normalizeMarket(cg)+' · '+(cg.designation||'Caregiver')+' · <span class="bdg '+(st?'bg':'br')+'">'+cg.st+'</span></div></div>';
+  html+='<button class="modal-close" onclick="closeModal()">✕</button></div>';
+
+  html+='<div class="modal-kpis">';
+  html+='<div class="modal-kpi"><div class="modal-kpi-l">Hire Date</div><div class="modal-kpi-v" style="font-size:13px">'+fmtDate(cg.d&&cg.d.h)+'</div></div>';
+  html+='<div class="modal-kpi"><div class="modal-kpi-l">Tenure</div><div class="modal-kpi-v">'+tenure(cg.d&&cg.d.h,cg.d&&cg.d.terminated)+'</div></div>';
+  html+='<div class="modal-kpi"><div class="modal-kpi-l">Avg Hrs/Wk</div><div class="modal-kpi-v" style="color:'+(avg>=40?'var(--amber)':avg===0?'var(--red)':'var(--green)')+'">'+avg.toFixed(1)+'h</div></div>';
+  html+='<div class="modal-kpi"><div class="modal-kpi-l">Availability</div><div class="modal-kpi-v">'+avail+'h</div></div>';
+  html+='</div>';
+
+  html+='<div class="modal-sec"><div class="modal-sec-title">Weekly Hours — Last 8 Weeks</div>';
+  html+='<div class="week-chart">';
+  html+=weekHrs.map(function(h,i){return '<div class="week-col"><div class="week-bar" style="height:'+(h/maxWH*100).toFixed(0)+'%;background:'+(h>=40?'var(--amber)':h>0?'var(--orange)':'var(--gray200)')+'" title="'+weeks8[i]+': '+h.toFixed(1)+'h"></div><div class="week-lbl">'+weeks8[i].slice(5)+'</div></div>';}).join('');
+  html+='</div></div>';
+
+  if(skills.length){
+    html+='<div class="modal-sec"><div class="modal-sec-title">Skills & Certifications</div>';
+    html+=skills.map(function(s){return '<span class="skill-tag">'+s.text+'</span>';}).join('');
+    html+='</div>';
+  }
+
+  html+='<div class="modal-sec"><div class="modal-sec-title">Profile</div>';
+  html+='<div class="detail-grid">';
+  html+='<div class="detail-item"><div class="dl">Designation</div><div class="dv">'+(cg.designation||'—')+'</div></div>';
+  html+='<div class="detail-item"><div class="dl">Gender</div><div class="dv">'+(cg.gender||'—')+'</div></div>';
+  html+='<div class="detail-item"><div class="dl">Drives</div><div class="dv">'+(cg.drive||'—')+'</div></div>';
+  html+='<div class="detail-item"><div class="dl">Last App Login</div><div class="dv">'+fmtDate(cg.queries&&cg.queries.lastAppLogin)+'</div></div>';
+  html+='<div class="detail-item"><div class="dl">Last Booking</div><div class="dv">'+fmtDate(cg.queries&&cg.queries.lastBooking)+'</div></div>';
+  html+='<div class="detail-item"><div class="dl">iSolved #</div><div class="dv">'+(cg.integrations&&cg.integrations.iSolved&&cg.integrations.iSolved.employeeNumber||'—')+'</div></div>';
+  if(!st)html+='<div class="detail-item"><div class="dl">Terminated</div><div class="dv" style="color:var(--red)">'+fmtDate(cg.d&&cg.d.terminated)+'</div></div>';
+  html+='</div></div>';
+
+  document.getElementById('modalBody').innerHTML=html;
+  document.getElementById('modalOverlay').classList.add('open');
+}
+function closeModal(){document.getElementById('modalOverlay').classList.remove('open');}
+
+// Auto-load
+(function(){
+  curWeek=fmtD(getSunday(0));
+  load();
+})();
 </script>
 </body>
 </html>
