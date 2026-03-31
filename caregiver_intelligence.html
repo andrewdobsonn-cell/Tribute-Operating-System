@@ -297,6 +297,8 @@ async function load(){
   renderTab();
 }
 
+var cgTypeMap={}; // tracks if caregiver is primarily live-in
+
 async function fetchHours(wk){
   var end=new Date(wk);end.setUTCDate(end.getUTCDate()+6);
   var endStr=fmtD(end);
@@ -305,14 +307,17 @@ async function fetchHours(wk){
     var d=await r.json();
     var list=d.caregivers||[];
     list.forEach(function(cg){
-      // caregiver_hours uses 'id' field, scheduledHrs for actual worked hours
       var id=cg.id||cg.cgid||cg._id;
       if(!id)return;
       if(!cgHoursMap[id])cgHoursMap[id]={};
       cgHoursMap[id][wk]=cg.scheduledHrs||cg.payableHours||0;
+      // Track live-in caregivers to exclude from OT calculations
+      if(cg.cgType==='Live-In')cgTypeMap[id]='live-in';
     });
   }catch(e){console.error('fetchHours error',wk,e);}
 }
+
+function isLiveInCG(cgid){return cgTypeMap[cgid]==='live-in';}
 
 function renderTab(){
   if(curTab==='overview')renderOverview();
@@ -337,7 +342,7 @@ function renderOverview(){
   var otCount=0,zeroCount=0,totalHrs=0,cgWithHrs=0;
   active.forEach(function(cg){
     var a=cgAvgHrs(cg._id,weeks4);
-    if(a>=40)otCount++;
+    if(a>=40&&!isLiveInCG(cg._id))otCount++;
     if(a===0)zeroCount++;
     else{totalHrs+=a;cgWithHrs++;}
   });
@@ -445,7 +450,7 @@ function renderHours(){
   var active=filtered.filter(isActive);
   var weeks4=getWeeks(4);
 
-  var otCGs=active.filter(function(cg){return cgAvgHrs(cg._id,weeks4)>=40;}).sort(function(a,b){return cgAvgHrs(b._id,weeks4)-cgAvgHrs(a._id,weeks4);}).slice(0,12);
+  var otCGs=active.filter(function(cg){return cgAvgHrs(cg._id,weeks4)>=40&&!isLiveInCG(cg._id);}).sort(function(a,b){return cgAvgHrs(b._id,weeks4)-cgAvgHrs(a._id,weeks4);}).slice(0,12);
   var underCGs=active.filter(function(cg){var a=cgAvgHrs(cg._id,weeks4);return a>0&&a<20;}).sort(function(a,b){return cgAvgHrs(a._id,weeks4)-cgAvgHrs(b._id,weeks4);}).slice(0,12);
   var zeroCGs=active.filter(function(cg){return cgAvgHrs(cg._id,weeks4)===0;}).slice(0,12);
 
