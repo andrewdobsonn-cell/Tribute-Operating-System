@@ -159,11 +159,11 @@ var curPeriod='month';
 var curMetric='revenue';
 var apiData=null;
 
-var TYPES=['liveIn','tfs','longHour','standard','shortHour'];
-var LABELS={liveIn:'Live-In',tfs:'24-7 Hourly',longHour:'Long Hour (10h+)',standard:'Standard (3-9h)',shortHour:'Short Hour (<3h)'};
-var COLORS={liveIn:'#E8732A',tfs:'#7C3AED',longHour:'#2563EB',standard:'#16A34A',shortHour:'#9CA3AF'};
-var CLASSES={liveIn:'bg-li',tfs:'bg-tfs',longHour:'bg-lh',standard:'bg-st',shortHour:'bg-sh'};
-var TCLASSES={liveIn:'c-li',tfs:'c-tfs',longHour:'c-lh',standard:'c-st',shortHour:'c-sh'};
+var TYPES=['liveIn','hrs1224','hrs511','hrs4','under4'];
+var LABELS={liveIn:'Live-In',hrs1224:'12–24 Hours',hrs511:'5–11 Hours',hrs4:'4 Hours',under4:'Under 4 Hours'};
+var COLORS={liveIn:'#E8732A',hrs1224:'#7C3AED',hrs511:'#2563EB',hrs4:'#16A34A',under4:'#9CA3AF'};
+var CLASSES={liveIn:'bg-li',hrs1224:'bg-tfs',hrs511:'bg-lh',hrs4:'bg-st',under4:'bg-sh'};
+var TCLASSES={liveIn:'c-li',hrs1224:'c-tfs',hrs511:'c-lh',hrs4:'c-st',under4:'c-sh'};
 
 // Clock
 setInterval(function(){var e=document.getElementById('clock');if(e)e.textContent=new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});},1000);
