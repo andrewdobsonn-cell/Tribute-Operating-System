@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Service Mix · Tribute</title>
+<style>
+:root{
+  --bg:#FAFAF8;--card:#FFFFFF;--border:#E8E4DC;
+  --text1:#1A1A18;--text2:#3D3D38;--text3:#6B6B63;--text4:#9B9B90;
+  --orange:#E8732A;--shadow:0 1px 3px rgba(0,0,0,.07);
+  --c-li:#E8732A;--c-tfs:#7C3AED;--c-lh:#2563EB;--c-st:#16A34A;--c-sh:#9CA3AF;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text1);font-size:14px;}
+.hd{background:#1C1C1A;color:#fff;padding:0 24px;display:flex;align-items:center;height:52px;gap:16px;position:sticky;top:0;z-index:100;}
+.logo{font-size:13px;font-weight:700;letter-spacing:.5px;opacity:.9;}
+.hd-div{width:1px;height:20px;background:rgba(255,255,255,.15);}
+.hd-title{font-size:13px;color:rgba(255,255,255,.7);font-weight:500;}
+.hd-r{margin-left:auto;display:flex;align-items:center;gap:12px;}
+.live-dot{width:7px;height:7px;background:#22A05B;border-radius:50%;}
+.hd-meta{font-size:11px;color:rgba(255,255,255,.5);}
+#clock{font-size:11px;color:rgba(255,255,255,.45);font-variant-numeric:tabular-nums;}
+
+/* Control bars */
+.ctrl{background:#fff;border-bottom:1px solid var(--border);padding:8px 24px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.pbtn{padding:5px 12px;border-radius:6px;font-size:12px;font-weight:500;cursor:pointer;background:transparent;border:1px solid var(--border);color:var(--text3);transition:all .15s;}
+.pbtn:hover{background:var(--bg);color:var(--text2);}
+.pbtn.on{background:var(--orange);color:#fff;border-color:var(--orange);}
+.ctrl-sep{width:1px;height:20px;background:var(--border);margin:0 4px;}
+.mbtn{padding:5px 12px;border-radius:6px;font-size:12px;font-weight:500;cursor:pointer;background:transparent;border:1px solid var(--border);color:var(--text3);transition:all .15s;}
+.mbtn:hover{background:var(--bg);}
+.mbtn.on{background:#1C1C1A;color:#fff;border-color:#1C1C1A;}
+
+.fbar{background:#fff;border-bottom:1px solid var(--border);padding:8px 24px;display:flex;align-items:center;gap:10px;}
+.fbar select{padding:5px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;color:var(--text2);background:#fff;cursor:pointer;}
+.fbar label{font-size:12px;color:var(--text3);}
+
+/* Main */
+#main{padding:24px;max-width:1400px;}
+.loading{display:flex;flex-direction:column;align-items:center;justify-content:center;height:300px;gap:12px;color:var(--text4);}
+.spin{width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--orange);border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* Service type colors */
+.c-li{color:var(--c-li)!important;}
+.c-tfs{color:var(--c-tfs)!important;}
+.c-lh{color:var(--c-lh)!important;}
+.c-st{color:var(--c-st)!important;}
+.c-sh{color:var(--c-sh)!important;}
+.bg-li{background:var(--c-li);}
+.bg-tfs{background:var(--c-tfs);}
+.bg-lh{background:var(--c-lh);}
+.bg-st{background:var(--c-st);}
+.bg-sh{background:var(--c-sh);}
+
+/* Overview section */
+.section{margin-bottom:24px;}
+.section-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text4);margin-bottom:12px;}
+
+/* Big stacked bar */
+.mix-bar-wrap{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:20px 24px;box-shadow:var(--shadow);margin-bottom:20px;}
+.mix-bar-label{font-size:12px;font-weight:600;color:var(--text2);margin-bottom:10px;}
+.mix-bar{display:flex;height:36px;border-radius:6px;overflow:hidden;gap:2px;margin-bottom:14px;}
+.mix-seg{display:flex;align-items:center;justify-content:center;transition:width .4s ease;min-width:0;overflow:hidden;}
+.mix-seg-pct{font-size:11px;font-weight:700;color:#fff;white-space:nowrap;padding:0 4px;}
+.mix-legend{display:flex;gap:16px;flex-wrap:wrap;}
+.mix-leg-item{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);}
+.mix-leg-dot{width:10px;height:10px;border-radius:2px;flex-shrink:0;}
+
+/* KPI cards */
+.type-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:20px;}
+@media(max-width:900px){.type-grid{grid-template-columns:repeat(3,1fr);}}
+.type-card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px 16px;box-shadow:var(--shadow);border-top:3px solid var(--border);}
+.tc-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--text4);margin-bottom:6px;}
+.tc-pct{font-size:28px;font-weight:700;line-height:1;margin-bottom:4px;}
+.tc-detail{font-size:11px;color:var(--text4);}
+.tc-sub{font-size:11px;color:var(--text4);margin-top:2px;}
+
+/* Market breakdown */
+.mkt-section{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:20px 24px;box-shadow:var(--shadow);}
+.mkt-row{display:flex;align-items:center;gap:12px;margin-bottom:10px;}
+.mkt-row:last-child{margin-bottom:0;}
+.mkt-name{width:140px;font-size:12px;font-weight:600;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:0;}
+.mkt-bar-wrap{flex:1;height:22px;border-radius:4px;overflow:hidden;display:flex;gap:2px;background:var(--bg);}
+.mkt-seg{height:100%;transition:width .4s ease;display:flex;align-items:center;justify-content:center;min-width:0;overflow:hidden;}
+.mkt-seg-txt{font-size:9px;font-weight:700;color:#fff;white-space:nowrap;padding:0 3px;}
+.mkt-total{width:60px;text-align:right;font-size:11px;font-weight:600;color:var(--text1);}
+.mkt-sub{width:44px;text-align:right;font-size:10px;color:var(--text4);}
+
+/* Detail table */
+.tbl-wrap{overflow-x:auto;margin-top:20px;}
+.tbl-wrap table{width:100%;border-collapse:collapse;font-size:12px;}
+.tbl-wrap th{text-align:left;padding:8px 12px;background:var(--bg);border-bottom:1px solid var(--border);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.4px;color:var(--text4);white-space:nowrap;}
+.tbl-wrap td{padding:9px 12px;border-bottom:1px solid var(--border);color:var(--text2);}
+.tbl-wrap tr:last-child td{border-bottom:none;font-weight:700;color:var(--text1);}
+.pct-bar{display:inline-block;height:6px;border-radius:2px;margin-right:6px;vertical-align:middle;}
+
+/* Two col */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+@media(max-width:800px){.two-col{grid-template-columns:1fr;}}
+.fc{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:16px 20px;box-shadow:var(--shadow);}
+.ct{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--text4);margin-bottom:12px;}
+</style>
+</head>
+<body>
+
+<div class="hd">
+  <span class="logo">TRIBUTE HOME CARE</span>
+  <div class="hd-div"></div>
+  <span class="hd-title">Service Mix</span>
+  <div class="hd-r">
+    <div class="live-dot"></div>
+    <span class="hd-meta">Live · Viv Technologies</span>
+    <span id="updated" class="hd-meta"></span>
+    <span id="clock"></span>
+  </div>
+</div>
+
+<div class="ctrl">
+  <button class="pbtn" onclick="setPeriod('week',this)">This Week</button>
+  <button class="pbtn" onclick="setPeriod('last_week',this)">Last Week</button>
+  <button class="pbtn on" onclick="setPeriod('month',this)">This Month</button>
+  <button class="pbtn" onclick="setPeriod('last_month',this)">Last Month</button>
+  <button class="pbtn" onclick="setPeriod('ytd',this)">YTD</button>
+  <div class="ctrl-sep"></div>
+  <button class="mbtn on" onclick="setMetric('revenue',this)">Revenue</button>
+  <button class="mbtn" onclick="setMetric('hours',this)">Hours</button>
+  <button class="mbtn" onclick="setMetric('visits',this)">Visits</button>
+</div>
+
+<div class="fbar">
+  <label>Scope:</label>
+  <select id="scopeFilter" onchange="applyScope()">
+    <option value="">Company</option>
+    <option value="Massachusetts">Massachusetts</option>
+    <option value="Illinois">Illinois</option>
+    <option value="Maryland">Maryland</option>
+  </select>
+  <select id="mktFilter" onchange="applyScope()">
+    <option value="">All Markets</option>
+    <option value="Boston">Boston</option>
+    <option value="MetroWest Boston">MetroWest Boston</option>
+    <option value="North of Boston">North of Boston</option>
+    <option value="South of Boston">South of Boston</option>
+    <option value="Chicago">Chicago</option>
+    <option value="Baltimore">Baltimore</option>
+    <option value="Annapolis">Annapolis</option>
+    <option value="Bethesda">Bethesda</option>
+  </select>
+</div>
+
+<div id="main"><div class="loading"><div class="spin"></div>Loading service mix data…</div></div>
+
+<script>
+var API='https://tribute-api-prod-bkc4hfcwf3f2f6bf.centralus-01.azurewebsites.net/api/vivProxy';
+
+var curPeriod='month';
+var curMetric='revenue';
+var apiData=null;
+
+var TYPES=['liveIn','tfs','longHour','standard','shortHour'];
+var LABELS={liveIn:'Live-In',tfs:'24-7 Hourly',longHour:'Long Hour (10h+)',standard:'Standard (3-9h)',shortHour:'Short Hour (<3h)'};
+var COLORS={liveIn:'#E8732A',tfs:'#7C3AED',longHour:'#2563EB',standard:'#16A34A',shortHour:'#9CA3AF'};
+var CLASSES={liveIn:'bg-li',tfs:'bg-tfs',longHour:'bg-lh',standard:'bg-st',shortHour:'bg-sh'};
+var TCLASSES={liveIn:'c-li',tfs:'c-tfs',longHour:'c-lh',standard:'c-st',shortHour:'c-sh'};
+
+// Clock
+setInterval(function(){var e=document.getElementById('clock');if(e)e.textContent=new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});},1000);
+
+function fmtM(n){if(!n)return'$0';return n>=1000000?'$'+(n/1000000).toFixed(2)+'M':'$'+Math.round(n).toLocaleString();}
+function fmtN(n){return Math.round(n||0).toLocaleString();}
+function fmtH(n){return Math.round(n||0).toLocaleString()+'h';}
+function pct(n,d){return d>0?Math.round(n/d*100):0;}
+
+function setPeriod(p,el){
+  curPeriod=p;
+  document.querySelectorAll('.pbtn').forEach(function(x){x.classList.remove('on');});
+  el.classList.add('on');
+  load();
+}
+function setMetric(m,el){
+  curMetric=m;
+  document.querySelectorAll('.mbtn').forEach(function(x){x.classList.remove('on');});
+  el.classList.add('on');
+  if(apiData)render();
+}
+function applyScope(){if(apiData)render();}
+
+async function load(){
+  document.getElementById('main').innerHTML='<div class="loading"><div class="spin"></div>Fetching visit data…<div style="font-size:11px;color:var(--text4);margin-top:4px">This may take a moment for longer periods</div></div>';
+  try{
+    var r=await fetch(API+'?endpoint=service_mix&period='+curPeriod);
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    apiData=await r.json();
+    document.getElementById('updated').textContent='Updated '+new Date().toLocaleTimeString();
+    render();
+  }catch(e){
+    document.getElementById('main').innerHTML='<div class="loading" style="color:var(--text4)">Failed to load: '+e.message+'</div>';
+  }
+}
+
+function getVal(typeData,metric){
+  if(!typeData)return 0;
+  if(metric==='revenue')return typeData.revenue||0;
+  if(metric==='hours')return typeData.hours||0;
+  return typeData.visits||0;
+}
+
+function metricLabel(){
+  return curMetric==='revenue'?'Revenue':curMetric==='hours'?'Billed Hours':'Visits';
+}
+function metricFmt(n){
+  if(curMetric==='revenue')return fmtM(n);
+  if(curMetric==='hours')return fmtH(n);
+  return fmtN(n);
+}
+
+// Get the current bucket based on scope
+function getScopedData(){
+  var state=document.getElementById('scopeFilter').value;
+  var mkt=document.getElementById('mktFilter').value;
+  if(mkt){
+    var m=apiData.byMarket.find(function(x){return x.market===mkt;});
+    return m?m.data:null;
+  }
+  if(state){
+    var s=apiData.byState.find(function(x){return x.state===state;});
+    return s?s.data:null;
+  }
+  return apiData.company;
+}
+
+// Get market rows filtered by scope
+function getScopedMarkets(){
+  var state=document.getElementById('scopeFilter').value;
+  var mkt=document.getElementById('mktFilter').value;
+  var MKT_STATE={Boston:'Massachusetts','MetroWest Boston':'Massachusetts','North of Boston':'Massachusetts','South of Boston':'Massachusetts',Chicago:'Illinois',Baltimore:'Maryland',Annapolis:'Maryland',Bethesda:'Maryland'};
+  var rows=apiData.byMarket.filter(function(m){
+    if(mkt)return m.market===mkt;
+    if(state)return MKT_STATE[m.market]===state;
+    return true;
+  });
+  // Sort by scoped metric descending
+  return rows.sort(function(a,b){return getVal(b.data.total,curMetric)-getVal(a.data.total,curMetric);});
+}
+
+function render(){
+  if(!apiData)return;
+  var bucket=getScopedData();
+  if(!bucket){
+    document.getElementById('main').innerHTML='<div class="loading" style="color:var(--text4)">No data for this selection</div>';
+    return;
+  }
+
+  var total=getVal(bucket.total,curMetric);
+  var state=document.getElementById('scopeFilter').value;
+  var mkt=document.getElementById('mktFilter').value;
+  var scopeLabel=mkt||state||'Company';
+
+  var html='';
+
+  // ── PERIOD HEADER ──
+  html+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">';
+  html+='<div><div style="font-size:11px;color:var(--text4);text-transform:uppercase;letter-spacing:.5px;font-weight:600">'+scopeLabel+' · '+metricLabel()+'</div>';
+  html+='<div style="font-size:13px;color:var(--text3);margin-top:2px">'+apiData.period.start+' → '+apiData.period.end+' · '+fmtN(apiData.totalVisits)+' filled visits</div></div>';
+  html+='<div style="font-size:22px;font-weight:700;color:var(--text1)">'+metricFmt(total)+'<span style="font-size:12px;font-weight:400;color:var(--text4);margin-left:6px">total</span></div>';
+  html+='</div>';
+
+  // ── BIG STACKED BAR ──
+  html+='<div class="mix-bar-wrap">';
+  html+='<div class="mix-bar">';
+  TYPES.forEach(function(t){
+    var v=getVal(bucket[t],curMetric);
+    var p=pct(v,total);
+    if(p<1)return;
+    html+='<div class="mix-seg '+CLASSES[t]+'" style="width:'+p+'%;flex:none;" title="'+LABELS[t]+': '+metricFmt(v)+' ('+p+'%)">';
+    if(p>=7)html+='<span class="mix-seg-pct">'+p+'%</span>';
+    html+='</div>';
+  });
+  html+='</div>';
+  // Legend
+  html+='<div class="mix-legend">';
+  TYPES.forEach(function(t){
+    var v=getVal(bucket[t],curMetric);
+    var p=pct(v,total);
+    html+='<div class="mix-leg-item"><div class="mix-leg-dot" style="background:'+COLORS[t]+'"></div><span>'+LABELS[t]+'</span><span style="font-weight:600;color:var(--text1);margin-left:3px">'+p+'%</span></div>';
+  });
+  html+='</div>';
+  html+='</div>';
+
+  // ── TYPE CARDS ──
+  html+='<div class="type-grid">';
+  TYPES.forEach(function(t){
+    var v=getVal(bucket[t],curMetric);
+    var p=pct(v,total);
+    var vis=bucket[t].visits||0;
+    var hrs=bucket[t].hours||0;
+    var rev=bucket[t].revenue||0;
+    var avgHrs=vis>0?(hrs/vis).toFixed(1):0;
+    html+='<div class="type-card" style="border-top-color:'+COLORS[t]+'">';
+    html+='<div class="tc-label">'+LABELS[t]+'</div>';
+    html+='<div class="tc-pct '+TCLASSES[t]+'">'+p+'%</div>';
+    html+='<div class="tc-detail">'+metricFmt(v)+'</div>';
+    // Secondary stats
+    if(curMetric==='revenue'){
+      html+='<div class="tc-sub">'+fmtH(hrs)+' · '+fmtN(vis)+' visits</div>';
+      html+='<div class="tc-sub" style="margin-top:2px">'+avgHrs+'h avg / visit</div>';
+    } else if(curMetric==='hours'){
+      html+='<div class="tc-sub">'+fmtM(rev)+' · '+fmtN(vis)+' visits</div>';
+      html+='<div class="tc-sub" style="margin-top:2px">'+avgHrs+'h avg / visit</div>';
+    } else {
+      html+='<div class="tc-sub">'+fmtH(hrs)+' · '+fmtM(rev)+'</div>';
+      html+='<div class="tc-sub" style="margin-top:2px">'+avgHrs+'h avg / visit</div>';
+    }
+    html+='</div>';
+  });
+  html+='</div>';
+
+  // ── MARKET BREAKDOWN ──
+  var markets=getScopedMarkets().filter(function(m){return getVal(m.data.total,curMetric)>0;});
+  if(markets.length>0){
+    html+='<div class="section"><div class="section-title">By Market</div>';
+    html+='<div class="mkt-section">';
+    markets.forEach(function(m){
+      var mTotal=getVal(m.data.total,curMetric);
+      var maxMkt=Math.max.apply(null,markets.map(function(x){return getVal(x.data.total,curMetric);}));
+      var barScale=maxMkt>0?mTotal/maxMkt*100:0;
+      html+='<div class="mkt-row">';
+      html+='<div class="mkt-name">'+m.market+'</div>';
+      html+='<div class="mkt-bar-wrap" style="max-width:'+barScale.toFixed(0)+'%;">';  
+      TYPES.forEach(function(t){
+        var v=getVal(m.data[t],curMetric);
+        var p=mTotal>0?v/mTotal*100:0;
+        if(p<1)return;
+        html+='<div class="mkt-seg '+CLASSES[t]+'" style="width:'+p.toFixed(1)+'%;" title="'+LABELS[t]+': '+metricFmt(v)+'">';
+        if(p>=10)html+='<span class="mkt-seg-txt">'+Math.round(p)+'%</span>';
+        html+='</div>';
+      });
+      html+='</div>';
+      html+='<div class="mkt-total">'+metricFmt(mTotal)+'</div>';
+      html+='<div class="mkt-sub" style="font-size:10px;color:var(--text4)">'+fmtN(m.data.total.visits)+' vis</div>';
+      html+='</div>';
+    });
+    html+='</div></div>';
+  }
+
+  // ── STATE BREAKDOWN (only when viewing company or state) ──
+  var stateFilter=document.getElementById('scopeFilter').value;
+  var mktFilter=document.getElementById('mktFilter').value;
+  if(!mktFilter){
+    var states=apiData.byState.filter(function(s){
+      if(stateFilter)return s.state===stateFilter;
+      return true;
+    }).filter(function(s){return getVal(s.data.total,curMetric)>0;});
+    if(states.length>1){
+      html+='<div class="two-col" style="margin-bottom:20px">';
+      states.forEach(function(s){
+        var sTotal=getVal(s.data.total,curMetric);
+        html+='<div class="fc"><div class="ct">'+s.state+'<span style="float:right;font-size:12px;font-weight:700;color:var(--text1);text-transform:none;letter-spacing:0">'+metricFmt(sTotal)+'</span></div>';
+        // Stacked bar
+        html+='<div class="mkt-bar-wrap" style="height:24px;border-radius:6px;max-width:100%;margin-bottom:12px;">';
+        TYPES.forEach(function(t){
+          var v=getVal(s.data[t],curMetric);
+          var p=sTotal>0?v/sTotal*100:0;
+          if(p<1)return;
+          html+='<div class="mkt-seg '+CLASSES[t]+'" style="width:'+p.toFixed(1)+'%;height:100%;" title="'+LABELS[t]+': '+metricFmt(v)+'">';
+          if(p>=10)html+='<span class="mkt-seg-txt">'+Math.round(p)+'%</span>';
+          html+='</div>';
+        });
+        html+='</div>';
+        // Type rows
+        TYPES.forEach(function(t){
+          var v=getVal(s.data[t],curMetric);
+          if(!v)return;
+          var p=pct(v,sTotal);
+          html+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">';
+          html+='<div style="width:10px;height:10px;border-radius:2px;background:'+COLORS[t]+';flex-shrink:0"></div>';
+          html+='<div style="flex:1;font-size:12px;color:var(--text2)">'+LABELS[t]+'</div>';
+          html+='<div style="font-size:12px;font-weight:600;color:var(--text1)">'+p+'%</div>';
+          html+='<div style="font-size:11px;color:var(--text4);width:70px;text-align:right">'+metricFmt(v)+'</div>';
+          html+='</div>';
+        });
+        html+='</div>';
+      });
+      html+='</div>';
+    }
+  }
+
+  // ── DETAIL TABLE ──
+  html+='<div class="section"><div class="section-title">Detail Table</div>';
+  html+='<div class="fc" style="padding:0"><div class="tbl-wrap"><table>';
+  html+='<thead><tr><th>Service Type</th><th>Visits</th><th>% Visits</th><th>Billed Hours</th><th>% Hours</th><th>Revenue</th><th>% Revenue</th><th>Avg Hrs / Visit</th><th>Rev / Hr</th></tr></thead><tbody>';
+  var totVis=bucket.total.visits||0,totHrs=bucket.total.hours||0,totRev=bucket.total.revenue||0;
+  TYPES.forEach(function(t){
+    var d=bucket[t];
+    if(!d||!d.visits)return;
+    var avgH=d.visits>0?(d.hours/d.visits).toFixed(1):0;
+    var revH=d.hours>0?'$'+(d.revenue/d.hours).toFixed(2):'-';
+    html+='<tr>';
+    html+='<td><div style="display:flex;align-items:center;gap:8px"><div style="width:10px;height:10px;border-radius:2px;background:'+COLORS[t]+'"></div><strong>'+LABELS[t]+'</strong></div></td>';
+    html+='<td>'+fmtN(d.visits)+'</td>';
+    html+='<td><span class="pct-bar" style="width:'+pct(d.visits,totVis)+'px;background:'+COLORS[t]+';opacity:.4"></span>'+pct(d.visits,totVis)+'%</td>';
+    html+='<td>'+fmtH(d.hours)+'</td>';
+    html+='<td><span class="pct-bar" style="width:'+pct(d.hours,totHrs)+'px;background:'+COLORS[t]+';opacity:.4"></span>'+pct(d.hours,totHrs)+'%</td>';
+    html+='<td>'+fmtM(d.revenue)+'</td>';
+    html+='<td><span class="pct-bar" style="width:'+pct(d.revenue,totRev)+'px;background:'+COLORS[t]+';opacity:.4"></span>'+pct(d.revenue,totRev)+'%</td>';
+    html+='<td>'+avgH+'h</td>';
+    html+='<td>'+revH+'</td>';
+    html+='</tr>';
+  });
+  // Total row
+  var avgTot=totVis>0?(totHrs/totVis).toFixed(1):0;
+  var revHrTot=totHrs>0?'$'+(totRev/totHrs).toFixed(2):'-';
+  html+='<tr><td>TOTAL</td><td>'+fmtN(totVis)+'</td><td>100%</td><td>'+fmtH(totHrs)+'</td><td>100%</td><td>'+fmtM(totRev)+'</td><td>100%</td><td>'+avgTot+'h</td><td>'+revHrTot+'</td></tr>';
+  html+='</tbody></table></div></div></div>';
+
+  document.getElementById('main').innerHTML=html;
+}
+
+// Init
+(function(){load();})();
+</script>
+</body>
+</html>
