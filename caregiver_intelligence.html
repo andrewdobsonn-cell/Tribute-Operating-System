@@ -477,7 +477,7 @@ function renderHours(){
   function cgTable(list,colFn,emptyMsg){
     if(!list.length)return '<div style="color:var(--text4);padding:8px">'+emptyMsg+'</div>';
     var t='<table class="tbl"><thead><tr><th>Name</th><th>Market</th><th>Hrs</th></tr></thead><tbody>';
-    t+=list.map(function(cg){return '<tr onclick="openModal(''+cg._id+'')">'+colFn(cg)+'</tr>';}).join('');
+    t+=list.map(function(cg){return '<tr onclick="openModal(\'' + cg._id + '\')">'+colFn(cg)+'</tr>';}).join('');
     return t+'</tbody></table>';
   }
 
