@@ -441,7 +441,7 @@ function renderOverview(){
   var total=cgs.length;
   var otCGs=cgs.filter(function(cg){return !isLiveIn(cg)&&cgAvgMap[cg.id]>=40;});
   var zeroCGs=cgs.filter(function(cg){return cgAvgMap[cg.id]===0;});
-  var workingCGs=cgs.filter(function(cg){return cgAvgMap[cg.id]>0;});
+  var workingCGs=cgs.filter(function(cg){return cgAvgMap[cg.id]>0&&!isLiveIn(cg);});
   var compAvg=workingCGs.length?workingCGs.reduce(function(s,cg){return s+cgAvgMap[cg.id];},0)/workingCGs.length:0;
   var bio=allHoursWeeks[curWeek]||{};
   var newHires30=(bio.caregivers||[]).filter(function(cg){
@@ -493,7 +493,7 @@ function renderOverview(){
   var html='';
   html+='<div class="kg6">';
   html+='<div class="kpi"><div class="kl">Active Caregivers</div><div class="kv o">'+total+'</div><div class="ks">this week</div></div>';
-  html+='<div class="kpi"><div class="kl">Avg Hrs / Week</div><div class="kv">'+compAvg.toFixed(1)+'</div><div class="ks">among caregivers with hours</div></div>';
+  html+='<div class="kpi"><div class="kl">Avg Hrs / Week</div><div class="kv">'+compAvg.toFixed(1)+'</div><div class="ks">hourly CGs with hours · excl. live-in</div></div>';
   html+='<div class="kpi"><div class="kl">OT Caregivers</div><div class="kv a">'+otCGs.length+'</div><div class="ks">'+(total?Math.round(otCGs.length/total*100):0)+'% of active · excludes live-in</div></div>';
   html+='<div class="kpi"><div class="kl">Zero Hours</div><div class="kv r">'+zeroCGs.length+'</div><div class="ks">no hours last 4 wks</div></div>';
   html+='<div class="kpi"><div class="kl">Utilization</div><div class="kv">'+(total?Math.round(workingCGs.length/total*100):0)+'%</div><div class="ks">scheduled at least once</div></div>';
@@ -605,20 +605,27 @@ function renderLifecycle(){
   // Filter allBio by relevant caregivers
   var MARKET_STATE={'Boston':'Massachusetts','MetroWest Boston':'Massachusetts','North of Boston':'Massachusetts','South of Boston':'Massachusetts','Chicago':'Illinois','Baltimore':'Maryland','Annapolis':'Maryland','Bethesda':'Maryland'};
 
+  var CITY_ST={
+    'Boston':'Massachusetts','MetroWest Boston':'Massachusetts','North of Boston':'Massachusetts','South of Boston':'Massachusetts',
+    'Chicago':'Illinois','Baltimore':'Maryland','Annapolis':'Maryland','Bethesda':'Maryland',
+    'Massachusetts':'Massachusetts','Illinois':'Illinois','Maryland':'Maryland'
+  };
+  var type=document.getElementById('typeFilter').value;
   var bio=allBio.filter(function(cg){
     var city=cg.gcity||'';
-    if(!city||city==='Tribute')return false;
-    if(state){
-      // gcity can be a market name ("Boston"), a state name ("Massachusetts"), or a code
-      var CITY_STATE={
-        'Boston':'Massachusetts','MetroWest Boston':'Massachusetts','North of Boston':'Massachusetts','South of Boston':'Massachusetts',
-        'Chicago':'Illinois','Baltimore':'Maryland','Annapolis':'Maryland','Bethesda':'Maryland',
-        'Massachusetts':'Massachusetts','Illinois':'Illinois','Maryland':'Maryland'
-      };
-      var s=CITY_STATE[city]||'';
-      if(s!==state)return false;
+    if(city==='Tribute')return false;
+    // state: use resolved cg.state (new proxy) or infer from gcity (old proxy)
+    var cgSt=cg.state||(CITY_ST[city]||'');
+    // market: use resolved cg.market (new proxy) or gcity (old proxy)
+    var cgMkt=cg.market||city||'';
+    if(state&&cgSt!==state)return false;
+    if(mkt&&cgMkt!==mkt)return false;
+    // type: derive from availability.notes
+    if(type){
+      var notes=(cg.availability&&cg.availability.notes)||'';
+      var cgType=detectType(notes);
+      if(cgType!==type)return false;
     }
-    if(mkt&&city!==mkt)return false;
     return true;
   });
 
