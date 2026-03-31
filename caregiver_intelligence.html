@@ -449,7 +449,6 @@ function renderHours(){
   var underCGs=active.filter(function(cg){var a=cgAvgHrs(cg._id,weeks4);return a>0&&a<20;}).sort(function(a,b){return cgAvgHrs(a._id,weeks4)-cgAvgHrs(b._id,weeks4);}).slice(0,12);
   var zeroCGs=active.filter(function(cg){return cgAvgHrs(cg._id,weeks4)===0;}).slice(0,12);
 
-  // Market weekly trend
   var mktMap={};
   active.forEach(function(cg){
     var m=normalizeMarket(cg);
@@ -475,24 +474,22 @@ function renderHours(){
   });
   html+='</div></div>';
 
+  function cgTable(list,colFn,emptyMsg){
+    if(!list.length)return '<div style="color:var(--text4);padding:8px">'+emptyMsg+'</div>';
+    var t='<table class="tbl"><thead><tr><th>Name</th><th>Market</th><th>Hrs</th></tr></thead><tbody>';
+    t+=list.map(function(cg){return '<tr onclick="openModal(''+cg._id+'')">'+colFn(cg)+'</tr>';}).join('');
+    return t+'</tbody></table>';
+  }
+
   html+='<div class="three-col">';
-  // OT
   html+='<div class="fc"><div class="ct">OT Caregivers (40+ hrs avg)</div>';
-  html+=otCGs.length?'<table class="tbl"><thead><tr><th>Name</th><th>Market</th><th>Avg Hrs</th></tr></thead><tbody>';
-  html+=otCGs.map(function(cg){var a=cgAvgHrs(cg._id,weeks4);return '<tr onclick="openModal(\''+cg._id+'\')"><td>'+cg.fn+' '+cg.ln+'</td><td style="color:var(--text3)">'+normalizeMarket(cg)+'</td><td><span class="bdg ba">'+a.toFixed(0)+'h</span></td></tr>';}).join('');
-  html+='</tbody></table>':'<div style="color:var(--text4);padding:8px">None in selection</div>';
+  html+=cgTable(otCGs,function(cg){var a=cgAvgHrs(cg._id,weeks4);return '<td>'+cg.fn+' '+cg.ln+'</td><td style="color:var(--text3)">'+normalizeMarket(cg)+'</td><td><span class="bdg ba">'+a.toFixed(0)+'h</span></td>';},'None in selection');
   html+='</div>';
-  // Under
   html+='<div class="fc"><div class="ct">Underutilized (&lt;20 hrs avg)</div>';
-  html+=underCGs.length?'<table class="tbl"><thead><tr><th>Name</th><th>Market</th><th>Avg Hrs</th></tr></thead><tbody>';
-  html+=underCGs.map(function(cg){var a=cgAvgHrs(cg._id,weeks4);return '<tr onclick="openModal(\''+cg._id+'\')"><td>'+cg.fn+' '+cg.ln+'</td><td style="color:var(--text3)">'+normalizeMarket(cg)+'</td><td style="color:var(--red)">'+a.toFixed(0)+'h</td></tr>';}).join('');
-  html+='</tbody></table>':'<div style="color:var(--text4);padding:8px">None in selection</div>';
+  html+=cgTable(underCGs,function(cg){var a=cgAvgHrs(cg._id,weeks4);return '<td>'+cg.fn+' '+cg.ln+'</td><td style="color:var(--text3)">'+normalizeMarket(cg)+'</td><td style="color:var(--red)">'+a.toFixed(0)+'h</td>';},'None in selection');
   html+='</div>';
-  // Zero
   html+='<div class="fc"><div class="ct">Zero Hours This Period</div>';
-  html+=zeroCGs.length?'<table class="tbl"><thead><tr><th>Name</th><th>Market</th><th>Last Visit</th></tr></thead><tbody>';
-  html+=zeroCGs.map(function(cg){var lb=cg.queries&&cg.queries.lastBooking;return '<tr onclick="openModal(\''+cg._id+'\')"><td>'+cg.fn+' '+cg.ln+'</td><td style="color:var(--text3)">'+normalizeMarket(cg)+'</td><td style="color:var(--text4)">'+fmtDate(lb)+'</td></tr>';}).join('');
-  html+='</tbody></table>':'<div style="color:var(--text4);padding:8px">None in selection</div>';
+  html+=cgTable(zeroCGs,function(cg){var lb=cg.queries&&cg.queries.lastBooking;return '<td>'+cg.fn+' '+cg.ln+'</td><td style="color:var(--text3)">'+normalizeMarket(cg)+'</td><td style="color:var(--text4)">'+fmtDate(lb)+'</td>';},'None in selection');
   html+='</div>';
   html+='</div>';
 
