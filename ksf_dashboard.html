@@ -225,44 +225,66 @@ function render(){
   else if(curTab==='gm')renderGM();
 }
 
-function getKSFExtras(mktName, week) {
-  // Returns {inc, uber, ts, guar} for a given market and week from embedded KSF data
-  function getActual(geo,metric,w){return (ACTUALS[geo]&&ACTUALS[geo][metric]&&ACTUALS[geo][metric][w])||0;}
-  function getUberNearest(geo,w){
-    var uberWeeks=Object.keys(UBER_DATA).sort();
-    if(!uberWeeks.length)return 0;
+function getKSFCosts(mktName, week) {
+  // Returns ALL KSF cost components for a market/week
+  // This is the single source of truth for GM matching the Excel
+  function ga(geo,metric,w){return (ACTUALS[geo]&&ACTUALS[geo][metric]&&ACTUALS[geo][metric][w])||0;}
+  function uberNearest(geo,w){
+    var weeks=Object.keys(UBER_DATA).sort();
+    if(!weeks.length)return 0;
     var td=new Date(w);
-    var nearest=uberWeeks.reduce(function(best,uw){
-      return Math.abs(new Date(uw)-td)<Math.abs(new Date(best)-td)?uw:best;
-    },uberWeeks[uberWeeks.length-1]);
-    return (UBER_DATA[nearest]&&UBER_DATA[nearest][geo]&&UBER_DATA[nearest][geo].amount)||0;
+    var near=weeks.reduce(function(b,uw){return Math.abs(new Date(uw)-td)<Math.abs(new Date(b)-td)?uw:b;},weeks[weeks.length-1]);
+    return (UBER_DATA[near]&&UBER_DATA[near][geo]&&UBER_DATA[near][geo].amount)||0;
   }
   return {
-    inc: getActual(mktName,'Incentives (Actual)',week),
-    uber: getUberNearest(mktName,week),
-    ts: getActual(mktName,'TS Admin (Actual)',week),
-    guar: getActual(mktName,'4 Week Guaranteed Admin (Actual) ',week)
+    regPay: ga(mktName,'Hourly Regular Pay',week),
+    ot:     ga(mktName,'Hourly OT',week),
+    inc:    ga(mktName,'Incentives (Actual)',week),
+    uber:   uberNearest(mktName,week),
+    ts:     ga(mktName,'TS Admin (Actual)',week),
+    guar:   ga(mktName,'4 Week Guaranteed Admin (Actual) ',week)
   };
 }
 
-function calcAdjGM(revenue, vivGrossProfit, mktName, week) {
-  // Adjust Viv GM by subtracting Incentives, Ubers, and TS Admin
-  // Formula matches Excel: GM = Revenue - RegPay - OT - Inc - Uber - TSAdmin
-  var extras = getKSFExtras(mktName, week);
-  var adjProfit = vivGrossProfit - extras.inc - extras.uber - extras.ts - extras.guar;
-  return revenue > 0 ? adjProfit / revenue : 0;
+function ksfGMPct(revenue, mktName, week) {
+  // Exact Excel formula: GM% = (Rev - RegPay - OT - Inc - Uber - TS) / Rev
+  if(!revenue) return null;
+  var c = getKSFCosts(mktName, week);
+  var totalCost = c.regPay + c.ot + c.inc + c.uber + c.ts + c.guar;
+  // Only use KSF if we have pay data — otherwise fall back to Viv
+  if(!c.regPay && !c.ot) return null;
+  return (revenue - totalCost) / revenue;
 }
 
 function renderOverview(){
   var t=visitsData.totals, mkts=visitsData.markets||[];
   var html='';
 
-  // Compute adjusted company GM (deduct Inc + Uber + TS from all markets)
+  // Compute adjusted company GM — matches Excel formula: Rev - RegPay - OT - Inc - Uber - TS
+  // Priority: (1) KSF embedded data (historical), (2) live ot_costs endpoint (current weeks)
+  // Ubers always come from embedded data (not in Viv)
+  var otMkts=(otCostData&&otCostData.byMarket)||[];
   var totalAdjProfit=0, totalRev=0;
   mkts.filter(m=>m.totalVisits>0).forEach(function(m){
-    var extras=getKSFExtras(m.market,curStart);
-    totalAdjProfit+=(m.grossProfit||0)-extras.inc-extras.uber-extras.ts-extras.guar;
-    totalRev+=m.revenue||0;
+    var c=getKSFCosts(m.market,curStart);
+    var otMkt=otMkts.find(function(x){return x.market===m.market;})||{};
+    var rev=m.revenue||0;
+    var payCost, inc, ts;
+    if(c.regPay||c.ot){
+      // Historical week — use KSF embedded pay + extras
+      payCost=c.regPay+c.ot;
+      inc=c.inc;
+      ts=c.ts+c.guar;
+    } else {
+      // Live week — use ot_costs for pay, incentives, and TS Admin (all live from Viv)
+      payCost=otMkt.payCost||0;
+      inc=otMkt.incentives||0;
+      ts=otMkt.tributeSecure||0;
+    }
+    // Ubers always from embedded data (Viv doesn't have them)
+    var uber=c.uber;
+    totalAdjProfit+=rev-payCost-inc-uber-ts;
+    totalRev+=rev;
   });
   var adjGMPct=totalRev>0?totalAdjProfit/totalRev:t.grossMarginPct;
 
@@ -283,8 +305,15 @@ function renderOverview(){
     var bgt=BUDGET[m.market];
     var bgtRev=bgt?bgt.revenueWeekly:null;
     var bgtGM=bgt?bgt.grossMarginPct:null;
-    var extras=getKSFExtras(m.market,curStart);
-    var adjProfit=(m.grossProfit||0)-extras.inc-extras.uber-extras.ts-extras.guar;
+    var c=getKSFCosts(m.market,curStart);
+    var otMkt=(otCostData&&otCostData.byMarket||[]).find(function(x){return x.market===m.market;})||{};
+    var mktPayCost,mktInc,mktTS;
+    if(c.regPay||c.ot){
+      mktPayCost=c.regPay+c.ot; mktInc=c.inc; mktTS=c.ts+c.guar;
+    } else {
+      mktPayCost=otMkt.payCost||0; mktInc=otMkt.incentives||0; mktTS=otMkt.tributeSecure||0;
+    }
+    var adjProfit=(m.revenue||0)-mktPayCost-mktInc-c.uber-mktTS;
     var adjMktGMPct=m.revenue>0?adjProfit/m.revenue:0;
     html+='<tr>';
     html+='<td>'+m.market+'</td>';
