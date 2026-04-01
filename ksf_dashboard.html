@@ -225,9 +225,46 @@ function render(){
   else if(curTab==='gm')renderGM();
 }
 
+function getKSFExtras(mktName, week) {
+  // Returns {inc, uber, ts, guar} for a given market and week from embedded KSF data
+  function getActual(geo,metric,w){return (ACTUALS[geo]&&ACTUALS[geo][metric]&&ACTUALS[geo][metric][w])||0;}
+  function getUberNearest(geo,w){
+    var uberWeeks=Object.keys(UBER_DATA).sort();
+    if(!uberWeeks.length)return 0;
+    var td=new Date(w);
+    var nearest=uberWeeks.reduce(function(best,uw){
+      return Math.abs(new Date(uw)-td)<Math.abs(new Date(best)-td)?uw:best;
+    },uberWeeks[uberWeeks.length-1]);
+    return (UBER_DATA[nearest]&&UBER_DATA[nearest][geo]&&UBER_DATA[nearest][geo].amount)||0;
+  }
+  return {
+    inc: getActual(mktName,'Incentives (Actual)',week),
+    uber: getUberNearest(mktName,week),
+    ts: getActual(mktName,'TS Admin (Actual)',week),
+    guar: getActual(mktName,'4 Week Guaranteed Admin (Actual) ',week)
+  };
+}
+
+function calcAdjGM(revenue, vivGrossProfit, mktName, week) {
+  // Adjust Viv GM by subtracting Incentives, Ubers, and TS Admin
+  // Formula matches Excel: GM = Revenue - RegPay - OT - Inc - Uber - TSAdmin
+  var extras = getKSFExtras(mktName, week);
+  var adjProfit = vivGrossProfit - extras.inc - extras.uber - extras.ts - extras.guar;
+  return revenue > 0 ? adjProfit / revenue : 0;
+}
+
 function renderOverview(){
   var t=visitsData.totals, mkts=visitsData.markets||[];
   var html='';
+
+  // Compute adjusted company GM (deduct Inc + Uber + TS from all markets)
+  var totalAdjProfit=0, totalRev=0;
+  mkts.filter(m=>m.totalVisits>0).forEach(function(m){
+    var extras=getKSFExtras(m.market,curStart);
+    totalAdjProfit+=(m.grossProfit||0)-extras.inc-extras.uber-extras.ts-extras.guar;
+    totalRev+=m.revenue||0;
+  });
+  var adjGMPct=totalRev>0?totalAdjProfit/totalRev:t.grossMarginPct;
 
   // Top KPIs
   html+='<div class="kg">';
@@ -235,7 +272,7 @@ function renderOverview(){
   html+='<div class="kpi"><div class="kl">Fill Rate</div><div class="kv '+(t.fillRate>=0.97?'g':t.fillRate>=0.95?'a':'r')+'">'+fp(t.fillRate)+'</div><div class="ks '+(t.fillRate>=0.97?'good':'bad')+'">'+fn(t.filledVisits)+' of '+fn(t.totalVisits)+'</div></div>';
   html+='<div class="kpi"><div class="kl">Open Visits</div><div class="kv '+(t.openVisits===0?'g':t.openVisits<20?'a':'r')+'">'+fn(t.openVisits)+'</div><div class="ks">Unfilled this week</div></div>';
   html+='<div class="kpi"><div class="kl">Billed Hours</div><div class="kv b">'+fn(Math.round(t.billedHours))+'h</div><div class="ks">This week</div></div>';
-  html+='<div class="kpi"><div class="kl">Gross Margin</div><div class="kv '+(t.grossMarginPct>=0.44?'g':t.grossMarginPct>=0.40?'a':'r')+'">'+fp(t.grossMarginPct)+'</div><div class="ks">'+fm(t.grossProfit)+' profit</div></div>';
+  html+='<div class="kpi"><div class="kl">Gross Margin</div><div class="kv '+(adjGMPct>=0.44?'g':adjGMPct>=0.40?'a':'r')+'">'+fp(adjGMPct)+'</div><div class="ks">Rev − Pay − Inc − Ubers − TS</div></div>';
   html+='</div>';
 
   // Market summary table
@@ -246,6 +283,9 @@ function renderOverview(){
     var bgt=BUDGET[m.market];
     var bgtRev=bgt?bgt.revenueWeekly:null;
     var bgtGM=bgt?bgt.grossMarginPct:null;
+    var extras=getKSFExtras(m.market,curStart);
+    var adjProfit=(m.grossProfit||0)-extras.inc-extras.uber-extras.ts-extras.guar;
+    var adjMktGMPct=m.revenue>0?adjProfit/m.revenue:0;
     html+='<tr>';
     html+='<td>'+m.market+'</td>';
     html+='<td style="color:var(--text3);font-weight:normal">'+m.state+'</td>';
@@ -253,13 +293,13 @@ function renderOverview(){
     html+='<td><span class="bdg '+(m.fillRate>=0.97?'bg':m.fillRate>=0.95?'ba':'br')+'">'+fp(m.fillRate)+'</span></td>';
     html+='<td>'+fk(m.revenue)+'</td>';
     html+='<td>'+vsBudget(m.revenue,bgtRev)+'</td>';
-    html+='<td><span class="bdg '+(m.grossMarginPct>=(bgtGM||0.40)?'bg':m.grossMarginPct>=0.38?'ba':'br')+'">'+fp(m.grossMarginPct)+'</span></td>';
+    html+='<td><span class="bdg '+(adjMktGMPct>=(bgtGM||0.40)?'bg':adjMktGMPct>=0.38?'ba':'br')+'">'+fp(adjMktGMPct)+'</span></td>';
     html+='<td style="color:'+(m.openVisits>5?'var(--red)':'var(--charcoal)')+'">'+fn(m.openVisits)+'</td>';
     html+='<td>'+fn(Math.round(m.billedHours))+'h</td>';
     html+='</tr>';
   });
   // Totals row
-  html+='</tbody><tfoot><tr><td>Total</td><td></td><td>'+fn(t.totalVisits)+'</td><td>'+fp(t.fillRate)+'</td><td>'+fm(t.revenue)+'</td><td></td><td>'+fp(t.grossMarginPct)+'</td><td>'+fn(t.openVisits)+'</td><td>'+fn(Math.round(t.billedHours))+'h</td></tr></tfoot>';
+  html+='</tbody><tfoot><tr><td>Total</td><td></td><td>'+fn(t.totalVisits)+'</td><td>'+fp(t.fillRate)+'</td><td>'+fm(t.revenue)+'</td><td></td><td>'+fp(adjGMPct)+'</td><td>'+fn(t.openVisits)+'</td><td>'+fn(Math.round(t.billedHours))+'h</td></tr></tfoot>';
   html+='</table></div>';
 
   document.getElementById('ct').innerHTML=html;
