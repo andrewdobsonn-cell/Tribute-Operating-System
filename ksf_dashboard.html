@@ -225,68 +225,9 @@ function render(){
   else if(curTab==='gm')renderGM();
 }
 
-function getKSFCosts(mktName, week) {
-  // Returns ALL KSF cost components for a market/week
-  // This is the single source of truth for GM matching the Excel
-  function ga(geo,metric,w){return (ACTUALS[geo]&&ACTUALS[geo][metric]&&ACTUALS[geo][metric][w])||0;}
-  function uberNearest(geo,w){
-    var weeks=Object.keys(UBER_DATA).sort();
-    if(!weeks.length)return 0;
-    var td=new Date(w);
-    var near=weeks.reduce(function(b,uw){return Math.abs(new Date(uw)-td)<Math.abs(new Date(b)-td)?uw:b;},weeks[weeks.length-1]);
-    return (UBER_DATA[near]&&UBER_DATA[near][geo]&&UBER_DATA[near][geo].amount)||0;
-  }
-  return {
-    regPay: ga(mktName,'Hourly Regular Pay',week),
-    ot:     ga(mktName,'Hourly OT',week),
-    inc:    ga(mktName,'Incentives (Actual)',week),
-    uber:   uberNearest(mktName,week),
-    ts:     ga(mktName,'TS Admin (Actual)',week),
-    guar:   ga(mktName,'4 Week Guaranteed Admin (Actual) ',week)
-  };
-}
-
-function ksfGMPct(revenue, mktName, week) {
-  // Exact Excel formula: GM% = (Rev - RegPay - OT - Inc - Uber - TS) / Rev
-  if(!revenue) return null;
-  var c = getKSFCosts(mktName, week);
-  var totalCost = c.regPay + c.ot + c.inc + c.uber + c.ts + c.guar;
-  // Only use KSF if we have pay data — otherwise fall back to Viv
-  if(!c.regPay && !c.ot) return null;
-  return (revenue - totalCost) / revenue;
-}
-
 function renderOverview(){
   var t=visitsData.totals, mkts=visitsData.markets||[];
   var html='';
-
-  // Compute adjusted company GM — matches Excel formula: Rev - RegPay - OT - Inc - Uber - TS
-  // Priority: (1) KSF embedded data (historical), (2) live ot_costs endpoint (current weeks)
-  // Ubers always come from embedded data (not in Viv)
-  var otMkts=(otCostData&&otCostData.byMarket)||[];
-  var totalAdjProfit=0, totalRev=0;
-  mkts.filter(m=>m.totalVisits>0).forEach(function(m){
-    var c=getKSFCosts(m.market,curStart);
-    var otMkt=otMkts.find(function(x){return x.market===m.market;})||{};
-    var rev=m.revenue||0;
-    var payCost, inc, ts;
-    if(c.regPay||c.ot){
-      // Historical week — use KSF embedded pay + extras
-      payCost=c.regPay+c.ot;
-      inc=c.inc;
-      ts=c.ts+c.guar;
-    } else {
-      // Live week — use ot_costs for pay, incentives, and TS Admin (all live from Viv)
-      payCost=otMkt.payCost||0;
-      inc=otMkt.incentives||0;
-      ts=otMkt.tributeSecure||0;
-    }
-    // Ubers always from embedded data (Viv doesn't have them)
-    var uber=c.uber;
-    totalAdjProfit+=rev-payCost-inc-uber-ts;
-    totalRev+=rev;
-  });
-  var adjGMPct=totalRev>0?totalAdjProfit/totalRev:t.grossMarginPct;
 
   // Top KPIs
   html+='<div class="kg">';
@@ -294,7 +235,7 @@ function renderOverview(){
   html+='<div class="kpi"><div class="kl">Fill Rate</div><div class="kv '+(t.fillRate>=0.97?'g':t.fillRate>=0.95?'a':'r')+'">'+fp(t.fillRate)+'</div><div class="ks '+(t.fillRate>=0.97?'good':'bad')+'">'+fn(t.filledVisits)+' of '+fn(t.totalVisits)+'</div></div>';
   html+='<div class="kpi"><div class="kl">Open Visits</div><div class="kv '+(t.openVisits===0?'g':t.openVisits<20?'a':'r')+'">'+fn(t.openVisits)+'</div><div class="ks">Unfilled this week</div></div>';
   html+='<div class="kpi"><div class="kl">Billed Hours</div><div class="kv b">'+fn(Math.round(t.billedHours))+'h</div><div class="ks">This week</div></div>';
-  html+='<div class="kpi"><div class="kl">Gross Margin</div><div class="kv '+(adjGMPct>=0.44?'g':adjGMPct>=0.40?'a':'r')+'">'+fp(adjGMPct)+'</div><div class="ks">Rev − Pay − Inc − Ubers − TS</div></div>';
+  html+='<div class="kpi"><div class="kl">Gross Margin</div><div class="kv '+(t.grossMarginPct>=0.44?'g':t.grossMarginPct>=0.40?'a':'r')+'">'+fp(t.grossMarginPct)+'</div><div class="ks">'+fm(t.grossProfit)+' profit</div></div>';
   html+='</div>';
 
   // Market summary table
@@ -305,16 +246,6 @@ function renderOverview(){
     var bgt=BUDGET[m.market];
     var bgtRev=bgt?bgt.revenueWeekly:null;
     var bgtGM=bgt?bgt.grossMarginPct:null;
-    var c=getKSFCosts(m.market,curStart);
-    var otMkt=(otCostData&&otCostData.byMarket||[]).find(function(x){return x.market===m.market;})||{};
-    var mktPayCost,mktInc,mktTS;
-    if(c.regPay||c.ot){
-      mktPayCost=c.regPay+c.ot; mktInc=c.inc; mktTS=c.ts+c.guar;
-    } else {
-      mktPayCost=otMkt.payCost||0; mktInc=otMkt.incentives||0; mktTS=otMkt.tributeSecure||0;
-    }
-    var adjProfit=(m.revenue||0)-mktPayCost-mktInc-c.uber-mktTS;
-    var adjMktGMPct=m.revenue>0?adjProfit/m.revenue:0;
     html+='<tr>';
     html+='<td>'+m.market+'</td>';
     html+='<td style="color:var(--text3);font-weight:normal">'+m.state+'</td>';
@@ -322,13 +253,13 @@ function renderOverview(){
     html+='<td><span class="bdg '+(m.fillRate>=0.97?'bg':m.fillRate>=0.95?'ba':'br')+'">'+fp(m.fillRate)+'</span></td>';
     html+='<td>'+fk(m.revenue)+'</td>';
     html+='<td>'+vsBudget(m.revenue,bgtRev)+'</td>';
-    html+='<td><span class="bdg '+(adjMktGMPct>=(bgtGM||0.40)?'bg':adjMktGMPct>=0.38?'ba':'br')+'">'+fp(adjMktGMPct)+'</span></td>';
+    html+='<td><span class="bdg '+(m.grossMarginPct>=(bgtGM||0.40)?'bg':m.grossMarginPct>=0.38?'ba':'br')+'">'+fp(m.grossMarginPct)+'</span></td>';
     html+='<td style="color:'+(m.openVisits>5?'var(--red)':'var(--charcoal)')+'">'+fn(m.openVisits)+'</td>';
     html+='<td>'+fn(Math.round(m.billedHours))+'h</td>';
     html+='</tr>';
   });
   // Totals row
-  html+='</tbody><tfoot><tr><td>Total</td><td></td><td>'+fn(t.totalVisits)+'</td><td>'+fp(t.fillRate)+'</td><td>'+fm(t.revenue)+'</td><td></td><td>'+fp(adjGMPct)+'</td><td>'+fn(t.openVisits)+'</td><td>'+fn(Math.round(t.billedHours))+'h</td></tr></tfoot>';
+  html+='</tbody><tfoot><tr><td>Total</td><td></td><td>'+fn(t.totalVisits)+'</td><td>'+fp(t.fillRate)+'</td><td>'+fm(t.revenue)+'</td><td></td><td>'+fp(t.grossMarginPct)+'</td><td>'+fn(t.openVisits)+'</td><td>'+fn(Math.round(t.billedHours))+'h</td></tr></tfoot>';
   html+='</table></div>';
 
   document.getElementById('ct').innerHTML=html;
@@ -458,32 +389,138 @@ function renderBudget(){
   document.getElementById('ct').innerHTML=html;
 }
 
+// ── CALL METRICS HELPERS ──
+var callAggregated=null;
+var CALL_HISTORY={"2025-05-04":{"Megan Stewart":{"answered":22,"outbound":22,"inbound":0,"abandoned":0,"talk_secs":1500},"Haley MacBain":{"answered":26,"outbound":26,"inbound":0,"abandoned":0,"talk_secs":3146},"Jennifer Robinson":{"answered":15,"outbound":15,"inbound":0,"abandoned":0,"talk_secs":1785},"Patricia Huerta":{"answered":30,"outbound":30,"inbound":0,"abandoned":0,"talk_secs":2560}},"2025-05-11":{"Jennifer Robinson":{"answered":73,"outbound":73,"inbound":0,"abandoned":0,"talk_secs":10148},"Megan Stewart":{"answered":77,"outbound":77,"inbound":0,"abandoned":0,"talk_secs":4545},"Haley MacBain":{"answered":127,"outbound":127,"inbound":0,"abandoned":0,"talk_secs":11961},"Patricia Huerta":{"answered":88,"outbound":88,"inbound":0,"abandoned":0,"talk_secs":6907},"Meghan Daly":{"answered":1,"outbound":1,"inbound":0,"abandoned":0,"talk_secs":185}},"2025-05-18":{"Patricia Huerta":{"answered":98,"outbound":98,"inbound":0,"abandoned":0,"talk_secs":7272},"Jennifer Robinson":{"answered":109,"outbound":109,"inbound":0,"abandoned":0,"talk_secs":11747},"Haley MacBain":{"answered":149,"outbound":149,"inbound":0,"abandoned":0,"talk_secs":18269},"Megan Stewart":{"answered":77,"outbound":77,"inbound":0,"abandoned":0,"talk_secs":5396}},"2025-05-25":{"Patricia Huerta":{"answered":119,"outbound":119,"inbound":0,"abandoned":0,"talk_secs":9749},"Jennifer Robinson":{"answered":76,"outbound":76,"inbound":0,"abandoned":0,"talk_secs":7580},"Haley MacBain":{"answered":94,"outbound":94,"inbound":0,"abandoned":0,"talk_secs":10822},"Megan Stewart":{"answered":58,"outbound":58,"inbound":0,"abandoned":0,"talk_secs":3413}},"2025-06-01":{"Haley MacBain":{"answered":137,"outbound":137,"inbound":0,"abandoned":0,"talk_secs":16464},"Jennifer Robinson":{"answered":110,"outbound":110,"inbound":0,"abandoned":0,"talk_secs":14227},"Patricia Huerta":{"answered":172,"outbound":172,"inbound":0,"abandoned":0,"talk_secs":13132},"Megan Stewart":{"answered":56,"outbound":56,"inbound":0,"abandoned":0,"talk_secs":4235}},"2025-06-08":{"Patricia Huerta":{"answered":174,"outbound":174,"inbound":0,"abandoned":0,"talk_secs":14250},"Haley MacBain":{"answered":117,"outbound":117,"inbound":0,"abandoned":0,"talk_secs":12343},"Jennifer Robinson":{"answered":99,"outbound":99,"inbound":0,"abandoned":0,"talk_secs":10747},"Megan Stewart":{"answered":69,"outbound":69,"inbound":0,"abandoned":0,"talk_secs":5563}},"2025-06-15":{"Jennifer Robinson":{"answered":90,"outbound":90,"inbound":0,"abandoned":0,"talk_secs":10190},"Patricia Huerta":{"answered":129,"outbound":129,"inbound":0,"abandoned":0,"talk_secs":11698},"Megan Stewart":{"answered":73,"outbound":73,"inbound":0,"abandoned":0,"talk_secs":4908},"Haley MacBain":{"answered":77,"outbound":77,"inbound":0,"abandoned":0,"talk_secs":8227}},"2025-06-22":{"Patricia Huerta":{"answered":86,"outbound":86,"inbound":0,"abandoned":0,"talk_secs":9669},"Jennifer Robinson":{"answered":107,"outbound":107,"inbound":0,"abandoned":0,"talk_secs":13533},"Megan Stewart":{"answered":57,"outbound":57,"inbound":0,"abandoned":0,"talk_secs":3440},"Haley MacBain":{"answered":102,"outbound":102,"inbound":0,"abandoned":0,"talk_secs":13347}},"2025-06-29":{"Megan Stewart":{"answered":37,"outbound":37,"inbound":0,"abandoned":0,"talk_secs":3874},"Jennifer Robinson":{"answered":75,"outbound":75,"inbound":0,"abandoned":0,"talk_secs":9048},"Patricia Huerta":{"answered":124,"outbound":124,"inbound":0,"abandoned":0,"talk_secs":11469},"Haley MacBain":{"answered":99,"outbound":99,"inbound":0,"abandoned":0,"talk_secs":13918}},"2025-07-06":{"Megan Stewart":{"answered":39,"outbound":39,"inbound":0,"abandoned":0,"talk_secs":2505},"Jennifer Robinson":{"answered":131,"outbound":131,"inbound":0,"abandoned":0,"talk_secs":12947},"Patricia Huerta":{"answered":130,"outbound":130,"inbound":0,"abandoned":0,"talk_secs":11009},"Haley MacBain":{"answered":149,"outbound":149,"inbound":0,"abandoned":0,"talk_secs":16516}},"2025-07-13":{"Haley MacBain":{"answered":127,"outbound":127,"inbound":0,"abandoned":0,"talk_secs":15005},"Jennifer Robinson":{"answered":127,"outbound":127,"inbound":0,"abandoned":0,"talk_secs":13542},"Patricia Huerta":{"answered":106,"outbound":106,"inbound":0,"abandoned":0,"talk_secs":7512}},"2025-07-20":{"Megan Stewart":{"answered":173,"outbound":173,"inbound":0,"abandoned":0,"talk_secs":11598},"Haley MacBain":{"answered":121,"outbound":121,"inbound":0,"abandoned":0,"talk_secs":12653},"Jennifer Robinson":{"answered":127,"outbound":127,"inbound":0,"abandoned":0,"talk_secs":14943}},"2025-07-27":{"Patricia Huerta":{"answered":129,"outbound":129,"inbound":0,"abandoned":0,"talk_secs":10692},"Jennifer Robinson":{"answered":60,"outbound":60,"inbound":0,"abandoned":0,"talk_secs":6106},"Megan Stewart":{"answered":90,"outbound":90,"inbound":0,"abandoned":0,"talk_secs":7067},"Haley MacBain":{"answered":89,"outbound":89,"inbound":0,"abandoned":0,"talk_secs":15867}},"2025-08-03":{"Patricia Huerta":{"answered":104,"outbound":104,"inbound":0,"abandoned":0,"talk_secs":9726},"Jennifer Robinson":{"answered":102,"outbound":102,"inbound":0,"abandoned":0,"talk_secs":12051},"Megan Stewart":{"answered":82,"outbound":82,"inbound":0,"abandoned":0,"talk_secs":5646},"Haley MacBain":{"answered":111,"outbound":111,"inbound":0,"abandoned":0,"talk_secs":13902}},"2025-08-10":{"Patricia Huerta":{"answered":218,"outbound":218,"inbound":0,"abandoned":0,"talk_secs":17689},"Haley MacBain":{"answered":64,"outbound":64,"inbound":0,"abandoned":0,"talk_secs":8023},"Megan Stewart":{"answered":83,"outbound":83,"inbound":0,"abandoned":0,"talk_secs":4785}},"2025-08-17":{"Megan Stewart":{"answered":92,"outbound":92,"inbound":0,"abandoned":0,"talk_secs":5530},"Patricia Huerta":{"answered":183,"outbound":183,"inbound":0,"abandoned":0,"talk_secs":16730},"Haley MacBain":{"answered":50,"outbound":50,"inbound":0,"abandoned":0,"talk_secs":7527}},"2025-08-24":{"Megan Stewart":{"answered":122,"outbound":122,"inbound":0,"abandoned":0,"talk_secs":8098},"Patricia Huerta":{"answered":204,"outbound":204,"inbound":0,"abandoned":0,"talk_secs":16509},"Haley MacBain":{"answered":87,"outbound":87,"inbound":0,"abandoned":0,"talk_secs":9869},"Jennifer Robinson":{"answered":79,"outbound":79,"inbound":0,"abandoned":0,"talk_secs":6826}},"2025-08-31":{"Patricia Huerta":{"answered":98,"outbound":98,"inbound":0,"abandoned":0,"talk_secs":9333},"Jennifer Robinson":{"answered":78,"outbound":78,"inbound":0,"abandoned":0,"talk_secs":9976},"Haley MacBain":{"answered":105,"outbound":105,"inbound":0,"abandoned":0,"talk_secs":11568},"Megan Stewart":{"answered":46,"outbound":46,"inbound":0,"abandoned":0,"talk_secs":3545}},"2025-09-07":{"Jennifer Robinson":{"answered":85,"outbound":85,"inbound":0,"abandoned":0,"talk_secs":9590},"Megan Stewart":{"answered":89,"outbound":89,"inbound":0,"abandoned":0,"talk_secs":6490},"Patricia Huerta":{"answered":111,"outbound":111,"inbound":0,"abandoned":0,"talk_secs":12544},"Haley MacBain":{"answered":144,"outbound":144,"inbound":0,"abandoned":0,"talk_secs":18380}},"2025-09-14":{"Patricia Huerta":{"answered":152,"outbound":152,"inbound":0,"abandoned":0,"talk_secs":13963},"Jennifer Robinson":{"answered":96,"outbound":96,"inbound":0,"abandoned":0,"talk_secs":9245},"Megan Stewart":{"answered":98,"outbound":98,"inbound":0,"abandoned":0,"talk_secs":8485},"Haley MacBain":{"answered":150,"outbound":150,"inbound":0,"abandoned":0,"talk_secs":18809},"Jemima Amissah":{"answered":0,"outbound":0,"inbound":0,"abandoned":1,"talk_secs":0}},"2025-09-21":{"Patricia Huerta":{"answered":130,"outbound":130,"inbound":0,"abandoned":0,"talk_secs":9616},"Jennifer Robinson":{"answered":58,"outbound":58,"inbound":0,"abandoned":0,"talk_secs":6696},"Megan Stewart":{"answered":177,"outbound":177,"inbound":0,"abandoned":0,"talk_secs":12775},"Haley MacBain":{"answered":66,"outbound":66,"inbound":0,"abandoned":0,"talk_secs":8127}},"2025-09-28":{"Haley MacBain":{"answered":125,"outbound":125,"inbound":0,"abandoned":0,"talk_secs":14760},"Megan Stewart":{"answered":96,"outbound":96,"inbound":0,"abandoned":0,"talk_secs":8285},"Patricia Huerta":{"answered":94,"outbound":94,"inbound":0,"abandoned":0,"talk_secs":8417},"Jennifer Robinson":{"answered":60,"outbound":60,"inbound":0,"abandoned":0,"talk_secs":7809}},"2025-10-05":{"Patricia Huerta":{"answered":75,"outbound":75,"inbound":0,"abandoned":0,"talk_secs":6333},"Jennifer Robinson":{"answered":97,"outbound":97,"inbound":0,"abandoned":0,"talk_secs":10139},"Haley MacBain":{"answered":84,"outbound":84,"inbound":0,"abandoned":0,"talk_secs":11330},"Megan Stewart":{"answered":53,"outbound":53,"inbound":0,"abandoned":0,"talk_secs":5176}},"2025-10-12":{"Megan Stewart":{"answered":71,"outbound":71,"inbound":0,"abandoned":0,"talk_secs":5925},"Haley MacBain":{"answered":92,"outbound":92,"inbound":0,"abandoned":0,"talk_secs":12277},"Patricia Huerta":{"answered":108,"outbound":108,"inbound":0,"abandoned":0,"talk_secs":12004},"Jennifer Robinson":{"answered":67,"outbound":67,"inbound":0,"abandoned":0,"talk_secs":6661},"Meghan Daly":{"answered":4,"outbound":4,"inbound":0,"abandoned":0,"talk_secs":537}},"2025-10-19":{"Jennifer Robinson":{"answered":92,"outbound":92,"inbound":0,"abandoned":0,"talk_secs":8105},"Patricia Huerta":{"answered":187,"outbound":187,"inbound":0,"abandoned":0,"talk_secs":18759},"Megan Stewart":{"answered":83,"outbound":83,"inbound":0,"abandoned":0,"talk_secs":5581},"Haley MacBain":{"answered":92,"outbound":92,"inbound":0,"abandoned":0,"talk_secs":12646},"Meghan Daly":{"answered":41,"outbound":41,"inbound":0,"abandoned":0,"talk_secs":3389}},"2025-10-26":{"Megan Stewart":{"answered":80,"outbound":80,"inbound":0,"abandoned":0,"talk_secs":4487},"Jennifer Robinson":{"answered":107,"outbound":107,"inbound":0,"abandoned":0,"talk_secs":14551},"Patricia Huerta":{"answered":124,"outbound":124,"inbound":0,"abandoned":0,"talk_secs":10871},"Meghan Daly":{"answered":60,"outbound":60,"inbound":0,"abandoned":0,"talk_secs":6319},"Haley MacBain":{"answered":80,"outbound":80,"inbound":0,"abandoned":0,"talk_secs":10270}},"2025-11-02":{"Meghan Daly":{"answered":120,"outbound":120,"inbound":0,"abandoned":0,"talk_secs":11256},"Jennifer Robinson":{"answered":93,"outbound":93,"inbound":0,"abandoned":0,"talk_secs":10539},"Patricia Huerta":{"answered":104,"outbound":104,"inbound":0,"abandoned":0,"talk_secs":11301},"Megan Stewart":{"answered":77,"outbound":77,"inbound":0,"abandoned":0,"talk_secs":6816}},"2025-11-09":{"Meghan Daly":{"answered":143,"outbound":143,"inbound":0,"abandoned":0,"talk_secs":12888},"Jennifer Robinson":{"answered":68,"outbound":68,"inbound":0,"abandoned":0,"talk_secs":8357},"Megan Stewart":{"answered":130,"outbound":130,"inbound":0,"abandoned":0,"talk_secs":9049},"Patricia Huerta":{"answered":114,"outbound":114,"inbound":0,"abandoned":0,"talk_secs":8871}},"2025-11-16":{"Meghan Daly":{"answered":89,"outbound":89,"inbound":0,"abandoned":0,"talk_secs":9072},"Megan Stewart":{"answered":118,"outbound":118,"inbound":0,"abandoned":0,"talk_secs":7706},"Patricia Huerta":{"answered":100,"outbound":100,"inbound":0,"abandoned":0,"talk_secs":9461},"Jennifer Robinson":{"answered":103,"outbound":103,"inbound":0,"abandoned":0,"talk_secs":12613},"Haley MacBain":{"answered":31,"outbound":31,"inbound":0,"abandoned":0,"talk_secs":5594}},"2025-11-23":{"Meghan Daly":{"answered":54,"outbound":54,"inbound":0,"abandoned":0,"talk_secs":4203},"Haley MacBain":{"answered":86,"outbound":86,"inbound":0,"abandoned":0,"talk_secs":11402},"Jennifer Robinson":{"answered":76,"outbound":76,"inbound":0,"abandoned":0,"talk_secs":8643},"Megan Stewart":{"answered":48,"outbound":48,"inbound":0,"abandoned":0,"talk_secs":3534},"Patricia Huerta":{"answered":39,"outbound":39,"inbound":0,"abandoned":0,"talk_secs":2238}},"2025-11-30":{"Meghan Daly":{"answered":61,"outbound":61,"inbound":0,"abandoned":0,"talk_secs":5974},"Haley MacBain":{"answered":120,"outbound":120,"inbound":0,"abandoned":0,"talk_secs":14875},"Patricia Huerta":{"answered":154,"outbound":154,"inbound":0,"abandoned":0,"talk_secs":15491},"Jennifer Robinson":{"answered":52,"outbound":52,"inbound":0,"abandoned":0,"talk_secs":8270},"Megan Stewart":{"answered":95,"outbound":95,"inbound":0,"abandoned":0,"talk_secs":7025}},"2025-12-07":{"Jennifer Robinson":{"answered":92,"outbound":92,"inbound":0,"abandoned":0,"talk_secs":10947},"Megan Stewart":{"answered":90,"outbound":90,"inbound":0,"abandoned":0,"talk_secs":7960},"Meghan Daly":{"answered":29,"outbound":29,"inbound":0,"abandoned":0,"talk_secs":2094},"Patricia Huerta":{"answered":85,"outbound":85,"inbound":0,"abandoned":0,"talk_secs":10380},"Haley MacBain":{"answered":110,"outbound":110,"inbound":0,"abandoned":0,"talk_secs":12395}},"2025-12-14":{"Megan Stewart":{"answered":80,"outbound":80,"inbound":0,"abandoned":0,"talk_secs":5495},"Jennifer Robinson":{"answered":144,"outbound":144,"inbound":0,"abandoned":0,"talk_secs":17219},"Patricia Huerta":{"answered":130,"outbound":130,"inbound":0,"abandoned":0,"talk_secs":15614},"Haley MacBain":{"answered":57,"outbound":57,"inbound":0,"abandoned":0,"talk_secs":7590},"Meghan Daly":{"answered":45,"outbound":45,"inbound":0,"abandoned":0,"talk_secs":3209}},"2025-12-21":{"Jennifer Robinson":{"answered":126,"outbound":126,"inbound":0,"abandoned":0,"talk_secs":16277},"Megan Stewart":{"answered":67,"outbound":67,"inbound":0,"abandoned":0,"talk_secs":4175},"Meghan Daly":{"answered":51,"outbound":51,"inbound":0,"abandoned":0,"talk_secs":4597},"Haley MacBain":{"answered":1,"outbound":1,"inbound":0,"abandoned":0,"talk_secs":54}},"2025-12-28":{"Jennifer Robinson":{"answered":1,"outbound":1,"inbound":0,"abandoned":0,"talk_secs":615},"Patricia Huerta":{"answered":118,"outbound":118,"inbound":0,"abandoned":0,"talk_secs":14379},"Haley MacBain":{"answered":101,"outbound":101,"inbound":0,"abandoned":0,"talk_secs":15062},"Megan Stewart":{"answered":21,"outbound":21,"inbound":0,"abandoned":0,"talk_secs":1344}},"2026-01-04":{"Jennifer Robinson":{"answered":86,"outbound":86,"inbound":0,"abandoned":0,"talk_secs":11399},"Megan Stewart":{"answered":85,"outbound":85,"inbound":0,"abandoned":0,"talk_secs":6439},"Patricia Huerta":{"answered":126,"outbound":126,"inbound":0,"abandoned":0,"talk_secs":14139},"Meghan Daly":{"answered":50,"outbound":50,"inbound":0,"abandoned":0,"talk_secs":3461},"Haley MacBain":{"answered":91,"outbound":91,"inbound":0,"abandoned":0,"talk_secs":11145}},"2026-01-11":{"Meghan Daly":{"answered":41,"outbound":41,"inbound":0,"abandoned":0,"talk_secs":3851},"Haley MacBain":{"answered":113,"outbound":113,"inbound":0,"abandoned":0,"talk_secs":14723},"Patricia Huerta":{"answered":133,"outbound":133,"inbound":0,"abandoned":0,"talk_secs":15023},"Megan Stewart":{"answered":95,"outbound":95,"inbound":0,"abandoned":0,"talk_secs":6533},"Jennifer Robinson":{"answered":55,"outbound":55,"inbound":0,"abandoned":0,"talk_secs":5089}},"2026-01-18":{"Jennifer Robinson":{"answered":76,"outbound":76,"inbound":0,"abandoned":0,"talk_secs":6241},"Megan Stewart":{"answered":72,"outbound":72,"inbound":0,"abandoned":0,"talk_secs":5271},"Haley MacBain":{"answered":63,"outbound":63,"inbound":0,"abandoned":0,"talk_secs":9291},"Meghan Daly":{"answered":22,"outbound":22,"inbound":0,"abandoned":0,"talk_secs":2906},"Patricia Huerta":{"answered":73,"outbound":73,"inbound":0,"abandoned":0,"talk_secs":9521}},"2026-01-25":{"Jennifer Robinson":{"answered":139,"outbound":139,"inbound":0,"abandoned":0,"talk_secs":8706},"Haley MacBain":{"answered":105,"outbound":105,"inbound":0,"abandoned":0,"talk_secs":13215},"Meghan Daly":{"answered":24,"outbound":24,"inbound":0,"abandoned":0,"talk_secs":2278},"Patricia Huerta":{"answered":116,"outbound":116,"inbound":0,"abandoned":0,"talk_secs":12322},"Megan Stewart":{"answered":95,"outbound":95,"inbound":0,"abandoned":0,"talk_secs":7118}},"2026-02-01":{"Megan Stewart":{"answered":54,"outbound":54,"inbound":0,"abandoned":0,"talk_secs":4115},"Haley MacBain":{"answered":82,"outbound":82,"inbound":0,"abandoned":0,"talk_secs":11023},"Meghan Daly":{"answered":27,"outbound":27,"inbound":0,"abandoned":0,"talk_secs":2472},"Jennifer Robinson":{"answered":110,"outbound":110,"inbound":0,"abandoned":0,"talk_secs":10693},"Patricia Huerta":{"answered":129,"outbound":129,"inbound":0,"abandoned":0,"talk_secs":15018}},"2026-02-08":{"Megan Stewart":{"answered":107,"outbound":107,"inbound":0,"abandoned":0,"talk_secs":8775},"Jennifer Robinson":{"answered":120,"outbound":120,"inbound":0,"abandoned":0,"talk_secs":12722},"Patricia Huerta":{"answered":128,"outbound":128,"inbound":0,"abandoned":0,"talk_secs":11928},"Haley MacBain":{"answered":51,"outbound":51,"inbound":0,"abandoned":0,"talk_secs":7381},"Meghan Daly":{"answered":10,"outbound":10,"inbound":0,"abandoned":0,"talk_secs":1017}},"2026-02-15":{"Jennifer Robinson":{"answered":114,"outbound":114,"inbound":0,"abandoned":0,"talk_secs":9762},"Patricia Huerta":{"answered":105,"outbound":105,"inbound":0,"abandoned":0,"talk_secs":10763},"Haley MacBain":{"answered":39,"outbound":39,"inbound":0,"abandoned":0,"talk_secs":6179},"Megan Stewart":{"answered":31,"outbound":31,"inbound":0,"abandoned":0,"talk_secs":2599},"Meghan Daly":{"answered":13,"outbound":13,"inbound":0,"abandoned":0,"talk_secs":1166}},"2026-02-22":{"Haley MacBain":{"answered":77,"outbound":77,"inbound":0,"abandoned":0,"talk_secs":9421},"Jennifer Robinson":{"answered":62,"outbound":62,"inbound":0,"abandoned":0,"talk_secs":7197},"Meghan Daly":{"answered":21,"outbound":21,"inbound":0,"abandoned":0,"talk_secs":1544},"Megan Stewart":{"answered":53,"outbound":53,"inbound":0,"abandoned":0,"talk_secs":4465},"Patricia Huerta":{"answered":147,"outbound":147,"inbound":0,"abandoned":0,"talk_secs":11990}},"2026-03-01":{"Jennifer Robinson":{"answered":106,"outbound":106,"inbound":0,"abandoned":0,"talk_secs":7709},"Patricia Huerta":{"answered":117,"outbound":117,"inbound":0,"abandoned":0,"talk_secs":9699},"Megan Stewart":{"answered":119,"outbound":119,"inbound":0,"abandoned":0,"talk_secs":6634},"Meghan Daly":{"answered":18,"outbound":18,"inbound":0,"abandoned":0,"talk_secs":2090},"Haley MacBain":{"answered":48,"outbound":48,"inbound":0,"abandoned":0,"talk_secs":8537}},"2026-03-08":{"Jennifer Robinson":{"answered":154,"outbound":154,"inbound":0,"abandoned":0,"talk_secs":12659},"Meghan Daly":{"answered":29,"outbound":29,"inbound":0,"abandoned":0,"talk_secs":2197},"Megan Stewart":{"answered":76,"outbound":76,"inbound":0,"abandoned":0,"talk_secs":4969},"Patricia Huerta":{"answered":111,"outbound":111,"inbound":0,"abandoned":0,"talk_secs":8308},"Haley MacBain":{"answered":53,"outbound":53,"inbound":0,"abandoned":0,"talk_secs":7644}},"2026-03-15":{"Jennifer Robinson":{"answered":137,"outbound":137,"inbound":0,"abandoned":0,"talk_secs":8203},"Megan Stewart":{"answered":75,"outbound":75,"inbound":0,"abandoned":0,"talk_secs":3988},"Patricia Huerta":{"answered":127,"outbound":127,"inbound":0,"abandoned":0,"talk_secs":8586},"Meghan Daly":{"answered":50,"outbound":50,"inbound":0,"abandoned":0,"talk_secs":3682},"Haley MacBain":{"answered":73,"outbound":73,"inbound":0,"abandoned":0,"talk_secs":11510}},"2026-03-22":{"Meghan Daly":{"answered":54,"outbound":54,"inbound":0,"abandoned":0,"talk_secs":4614},"Haley MacBain":{"answered":78,"outbound":78,"inbound":0,"abandoned":0,"talk_secs":10577},"Patricia Huerta":{"answered":93,"outbound":93,"inbound":0,"abandoned":0,"talk_secs":8331},"Megan Stewart":{"answered":37,"outbound":37,"inbound":0,"abandoned":0,"talk_secs":2500},"Jennifer Robinson":{"answered":129,"outbound":129,"inbound":0,"abandoned":0,"talk_secs":11029}},"2026-03-29":{"Megan Stewart":{"answered":8,"outbound":8,"inbound":0,"abandoned":0,"talk_secs":555},"Jennifer Robinson":{"answered":60,"outbound":60,"inbound":0,"abandoned":0,"talk_secs":5257},"Patricia Huerta":{"answered":54,"outbound":54,"inbound":0,"abandoned":0,"talk_secs":5291},"Haley MacBain":{"answered":14,"outbound":14,"inbound":0,"abandoned":0,"talk_secs":2168},"Meghan Daly":{"answered":12,"outbound":12,"inbound":0,"abandoned":0,"talk_secs":567}}};
+
+function parseDuration(s){
+  if(!s||!s.trim())return 0;
+  var p=s.trim().split(':');
+  try{
+    if(p.length===3)return parseInt(p[0])*3600+parseInt(p[1])*60+parseInt(p[2]);
+    if(p.length===2)return parseInt(p[0])*60+parseInt(p[1]);
+  }catch(e){}
+  return 0;
+}
+
+function getSundayOfRow(dateStr){
+  if(!dateStr)return null;
+  var m=dateStr.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  var d=m?new Date(parseInt(m[3]),parseInt(m[1])-1,parseInt(m[2])):new Date(dateStr);
+  if(isNaN(d))return null;
+  d.setDate(d.getDate()-d.getDay());
+  return d.toISOString().split('T')[0];
+}
+
+function aggregateCallData(rows){
+  // Start with embedded historical data
+  var agg={};
+  Object.keys(CALL_HISTORY).forEach(function(week){
+    agg[week]={};
+    Object.keys(CALL_HISTORY[week]).forEach(function(agent){
+      agg[week][agent]=Object.assign({},CALL_HISTORY[week][agent]);
+    });
+  });
+  // Merge in any newly uploaded CSV rows (newer data wins)
+  var EXCLUDE=['Andrew Dobson','Common trunk gateway device.','Esther Larsh'];
+  var newWeeks={};
+  rows.forEach(function(r){
+    var name=(r['Dev Name (Clg)']||'').trim();
+    if(!name||name.includes('[')||EXCLUDE.indexOf(name)>=0)return;
+    var status=(r['S']||'').trim();
+    var type=(r['Type']||'').trim();
+    var talk=parseDuration(r['Talk Time']||'');
+    var week=getSundayOfRow(r['Started (Dist)']||'');
+    if(!week)return;
+    newWeeks[week]=true;
+    if(!agg[week])agg[week]={};
+    if(!agg[week][name])agg[week][name]={answered:0,outbound:0,inbound:0,abandoned:0,talk_secs:0};
+    var a=agg[week][name];
+    if(status==='Answered'){a.answered++;a.talk_secs+=talk;if(type==='Ext/Out')a.outbound++;else a.inbound++;}
+    else if(status==='Abandoned')a.abandoned++;
+  });
+  return agg;
+}
+
+function fmtSecs(s){
+  if(!s)return'—';
+  var m=Math.floor(s/60),sec=s%60;
+  return m+'m '+(sec<10?'0':'')+sec+'s';
+}
+
 function renderCallMetrics(){
   var html='';
-  html+='<div class="fc" style="background:var(--orange-50);border-color:var(--orange)">';
-  html+='<div class="ct" style="color:var(--orange)">Upload Call Metrics CSV</div>';
-  html+='<p style="font-size:12px;color:var(--text2);margin-bottom:14px">Drop a CSV exported from your phone system with columns: <strong>Week, SP Name, Outbound Calls, Inbound Calls</strong></p>';
+  html+='<div class="fc" style="background:var(--orange-50);border-color:var(--orange);margin-bottom:16px">';
+  html+='<div class="ct" style="color:var(--orange)">Upload Akixi Historic Call Log</div>';
+  html+='<p style="font-size:12px;color:var(--text2);margin-bottom:12px">Export the <strong>Historic Call Log</strong> from Akixi with agent name columns included. Drop it below.</p>';
   html+='<div class="upload-zone" id="callZone" onclick="document.getElementById(\'callFile\').click()" ondragover="event.preventDefault();this.classList.add(\'drag\')" ondragleave="this.classList.remove(\'drag\')" ondrop="handleDrop(event,\'call\')">';
   html+='<div class="upload-zone-icon">📞</div>';
-  html+='<div class="upload-zone-title">Drop call metrics CSV here or click to upload</div>';
-  html+='<div class="upload-zone-sub">Expected columns: Week, SP Name, Outbound Calls, Inbound Calls</div>';
+  html+='<div class="upload-zone-title">Drop Akixi Historic Call Log CSV here</div>';
+  html+='<div class="upload-zone-sub">Requires columns: Dev Name (Clg), Started (Dist), S, Type, Talk Time</div>';
   html+='</div>';
   html+='<input type="file" id="callFile" accept=".csv" style="display:none" onchange="loadCSV(this,\'call\')">';
   html+='<div class="upload-status" id="callStatus"></div>';
   html+='</div>';
 
-  if(callData && callData.length>0){
-    html+='<div class="fc"><div class="ct">Call metrics — loaded from CSV</div>';
-    html+='<table class="tbl"><thead><tr><th>Week</th><th>SP Name</th><th>Outbound Calls</th><th>Inbound Calls</th><th>Total Calls</th></tr></thead><tbody>';
-    callData.forEach(function(r){
-      var total=(parseFloat(r['Outbound Calls'])||0)+(parseFloat(r['Inbound Calls'])||0);
-      html+='<tr><td>'+( r['Week']||r['week']||'—')+'</td><td>'+( r['SP Name']||r['sp_name']||'—')+'</td>';
-      html+='<td>'+fn(parseFloat(r['Outbound Calls']||r['outbound_calls'])||0)+'</td>';
-      html+='<td>'+fn(parseFloat(r['Inbound Calls']||r['inbound_calls'])||0)+'</td>';
-      html+='<td><strong>'+fn(total)+'</strong></td></tr>';
-    });
-    html+='</tbody></table></div>';
+  if(callData&&callData.length>0&&!callAggregated){callAggregated=aggregateCallData(callData);}
+  // Pre-initialize from embedded history if no CSV uploaded yet
+  if(!callAggregated){callAggregated=aggregateCallData([]);}
+
+  var agg=callAggregated;
+  var weeks=Object.keys(agg).sort();
+  var agents=[];
+  weeks.forEach(function(w){Object.keys(agg[w]).forEach(function(a){if(agents.indexOf(a)<0)agents.push(a);});});
+  agents.sort();
+
+  var targetWeek=curStart;
+  if(!agg[targetWeek]){
+    var td=new Date(targetWeek);
+    targetWeek=weeks.reduce(function(best,w){return Math.abs(new Date(w)-td)<Math.abs(new Date(best)-td)?w:best;},weeks[weeks.length-1]);
   }
+
+  var weekTotal={answered:0,outbound:0,inbound:0,abandoned:0,talk_secs:0};
+  if(agg[targetWeek])Object.values(agg[targetWeek]).forEach(function(a){weekTotal.answered+=a.answered;weekTotal.outbound+=a.outbound;weekTotal.inbound+=a.inbound;weekTotal.abandoned+=a.abandoned;weekTotal.talk_secs+=a.talk_secs;});
+  var avgTalk=weekTotal.answered>0?Math.round(weekTotal.talk_secs/weekTotal.answered):0;
+
+  html+='<div class="kg4">';
+  html+='<div class="kpi"><div class="kl">Total Calls</div><div class="kv b">'+fn(weekTotal.answered)+'</div><div class="ks">Week of '+targetWeek+'</div></div>';
+  html+='<div class="kpi"><div class="kl">Outbound</div><div class="kv o">'+fn(weekTotal.outbound)+'</div><div class="ks">'+(weekTotal.answered?Math.round(weekTotal.outbound/weekTotal.answered*100):0)+'% of answered</div></div>';
+  html+='<div class="kpi"><div class="kl">Inbound</div><div class="kv g">'+fn(weekTotal.inbound)+'</div><div class="ks">'+(weekTotal.answered?Math.round(weekTotal.inbound/weekTotal.answered*100):0)+'% of answered</div></div>';
+  html+='<div class="kpi"><div class="kl">Avg Talk Time</div><div class="kv">'+fmtSecs(avgTalk)+'</div><div class="ks">Per answered call</div></div>';
+  html+='</div>';
+
+  html+='<div class="fc"><div class="ct">By Scheduling Partner — week of '+targetWeek+'</div>';
+  html+='<table class="tbl"><thead><tr><th>Name</th><th>Answered</th><th>Outbound</th><th>Inbound</th><th>Abandoned</th><th>Avg Talk</th><th>Total Talk</th></tr></thead><tbody>';
+  agents.forEach(function(agent){
+    var a=(agg[targetWeek]&&agg[targetWeek][agent])||{answered:0,outbound:0,inbound:0,abandoned:0,talk_secs:0};
+    if(!a.answered&&!a.abandoned)return;
+    var avg=a.answered>0?Math.round(a.talk_secs/a.answered):0;
+    html+='<tr><td><strong>'+agent+'</strong></td><td>'+fn(a.answered)+'</td><td>'+fn(a.outbound)+'</td><td>'+fn(a.inbound)+'</td>';
+    html+='<td style="color:'+(a.abandoned>5?'var(--red)':'var(--text2)')+'">'+fn(a.abandoned)+'</td>';
+    html+='<td>'+fmtSecs(avg)+'</td><td>'+fmtSecs(a.talk_secs)+'</td></tr>';
+  });
+  html+='</tbody></table></div>';
+
+  var trendWeeks=weeks.slice(-8);
+  html+='<div class="fc" style="margin-top:16px"><div class="ct">8-Week Call Volume Trend</div>';
+  html+='<div style="overflow-x:auto"><table class="tbl"><thead><tr><th>Name</th>';
+  trendWeeks.forEach(function(w){html+='<th>'+w.slice(5)+'</th>';});
+  html+='<th>Avg/Wk</th></tr></thead><tbody>';
+  agents.forEach(function(agent){
+    var vals=trendWeeks.map(function(w){return agg[w]&&agg[w][agent]?agg[w][agent].answered:0;});
+    var total=vals.reduce(function(s,v){return s+v;},0);
+    if(!total)return;
+    var nonZero=vals.filter(function(v){return v>0;}).length||1;
+    var avg=Math.round(total/nonZero);
+    var maxV=Math.max.apply(null,vals)||1;
+    html+='<tr><td><strong>'+agent+'</strong></td>';
+    vals.forEach(function(v){
+      var col=v>=100?'var(--green)':v>=50?'var(--orange)':'var(--text3)';
+      html+='<td style="color:'+col+';font-weight:'+(v>=100?'600':'400')+'">'+fn(v)+'</td>';
+    });
+    html+='<td style="font-weight:600">'+fn(avg)+'</td></tr>';
+  });
+  html+='</tbody></table></div></div>';
 
   document.getElementById('ct').innerHTML=html;
 }
@@ -986,7 +1023,7 @@ function loadCSV(input, type){
   reader.onload=function(e){
     try{
       var rows=parseCSV(e.target.result);
-      if(type==='call'){callData=rows;showStatus('callStatus','✓ Loaded '+rows.length+' rows from '+file.name,'loaded');}
+      if(type==='call'){callData=rows;callAggregated=null;showStatus('callStatus','✓ Loaded '+rows.length+' rows from '+file.name,'loaded');if(curTab==="callmetrics")renderCallMetrics();}
       else if(type==='uber'){
         // Parse full Uber CSV — skip metadata rows, filter to TRIBUTE only
         uberData=rows;
@@ -1036,7 +1073,7 @@ function handleDrop(e, type){
   reader.onload=function(ev){
     try{
       var rows=parseCSV(ev.target.result);
-      if(type==='call'){callData=rows;showStatus('callStatus','✓ Loaded '+rows.length+' rows from '+file.name,'loaded');}
+      if(type==='call'){callData=rows;callAggregated=null;showStatus('callStatus','✓ Loaded '+rows.length+' rows from '+file.name,'loaded');if(curTab==="callmetrics")renderCallMetrics();}
       else if(type==='uber'){
         // Parse full Uber CSV — skip metadata rows, filter to TRIBUTE only
         uberData=rows;
