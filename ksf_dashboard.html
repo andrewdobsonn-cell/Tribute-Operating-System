@@ -113,11 +113,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <div class="ntab on" onclick="setTab('overview',this)">Overview</div>
   <div class="ntab" onclick="setTab('markets',this)">By Market</div>
   <div class="ntab" onclick="setTab('openvisits',this)">Open Visits</div>
-  <div class="ntab" onclick="setTab('budget',this)">vs. Budget</div>
+  <div class="ntab" onclick="setTab('budget',this)">KSF Scorecard</div>
   <div class="ntab" onclick="setTab('callmetrics',this)">Call Metrics</div>
   <div class="ntab" onclick="setTab('uber',this)">Ubers</div>
   <div class="ntab" onclick="setTab('ot',this)">OT & Incentives</div>
   <div class="ntab" onclick="setTab('gm',this)">Gross Margin</div>
+  <div class="ntab" onclick="setTab('mf',this)">Match Failures</div>
 </div>
 
 <div class="main">
@@ -223,6 +224,7 @@ function render(){
   else if(curTab==='uber')renderUber();
   else if(curTab==='ot')renderOT();
   else if(curTab==='gm')renderGM();
+  else if(curTab==='mf')renderMatchFailures();
 }
 
 function renderOverview(){
@@ -241,10 +243,9 @@ function renderOverview(){
   // Market summary table
   var activeMkts=mkts.filter(m=>m.totalVisits>0);
   html+='<div class="fc"><div class="ct">Performance by market — '+curStart+' to '+curEnd+'</div>';
-  html+='<table class="tbl"><thead><tr><th>Market</th><th>State</th><th>Visits</th><th>Fill Rate</th><th>Revenue</th><th>vs. Budget</th><th>Gross Margin</th><th>Open</th><th>Billed Hrs</th></tr></thead><tbody>';
+  html+='<table class="tbl"><thead><tr><th>Market</th><th>State</th><th>Visits</th><th>Fill Rate</th><th>Revenue</th><th>Gross Margin</th><th>Open</th><th>Billed Hrs</th></tr></thead><tbody>';
   activeMkts.forEach(function(m){
     var bgt=BUDGET[m.market];
-    var bgtRev=bgt?bgt.revenueWeekly:null;
     var bgtGM=bgt?bgt.grossMarginPct:null;
     html+='<tr>';
     html+='<td>'+m.market+'</td>';
@@ -252,7 +253,6 @@ function renderOverview(){
     html+='<td>'+fn(m.totalVisits)+'</td>';
     html+='<td><span class="bdg '+(m.fillRate>=0.97?'bg':m.fillRate>=0.95?'ba':'br')+'">'+fp(m.fillRate)+'</span></td>';
     html+='<td>'+fk(m.revenue)+'</td>';
-    html+='<td>'+vsBudget(m.revenue,bgtRev)+'</td>';
     html+='<td><span class="bdg '+(m.grossMarginPct>=(bgtGM||0.40)?'bg':m.grossMarginPct>=0.38?'ba':'br')+'">'+fp(m.grossMarginPct)+'</span></td>';
     html+='<td style="color:'+(m.openVisits>5?'var(--red)':'var(--charcoal)')+'">'+fn(m.openVisits)+'</td>';
     html+='<td>'+fn(Math.round(m.billedHours))+'h</td>';
@@ -269,7 +269,7 @@ function renderMarkets(){
   var mkts=(visitsData.markets||[]).filter(m=>m.totalVisits>0);
   var html='';
   html+='<div class="fc"><div class="ct">Market detail — '+curStart+' to '+curEnd+'</div>';
-  html+='<table class="tbl"><thead><tr><th>Market</th><th>State</th><th>Total Visits</th><th>Filled</th><th>Open</th><th>Fill Rate</th><th>Revenue</th><th>Budget Rev</th><th>vs Budget</th><th>Gross Margin</th><th>Budget GM</th><th>Billed Hrs</th><th>Avg Bill Rate</th></tr></thead><tbody>';
+  html+='<table class="tbl"><thead><tr><th>Market</th><th>State</th><th>Total Visits</th><th>Filled</th><th>Open</th><th>Fill Rate</th><th>Revenue</th><th>Gross Margin</th><th>Billed Hrs</th><th>Avg Bill Rate</th></tr></thead><tbody>';
   mkts.forEach(function(m){
     var bgt=BUDGET[m.market]||{};
     html+='<tr>';
@@ -281,9 +281,7 @@ function renderMarkets(){
     html+='<td><span class="bdg '+(m.fillRate>=0.97?'bg':m.fillRate>=0.95?'ba':'br')+'">'+fp(m.fillRate)+'</span></td>';
     html+='<td>'+fk(m.revenue)+'</td>';
     html+='<td style="color:var(--text3)">'+( bgt.revenueWeekly?fk(bgt.revenueWeekly):'—')+'</td>';
-    html+='<td>'+vsBudget(m.revenue,bgt.revenueWeekly||null)+'</td>';
-    html+='<td><span class="bdg '+(m.grossMarginPct>=(bgt.grossMarginPct||0.40)?'bg':m.grossMarginPct>=0.38?'ba':'br')+'">'+fp(m.grossMarginPct)+'</span></td>';
-    html+='<td style="color:var(--text3)">'+(bgt.grossMarginPct?fp(bgt.grossMarginPct):'—')+'</td>';
+    html+='<td><span class="bdg '+(m.grossMarginPct>=0.40?'bg':m.grossMarginPct>=0.38?'ba':'br')+'">'+fp(m.grossMarginPct)+'</span></td>';
     html+='<td>'+fn(Math.round(m.billedHours))+'h</td>';
     html+='<td>$'+(m.avgBillRate?m.avgBillRate.toFixed(2):'—')+'</td>';
     html+='</tr>';
@@ -347,45 +345,141 @@ function renderOpenVisits(){
 }
 
 function renderBudget(){
-  var mkts=(visitsData.markets||[]).filter(m=>m.totalVisits>0);
+  var mkts=(visitsData.markets||[]).filter(function(m){return m.totalVisits>0;});
   var t=visitsData.totals;
   var html='';
 
-  // Company totals vs budget
-  var totalBudgetRev=Object.values(BUDGET).reduce((s,b)=>s+b.revenueWeekly,0);
-  var totalBudgetGM=mkts.reduce((s,m)=>{var b=BUDGET[m.market];return b?s+b.grossMarginPct*m.revenue:s;},0)/Math.max(t.revenue,1);
+  // ── KSF TARGETS ──
+  // Fill rate: 97%
+  // GM%: from KSF Excel (varies by week/market)
+  // OT%: from KSF Excel (varies by week)
+  // Calls: 100/SP/week
+  // Match failures: ≤1%
 
-  html+='<div class="kg3">';
-  html+='<div class="kpi"><div class="kl">Actual Revenue</div><div class="kv o">'+fm(t.revenue)+'</div><div class="ks">vs. budget '+fk(totalBudgetRev)+' '+vsBudget(t.revenue,totalBudgetRev)+'</div></div>';
-  html+='<div class="kpi"><div class="kl">Actual Gross Margin</div><div class="kv '+(t.grossMarginPct>=0.42?'g':t.grossMarginPct>=0.38?'a':'r')+'">'+fp(t.grossMarginPct)+'</div><div class="ks">Budget avg ~42%</div></div>';
-  html+='<div class="kpi"><div class="kl">Fill Rate</div><div class="kv '+(t.fillRate>=0.97?'g':'a')+'">'+fp(t.fillRate)+'</div><div class="ks">Goal: 97%+</div></div>';
+  var FILL_TARGET=0.97;
+  var CALL_TARGET=100;
+
+  // Weekly GM% targets from KSF Excel
+  var GM_COMPANY={
+    '2026-01-04':0.4200,'2026-01-11':0.4200,'2026-01-18':0.4200,'2026-01-25':0.4200,
+    '2026-02-01':0.4199,'2026-02-08':0.4199,'2026-02-15':0.4199,'2026-02-22':0.4199,
+    '2026-03-01':0.4199,'2026-03-08':0.4199,'2026-03-15':0.4199,'2026-03-22':0.4199,
+    '2026-03-29':0.4163,'2026-04-05':0.4163,'2026-04-12':0.4163,'2026-04-19':0.4163,
+    '2026-04-26':0.4162,'2026-05-03':0.4162,'2026-05-10':0.4162,'2026-05-17':0.4162,
+    '2026-05-24':0.4161,'2026-05-31':0.4161,'2026-06-07':0.4161,'2026-06-14':0.4161,
+    '2026-06-21':0.4160,'2026-06-28':0.4160,'2026-07-05':0.4160,'2026-07-12':0.4160,
+    '2026-07-19':0.4159,'2026-07-26':0.4159,'2026-08-02':0.4159,'2026-08-09':0.4159,
+    '2026-08-16':0.4158,'2026-08-23':0.4158,'2026-08-30':0.4158,'2026-09-06':0.4158,
+    '2026-09-13':0.4157,'2026-09-20':0.4157,'2026-09-27':0.4157,'2026-10-04':0.4157,
+    '2026-10-11':0.4156,'2026-10-18':0.4156,'2026-10-25':0.4141,'2026-11-01':0.4139,
+    '2026-11-08':0.4139,'2026-11-15':0.4139,'2026-11-22':0.4139,'2026-11-29':0.4138,
+    '2026-12-06':0.4137,'2026-12-13':0.4137,'2026-12-20':0.4137,'2026-12-27':0.4137
+  };
+  var GM_MARKET={
+    'Baltimore':0.401,'Annapolis':0.468,'Bethesda':0.418,
+    'Boston':0.438,'MetroWest Boston':0.400,'North of Boston':0.400,'South of Boston':0.400,
+    'Chicago':0.404
+  };
+  var OT_TARGET={
+    '2026-01-04':0.1520,'2026-01-11':0.1520,'2026-01-18':0.1520,'2026-01-25':0.1520,
+    '2026-02-01':0.1520,'2026-02-08':0.1520,'2026-02-15':0.1520,'2026-02-22':0.1520,
+    '2026-03-01':0.1520,'2026-03-08':0.1520,'2026-03-15':0.1520,'2026-03-22':0.1520,
+    '2026-03-29':0.1667,'2026-04-05':0.1667,'2026-04-12':0.1667,'2026-04-19':0.1667,
+    '2026-04-26':0.1667,'2026-05-03':0.1667,'2026-05-10':0.1667,'2026-05-17':0.1667,
+    '2026-06-07':0.1667,'2026-06-14':0.1667,'2026-06-21':0.1667,'2026-06-28':0.1667,
+    '2026-07-05':0.1700,'2026-07-12':0.1700,'2026-07-19':0.1700,'2026-07-26':0.1700,
+    '2026-12-27':0.1735
+  };
+
+  function gmTarget(week){ return GM_COMPANY[week]||0.420; }
+  function otTarget(week){
+    var weeks=Object.keys(OT_TARGET).sort();
+    var best=weeks.reduce(function(b,w){
+      return Math.abs(new Date(w)-new Date(week))<Math.abs(new Date(b)-new Date(week))?w:b;
+    },weeks[0]);
+    return OT_TARGET[best]||0.167;
+  }
+
+  var gmt=gmTarget(curStart);
+  var ott=otTarget(curStart);
+  var actualFill=t.fillRate||0;
+  var actualGM=t.grossMarginPct||0;
+  var fillOk=actualFill>=FILL_TARGET;
+  var gmOk=actualGM>=gmt;
+
+  // ── SCORECARD HEADER ──
+  html+='<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:12px">KSF Scheduling Goals &mdash; Week of '+curStart+'</div>';
+
+  html+='<div class="kg4">';
+
+  // Fill Rate
+  html+='<div class="kpi" style="border-top:3px solid '+(fillOk?'var(--green)':'var(--red)')+'"><div class="kl">Fill Rate</div>';
+  html+='<div class="kv" style="color:'+(fillOk?'var(--green)':'var(--red)')+'">'+fp(actualFill)+'</div>';
+  html+='<div class="ks">Goal: '+fp(FILL_TARGET)+' &middot; '+(fillOk?'On target':'Below target')+'</div></div>';
+
+  // Gross Margin
+  html+='<div class="kpi" style="border-top:3px solid '+(gmOk?'var(--green)':'var(--red)')+'"><div class="kl">Gross Margin</div>';
+  html+='<div class="kv" style="color:'+(gmOk?'var(--green)':'var(--red)')+'">'+fp(actualGM)+'</div>';
+  html+='<div class="ks">Goal: '+fp(gmt)+' &middot; '+(gmOk?'On target':'Below target')+'</div></div>';
+
+  // OT % (from OT tab if loaded)
+  html+='<div class="kpi" style="border-top:3px solid var(--text3)"><div class="kl">OT %</div>';
+  html+='<div class="kv" style="color:var(--text2)">See OT tab</div>';
+  html+='<div class="ks">Goal: &le; '+fp(ott)+'</div></div>';
+
+  // Match Failures
+  html+='<div class="kpi" style="border-top:3px solid var(--text3)"><div class="kl">Match Failure Rate</div>';
+  html+='<div class="kv" style="color:var(--text2)">See MF tab</div>';
+  html+='<div class="ks">Goal: &le; 1.00%</div></div>';
+
   html+='</div>';
 
-  html+='<div class="fc"><div class="ct">Revenue vs. budget by market</div>';
-  html+='<table class="tbl"><thead><tr><th>Market</th><th>State</th><th>Actual Revenue</th><th>Budget Revenue</th><th>Variance $</th><th>Variance %</th><th>Status</th><th>Actual GM%</th><th>Budget GM%</th><th>GM Status</th></tr></thead><tbody>';
+  // ── GOALS TABLE BY MARKET ──
+  html+='<div class="fc"><div class="ct">Scheduling Goals by Market</div>';
+  html+='<table class="tbl"><thead><tr>';
+  html+='<th>Market</th><th>State</th>';
+  html+='<th>Fill Rate</th><th>Goal</th><th></th>';
+  html+='<th>Gross Margin</th><th>Goal</th><th></th>';
+  html+='</tr></thead><tbody>';
+
   mkts.forEach(function(m){
-    var bgt=BUDGET[m.market];
-    var bRev=bgt?bgt.revenueWeekly:null;
-    var bGM=bgt?bgt.grossMarginPct:null;
-    var varD=bRev?m.revenue-bRev:null;
-    var varP=bRev?(m.revenue-bRev)/bRev:null;
+    var mGMGoal=GM_MARKET[m.market]||gmt;
+    var mFillOk=m.fillRate>=FILL_TARGET;
+    var mGMOk=m.grossMarginPct>=mGMGoal;
     html+='<tr>';
-    html+='<td>'+m.market+'</td>';
-    html+='<td style="color:var(--text3);font-weight:normal">'+m.state+'</td>';
-    html+='<td>'+fk(m.revenue)+'</td>';
-    html+='<td style="color:var(--text3)">'+( bRev?fk(bRev):'—')+'</td>';
-    html+='<td style="color:'+(varD===null?'inherit':varD>=0?'var(--green)':'var(--red)')+'">'+( varD!==null?(varD>=0?'+':'')+fk(varD):'—')+'</td>';
-    html+='<td style="color:'+(varP===null?'inherit':varP>=0?'var(--green)':'var(--red)')+'">'+( varP!==null?(varP>=0?'+':'')+fp(varP):'—')+'</td>';
-    html+='<td>'+( bRev?budgBdg(m.revenue,bRev):'—')+'</td>';
-    html+='<td><span class="bdg '+(m.grossMarginPct>=(bGM||0.40)?'bg':m.grossMarginPct>=0.38?'ba':'br')+'">'+fp(m.grossMarginPct)+'</span></td>';
-    html+='<td style="color:var(--text3)">'+(bGM?fp(bGM):'—')+'</td>';
-    html+='<td>'+(bGM?budgBdg(m.grossMarginPct,bGM):'—')+'</td>';
+    html+='<td><strong>'+m.market+'</strong></td>';
+    html+='<td style="color:var(--text3)">'+m.state+'</td>';
+    html+='<td style="color:'+(mFillOk?'var(--green)':'var(--red)')+'">'+fp(m.fillRate)+'</td>';
+    html+='<td>'+fp(FILL_TARGET)+'</td>';
+    html+='<td style="color:'+(mFillOk?'var(--green)':'var(--red)')+';font-weight:500">'+(mFillOk?'&#10003;':'&#9888;')+'</td>';
+    html+='<td style="color:'+(mGMOk?'var(--green)':'var(--red)')+'">'+fp(m.grossMarginPct)+'</td>';
+    html+='<td>'+fp(mGMGoal)+'</td>';
+    html+='<td style="color:'+(mGMOk?'var(--green)':'var(--red)')+';font-weight:500">'+(mGMOk?'&#10003;':'&#9888;')+'</td>';
     html+='</tr>';
   });
+
   // Totals
-  var totalVar=t.revenue-totalBudgetRev;
-  html+='</tbody><tfoot><tr><td>Total</td><td></td><td>'+fm(t.revenue)+'</td><td>'+fk(totalBudgetRev)+'</td><td style="color:'+(totalVar>=0?'var(--green)':'var(--red)')+'">'+(totalVar>=0?'+':'')+fk(totalVar)+'</td><td style="color:'+(totalVar>=0?'var(--green)':'var(--red)')+'">'+(totalVar>=0?'+':'')+fp(totalVar/totalBudgetRev)+'</td><td>'+budgBdg(t.revenue,totalBudgetRev)+'</td><td>'+fp(t.grossMarginPct)+'</td><td>~42%</td><td>'+budgBdg(t.grossMarginPct,0.42)+'</td></tr></tfoot>';
-  html+='</table></div>';
+  html+='</tbody><tfoot><tr>';
+  html+='<td><strong>Company</strong></td><td></td>';
+  html+='<td style="color:'+(fillOk?'var(--green)':'var(--red)')+'"><strong>'+fp(actualFill)+'</strong></td>';
+  html+='<td>'+fp(FILL_TARGET)+'</td>';
+  html+='<td style="color:'+(fillOk?'var(--green)':'var(--red)')+';font-weight:500">'+(fillOk?'&#10003;':'&#9888;')+'</td>';
+  html+='<td style="color:'+(gmOk?'var(--green)':'var(--red)')+'"><strong>'+fp(actualGM)+'</strong></td>';
+  html+='<td>'+fp(gmt)+'</td>';
+  html+='<td style="color:'+(gmOk?'var(--green)':'var(--red)')+';font-weight:500">'+(gmOk?'&#10003;':'&#9888;')+'</td>';
+  html+='</tr></tfoot></table></div>';
+
+  // ── ANNUAL TARGETS REFERENCE ──
+  html+='<div class="fc"><div class="ct">Annual KSF Targets (reference)</div>';
+  html+='<table class="tbl"><thead><tr><th>Metric</th><th>Target</th><th>Level</th><th>Notes</th></tr></thead><tbody>';
+  html+='<tr><td>Fill Rate</td><td>97.0%</td><td>Company / State / Market</td><td>Visits scheduled 1 month out, captured Sunday</td></tr>';
+  html+='<tr><td>Gross Margin</td><td>'+fp(gmt)+'</td><td>Company (week of '+curStart+')</td><td>Changes throughout year per annual KSF budget</td></tr>';
+  html+='<tr><td>OT %</td><td>'+fp(ott)+'</td><td>Company (week of '+curStart+')</td><td>OT as % of hourly revenue</td></tr>';
+  html+='<tr><td>Match Failure Rate</td><td>&le; 1.0%</td><td>Company / Market</td><td>MF incidents / active clients</td></tr>';
+  html+='<tr><td>Call Volume</td><td>100 calls/week</td><td>Per Scheduling Partner</td><td>Outbound + inbound answered calls</td></tr>';
+  html+='<tr><td>Caregiver Utilization</td><td>See Caregiver dashboard</td><td>Company / State / Market</td><td>Hours billed vs. available</td></tr>';
+  html+='</tbody></table></div>';
+
   document.getElementById('ct').innerHTML=html;
 }
 
@@ -648,7 +742,7 @@ function renderOT(){
   var trendDates=sortedDates.slice(-8);
   html+='<div class="fc"><div class="ct">Weekly cost trend — last 8 weeks</div>';
   html+='<table class="tbl">';
-  html+='<thead><tr><th>Week</th><th>OT $</th><th>vs Budget</th><th>Tribute Secure</th><th>Incentives $</th><th>Ubers $</th><th>Total</th></tr></thead><tbody>';
+  html+='<thead><tr><th>Week</th><th>OT $</th><th>Tribute Secure</th><th>Incentives $</th><th>Ubers $</th><th>Total</th></tr></thead><tbody>';
   trendDates.forEach(function(date){
     var ot=sumMetric('Hourly OT',date);
     var inc=sumMetric('Incentives (Actual)',date);
@@ -814,9 +908,7 @@ function renderGM(){
       '<td style="color:var(--amber)">'+fk(m.ts+m.guar)+'</td>'+
       '<td style="color:var(--amber)">'+fk(m.inc)+'</td>'+
       '<td style="color:var(--orange)">'+fk(m.uber)+'</td>'+
-      '<td><span class="bdg '+(m.schedGMPct>=m.budgetGMPct?'bg':'br')+'">'+fp(m.schedGMPct)+'</span></td>'+
-      '<td style="color:var(--text3)">'+fp(m.budgetGMPct)+'</td>'+
-      '<td><span class="vs '+vsCls+'">'+vsStr+'</span></td>'+
+      '<td><span class="bdg '+(m.schedGMPct>=0.40?'bg':m.schedGMPct>=0.38?'ba':'br')+'">'+fp(m.schedGMPct)+'</span></td>'+
       '</tr>';
   }
 
@@ -848,7 +940,7 @@ function renderGM(){
   html+='<div class="ct" style="margin:0">Gross margin by market — '+curStart+' to '+curEnd+'</div>';
   html+='<div style="font-size:10px;color:var(--text4)">Pay data from KSF week of '+ksfWeekToUse+(ksfWeekToUse!==curStart?' (nearest to selected)':' ✓')+'</div>';
   html+='</div>';
-  html+='<table class="tbl"><thead><tr><th>Market</th><th>State</th><th>Revenue</th><th>Hourly Pay Cost</th><th>Tribute Secure</th><th>Incentives</th><th>Ubers</th><th>Sched GM %</th><th>Budget GM</th><th>vs Budget</th></tr></thead><tbody>';
+  html+='<table class="tbl"><thead><tr><th>Market</th><th>State</th><th>Revenue</th><th>Hourly Pay Cost</th><th>Tribute Secure</th><th>Incentives</th><th>Ubers</th><th>Sched GM %</th></tr></thead><tbody>';
   STATES.forEach(function(st){html+=stateRows(st);});
   html+='</tbody><tfoot><tr><td>Company Total</td><td></td><td>'+fm(curTotRev)+'</td><td style="color:var(--red)">'+fm(curTotPayCost)+'</td><td style="color:var(--amber)">'+fm(curTotTS+curTotGuar)+'</td><td style="color:var(--amber)">'+fm(curTotInc+curTotUber)+'</td><td><span class="bdg '+(curTotGMPct>=0.40?'bg':'br')+'">'+fp(curTotGMPct)+'</span></td><td>~42%</td><td></td></tr></tfoot>';
   html+='</table></div>';
@@ -1079,6 +1171,115 @@ curStart=fmtD(s);curEnd=fmtD(e);
 document.getElementById('cs').value=curStart;
 document.getElementById('ce').value=curEnd;
 fetchData();
+
+function renderMatchFailures(){
+  var html='';
+  html+='<div class="fc"><div class="ct">Match Failures</div>';
+  html+='<p style="font-size:12px;color:var(--text2);margin:0 0 12px">Loading match failure incidents from Viv...</p></div>';
+  document.getElementById('ct').innerHTML=html;
+
+  var startDate=curStart;
+  var endDate=curEnd;
+
+  // Fetch all 4 MF incident types
+  var MF_TYPES=[
+    'Client Complaint: Connection: Match Failure',
+    'Client Complaint: Connection: First Match Failure',
+    'Client Complaint: Care Skill: Match Failure',
+    'Client Complaint: Care Skill: First Match Failure'
+  ];
+
+  var allIncidents=[];
+  var pending=MF_TYPES.length;
+
+  MF_TYPES.forEach(function(type){
+    fetch(API+'?endpoint=match_failures&startDate='+startDate+'&endDate='+endDate+'&type='+encodeURIComponent(type))
+      .then(function(r){return r.json();})
+      .then(function(data){
+        if(data&&data.incidents) allIncidents=allIncidents.concat(data.incidents);
+        pending--;
+        if(pending===0) renderMFResults(allIncidents);
+      })
+      .catch(function(){
+        pending--;
+        if(pending===0) renderMFResults(allIncidents);
+      });
+  });
+
+  function renderMFResults(incidents){
+    var totalClients=(visitsData&&visitsData.totals&&visitsData.totals.activeClients)||
+                     (visitsData&&visitsData.totals&&visitsData.totals.totalClients)||219;
+    var mfRate=totalClients>0?incidents.length/totalClients:0;
+    var mfOk=mfRate<=0.01;
+
+    // Group by market
+    var byMarket={};
+    incidents.forEach(function(inc){
+      var mkt=inc.gcity||inc.market||'Unknown';
+      if(!byMarket[mkt]) byMarket[mkt]={count:0,incidents:[]};
+      byMarket[mkt].count++;
+      byMarket[mkt].incidents.push(inc);
+    });
+
+    var html='';
+    // KPI banner
+    html+='<div style="background:'+(mfOk?'var(--green-bg)':'var(--red-bg)')+';border-left:3px solid '+(mfOk?'var(--green)':'var(--red)')+';border-radius:var(--r);padding:12px 16px;margin-bottom:16px">';
+    html+='<div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:'+(mfOk?'var(--green)':'var(--red)')+';margin-bottom:4px">Match Failure Rate — '+startDate+' to '+endDate+'</div>';
+    html+='<strong>'+fp(mfRate)+'</strong> ('+incidents.length+' incidents / '+totalClients+' clients) &mdash; Target: &le; 1.00% &mdash; '+(mfOk?'On target':'Above target');
+    html+='</div>';
+
+    // KPIs
+    html+='<div class="kg3">';
+    html+='<div class="kpi"><div class="kl">Match Failures</div><div class="kv '+(mfOk?'g':'r')+'">'+incidents.length+'</div><div class="ks">This period</div></div>';
+    html+='<div class="kpi"><div class="kl">MF Rate</div><div class="kv '+(mfOk?'g':'r')+'">'+fp(mfRate)+'</div><div class="ks">Target: &le; 1.00%</div></div>';
+    html+='<div class="kpi"><div class="kl">Active Clients</div><div class="kv">'+totalClients+'</div><div class="ks">Denominator</div></div>';
+    html+='</div>';
+
+    // By market table
+    if(Object.keys(byMarket).length>0){
+      html+='<div class="fc"><div class="ct">By Market</div>';
+      html+='<table class="tbl"><thead><tr><th>Market</th><th>MF Count</th><th>Rate</th><th>Status</th></tr></thead><tbody>';
+
+      // Get client counts by market from visitsData
+      var mktClients={};
+      if(visitsData&&visitsData.markets){
+        visitsData.markets.forEach(function(m){ mktClients[m.market]=(m.activeClients||m.totalClients||0); });
+      }
+
+      Object.keys(byMarket).sort().forEach(function(mkt){
+        var mktCount=byMarket[mkt].count;
+        var clients=mktClients[mkt]||0;
+        var mktRate=clients>0?mktCount/clients:null;
+        var mktOk=mktRate!==null?mktRate<=0.01:true;
+        html+='<tr>';
+        html+='<td><strong>'+mkt+'</strong></td>';
+        html+='<td>'+mktCount+'</td>';
+        html+='<td>'+(mktRate!==null?fp(mktRate):'—')+'</td>';
+        html+='<td style="color:'+(mktOk?'var(--green)':'var(--red)')+'">'+(mktOk?'On target':'Above target')+'</td>';
+        html+='</tr>';
+      });
+      html+='</tbody></table></div>';
+    }
+
+    // Incident list
+    if(incidents.length>0){
+      html+='<div class="fc"><div class="ct">Incident Detail</div>';
+      html+='<table class="tbl"><thead><tr><th>Date</th><th>Market</th><th>Type</th><th>Status</th></tr></thead><tbody>';
+      incidents.forEach(function(inc){
+        var dt=inc.createdAt?inc.createdAt.split('T')[0]:'—';
+        var mkt=inc.gcity||inc.market||'—';
+        var type=(inc.incidentType||inc.type||'').replace('Client Complaint: ','');
+        var status=inc.status||inc.st||'—';
+        html+='<tr><td>'+dt+'</td><td>'+mkt+'</td><td>'+type+'</td><td>'+status+'</td></tr>';
+      });
+      html+='</tbody></table></div>';
+    } else {
+      html+='<div style="background:var(--green-bg);border-left:3px solid var(--green);border-radius:var(--r);padding:12px 16px;font-size:13px">No match failure incidents found for this period.</div>';
+    }
+
+    document.getElementById('ct').innerHTML=html;
+  }
+}
 </script>
 </body>
 </html>
