@@ -297,6 +297,29 @@ function renderOpenVisits(){
   var t=visitsData.totals;
   var html='';
 
+  // ── KSF GM% using ACTUALS methodology (matches Gross Margin tab) ──
+  var GEOS_KSF=['Baltimore','Annapolis','Bethesda','Boston','MetroWest Boston','North of Boston','South of Boston','Chicago'];
+  function ksfGet(geo,metric,week){return(ACTUALS[geo]&&ACTUALS[geo][metric]&&ACTUALS[geo][metric][week])||0;}
+  var hasKSFData=!!ksfGet('Baltimore','Hourly Revenue',curStart);
+  var ksfGM, ksfGMNote;
+  if(hasKSFData){
+    var ksfRev=0,ksfCost=0;
+    GEOS_KSF.forEach(function(geo){
+      var rev=ksfGet(geo,'Hourly Revenue',curStart);
+      var reg=ksfGet(geo,'Hourly Regular Pay',curStart);
+      var ot2=ksfGet(geo,'Hourly OT',curStart);
+      var inc=ksfGet(geo,'Incentives (Actual)',curStart);
+      var ts=ksfGet(geo,'TS Admin (Actual)',curStart);
+      var uber=(UBER_DATA[curStart]&&UBER_DATA[curStart][geo]&&UBER_DATA[curStart][geo].amount)||0;
+      ksfRev+=rev; ksfCost+=reg+ot2+inc+ts+uber;
+    });
+    ksfGM=ksfRev>0?(ksfRev-ksfCost)/ksfRev:t.grossMarginPct;
+    ksfGMNote='KSF actuals';
+  } else {
+    ksfGM=t.grossMarginPct;
+    ksfGMNote='Live Viv';
+  }
+
   // KPIs
   html+='<div class="kg3">';
   html+='<div class="kpi"><div class="kl">Total Open Visits</div><div class="kv '+(t.openVisits===0?'g':t.openVisits<20?'a':'r')+'">'+fn(t.openVisits)+'</div><div class="ks">This week unfilled</div></div>';
@@ -357,7 +380,7 @@ function renderBudget(){
 
   html+='<div class="kg3">';
   html+='<div class="kpi"><div class="kl">Actual Revenue</div><div class="kv o">'+fm(t.revenue)+'</div><div class="ks">vs. budget '+fk(totalBudgetRev)+' '+vsBudget(t.revenue,totalBudgetRev)+'</div></div>';
-  html+='<div class="kpi"><div class="kl">Actual Gross Margin</div><div class="kv '+(t.grossMarginPct>=0.42?'g':t.grossMarginPct>=0.38?'a':'r')+'">'+fp(t.grossMarginPct)+'</div><div class="ks">Budget avg ~42%</div></div>';
+  html+='<div class="kpi"><div class="kl">Actual Gross Margin</div><div class="kv '+(ksfGM>=0.42?'g':ksfGM>=0.38?'a':'r')+'">'+fp(ksfGM)+'</div><div class="ks">Budget avg ~42% · '+ksfGMNote+'</div></div>';
   html+='<div class="kpi"><div class="kl">Fill Rate</div><div class="kv '+(t.fillRate>=0.97?'g':'a')+'">'+fp(t.fillRate)+'</div><div class="ks">Goal: 97%+</div></div>';
   html+='</div>';
 
