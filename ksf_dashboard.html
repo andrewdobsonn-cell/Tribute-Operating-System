@@ -216,6 +216,19 @@ async function fetchData(){
 
 function render(){
   if(!visitsData)return;
+
+  // Override t.grossMarginPct with KSF ACTUALS everywhere — single source of truth
+  var _t=visitsData.totals;
+  var _GEOS=['Baltimore','Annapolis','Bethesda','Boston','MetroWest Boston','North of Boston','South of Boston','Chicago'];
+  var _r=0,_c=0;
+  _GEOS.forEach(function(geo){
+    function _g(m){return(ACTUALS[geo]&&ACTUALS[geo][m]&&ACTUALS[geo][m][curStart])||0;}
+    var rev=_g('Hourly Revenue'); if(!rev)return;
+    var uber=(UBER_DATA[curStart]&&UBER_DATA[curStart][geo]&&UBER_DATA[curStart][geo].amount)||0;
+    _r+=rev; _c+=_g('Hourly Regular Pay')+_g('Hourly OT')+_g('Incentives (Actual)')+_g('TS Admin (Actual)')+uber;
+  });
+  if(_r>0){_t.grossMarginPct=(_r-_c)/_r; _t.grossProfit=_r-_c;}
+
   if(curTab==='overview')renderOverview();
   else if(curTab==='markets')renderMarkets();
   else if(curTab==='openvisits')renderOpenVisits();
@@ -403,7 +416,28 @@ function renderBudget(){
   var gmt=gmTarget(curStart);
   var ott=otTarget(curStart);
   var actualFill=t.fillRate||0;
-  var actualGM=t.grossMarginPct||0;
+
+  // Compute GM% from KSF ACTUALS (same method as Gross Margin tab — not Viv's number)
+  var GEOS_KSF=['Baltimore','Annapolis','Bethesda','Boston','MetroWest Boston','North of Boston','South of Boston','Chicago'];
+  function ksfGet(geo,m,week){return(ACTUALS[geo]&&ACTUALS[geo][m]&&ACTUALS[geo][m][week])||0;}
+  var hasKSF=GEOS_KSF.some(function(g){return ksfGet(g,'Hourly Revenue',curStart)>0;});
+  var actualGM;
+  if(hasKSF){
+    var ksfRev=0,ksfCost=0;
+    GEOS_KSF.forEach(function(geo){
+      var rev=ksfGet(geo,'Hourly Revenue',curStart);
+      var reg=ksfGet(geo,'Hourly Regular Pay',curStart);
+      var ot=ksfGet(geo,'Hourly OT',curStart);
+      var inc=ksfGet(geo,'Incentives (Actual)',curStart);
+      var ts=ksfGet(geo,'TS Admin (Actual)',curStart);
+      var uber=(UBER_DATA[curStart]&&UBER_DATA[curStart][geo]&&UBER_DATA[curStart][geo].amount)||0;
+      ksfRev+=rev; ksfCost+=reg+ot+inc+ts+uber;
+    });
+    actualGM=ksfRev>0?(ksfRev-ksfCost)/ksfRev:(t.grossMarginPct||0);
+  } else {
+    actualGM=t.grossMarginPct||0;
+  }
+
   var fillOk=actualFill>=FILL_TARGET;
   var gmOk=actualGM>=gmt;
 
