@@ -113,7 +113,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <div class="ntab on" onclick="setTab('overview',this)">Overview</div>
   <div class="ntab" onclick="setTab('markets',this)">By Market</div>
   <div class="ntab" onclick="setTab('openvisits',this)">Open Visits</div>
-  <div class="ntab" onclick="setTab('budget',this)">KSF Scorecard</div>
+  <div class="ntab" onclick="setTab('budget',this)">vs. Budget</div>
   <div class="ntab" onclick="setTab('callmetrics',this)">Call Metrics</div>
   <div class="ntab" onclick="setTab('uber',this)">Ubers</div>
   <div class="ntab" onclick="setTab('ot',this)">OT & Incentives</div>
@@ -155,22 +155,6 @@ function fp(n){return(n*100).toFixed(1)+'%'}
 function fm(n){return n>=1000000?'$'+(n/1000000).toFixed(2)+'M':'$'+fn(n)}
 function fk(n){return n>=1000?'$'+(n/1000).toFixed(1)+'K':'$'+fn(n)}
 function fmtD(d){return d.toISOString().split('T')[0]}
-// ── KSF TARGETS (from KSF_Scheduling.xlsx) ──
-var GM_BUDGET_BY_WEEK = {"2023-01-01": 0.4142, "2023-01-08": 0.4142, "2023-01-15": 0.4142, "2023-01-22": 0.4142, "2023-01-29": 0.4174, "2023-02-05": 0.4173, "2023-02-12": 0.4173, "2023-02-19": 0.4173, "2023-02-26": 0.4172, "2023-03-05": 0.4172, "2023-03-12": 0.4172, "2023-03-19": 0.4172, "2023-03-26": 0.4171, "2023-04-02": 0.417, "2023-04-09": 0.417, "2023-04-16": 0.417, "2023-04-23": 0.417, "2023-04-30": 0.4167, "2023-05-07": 0.4167, "2023-05-14": 0.4167, "2023-05-21": 0.4167, "2023-05-28": 0.4165, "2023-06-04": 0.4164, "2023-06-11": 0.4164, "2023-06-18": 0.4164, "2023-06-25": 0.4164, "2023-07-02": 0.4161, "2023-07-09": 0.4161, "2023-07-16": 0.4161, "2023-07-23": 0.4161, "2023-07-30": 0.4159, "2023-08-06": 0.4158, "2023-08-13": 0.4158, "2023-08-20": 0.4158, "2023-08-27": 0.4157, "2023-09-03": 0.4155, "2023-09-10": 0.4155, "2023-09-17": 0.4155, "2023-09-24": 0.4155, "2023-10-01": 0.4156, "2023-10-08": 0.4156, "2023-10-15": 0.4156, "2023-10-22": 0.4156, "2023-10-29": 0.4154, "2023-11-05": 0.4153, "2023-11-12": 0.4153, "2023-11-19": 0.4153, "2023-11-26": 0.4153, "2023-12-03": 0.4152, "2023-12-10": 0.4152, "2023-12-17": 0.4152, "2023-12-24": 0.4152, "2023-12-31": 0.418, "2024-01-07": 0.418, "2024-01-14": 0.418, "2024-01-21": 0.418, "2024-01-28": 0.4181, "2024-02-04": 0.4182, "2024-02-11": 0.4182, "2024-02-18": 0.4182, "2024-02-25": 0.4176, "2024-03-03": 0.416, "2024-03-10": 0.4185, "2024-03-17": 0.4185, "2024-03-24": 0.4185, "2024-03-31": 0.4182, "2024-04-07": 0.4185, "2024-04-14": 0.4185, "2024-04-21": 0.4185, "2024-04-28": 0.4187, "2024-05-05": 0.4188, "2024-05-12": 0.4188, "2024-05-19": 0.4188, "2024-05-26": 0.4189, "2024-06-02": 0.419, "2024-06-09": 0.419, "2024-06-16": 0.419, "2024-06-23": 0.419, "2024-06-30": 0.4193, "2024-07-07": 0.4193, "2024-07-14": 0.4193, "2024-07-21": 0.4193, "2024-07-28": 0.4184, "2024-08-04": 0.4172, "2024-08-11": 0.4172, "2024-08-18": 0.4172, "2024-08-25": 0.4172, "2024-09-01": 0.42, "2024-09-08": 0.42, "2024-09-15": 0.42, "2024-09-22": 0.42, "2024-09-29": 0.4202, "2024-10-06": 0.4203, "2024-10-13": 0.4203, "2024-10-20": 0.4203, "2024-10-27": 0.4205, "2024-11-03": 0.4208, "2024-11-10": 0.4208, "2024-11-17": 0.4208, "2024-11-24": 0.4208, "2024-12-01": 0.4213, "2024-12-08": 0.4213, "2024-12-15": 0.4213, "2024-12-22": 0.4213, "2024-12-29": 0.4213, "2025-01-05": 0.4202, "2025-01-12": 0.4202, "2025-01-19": 0.4202, "2025-01-26": 0.4202, "2025-02-02": 0.4201, "2025-02-09": 0.4201, "2025-02-16": 0.4201, "2025-02-23": 0.4201, "2025-03-02": 0.4201, "2025-03-09": 0.4201, "2025-03-16": 0.4201, "2025-03-23": 0.4201, "2025-03-30": 0.42, "2025-04-06": 0.42, "2025-04-13": 0.42, "2025-04-20": 0.42, "2025-04-27": 0.4199, "2025-05-04": 0.4199, "2025-05-11": 0.4199, "2025-05-18": 0.4199, "2025-05-25": 0.4199, "2025-06-01": 0.4198, "2025-06-08": 0.4198, "2025-06-15": 0.4198, "2025-06-22": 0.4198, "2025-06-29": 0.4197, "2025-07-06": 0.4196, "2025-07-13": 0.4196, "2025-07-20": 0.4196, "2025-07-27": 0.4196, "2025-08-03": 0.4195, "2025-08-10": 0.4195, "2025-08-17": 0.4195, "2025-08-24": 0.4195, "2025-08-31": 0.4194, "2025-09-07": 0.4194, "2025-09-14": 0.4194, "2025-09-21": 0.4194, "2025-09-28": 0.4193, "2025-10-05": 0.4193, "2025-10-12": 0.4193, "2025-10-19": 0.4193, "2025-10-26": 0.4192, "2025-11-02": 0.4191, "2025-11-09": 0.4191, "2025-11-16": 0.4191, "2025-11-23": 0.4191, "2025-11-30": 0.419, "2025-12-07": 0.419, "2025-12-14": 0.419, "2025-12-21": 0.419, "2025-12-28": 0.4274, "2026-01-04": 0.4273, "2026-01-11": 0.4273, "2026-01-18": 0.4273, "2026-01-25": 0.4273, "2026-02-01": 0.4235, "2026-02-08": 0.4228, "2026-02-15": 0.4228, "2026-02-22": 0.4228, "2026-03-01": 0.4213, "2026-03-08": 0.4211, "2026-03-15": 0.4211, "2026-03-22": 0.4211, "2026-03-29": 0.4163, "2026-04-05": 0.4102, "2026-04-12": 0.4102, "2026-04-19": 0.4102, "2026-04-26": 0.4102, "2026-05-03": 0.4102, "2026-05-10": 0.4102, "2026-05-17": 0.4102, "2026-05-24": 0.4102, "2026-05-31": 0.4152, "2026-06-07": 0.4172, "2026-06-14": 0.4172, "2026-06-21": 0.4172, "2026-06-28": 0.4164, "2026-07-05": 0.4154, "2026-07-12": 0.4154, "2026-07-19": 0.4154, "2026-07-26": 0.4154, "2026-08-02": 0.4153, "2026-08-09": 0.4153, "2026-08-16": 0.4153, "2026-08-23": 0.4153, "2026-08-30": 0.4152, "2026-09-06": 0.4151, "2026-09-13": 0.4151, "2026-09-20": 0.4151, "2026-09-27": 0.4148, "2026-10-04": 0.4141, "2026-10-11": 0.4141, "2026-10-18": 0.4141, "2026-10-25": 0.4141, "2026-11-01": 0.4139, "2026-11-08": 0.4139, "2026-11-15": 0.4139, "2026-11-22": 0.4139, "2026-11-29": 0.4138, "2026-12-06": 0.4137, "2026-12-13": 0.4137, "2026-12-20": 0.4137, "2026-12-27": 0.4137};
-var OT_BUDGET_BY_WEEK = {"2023-01-01": 0.1586, "2023-01-08": 0.1586, "2023-01-15": 0.1586, "2023-01-22": 0.1586, "2023-01-29": 0.1578, "2023-02-05": 0.1577, "2023-02-12": 0.1577, "2023-02-19": 0.1577, "2023-02-26": 0.1576, "2023-03-05": 0.1576, "2023-03-12": 0.1576, "2023-03-19": 0.1576, "2023-03-26": 0.1576, "2023-04-02": 0.1574, "2023-04-09": 0.1574, "2023-04-16": 0.1574, "2023-04-23": 0.1574, "2023-04-30": 0.1571, "2023-05-07": 0.1571, "2023-05-14": 0.1571, "2023-05-21": 0.1571, "2023-05-28": 0.157, "2023-06-04": 0.157, "2023-06-11": 0.157, "2023-06-18": 0.157, "2023-06-25": 0.1569, "2023-07-02": 0.1564, "2023-07-09": 0.1564, "2023-07-16": 0.1564, "2023-07-23": 0.1564, "2023-07-30": 0.1564, "2023-08-06": 0.1564, "2023-08-13": 0.1564, "2023-08-20": 0.1564, "2023-08-27": 0.1563, "2023-09-03": 0.1561, "2023-09-10": 0.1561, "2023-09-17": 0.1561, "2023-09-24": 0.1561, "2023-10-01": 0.156, "2023-10-08": 0.156, "2023-10-15": 0.156, "2023-10-22": 0.156, "2023-10-29": 0.1559, "2023-11-05": 0.1558, "2023-11-12": 0.1558, "2023-11-19": 0.1558, "2023-11-26": 0.1558, "2023-12-03": 0.1558, "2023-12-10": 0.1558, "2023-12-17": 0.1558, "2023-12-24": 0.1558, "2023-12-31": 0.1535, "2024-01-07": 0.1535, "2024-01-14": 0.1535, "2024-01-21": 0.1535, "2024-01-28": 0.1535, "2024-02-04": 0.1535, "2024-02-11": 0.1535, "2024-02-18": 0.1535, "2024-02-25": 0.1537, "2024-03-03": 0.1541, "2024-03-10": 0.1527, "2024-03-17": 0.1527, "2024-03-24": 0.1527, "2024-03-31": 0.1529, "2024-04-07": 0.1527, "2024-04-14": 0.1527, "2024-04-21": 0.1527, "2024-04-28": 0.1529, "2024-05-05": 0.153, "2024-05-12": 0.153, "2024-05-19": 0.153, "2024-05-26": 0.153, "2024-06-02": 0.1527, "2024-06-09": 0.1527, "2024-06-16": 0.1527, "2024-06-23": 0.1527, "2024-06-30": 0.1519, "2024-07-07": 0.1518, "2024-07-14": 0.1518, "2024-07-21": 0.1518, "2024-07-28": 0.1519, "2024-08-04": 0.1521, "2024-08-11": 0.1521, "2024-08-18": 0.1521, "2024-08-25": 0.1521, "2024-09-01": 0.1502, "2024-09-08": 0.1502, "2024-09-15": 0.1502, "2024-09-22": 0.1502, "2024-09-29": 0.15, "2024-10-06": 0.15, "2024-10-13": 0.15, "2024-10-20": 0.15, "2024-10-27": 0.1496, "2024-11-03": 0.1487, "2024-11-10": 0.1487, "2024-11-17": 0.1487, "2024-11-24": 0.1487, "2024-12-01": 0.1484, "2024-12-08": 0.1484, "2024-12-15": 0.1484, "2024-12-22": 0.1484, "2024-12-29": 0.1484, "2025-01-05": 0.152, "2025-01-12": 0.152, "2025-01-19": 0.152, "2025-01-26": 0.152, "2025-02-02": 0.152, "2025-02-09": 0.152, "2025-02-16": 0.152, "2025-02-23": 0.152, "2025-03-02": 0.152, "2025-03-09": 0.152, "2025-03-16": 0.152, "2025-03-23": 0.152, "2025-03-30": 0.1521, "2025-04-06": 0.1521, "2025-04-13": 0.1521, "2025-04-20": 0.1521, "2025-04-27": 0.1521, "2025-05-04": 0.1521, "2025-05-11": 0.1521, "2025-05-18": 0.1521, "2025-05-25": 0.1521, "2025-06-01": 0.1522, "2025-06-08": 0.1522, "2025-06-15": 0.1522, "2025-06-22": 0.1522, "2025-06-29": 0.1522, "2025-07-06": 0.1522, "2025-07-13": 0.1522, "2025-07-20": 0.1522, "2025-07-27": 0.1523, "2025-08-03": 0.1523, "2025-08-10": 0.1523, "2025-08-17": 0.1523, "2025-08-24": 0.1523, "2025-08-31": 0.1524, "2025-09-07": 0.1524, "2025-09-14": 0.1524, "2025-09-21": 0.1524, "2025-09-28": 0.1524, "2025-10-05": 0.1524, "2025-10-12": 0.1524, "2025-10-19": 0.1524, "2025-10-26": 0.1524, "2025-11-02": 0.1525, "2025-11-09": 0.1525, "2025-11-16": 0.1525, "2025-11-23": 0.1525, "2025-11-30": 0.1526, "2025-12-07": 0.1526, "2025-12-14": 0.1526, "2025-12-21": 0.1526, "2025-12-28": 0.1612, "2026-01-04": 0.1616, "2026-01-11": 0.1616, "2026-01-18": 0.1616, "2026-01-25": 0.1616, "2026-02-01": 0.1629, "2026-02-08": 0.1632, "2026-02-15": 0.1632, "2026-02-22": 0.1632, "2026-03-01": 0.1647, "2026-03-08": 0.165, "2026-03-15": 0.165, "2026-03-22": 0.165, "2026-03-29": 0.1667, "2026-04-05": 0.169, "2026-04-12": 0.169, "2026-04-19": 0.169, "2026-04-26": 0.169, "2026-05-03": 0.169, "2026-05-10": 0.169, "2026-05-17": 0.169, "2026-05-24": 0.169, "2026-05-31": 0.1676, "2026-06-07": 0.167, "2026-06-14": 0.167, "2026-06-21": 0.167, "2026-06-28": 0.1687, "2026-07-05": 0.1708, "2026-07-12": 0.1708, "2026-07-19": 0.1708, "2026-07-26": 0.1708, "2026-08-02": 0.1709, "2026-08-09": 0.1709, "2026-08-16": 0.1709, "2026-08-23": 0.1709, "2026-08-30": 0.171, "2026-09-06": 0.171, "2026-09-13": 0.171, "2026-09-20": 0.171, "2026-09-27": 0.1716, "2026-10-04": 0.1731, "2026-10-11": 0.1731, "2026-10-18": 0.1731, "2026-10-25": 0.1731, "2026-11-01": 0.1733, "2026-11-08": 0.1733, "2026-11-15": 0.1733, "2026-11-22": 0.1733, "2026-11-29": 0.1734, "2026-12-06": 0.1735, "2026-12-13": 0.1735, "2026-12-20": 0.1735, "2026-12-27": 0.1735};
-var GM_BUDGET_BY_MARKET = {"Baltimore": 0.401, "Annapolis": 0.468, "Bethesda": 0.418, "Boston": 0.438, "MetroWest Boston": 0.4, "Chicago": 0.404, "Northern Virginia": 0.408};
-var KSF_FILL_RATE_TARGET = 0.97;
-var KSF_CALL_TARGET = 100;
-
-function getGmTarget(week){
-  if(GM_BUDGET_BY_WEEK[week]) return GM_BUDGET_BY_WEEK[week];
-  var weeks=Object.keys(GM_BUDGET_BY_WEEK).sort();
-  return GM_BUDGET_BY_WEEK[weeks.reduce(function(b,w){
-    return Math.abs(new Date(w)-new Date(week))<Math.abs(new Date(b)-new Date(week))?w:b;
-  },weeks[0])];
-}
-
-
 function vsBudget(actual,budget){
   if(!budget)return '';
   var diff=(actual-budget)/budget;
@@ -257,17 +241,19 @@ function renderOverview(){
   // Market summary table
   var activeMkts=mkts.filter(m=>m.totalVisits>0);
   html+='<div class="fc"><div class="ct">Performance by market — '+curStart+' to '+curEnd+'</div>';
-  html+='<table class="tbl"><thead><tr><th>Market</th><th>State</th><th>Visits</th><th>Fill Rate</th><th>Revenue</th><th>Gross Margin</th><th>Open</th><th>Billed Hrs</th></tr></thead><tbody>';
+  html+='<table class="tbl"><thead><tr><th>Market</th><th>State</th><th>Visits</th><th>Fill Rate</th><th>Revenue</th><th>vs. Budget</th><th>Gross Margin</th><th>Open</th><th>Billed Hrs</th></tr></thead><tbody>';
   activeMkts.forEach(function(m){
     var bgt=BUDGET[m.market];
-    var bgtGM=getGmTarget(curStart);
+    var bgtRev=bgt?bgt.revenueWeekly:null;
+    var bgtGM=bgt?bgt.grossMarginPct:null;
     html+='<tr>';
     html+='<td>'+m.market+'</td>';
     html+='<td style="color:var(--text3);font-weight:normal">'+m.state+'</td>';
     html+='<td>'+fn(m.totalVisits)+'</td>';
     html+='<td><span class="bdg '+(m.fillRate>=0.97?'bg':m.fillRate>=0.95?'ba':'br')+'">'+fp(m.fillRate)+'</span></td>';
     html+='<td>'+fk(m.revenue)+'</td>';
-    html+='<td><span class="bdg '+(m.grossMarginPct>=(bgtGM||0.42)?'bg':m.grossMarginPct>=0.38?'ba':'br')+'">'+fp(m.grossMarginPct)+'</span></td>';
+    html+='<td>'+vsBudget(m.revenue,bgtRev)+'</td>';
+    html+='<td><span class="bdg '+(m.grossMarginPct>=(bgtGM||0.40)?'bg':m.grossMarginPct>=0.38?'ba':'br')+'">'+fp(m.grossMarginPct)+'</span></td>';
     html+='<td style="color:'+(m.openVisits>5?'var(--red)':'var(--charcoal)')+'">'+fn(m.openVisits)+'</td>';
     html+='<td>'+fn(Math.round(m.billedHours))+'h</td>';
     html+='</tr>';
@@ -283,7 +269,7 @@ function renderMarkets(){
   var mkts=(visitsData.markets||[]).filter(m=>m.totalVisits>0);
   var html='';
   html+='<div class="fc"><div class="ct">Market detail — '+curStart+' to '+curEnd+'</div>';
-  html+='<table class="tbl"><thead><tr><th>Market</th><th>State</th><th>Total Visits</th><th>Filled</th><th>Open</th><th>Fill Rate</th><th>Revenue</th><th>Gross Margin</th><th>Budget GM%</th><th>Billed Hrs</th><th>Avg Bill Rate</th></tr></thead><tbody>';
+  html+='<table class="tbl"><thead><tr><th>Market</th><th>State</th><th>Total Visits</th><th>Filled</th><th>Open</th><th>Fill Rate</th><th>Revenue</th><th>Budget Rev</th><th>vs Budget</th><th>Gross Margin</th><th>Budget GM</th><th>Billed Hrs</th><th>Avg Bill Rate</th></tr></thead><tbody>';
   mkts.forEach(function(m){
     var bgt=BUDGET[m.market]||{};
     html+='<tr>';
@@ -294,8 +280,10 @@ function renderMarkets(){
     html+='<td style="color:'+(m.openVisits>5?'var(--red)':'inherit')+'">'+fn(m.openVisits)+'</td>';
     html+='<td><span class="bdg '+(m.fillRate>=0.97?'bg':m.fillRate>=0.95?'ba':'br')+'">'+fp(m.fillRate)+'</span></td>';
     html+='<td>'+fk(m.revenue)+'</td>';
-    html+='<td><span class="bdg '+(m.grossMarginPct>=(getGmTarget(curStart)||0.42)?'bg':m.grossMarginPct>=0.38?'ba':'br')+'">'+fp(m.grossMarginPct)+'</span></td>';
-    html+='<td style="color:var(--text3)">'+fp(getGmTarget(curStart))+'</td>';
+    html+='<td style="color:var(--text3)">'+( bgt.revenueWeekly?fk(bgt.revenueWeekly):'—')+'</td>';
+    html+='<td>'+vsBudget(m.revenue,bgt.revenueWeekly||null)+'</td>';
+    html+='<td><span class="bdg '+(m.grossMarginPct>=(bgt.grossMarginPct||0.40)?'bg':m.grossMarginPct>=0.38?'ba':'br')+'">'+fp(m.grossMarginPct)+'</span></td>';
+    html+='<td style="color:var(--text3)">'+(bgt.grossMarginPct?fp(bgt.grossMarginPct):'—')+'</td>';
     html+='<td>'+fn(Math.round(m.billedHours))+'h</td>';
     html+='<td>$'+(m.avgBillRate?m.avgBillRate.toFixed(2):'—')+'</td>';
     html+='</tr>';
@@ -359,69 +347,45 @@ function renderOpenVisits(){
 }
 
 function renderBudget(){
+  var mkts=(visitsData.markets||[]).filter(m=>m.totalVisits>0);
+  var t=visitsData.totals;
   var html='';
-  var t=visitsData?visitsData.totals:{};
-  var mkts=visitsData?visitsData.markets||[]:[];
-  var gmTarget=getGmTarget(curStart);
-  var otTarget=OT_BUDGET_BY_WEEK[curStart]||0.167;
-  var actualFill=t.fillRate||0;
-  var fillOk=actualFill>=KSF_FILL_RATE_TARGET;
-  var GEOS_KSF=['Baltimore','Annapolis','Bethesda','Boston','MetroWest Boston','North of Boston','South of Boston','Chicago'];
-  function ksfGet(geo,metric,week){return(ACTUALS[geo]&&ACTUALS[geo][metric]&&ACTUALS[geo][metric][week])||0;}
-  var hasKSF=!!ksfGet('Baltimore','Hourly Revenue',curStart);
-  var actualGM, gmNote;
-  if(hasKSF){
-    var ksfRev=0,ksfCost=0;
-    GEOS_KSF.forEach(function(geo){
-      var rev=ksfGet(geo,'Hourly Revenue',curStart);
-      var reg=ksfGet(geo,'Hourly Regular Pay',curStart);
-      var ot2=ksfGet(geo,'Hourly OT',curStart);
-      var inc=ksfGet(geo,'Incentives (Actual)',curStart);
-      var ts=ksfGet(geo,'TS Admin (Actual)',curStart);
-      var uber=(UBER_DATA[curStart]&&UBER_DATA[curStart][geo]&&UBER_DATA[curStart][geo].amount)||0;
-      ksfRev+=rev; ksfCost+=reg+ot2+inc+ts+uber;
-    });
-    actualGM=ksfRev>0?(ksfRev-ksfCost)/ksfRev:(t.grossMarginPct||0);
-    gmNote='KSF actuals method';
-  } else {
-    actualGM=t.grossMarginPct||0;
-    gmNote='Live Viv data';
-  }
-  var gmOk=actualGM>=gmTarget;
-  if(callData&&callData.length>0&&!callAggregated){callAggregated=aggregateCallData(callData);}
-  if(!callAggregated){callAggregated=aggregateCallData([]);}
-  var callWeekData=callAggregated[curStart];
-  var totalCalls=callWeekData?Object.values(callWeekData).reduce(function(s,a){return s+a.answered;},0):null;
-  var spCount=callWeekData?Object.keys(callWeekData).length:5;
-  var callOk=totalCalls!=null?(totalCalls>=spCount*KSF_CALL_TARGET):null;
-  function scoreCard(label,actual,target,fmt,ok,note){
-    var col=ok?'var(--green)':'var(--red)';
-    return '<div class="kpi" style="border-top:3px solid '+col+';padding-top:12px"><div class="kl">'+label+'</div><div class="kv" style="color:'+col+'">'+fmt(actual)+'</div><div class="ks">Target: '+fmt(target)+(ok?' &middot; On track':' &middot; Off track')+'</div>'+(note?'<div style="font-size:10px;color:var(--text3);margin-top:4px">'+note+'</div>':'')+'</div>';
-  }
-  html+='<div class="kg4">';
-  html+=scoreCard('Fill Rate',actualFill,KSF_FILL_RATE_TARGET,fp,fillOk,'Visits filled 1 month out');
-  html+=scoreCard('Gross Margin',actualGM,gmTarget,fp,gmOk,gmNote);
-  html+='<div class="kpi" style="border-top:3px solid var(--text3);padding-top:12px"><div class="kl">Match Failure Rate</div><div class="kv" style="color:var(--text2)">See MF tab</div><div class="ks">Target: &le; 1.00%</div></div>';
-  if(callOk!==null){html+=scoreCard('Call Volume',totalCalls,spCount*KSF_CALL_TARGET,fn,callOk,fn(KSF_CALL_TARGET)+'/SP x '+spCount+' SPs');}
-  else{html+='<div class="kpi" style="border-top:3px solid var(--text3);padding-top:12px"><div class="kl">Call Volume</div><div class="kv" style="color:var(--text2)">Upload Akixi CSV</div><div class="ks">Target: '+fn(KSF_CALL_TARGET)+'/SP/week</div></div>';}
+
+  // Company totals vs budget
+  var totalBudgetRev=Object.values(BUDGET).reduce((s,b)=>s+b.revenueWeekly,0);
+  var totalBudgetGM=mkts.reduce((s,m)=>{var b=BUDGET[m.market];return b?s+b.grossMarginPct*m.revenue:s;},0)/Math.max(t.revenue,1);
+
+  html+='<div class="kg3">';
+  html+='<div class="kpi"><div class="kl">Actual Revenue</div><div class="kv o">'+fm(t.revenue)+'</div><div class="ks">vs. budget '+fk(totalBudgetRev)+' '+vsBudget(t.revenue,totalBudgetRev)+'</div></div>';
+  html+='<div class="kpi"><div class="kl">Actual Gross Margin</div><div class="kv '+(t.grossMarginPct>=0.42?'g':t.grossMarginPct>=0.38?'a':'r')+'">'+fp(t.grossMarginPct)+'</div><div class="ks">Budget avg ~42%</div></div>';
+  html+='<div class="kpi"><div class="kl">Fill Rate</div><div class="kv '+(t.fillRate>=0.97?'g':'a')+'">'+fp(t.fillRate)+'</div><div class="ks">Goal: 97%+</div></div>';
   html+='</div>';
-  html+='<div class="fc"><div class="ct">KSF Performance &mdash; by market &mdash; '+curStart+'</div>';
-  html+='<table class="tbl"><thead><tr><th>Market</th><th>State</th><th>Fill Rate</th><th>Target</th><th>Status</th><th>Gross Margin</th><th>GM Target</th><th>Status</th></tr></thead><tbody>';
+
+  html+='<div class="fc"><div class="ct">Revenue vs. budget by market</div>';
+  html+='<table class="tbl"><thead><tr><th>Market</th><th>State</th><th>Actual Revenue</th><th>Budget Revenue</th><th>Variance $</th><th>Variance %</th><th>Status</th><th>Actual GM%</th><th>Budget GM%</th><th>GM Status</th></tr></thead><tbody>';
   mkts.forEach(function(m){
-    if(!m.totalVisits)return;
-    var mktGmTarget=GM_BUDGET_BY_MARKET[m.market]||gmTarget;
-    var fillOk2=m.fillRate>=KSF_FILL_RATE_TARGET;
-    var gmOk2=m.grossMarginPct>=mktGmTarget;
-    html+='<tr><td><strong>'+m.market+'</strong></td><td>'+m.state+'</td>';
-    html+='<td style="color:'+(fillOk2?'var(--green)':'var(--red)')+'">'+fp(m.fillRate)+'</td><td>'+fp(KSF_FILL_RATE_TARGET)+'</td><td style="color:'+(fillOk2?'var(--green)':'var(--red)')+'">'+(fillOk2?'On track':'Below')+'</td>';
-    html+='<td style="color:'+(gmOk2?'var(--green)':'var(--red)')+'">'+fp(m.grossMarginPct)+'</td><td>'+fp(mktGmTarget)+'</td><td style="color:'+(gmOk2?'var(--green)':'var(--red)')+'">'+(gmOk2?'On track':'Below')+'</td></tr>';
+    var bgt=BUDGET[m.market];
+    var bRev=bgt?bgt.revenueWeekly:null;
+    var bGM=bgt?bgt.grossMarginPct:null;
+    var varD=bRev?m.revenue-bRev:null;
+    var varP=bRev?(m.revenue-bRev)/bRev:null;
+    html+='<tr>';
+    html+='<td>'+m.market+'</td>';
+    html+='<td style="color:var(--text3);font-weight:normal">'+m.state+'</td>';
+    html+='<td>'+fk(m.revenue)+'</td>';
+    html+='<td style="color:var(--text3)">'+( bRev?fk(bRev):'—')+'</td>';
+    html+='<td style="color:'+(varD===null?'inherit':varD>=0?'var(--green)':'var(--red)')+'">'+( varD!==null?(varD>=0?'+':'')+fk(varD):'—')+'</td>';
+    html+='<td style="color:'+(varP===null?'inherit':varP>=0?'var(--green)':'var(--red)')+'">'+( varP!==null?(varP>=0?'+':'')+fp(varP):'—')+'</td>';
+    html+='<td>'+( bRev?budgBdg(m.revenue,bRev):'—')+'</td>';
+    html+='<td><span class="bdg '+(m.grossMarginPct>=(bGM||0.40)?'bg':m.grossMarginPct>=0.38?'ba':'br')+'">'+fp(m.grossMarginPct)+'</span></td>';
+    html+='<td style="color:var(--text3)">'+(bGM?fp(bGM):'—')+'</td>';
+    html+='<td>'+(bGM?budgBdg(m.grossMarginPct,bGM):'—')+'</td>';
+    html+='</tr>';
   });
-  html+='</tbody></table></div>';
-  if(callAggregated){var wa=callAggregated[curStart];if(wa&&Object.keys(wa).length){html+='<div class="fc"><div class="ct">Call Volume by SP &mdash; week of '+curStart+'</div><table class="tbl"><thead><tr><th>Name</th><th>Answered</th><th>Outbound</th><th>Inbound</th><th>Avg Talk</th><th>Target</th><th>Status</th></tr></thead><tbody>';Object.keys(wa).sort().forEach(function(agent){var a=wa[agent];if(!a.answered&&!a.abandoned)return;var ok=a.answered>=KSF_CALL_TARGET;var avg=a.answered>0?Math.round(a.talk_secs/a.answered):0;html+='<tr><td><strong>'+agent+'</strong></td><td style="color:'+(ok?'var(--green)':'var(--red)')+'">'+fn(a.answered)+'</td><td>'+fn(a.outbound)+'</td><td>'+fn(a.inbound)+'</td><td>'+fmtSecs(avg)+'</td><td>'+fn(KSF_CALL_TARGET)+'</td><td style="color:'+(ok?'var(--green)':'var(--red)')+'">'+(ok?'On track':'Below')+'</td></tr>';});html+='</tbody></table></div>';}}
-  var delta=actualGM-gmTarget;
-  html+='<div class="fc"><div class="ct">GM% vs Weekly Budget Target</div><table class="tbl"><thead><tr><th>Week</th><th>Actual GM%</th><th>Budget</th><th>Diff</th></tr></thead><tbody>';
-  html+='<tr><td>'+curStart+'</td><td style="color:'+(gmOk?'var(--green)':'var(--red)')+'"><strong>'+fp(actualGM)+'</strong></td><td>'+fp(gmTarget)+'</td><td style="color:'+(delta>=0?'var(--green)':'var(--red)')+'">'+(delta>=0?'+':'')+fp(delta)+'</td></tr>';
-  html+='</tbody></table></div>';
+  // Totals
+  var totalVar=t.revenue-totalBudgetRev;
+  html+='</tbody><tfoot><tr><td>Total</td><td></td><td>'+fm(t.revenue)+'</td><td>'+fk(totalBudgetRev)+'</td><td style="color:'+(totalVar>=0?'var(--green)':'var(--red)')+'">'+(totalVar>=0?'+':'')+fk(totalVar)+'</td><td style="color:'+(totalVar>=0?'var(--green)':'var(--red)')+'">'+(totalVar>=0?'+':'')+fp(totalVar/totalBudgetRev)+'</td><td>'+budgBdg(t.revenue,totalBudgetRev)+'</td><td>'+fp(t.grossMarginPct)+'</td><td>~42%</td><td>'+budgBdg(t.grossMarginPct,0.42)+'</td></tr></tfoot>';
+  html+='</table></div>';
   document.getElementById('ct').innerHTML=html;
 }
 
@@ -623,11 +587,11 @@ function renderOT(){
   var prevInc=prevDate?sumMetric('Incentives (Actual)',prevDate):null;
 
   // Budget totals
-  var totalBudgetOTPct=OT_BUDGET_BY_WEEK[curStart]||0.167; var totalBudgetOT=0;
+  var totalBudgetOT=Object.values(BUDGET).reduce(function(s,b){return s+(b.revenueWeekly*b.otPct||0);},0);
   var totalBudgetRev=Object.values(BUDGET).reduce(function(s,b){return s+b.revenueWeekly;},0);
 
   var otPct=totalRev>0?totalOT/totalRev:0;
-  var budgetOTPct=totalBudgetOTPct;
+  var budgetOTPct=Object.values(BUDGET).reduce(function(s,b){return s+(b.otPct||0);},0)/Object.keys(BUDGET).length;
 
   var otDataNote=otCostData?'Live from Viv · '+curStart+' to '+curEnd:'KSF data — most recent entry: '+latestDate;
   var otStale=(otCostData&&otCostData.totals&&otCostData.totals.staleVisits)||0;
@@ -662,11 +626,12 @@ function renderOT(){
     var rev=g('Hourly Revenue');
     if(!ot&&!inc&&!ts&&!guar&&!rev)return;
     var otPctMkt=rev>0?ot/rev:0;
-    var budgetOTPctMkt=totalBudgetOTPct; var budgetOTAmt=rev*budgetOTPctMkt;
+    var budgetOTPctMkt=bgt.otPct||0;
+    var budgetOTAmt=bgt.revenueWeekly?bgt.revenueWeekly*bgt.otPct:0;
     html+='<tr>';
     html+='<td>'+geo+'</td>';
     html+='<td>$'+fn(Math.round(ot))+'</td>';
-    html+='<td style="color:var(--text3)"><span class="bdg '+(otPctMkt<=budgetOTPctMkt?'bg':'br')+'">'+fp(budgetOTPctMkt)+'</span></td>';
+    html+='<td style="color:var(--text3)">'+( budgetOTAmt?'<span class="bdg '+(ot<=budgetOTAmt?'bg':'br')+'">'+fp(otPctMkt)+' / '+fp(budgetOTPctMkt)+'</span>':'—')+'</td>';
     html+='<td><span class="bdg '+(otPctMkt<=budgetOTPctMkt?'bg':'br')+'">'+fp(otPctMkt)+'</span></td>';
     var uberMktAmt=(UBER_DATA[nearestUberWk]&&UBER_DATA[nearestUberWk][geo]&&UBER_DATA[nearestUberWk][geo].amount)||0;
     html+='<td style="color:'+(ts+guar>500?'var(--amber)':'inherit')+'">$'+fn(Math.round(ts+guar))+'</td>';
@@ -778,7 +743,7 @@ function renderGM(){
       dataSource = 'KSF '+ksfWeekToUse;
     } else {
       // Last resort: budget estimate
-      totalPayCost = rev*(1-getGmTarget(curStart));
+      totalPayCost = rev*(1-(bgt.grossMarginPct||0.40));
       vivGM = rev-totalPayCost;
       dataSource = 'Budget est.';
     }
@@ -796,7 +761,7 @@ function renderGM(){
 
     var schedGM=vivGM-ts-guar-inc-uber;
     var schedGMPct=rev>0?schedGM/rev:0;
-    var budgetGMPct=GM_BUDGET_BY_MARKET[mktName]||getGmTarget(curStart);
+    var budgetGMPct=bgt.grossMarginPct||0;
     return{market:mktName,state:STATE_MAP[mktName]||'',rev,
       totalPayCost,ksfOT,ksfReg,vivGM,vivGMPct:rev>0?vivGM/rev:0,
       ts,guar,inc,uber,
