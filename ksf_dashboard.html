@@ -118,7 +118,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <div class="ntab" onclick="setTab('uber',this)">Ubers</div>
   <div class="ntab" onclick="setTab('ot',this)">OT & Incentives</div>
   <div class="ntab" onclick="setTab('gm',this)">Gross Margin</div>
-  <div class="ntab" onclick="setTab('matchfailures',this)">Match Failures</div>
 </div>
 
 <div class="main">
@@ -137,42 +136,18 @@ var ACTUALS = {"Baltimore": {"Hourly OT": {"2025-11-02": 30282.06, "2025-11-09":
 // ── HISTORICAL UBER DATA (from Uber for Business CSV — Tribute-paid only) ──
 var UBER_DATA = {"2025-11-30": {"Boston": {"trips": 27, "amount": 923.02}, "MetroWest Boston": {"trips": 12, "amount": 442.3}, "South of Boston": {"trips": 14, "amount": 648.61}, "Chicago": {"trips": 16, "amount": 548.17}, "Baltimore": {"trips": 24, "amount": 492.21}}, "2025-12-07": {"Boston": {"trips": 26, "amount": 1163.51}, "North of Boston": {"trips": 2, "amount": 76.87}, "MetroWest Boston": {"trips": 6, "amount": 261.09}, "Chicago": {"trips": 18, "amount": 587.21}, "Baltimore": {"trips": 27, "amount": 768.59}, "South of Boston": {"trips": 3, "amount": 97.87}}, "2025-12-14": {"Boston": {"trips": 32, "amount": 1419.44}, "North of Boston": {"trips": 2, "amount": 82.99}, "MetroWest Boston": {"trips": 10, "amount": 347.56}, "Baltimore": {"trips": 34, "amount": 958.71}, "Chicago": {"trips": 25, "amount": 793.92}, "South of Boston": {"trips": 11, "amount": 448.08}}, "2025-12-21": {"Boston": {"trips": 29, "amount": 1020.55}, "Baltimore": {"trips": 44, "amount": 1125.61}, "MetroWest Boston": {"trips": 7, "amount": 237.77}, "Chicago": {"trips": 21, "amount": 698.05}, "South of Boston": {"trips": 7, "amount": 416.54}}, "2025-12-28": {"Boston": {"trips": 23, "amount": 811.44}, "MetroWest Boston": {"trips": 5, "amount": 139.24}, "South of Boston": {"trips": 1, "amount": 51.96}, "Baltimore": {"trips": 36, "amount": 1064.9}, "Chicago": {"trips": 20, "amount": 758.68}}, "2026-01-04": {"MetroWest Boston": {"trips": 7, "amount": 275.75}, "Boston": {"trips": 38, "amount": 1582.01}, "Baltimore": {"trips": 28, "amount": 823.65}, "Chicago": {"trips": 22, "amount": 728.49}}, "2026-01-11": {"MetroWest Boston": {"trips": 16, "amount": 560.14}, "Boston": {"trips": 34, "amount": 1204.44}, "Baltimore": {"trips": 35, "amount": 900.55}, "Chicago": {"trips": 19, "amount": 654.38}, "South of Boston": {"trips": 4, "amount": 279.54}, "North of Boston": {"trips": 1, "amount": 98.9}}, "2026-01-18": {"Boston": {"trips": 16, "amount": 509.22}, "MetroWest Boston": {"trips": 20, "amount": 805.12}, "Baltimore": {"trips": 54, "amount": 1401.0}, "North of Boston": {"trips": 1, "amount": 78.99}, "Chicago": {"trips": 21, "amount": 634.88}, "South of Boston": {"trips": 1, "amount": 6.64}}, "2026-01-25": {"MetroWest Boston": {"trips": 48, "amount": 1928.8}, "Boston": {"trips": 81, "amount": 2873.14}, "Baltimore": {"trips": 123, "amount": 4995.43}, "Chicago": {"trips": 19, "amount": 697.74}, "Annapolis": {"trips": 2, "amount": 84.67}, "South of Boston": {"trips": 3, "amount": 252.6}, "North of Boston": {"trips": 2, "amount": 75.65}}, "2026-02-01": {"Boston": {"trips": 31, "amount": 1050.12}, "MetroWest Boston": {"trips": 31, "amount": 1226.67}, "Chicago": {"trips": 15, "amount": 552.49}, "Baltimore": {"trips": 19, "amount": 493.73}, "South of Boston": {"trips": 1, "amount": 67.01}}, "2026-02-08": {"MetroWest Boston": {"trips": 19, "amount": 795.18}, "Boston": {"trips": 41, "amount": 1566.23}, "Baltimore": {"trips": 20, "amount": 560.84}, "Chicago": {"trips": 13, "amount": 411.82}, "North of Boston": {"trips": 3, "amount": 99.25}, "South of Boston": {"trips": 1, "amount": 103.93}}, "2026-02-15": {"MetroWest Boston": {"trips": 19, "amount": 590.48}, "Baltimore": {"trips": 22, "amount": 563.65}, "Boston": {"trips": 25, "amount": 1092.89}, "Chicago": {"trips": 12, "amount": 434.64}, "South of Boston": {"trips": 3, "amount": 167.34}, "Bethesda": {"trips": 2, "amount": 73.89}}, "2026-02-22": {"Boston": {"trips": 92, "amount": 3731.72}, "South of Boston": {"trips": 26, "amount": 1613.68}, "MetroWest Boston": {"trips": 34, "amount": 1326.48}, "Chicago": {"trips": 14, "amount": 311.28}, "Baltimore": {"trips": 31, "amount": 970.09}}, "2026-03-01": {"Boston": {"trips": 23, "amount": 808.5}, "MetroWest Boston": {"trips": 17, "amount": 692.54}, "Chicago": {"trips": 2, "amount": 29.45}, "Baltimore": {"trips": 31, "amount": 713.81}, "North of Boston": {"trips": 7, "amount": 405.59}, "Annapolis": {"trips": 2, "amount": 56.88}, "South of Boston": {"trips": 2, "amount": 73.15}}, "2026-03-08": {"MetroWest Boston": {"trips": 19, "amount": 665.89}, "Baltimore": {"trips": 22, "amount": 631.73}, "Boston": {"trips": 18, "amount": 673.71}, "North of Boston": {"trips": 12, "amount": 685.74}, "Chicago": {"trips": 1, "amount": 25.95}}, "2026-03-15": {"MetroWest Boston": {"trips": 10, "amount": 277.21}, "Baltimore": {"trips": 16, "amount": 329.97}, "Boston": {"trips": 4, "amount": 147.48}, "North of Boston": {"trips": 10, "amount": 567.27}, "Chicago": {"trips": 3, "amount": 58.19}, "Annapolis": {"trips": 4, "amount": 161.03}}, "2026-03-22": {"MetroWest Boston": {"trips": 13, "amount": 401.25}, "Baltimore": {"trips": 19, "amount": 586.22}, "Boston": {"trips": 18, "amount": 619.62}, "North of Boston": {"trips": 12, "amount": 613.41}, "Chicago": {"trips": 3, "amount": 80.33}, "South of Boston": {"trips": 1, "amount": 118.95}}};
 
-// ── KSF TARGETS (extracted from KSF_Scheduling.xlsx) ──────────────────────────
-// Company-level weekly GM% target (changes throughout year per annual budget)
-var GM_BUDGET_BY_WEEK = {"2023-01-01":0.4142,"2023-01-08":0.4142,"2023-01-15":0.4142,"2023-01-22":0.4142,"2023-01-29":0.4174,"2023-02-05":0.4173,"2023-02-12":0.4173,"2023-02-19":0.4173,"2023-02-26":0.4172,"2023-03-05":0.4172,"2023-03-12":0.4172,"2023-03-19":0.4172,"2023-03-26":0.4171,"2023-04-02":0.417,"2023-04-09":0.417,"2023-04-16":0.417,"2023-04-23":0.417,"2023-04-30":0.4167,"2023-05-07":0.4167,"2023-05-14":0.4167,"2023-05-21":0.4167,"2023-05-28":0.4165,"2023-06-04":0.4164,"2023-06-11":0.4164,"2023-06-18":0.4164,"2023-06-25":0.4164,"2023-07-02":0.4161,"2023-07-09":0.4161,"2023-07-16":0.4161,"2023-07-23":0.4161,"2023-07-30":0.4159,"2023-08-06":0.4158,"2023-08-13":0.4158,"2023-08-20":0.4158,"2023-08-27":0.4157,"2023-09-03":0.4155,"2023-09-10":0.4155,"2023-09-17":0.4155,"2023-09-24":0.4155,"2023-10-01":0.4156,"2023-10-08":0.4156,"2023-10-15":0.4156,"2023-10-22":0.4156,"2023-10-29":0.4154,"2023-11-05":0.4153,"2023-11-12":0.4153,"2023-11-19":0.4153,"2023-11-26":0.4153,"2023-12-03":0.4152,"2023-12-10":0.4152,"2023-12-17":0.4152,"2023-12-24":0.4152,"2023-12-31":0.418,"2024-01-07":0.418,"2024-01-14":0.418,"2024-01-21":0.418,"2024-01-28":0.4181,"2024-02-04":0.4182,"2024-02-11":0.4182,"2024-02-18":0.4182,"2024-02-25":0.4176,"2024-03-03":0.416,"2024-03-10":0.4185,"2024-03-17":0.4185,"2024-03-24":0.4185,"2024-03-31":0.4182,"2024-04-07":0.4185,"2024-04-14":0.4185,"2024-04-21":0.4185,"2024-04-28":0.4187,"2024-05-05":0.4188,"2024-05-12":0.4188,"2024-05-19":0.4188,"2024-05-26":0.4189,"2024-06-02":0.419,"2024-06-09":0.419,"2024-06-16":0.419,"2024-06-23":0.419,"2024-06-30":0.4193,"2024-07-07":0.4193,"2024-07-14":0.4193,"2024-07-21":0.4193,"2024-07-28":0.4184,"2024-08-04":0.4172,"2024-08-11":0.4172,"2024-08-18":0.4172,"2024-08-25":0.4172,"2024-09-01":0.42,"2024-09-08":0.42,"2024-09-15":0.42,"2024-09-22":0.42,"2024-09-29":0.4202,"2024-10-06":0.4203,"2024-10-13":0.4203,"2024-10-20":0.4203,"2024-10-27":0.4205,"2024-11-03":0.4208,"2024-11-10":0.4208,"2024-11-17":0.4208,"2024-11-24":0.4208,"2024-12-01":0.4213,"2024-12-08":0.4213,"2024-12-15":0.4213,"2024-12-22":0.4213,"2024-12-29":0.4213,"2025-01-05":0.4202,"2025-01-12":0.4202,"2025-01-19":0.4202,"2025-01-26":0.4202,"2025-02-02":0.4201,"2025-02-09":0.4201,"2025-02-16":0.4201,"2025-02-23":0.4201,"2025-03-02":0.4201,"2025-03-09":0.4201,"2025-03-16":0.4201,"2025-03-23":0.4201,"2025-03-30":0.42,"2025-04-06":0.42,"2025-04-13":0.42,"2025-04-20":0.42,"2025-04-27":0.4199,"2025-05-04":0.4199,"2025-05-11":0.4199,"2025-05-18":0.4199,"2025-05-25":0.4199,"2025-06-01":0.4198,"2025-06-08":0.4198,"2025-06-15":0.4198,"2025-06-22":0.4198,"2025-06-29":0.4197,"2025-07-06":0.4196,"2025-07-13":0.4196,"2025-07-20":0.4196,"2025-07-27":0.4196,"2025-08-03":0.4195,"2025-08-10":0.4195,"2025-08-17":0.4195,"2025-08-24":0.4195,"2025-08-31":0.4194,"2025-09-07":0.4194,"2025-09-14":0.4194,"2025-09-21":0.4194,"2025-09-28":0.4193,"2025-10-05":0.4193,"2025-10-12":0.4193,"2025-10-19":0.4193,"2025-10-26":0.4192,"2025-11-02":0.4191,"2025-11-09":0.4191,"2025-11-16":0.4191,"2025-11-23":0.4191,"2025-11-30":0.419,"2025-12-07":0.419,"2025-12-14":0.419,"2025-12-21":0.419,"2025-12-28":0.4274,"2026-01-04":0.4273,"2026-01-11":0.4273,"2026-01-18":0.4273,"2026-01-25":0.4273,"2026-02-01":0.4235,"2026-02-08":0.4228,"2026-02-15":0.4228,"2026-02-22":0.4228,"2026-03-01":0.4213,"2026-03-08":0.4211,"2026-03-15":0.4211,"2026-03-22":0.4211,"2026-03-29":0.4163,"2026-04-05":0.4102,"2026-04-12":0.4102,"2026-04-19":0.4102,"2026-04-26":0.4102,"2026-05-03":0.4102,"2026-05-10":0.4102,"2026-05-17":0.4102,"2026-05-24":0.4102,"2026-05-31":0.4152,"2026-06-07":0.4172,"2026-06-14":0.4172,"2026-06-21":0.4172,"2026-06-28":0.4164,"2026-07-05":0.4154,"2026-07-12":0.4154,"2026-07-19":0.4154,"2026-07-26":0.4154,"2026-08-02":0.4153,"2026-08-09":0.4153,"2026-08-16":0.4153,"2026-08-23":0.4153,"2026-08-30":0.4152,"2026-09-06":0.4151,"2026-09-13":0.4151,"2026-09-20":0.4151,"2026-09-27":0.4148,"2026-10-04":0.4141,"2026-10-11":0.4141,"2026-10-18":0.4141,"2026-10-25":0.4141,"2026-11-01":0.4139,"2026-11-08":0.4139,"2026-11-15":0.4139,"2026-11-22":0.4139,"2026-11-29":0.4138,"2026-12-06":0.4137,"2026-12-13":0.4137,"2026-12-20":0.4137,"2026-12-27":0.4137};
-// OT% target by week
-var OT_BUDGET_BY_WEEK = {"2023-01-01":0.1586,"2023-01-08":0.1586,"2023-01-15":0.1586,"2023-01-22":0.1586,"2023-01-29":0.1578,"2023-02-05":0.1577,"2023-02-12":0.1577,"2023-02-19":0.1577,"2023-02-26":0.1576,"2023-03-05":0.1576,"2023-03-12":0.1576,"2023-03-19":0.1576,"2023-03-26":0.1576,"2023-04-02":0.1574,"2023-04-09":0.1574,"2023-04-16":0.1574,"2023-04-23":0.1574,"2023-04-30":0.1571,"2023-05-07":0.1571,"2023-05-14":0.1571,"2023-05-21":0.1571,"2023-05-28":0.157,"2023-06-04":0.157,"2023-06-11":0.157,"2023-06-18":0.157,"2023-06-25":0.1569,"2023-07-02":0.1564,"2023-07-09":0.1564,"2023-07-16":0.1564,"2023-07-23":0.1564,"2023-07-30":0.1564,"2023-08-06":0.1564,"2023-08-13":0.1564,"2023-08-20":0.1564,"2023-08-27":0.1563,"2023-09-03":0.1561,"2023-09-10":0.1561,"2023-09-17":0.1561,"2023-09-24":0.1561,"2023-10-01":0.156,"2023-10-08":0.156,"2023-10-15":0.156,"2023-10-22":0.156,"2023-10-29":0.1559,"2023-11-05":0.1558,"2023-11-12":0.1558,"2023-11-19":0.1558,"2023-11-26":0.1558,"2023-12-03":0.1558,"2023-12-10":0.1558,"2023-12-17":0.1558,"2023-12-24":0.1558,"2023-12-31":0.1535,"2024-01-07":0.1535,"2024-01-14":0.1535,"2024-01-21":0.1535,"2024-01-28":0.1535,"2024-02-04":0.1535,"2024-02-11":0.1535,"2024-02-18":0.1535,"2024-02-25":0.1537,"2024-03-03":0.1541,"2024-03-10":0.1527,"2024-03-17":0.1527,"2024-03-24":0.1527,"2024-03-31":0.1529,"2024-04-07":0.1527,"2024-04-14":0.1527,"2024-04-21":0.1527,"2024-04-28":0.1529,"2024-05-05":0.153,"2024-05-12":0.153,"2024-05-19":0.153,"2024-05-26":0.153,"2024-06-02":0.1527,"2024-06-09":0.1527,"2024-06-16":0.1527,"2024-06-23":0.1527,"2024-06-30":0.1519,"2024-07-07":0.1518,"2024-07-14":0.1518,"2024-07-21":0.1518,"2024-07-28":0.1519,"2024-08-04":0.1521,"2024-08-11":0.1521,"2024-08-18":0.1521,"2024-08-25":0.1521,"2024-09-01":0.1502,"2024-09-08":0.1502,"2024-09-15":0.1502,"2024-09-22":0.1502,"2024-09-29":0.15,"2024-10-06":0.15,"2024-10-13":0.15,"2024-10-20":0.15,"2024-10-27":0.1496,"2024-11-03":0.1487,"2024-11-10":0.1487,"2024-11-17":0.1487,"2024-11-24":0.1487,"2024-12-01":0.1484,"2024-12-08":0.1484,"2024-12-15":0.1484,"2024-12-22":0.1484,"2024-12-29":0.1484,"2025-01-05":0.152,"2025-01-12":0.152,"2025-01-19":0.152,"2025-01-26":0.152,"2025-02-02":0.152,"2025-02-09":0.152,"2025-02-16":0.152,"2025-02-23":0.152,"2025-03-02":0.152,"2025-03-09":0.152,"2025-03-16":0.152,"2025-03-23":0.152,"2025-03-30":0.1521,"2025-04-06":0.1521,"2025-04-13":0.1521,"2025-04-20":0.1521,"2025-04-27":0.1521,"2025-05-04":0.1521,"2025-05-11":0.1521,"2025-05-18":0.1521,"2025-05-25":0.1521,"2025-06-01":0.1522,"2025-06-08":0.1522,"2025-06-15":0.1522,"2025-06-22":0.1522,"2025-06-29":0.1522,"2025-07-06":0.1522,"2025-07-13":0.1522,"2025-07-20":0.1522,"2025-07-27":0.1523,"2025-08-03":0.1523,"2025-08-10":0.1523,"2025-08-17":0.1523,"2025-08-24":0.1523,"2025-08-31":0.1524,"2025-09-07":0.1524,"2025-09-14":0.1524,"2025-09-21":0.1524,"2025-09-28":0.1524,"2025-10-05":0.1524,"2025-10-12":0.1524,"2025-10-19":0.1524,"2025-10-26":0.1524,"2025-11-02":0.1525,"2025-11-09":0.1525,"2025-11-16":0.1525,"2025-11-23":0.1525,"2025-11-30":0.1526,"2025-12-07":0.1526,"2025-12-14":0.1526,"2025-12-21":0.1526,"2025-12-28":0.1612,"2026-01-04":0.1616,"2026-01-11":0.1616,"2026-01-18":0.1616,"2026-01-25":0.1616,"2026-02-01":0.1629,"2026-02-08":0.1632,"2026-02-15":0.1632,"2026-02-22":0.1632,"2026-03-01":0.1647,"2026-03-08":0.165,"2026-03-15":0.165,"2026-03-22":0.165,"2026-03-29":0.1667,"2026-04-05":0.169,"2026-04-12":0.169,"2026-04-19":0.169,"2026-04-26":0.169,"2026-05-03":0.169,"2026-05-10":0.169,"2026-05-17":0.169,"2026-05-24":0.169,"2026-05-31":0.1676,"2026-06-07":0.167,"2026-06-14":0.167,"2026-06-21":0.167,"2026-06-28":0.1687,"2026-07-05":0.1708,"2026-07-12":0.1708,"2026-07-19":0.1708,"2026-07-26":0.1708,"2026-08-02":0.1709,"2026-08-09":0.1709,"2026-08-16":0.1709,"2026-08-23":0.1709,"2026-08-30":0.171,"2026-09-06":0.171,"2026-09-13":0.171,"2026-09-20":0.171,"2026-09-27":0.1716,"2026-10-04":0.1731,"2026-10-11":0.1731,"2026-10-18":0.1731,"2026-10-25":0.1731,"2026-11-01":0.1733,"2026-11-08":0.1733,"2026-11-15":0.1733,"2026-11-22":0.1733,"2026-11-29":0.1734,"2026-12-06":0.1735,"2026-12-13":0.1735,"2026-12-20":0.1735,"2026-12-27":0.1735};
-// Per-market initial GM% targets
-var GM_BUDGET_BY_MARKET = {"Baltimore":0.401,"Annapolis":0.468,"Bethesda":0.418,"Boston":0.438,"MetroWest Boston":0.4,"Chicago":0.404,"Northern Virginia":0.408};
-
-// KSF fixed targets
-var KSF_FILL_RATE_TARGET = 0.97;    // 97% fill rate (1 month out)
-var KSF_MF_RATE_TARGET = 0.01;      // ≤1% match failure rate
-var KSF_CALL_TARGET = 100;           // 100 calls/week per scheduling partner
-
-// Legacy - kept for Uber tab reference
+// ── BAKED-IN BUDGET DATA (from KSF Excel) ──────────────────────────
 var BUDGET = {
-  'Baltimore':        { lyftPct:0.0049 },
-  'Annapolis':        { lyftPct:0.008  },
-  'Bethesda':         { lyftPct:0.0185 },
-  'Boston':           { lyftPct:0.005  },
-  'MetroWest Boston': { lyftPct:0.0075 },
-  'North of Boston':  { lyftPct:0.0034 },
-  'South of Boston':  { lyftPct:0.005  },
-  'Chicago':          { lyftPct:0.0061 },
-  'Northern Virginia':{ lyftPct:0.006  },
+  'Baltimore':        { revenueWeekly:139790/4.33, grossMarginPct:0.401, otPct:0.184, lyftPct:0.0049 },
+  'Annapolis':        { revenueWeekly:12201/4.33,  grossMarginPct:0.468, otPct:0.139, lyftPct:0.008  },
+  'Bethesda':         { revenueWeekly:1590/4.33,   grossMarginPct:0.418, otPct:0.188, lyftPct:0.0185 },
+  'Boston':           { revenueWeekly:116392/4.33, grossMarginPct:0.438, otPct:0.172, lyftPct:0.005  },
+  'MetroWest Boston': { revenueWeekly:59535/4.33,  grossMarginPct:0.400, otPct:0.190, lyftPct:0.0075 },
+  'North of Boston':  { revenueWeekly:2452/4.33,   grossMarginPct:0.179, otPct:0.418, lyftPct:0.0034 },
+  'South of Boston':  { revenueWeekly:3360/4.33,   grossMarginPct:0.430, otPct:0.160, lyftPct:0.005  },
+  'Chicago':          { revenueWeekly:5198/4.33,   grossMarginPct:0.404, otPct:0.146, lyftPct:0.0061 },
+  'Northern Virginia':{ revenueWeekly:2100/4.33,   grossMarginPct:0.408, otPct:0.145, lyftPct:0.006  },
 };
-
-function getGmTarget(week) {
-  if(GM_BUDGET_BY_WEEK[week]) return GM_BUDGET_BY_WEEK[week];
-  // Find nearest week
-  var weeks = Object.keys(GM_BUDGET_BY_WEEK).sort();
-  var target = week;
-  var best = weeks.reduce(function(b,w){
-    return Math.abs(new Date(w)-new Date(target)) < Math.abs(new Date(b)-new Date(target)) ? w : b;
-  }, weeks[0]);
-  return GM_BUDGET_BY_WEEK[best] || 0.42;
-}
 
 function fn(n){return Math.round(n).toLocaleString()}
 function fh(n){return parseFloat(n).toFixed(1)+'h'}
@@ -180,6 +155,22 @@ function fp(n){return(n*100).toFixed(1)+'%'}
 function fm(n){return n>=1000000?'$'+(n/1000000).toFixed(2)+'M':'$'+fn(n)}
 function fk(n){return n>=1000?'$'+(n/1000).toFixed(1)+'K':'$'+fn(n)}
 function fmtD(d){return d.toISOString().split('T')[0]}
+// ── KSF TARGETS (from KSF_Scheduling.xlsx) ──
+var GM_BUDGET_BY_WEEK = {"2023-01-01": 0.4142, "2023-01-08": 0.4142, "2023-01-15": 0.4142, "2023-01-22": 0.4142, "2023-01-29": 0.4174, "2023-02-05": 0.4173, "2023-02-12": 0.4173, "2023-02-19": 0.4173, "2023-02-26": 0.4172, "2023-03-05": 0.4172, "2023-03-12": 0.4172, "2023-03-19": 0.4172, "2023-03-26": 0.4171, "2023-04-02": 0.417, "2023-04-09": 0.417, "2023-04-16": 0.417, "2023-04-23": 0.417, "2023-04-30": 0.4167, "2023-05-07": 0.4167, "2023-05-14": 0.4167, "2023-05-21": 0.4167, "2023-05-28": 0.4165, "2023-06-04": 0.4164, "2023-06-11": 0.4164, "2023-06-18": 0.4164, "2023-06-25": 0.4164, "2023-07-02": 0.4161, "2023-07-09": 0.4161, "2023-07-16": 0.4161, "2023-07-23": 0.4161, "2023-07-30": 0.4159, "2023-08-06": 0.4158, "2023-08-13": 0.4158, "2023-08-20": 0.4158, "2023-08-27": 0.4157, "2023-09-03": 0.4155, "2023-09-10": 0.4155, "2023-09-17": 0.4155, "2023-09-24": 0.4155, "2023-10-01": 0.4156, "2023-10-08": 0.4156, "2023-10-15": 0.4156, "2023-10-22": 0.4156, "2023-10-29": 0.4154, "2023-11-05": 0.4153, "2023-11-12": 0.4153, "2023-11-19": 0.4153, "2023-11-26": 0.4153, "2023-12-03": 0.4152, "2023-12-10": 0.4152, "2023-12-17": 0.4152, "2023-12-24": 0.4152, "2023-12-31": 0.418, "2024-01-07": 0.418, "2024-01-14": 0.418, "2024-01-21": 0.418, "2024-01-28": 0.4181, "2024-02-04": 0.4182, "2024-02-11": 0.4182, "2024-02-18": 0.4182, "2024-02-25": 0.4176, "2024-03-03": 0.416, "2024-03-10": 0.4185, "2024-03-17": 0.4185, "2024-03-24": 0.4185, "2024-03-31": 0.4182, "2024-04-07": 0.4185, "2024-04-14": 0.4185, "2024-04-21": 0.4185, "2024-04-28": 0.4187, "2024-05-05": 0.4188, "2024-05-12": 0.4188, "2024-05-19": 0.4188, "2024-05-26": 0.4189, "2024-06-02": 0.419, "2024-06-09": 0.419, "2024-06-16": 0.419, "2024-06-23": 0.419, "2024-06-30": 0.4193, "2024-07-07": 0.4193, "2024-07-14": 0.4193, "2024-07-21": 0.4193, "2024-07-28": 0.4184, "2024-08-04": 0.4172, "2024-08-11": 0.4172, "2024-08-18": 0.4172, "2024-08-25": 0.4172, "2024-09-01": 0.42, "2024-09-08": 0.42, "2024-09-15": 0.42, "2024-09-22": 0.42, "2024-09-29": 0.4202, "2024-10-06": 0.4203, "2024-10-13": 0.4203, "2024-10-20": 0.4203, "2024-10-27": 0.4205, "2024-11-03": 0.4208, "2024-11-10": 0.4208, "2024-11-17": 0.4208, "2024-11-24": 0.4208, "2024-12-01": 0.4213, "2024-12-08": 0.4213, "2024-12-15": 0.4213, "2024-12-22": 0.4213, "2024-12-29": 0.4213, "2025-01-05": 0.4202, "2025-01-12": 0.4202, "2025-01-19": 0.4202, "2025-01-26": 0.4202, "2025-02-02": 0.4201, "2025-02-09": 0.4201, "2025-02-16": 0.4201, "2025-02-23": 0.4201, "2025-03-02": 0.4201, "2025-03-09": 0.4201, "2025-03-16": 0.4201, "2025-03-23": 0.4201, "2025-03-30": 0.42, "2025-04-06": 0.42, "2025-04-13": 0.42, "2025-04-20": 0.42, "2025-04-27": 0.4199, "2025-05-04": 0.4199, "2025-05-11": 0.4199, "2025-05-18": 0.4199, "2025-05-25": 0.4199, "2025-06-01": 0.4198, "2025-06-08": 0.4198, "2025-06-15": 0.4198, "2025-06-22": 0.4198, "2025-06-29": 0.4197, "2025-07-06": 0.4196, "2025-07-13": 0.4196, "2025-07-20": 0.4196, "2025-07-27": 0.4196, "2025-08-03": 0.4195, "2025-08-10": 0.4195, "2025-08-17": 0.4195, "2025-08-24": 0.4195, "2025-08-31": 0.4194, "2025-09-07": 0.4194, "2025-09-14": 0.4194, "2025-09-21": 0.4194, "2025-09-28": 0.4193, "2025-10-05": 0.4193, "2025-10-12": 0.4193, "2025-10-19": 0.4193, "2025-10-26": 0.4192, "2025-11-02": 0.4191, "2025-11-09": 0.4191, "2025-11-16": 0.4191, "2025-11-23": 0.4191, "2025-11-30": 0.419, "2025-12-07": 0.419, "2025-12-14": 0.419, "2025-12-21": 0.419, "2025-12-28": 0.4274, "2026-01-04": 0.4273, "2026-01-11": 0.4273, "2026-01-18": 0.4273, "2026-01-25": 0.4273, "2026-02-01": 0.4235, "2026-02-08": 0.4228, "2026-02-15": 0.4228, "2026-02-22": 0.4228, "2026-03-01": 0.4213, "2026-03-08": 0.4211, "2026-03-15": 0.4211, "2026-03-22": 0.4211, "2026-03-29": 0.4163, "2026-04-05": 0.4102, "2026-04-12": 0.4102, "2026-04-19": 0.4102, "2026-04-26": 0.4102, "2026-05-03": 0.4102, "2026-05-10": 0.4102, "2026-05-17": 0.4102, "2026-05-24": 0.4102, "2026-05-31": 0.4152, "2026-06-07": 0.4172, "2026-06-14": 0.4172, "2026-06-21": 0.4172, "2026-06-28": 0.4164, "2026-07-05": 0.4154, "2026-07-12": 0.4154, "2026-07-19": 0.4154, "2026-07-26": 0.4154, "2026-08-02": 0.4153, "2026-08-09": 0.4153, "2026-08-16": 0.4153, "2026-08-23": 0.4153, "2026-08-30": 0.4152, "2026-09-06": 0.4151, "2026-09-13": 0.4151, "2026-09-20": 0.4151, "2026-09-27": 0.4148, "2026-10-04": 0.4141, "2026-10-11": 0.4141, "2026-10-18": 0.4141, "2026-10-25": 0.4141, "2026-11-01": 0.4139, "2026-11-08": 0.4139, "2026-11-15": 0.4139, "2026-11-22": 0.4139, "2026-11-29": 0.4138, "2026-12-06": 0.4137, "2026-12-13": 0.4137, "2026-12-20": 0.4137, "2026-12-27": 0.4137};
+var OT_BUDGET_BY_WEEK = {"2023-01-01": 0.1586, "2023-01-08": 0.1586, "2023-01-15": 0.1586, "2023-01-22": 0.1586, "2023-01-29": 0.1578, "2023-02-05": 0.1577, "2023-02-12": 0.1577, "2023-02-19": 0.1577, "2023-02-26": 0.1576, "2023-03-05": 0.1576, "2023-03-12": 0.1576, "2023-03-19": 0.1576, "2023-03-26": 0.1576, "2023-04-02": 0.1574, "2023-04-09": 0.1574, "2023-04-16": 0.1574, "2023-04-23": 0.1574, "2023-04-30": 0.1571, "2023-05-07": 0.1571, "2023-05-14": 0.1571, "2023-05-21": 0.1571, "2023-05-28": 0.157, "2023-06-04": 0.157, "2023-06-11": 0.157, "2023-06-18": 0.157, "2023-06-25": 0.1569, "2023-07-02": 0.1564, "2023-07-09": 0.1564, "2023-07-16": 0.1564, "2023-07-23": 0.1564, "2023-07-30": 0.1564, "2023-08-06": 0.1564, "2023-08-13": 0.1564, "2023-08-20": 0.1564, "2023-08-27": 0.1563, "2023-09-03": 0.1561, "2023-09-10": 0.1561, "2023-09-17": 0.1561, "2023-09-24": 0.1561, "2023-10-01": 0.156, "2023-10-08": 0.156, "2023-10-15": 0.156, "2023-10-22": 0.156, "2023-10-29": 0.1559, "2023-11-05": 0.1558, "2023-11-12": 0.1558, "2023-11-19": 0.1558, "2023-11-26": 0.1558, "2023-12-03": 0.1558, "2023-12-10": 0.1558, "2023-12-17": 0.1558, "2023-12-24": 0.1558, "2023-12-31": 0.1535, "2024-01-07": 0.1535, "2024-01-14": 0.1535, "2024-01-21": 0.1535, "2024-01-28": 0.1535, "2024-02-04": 0.1535, "2024-02-11": 0.1535, "2024-02-18": 0.1535, "2024-02-25": 0.1537, "2024-03-03": 0.1541, "2024-03-10": 0.1527, "2024-03-17": 0.1527, "2024-03-24": 0.1527, "2024-03-31": 0.1529, "2024-04-07": 0.1527, "2024-04-14": 0.1527, "2024-04-21": 0.1527, "2024-04-28": 0.1529, "2024-05-05": 0.153, "2024-05-12": 0.153, "2024-05-19": 0.153, "2024-05-26": 0.153, "2024-06-02": 0.1527, "2024-06-09": 0.1527, "2024-06-16": 0.1527, "2024-06-23": 0.1527, "2024-06-30": 0.1519, "2024-07-07": 0.1518, "2024-07-14": 0.1518, "2024-07-21": 0.1518, "2024-07-28": 0.1519, "2024-08-04": 0.1521, "2024-08-11": 0.1521, "2024-08-18": 0.1521, "2024-08-25": 0.1521, "2024-09-01": 0.1502, "2024-09-08": 0.1502, "2024-09-15": 0.1502, "2024-09-22": 0.1502, "2024-09-29": 0.15, "2024-10-06": 0.15, "2024-10-13": 0.15, "2024-10-20": 0.15, "2024-10-27": 0.1496, "2024-11-03": 0.1487, "2024-11-10": 0.1487, "2024-11-17": 0.1487, "2024-11-24": 0.1487, "2024-12-01": 0.1484, "2024-12-08": 0.1484, "2024-12-15": 0.1484, "2024-12-22": 0.1484, "2024-12-29": 0.1484, "2025-01-05": 0.152, "2025-01-12": 0.152, "2025-01-19": 0.152, "2025-01-26": 0.152, "2025-02-02": 0.152, "2025-02-09": 0.152, "2025-02-16": 0.152, "2025-02-23": 0.152, "2025-03-02": 0.152, "2025-03-09": 0.152, "2025-03-16": 0.152, "2025-03-23": 0.152, "2025-03-30": 0.1521, "2025-04-06": 0.1521, "2025-04-13": 0.1521, "2025-04-20": 0.1521, "2025-04-27": 0.1521, "2025-05-04": 0.1521, "2025-05-11": 0.1521, "2025-05-18": 0.1521, "2025-05-25": 0.1521, "2025-06-01": 0.1522, "2025-06-08": 0.1522, "2025-06-15": 0.1522, "2025-06-22": 0.1522, "2025-06-29": 0.1522, "2025-07-06": 0.1522, "2025-07-13": 0.1522, "2025-07-20": 0.1522, "2025-07-27": 0.1523, "2025-08-03": 0.1523, "2025-08-10": 0.1523, "2025-08-17": 0.1523, "2025-08-24": 0.1523, "2025-08-31": 0.1524, "2025-09-07": 0.1524, "2025-09-14": 0.1524, "2025-09-21": 0.1524, "2025-09-28": 0.1524, "2025-10-05": 0.1524, "2025-10-12": 0.1524, "2025-10-19": 0.1524, "2025-10-26": 0.1524, "2025-11-02": 0.1525, "2025-11-09": 0.1525, "2025-11-16": 0.1525, "2025-11-23": 0.1525, "2025-11-30": 0.1526, "2025-12-07": 0.1526, "2025-12-14": 0.1526, "2025-12-21": 0.1526, "2025-12-28": 0.1612, "2026-01-04": 0.1616, "2026-01-11": 0.1616, "2026-01-18": 0.1616, "2026-01-25": 0.1616, "2026-02-01": 0.1629, "2026-02-08": 0.1632, "2026-02-15": 0.1632, "2026-02-22": 0.1632, "2026-03-01": 0.1647, "2026-03-08": 0.165, "2026-03-15": 0.165, "2026-03-22": 0.165, "2026-03-29": 0.1667, "2026-04-05": 0.169, "2026-04-12": 0.169, "2026-04-19": 0.169, "2026-04-26": 0.169, "2026-05-03": 0.169, "2026-05-10": 0.169, "2026-05-17": 0.169, "2026-05-24": 0.169, "2026-05-31": 0.1676, "2026-06-07": 0.167, "2026-06-14": 0.167, "2026-06-21": 0.167, "2026-06-28": 0.1687, "2026-07-05": 0.1708, "2026-07-12": 0.1708, "2026-07-19": 0.1708, "2026-07-26": 0.1708, "2026-08-02": 0.1709, "2026-08-09": 0.1709, "2026-08-16": 0.1709, "2026-08-23": 0.1709, "2026-08-30": 0.171, "2026-09-06": 0.171, "2026-09-13": 0.171, "2026-09-20": 0.171, "2026-09-27": 0.1716, "2026-10-04": 0.1731, "2026-10-11": 0.1731, "2026-10-18": 0.1731, "2026-10-25": 0.1731, "2026-11-01": 0.1733, "2026-11-08": 0.1733, "2026-11-15": 0.1733, "2026-11-22": 0.1733, "2026-11-29": 0.1734, "2026-12-06": 0.1735, "2026-12-13": 0.1735, "2026-12-20": 0.1735, "2026-12-27": 0.1735};
+var GM_BUDGET_BY_MARKET = {"Baltimore": 0.401, "Annapolis": 0.468, "Bethesda": 0.418, "Boston": 0.438, "MetroWest Boston": 0.4, "Chicago": 0.404, "Northern Virginia": 0.408};
+var KSF_FILL_RATE_TARGET = 0.97;
+var KSF_CALL_TARGET = 100;
+
+function getGmTarget(week){
+  if(GM_BUDGET_BY_WEEK[week]) return GM_BUDGET_BY_WEEK[week];
+  var weeks=Object.keys(GM_BUDGET_BY_WEEK).sort();
+  return GM_BUDGET_BY_WEEK[weeks.reduce(function(b,w){
+    return Math.abs(new Date(w)-new Date(week))<Math.abs(new Date(b)-new Date(week))?w:b;
+  },weeks[0])];
+}
+
+
 function vsBudget(actual,budget){
   if(!budget)return '';
   var diff=(actual-budget)/budget;
@@ -248,7 +239,6 @@ function render(){
   else if(curTab==='uber')renderUber();
   else if(curTab==='ot')renderOT();
   else if(curTab==='gm')renderGM();
-  else if(curTab==='matchfailures')renderMatchFailures();
 }
 
 function renderOverview(){
@@ -269,8 +259,7 @@ function renderOverview(){
   html+='<div class="fc"><div class="ct">Performance by market — '+curStart+' to '+curEnd+'</div>';
   html+='<table class="tbl"><thead><tr><th>Market</th><th>State</th><th>Visits</th><th>Fill Rate</th><th>Revenue</th><th>Gross Margin</th><th>Open</th><th>Billed Hrs</th></tr></thead><tbody>';
   activeMkts.forEach(function(m){
-    var bgt=BUDGET[m.market]||{};
-    var bgtGM2=getGmTarget(curStart);
+    var bgt=BUDGET[m.market];
     var bgtGM=getGmTarget(curStart);
     html+='<tr>';
     html+='<td>'+m.market+'</td>';
@@ -278,8 +267,7 @@ function renderOverview(){
     html+='<td>'+fn(m.totalVisits)+'</td>';
     html+='<td><span class="bdg '+(m.fillRate>=0.97?'bg':m.fillRate>=0.95?'ba':'br')+'">'+fp(m.fillRate)+'</span></td>';
     html+='<td>'+fk(m.revenue)+'</td>';
-    
-    html+='<td><span class="bdg '+(m.grossMarginPct>=(bgtGM2||0.40)?'bg':m.grossMarginPct>=0.38?'ba':'br')+'">'+fp(m.grossMarginPct)+'</span></td>';
+    html+='<td><span class="bdg '+(m.grossMarginPct>=(bgtGM||0.42)?'bg':m.grossMarginPct>=0.38?'ba':'br')+'">'+fp(m.grossMarginPct)+'</span></td>';
     html+='<td style="color:'+(m.openVisits>5?'var(--red)':'var(--charcoal)')+'">'+fn(m.openVisits)+'</td>';
     html+='<td>'+fn(Math.round(m.billedHours))+'h</td>';
     html+='</tr>';
@@ -306,7 +294,7 @@ function renderMarkets(){
     html+='<td style="color:'+(m.openVisits>5?'var(--red)':'inherit')+'">'+fn(m.openVisits)+'</td>';
     html+='<td><span class="bdg '+(m.fillRate>=0.97?'bg':m.fillRate>=0.95?'ba':'br')+'">'+fp(m.fillRate)+'</span></td>';
     html+='<td>'+fk(m.revenue)+'</td>';
-    html+='<td><span class="bdg '+(m.grossMarginPct>=(getGmTarget(curStart)||0.40)?'bg':m.grossMarginPct>=0.38?'ba':'br')+'">'+fp(m.grossMarginPct)+'</span></td>';
+    html+='<td><span class="bdg '+(m.grossMarginPct>=(getGmTarget(curStart)||0.42)?'bg':m.grossMarginPct>=0.38?'ba':'br')+'">'+fp(m.grossMarginPct)+'</span></td>';
     html+='<td style="color:var(--text3)">'+fp(getGmTarget(curStart))+'</td>';
     html+='<td>'+fn(Math.round(m.billedHours))+'h</td>';
     html+='<td>$'+(m.avgBillRate?m.avgBillRate.toFixed(2):'—')+'</td>';
@@ -374,292 +362,95 @@ function renderBudget(){
   var html='';
   var t=visitsData?visitsData.totals:{};
   var mkts=visitsData?visitsData.markets||[]:[];
-
-  // Get GM% target for this week
   var gmTarget=getGmTarget(curStart);
-  var otTarget=OT_BUDGET_BY_WEEK[curStart]||OT_BUDGET_BY_WEEK[Object.keys(OT_BUDGET_BY_WEEK).sort().reduce(function(b,w){return Math.abs(new Date(w)-new Date(curStart))<Math.abs(new Date(b)-new Date(curStart))?w:b;},Object.keys(OT_BUDGET_BY_WEEK)[0])];
-
-  // ── SCORECARD HEADER ──
+  var otTarget=OT_BUDGET_BY_WEEK[curStart]||0.167;
   var actualFill=t.fillRate||0;
   var fillOk=actualFill>=KSF_FILL_RATE_TARGET;
-
-  // Compute KSF company-level GM% using same method as Gross Margin tab
-  // (Revenue - RegPay - OT - Incentives - Ubers - TS Admin) / Revenue
   var GEOS_KSF=['Baltimore','Annapolis','Bethesda','Boston','MetroWest Boston','North of Boston','South of Boston','Chicago'];
-  function getKSFActual(geo,metric,week){return(ACTUALS[geo]&&ACTUALS[geo][metric]&&ACTUALS[geo][metric][week])||0;}
-  var ksfWeek=curStart;
-  // Find nearest week with ACTUALS data
-  var allActualDates=new Set();
-  GEOS_KSF.forEach(function(g){Object.keys((ACTUALS[g]&&ACTUALS[g]['Hourly Revenue'])||{}).forEach(function(d){allActualDates.add(d);});});
-  var sortedActualDates=Array.from(allActualDates).sort();
-  var hasActual=sortedActualDates.indexOf(ksfWeek)>=0;
-  if(!hasActual&&sortedActualDates.length){
-    // Use live Viv data for current week
-    var actualGM=t.grossMarginPct||0;
-  } else {
-    var ksfRevTotal=0,ksfCostTotal=0;
+  function ksfGet(geo,metric,week){return(ACTUALS[geo]&&ACTUALS[geo][metric]&&ACTUALS[geo][metric][week])||0;}
+  var hasKSF=!!ksfGet('Baltimore','Hourly Revenue',curStart);
+  var actualGM, gmNote;
+  if(hasKSF){
+    var ksfRev=0,ksfCost=0;
     GEOS_KSF.forEach(function(geo){
-      var rev=getKSFActual(geo,'Hourly Revenue',ksfWeek);
-      var reg=getKSFActual(geo,'Hourly Regular Pay',ksfWeek);
-      var ot=getKSFActual(geo,'Hourly OT',ksfWeek);
-      var inc=getKSFActual(geo,'Incentives (Actual)',ksfWeek);
-      var ts=getKSFActual(geo,'TS Admin (Actual)',ksfWeek);
-      var uber=(UBER_DATA[ksfWeek]&&UBER_DATA[ksfWeek][geo]&&UBER_DATA[ksfWeek][geo].amount)||0;
-      ksfRevTotal+=rev;
-      ksfCostTotal+=reg+ot+inc+ts+uber;
+      var rev=ksfGet(geo,'Hourly Revenue',curStart);
+      var reg=ksfGet(geo,'Hourly Regular Pay',curStart);
+      var ot2=ksfGet(geo,'Hourly OT',curStart);
+      var inc=ksfGet(geo,'Incentives (Actual)',curStart);
+      var ts=ksfGet(geo,'TS Admin (Actual)',curStart);
+      var uber=(UBER_DATA[curStart]&&UBER_DATA[curStart][geo]&&UBER_DATA[curStart][geo].amount)||0;
+      ksfRev+=rev; ksfCost+=reg+ot2+inc+ts+uber;
     });
-    var actualGM=ksfRevTotal>0?(ksfRevTotal-ksfCostTotal)/ksfRevTotal:t.grossMarginPct||0;
+    actualGM=ksfRev>0?(ksfRev-ksfCost)/ksfRev:(t.grossMarginPct||0);
+    gmNote='KSF actuals method';
+  } else {
+    actualGM=t.grossMarginPct||0;
+    gmNote='Live Viv data';
   }
   var gmOk=actualGM>=gmTarget;
-
-  // Call volume check - from Akixi data
-  var callWeekKey=curStart;
-  var callWeekData=callAggregated&&callAggregated[callWeekKey];
+  if(callData&&callData.length>0&&!callAggregated){callAggregated=aggregateCallData(callData);}
+  if(!callAggregated){callAggregated=aggregateCallData([]);}
+  var callWeekData=callAggregated[curStart];
   var totalCalls=callWeekData?Object.values(callWeekData).reduce(function(s,a){return s+a.answered;},0):null;
-  var spCount=callWeekData?Object.keys(callWeekData).length:5; // default 5 SPs
+  var spCount=callWeekData?Object.keys(callWeekData).length:5;
   var callOk=totalCalls!=null?(totalCalls>=spCount*KSF_CALL_TARGET):null;
-
-  function scoreCard(label,actual,target,format,ok,note){
-    var color=ok?'var(--green)':'var(--red)';
-    var icon=ok?'✅':'⚠️';
-    return '<div class="kpi" style="border-top:3px solid '+color+';padding-top:12px">'
-      +'<div class="kl">'+label+'</div>'
-      +'<div class="kv" style="color:'+color+'">'+icon+' '+format(actual)+'</div>'
-      +'<div class="ks">Target: '+format(target)+(ok?' · On target':' · Off target')+'</div>'
-      +(note?'<div style="font-size:10px;color:var(--text3);margin-top:4px">'+note+'</div>':'')
-      +'</div>';
+  function scoreCard(label,actual,target,fmt,ok,note){
+    var col=ok?'var(--green)':'var(--red)';
+    return '<div class="kpi" style="border-top:3px solid '+col+';padding-top:12px"><div class="kl">'+label+'</div><div class="kv" style="color:'+col+'">'+fmt(actual)+'</div><div class="ks">Target: '+fmt(target)+(ok?' &middot; On track':' &middot; Off track')+'</div>'+(note?'<div style="font-size:10px;color:var(--text3);margin-top:4px">'+note+'</div>':'')+'</div>';
   }
-
   html+='<div class="kg4">';
   html+=scoreCard('Fill Rate',actualFill,KSF_FILL_RATE_TARGET,fp,fillOk,'Visits filled 1 month out');
-  html+=scoreCard('Gross Margin',actualGM,gmTarget,fp,gmOk,'Weekly budget target');
-  // Match failures - show placeholder if not loaded yet
-  html+='<div class="kpi" style="border-top:3px solid var(--text3);padding-top:12px">'
-    +'<div class="kl">Match Failure Rate</div>'
-    +'<div class="kv" style="color:var(--text2)">See MF tab</div>'
-    +'<div class="ks">Target: ≤ 1.00%</div>'
-    +'</div>';
-  if(callOk!==null){
-    html+=scoreCard('Total Calls',totalCalls,spCount*KSF_CALL_TARGET,fn,callOk,'Target: '+fn(KSF_CALL_TARGET)+'/SP × '+spCount+' SPs');
-  } else {
-    html+='<div class="kpi" style="border-top:3px solid var(--text3);padding-top:12px">'
-      +'<div class="kl">Call Volume</div>'
-      +'<div class="kv" style="color:var(--text2)">Upload Akixi</div>'
-      +'<div class="ks">Target: '+fn(KSF_CALL_TARGET)+'/SP/week</div>'
-      +'</div>';
-  }
+  html+=scoreCard('Gross Margin',actualGM,gmTarget,fp,gmOk,gmNote);
+  html+='<div class="kpi" style="border-top:3px solid var(--text3);padding-top:12px"><div class="kl">Match Failure Rate</div><div class="kv" style="color:var(--text2)">See MF tab</div><div class="ks">Target: &le; 1.00%</div></div>';
+  if(callOk!==null){html+=scoreCard('Call Volume',totalCalls,spCount*KSF_CALL_TARGET,fn,callOk,fn(KSF_CALL_TARGET)+'/SP x '+spCount+' SPs');}
+  else{html+='<div class="kpi" style="border-top:3px solid var(--text3);padding-top:12px"><div class="kl">Call Volume</div><div class="kv" style="color:var(--text2)">Upload Akixi CSV</div><div class="ks">Target: '+fn(KSF_CALL_TARGET)+'/SP/week</div></div>';}
   html+='</div>';
-
-  // ── GM & FILL RATE BY MARKET ──
-  html+='<div class="fc"><div class="ct">Gross Margin & Fill Rate — by market</div>';
-  html+='<table class="tbl"><thead><tr>'
-    +'<th>Market</th><th>State</th>'
-    +'<th>Fill Rate</th><th>Target</th><th>Fill Status</th>'
-    +'<th>Gross Margin</th><th>GM Target</th><th>GM Status</th>'
-    +'<th>OT%</th><th>OT Target</th>'
-    +'</tr></thead><tbody>';
-
+  html+='<div class="fc"><div class="ct">KSF Performance &mdash; by market &mdash; '+curStart+'</div>';
+  html+='<table class="tbl"><thead><tr><th>Market</th><th>State</th><th>Fill Rate</th><th>Target</th><th>Status</th><th>Gross Margin</th><th>GM Target</th><th>Status</th></tr></thead><tbody>';
   mkts.forEach(function(m){
+    if(!m.totalVisits)return;
     var mktGmTarget=GM_BUDGET_BY_MARKET[m.market]||gmTarget;
     var fillOk2=m.fillRate>=KSF_FILL_RATE_TARGET;
     var gmOk2=m.grossMarginPct>=mktGmTarget;
-    var otPct=m.cost&&m.revenue?(m.cost/m.revenue):0; // rough proxy
-    // Get actual OT from ot data if available
-    var otActual=otCostData&&otCostData.byMarket?(function(){
-      var od=otCostData.byMarket.find(function(x){return x.market===m.market;});
-      return od&&m.revenue>0?od.payCost/m.revenue:null;
-    }()):null;
-
-    html+='<tr>';
-    html+='<td><strong>'+m.market+'</strong></td>';
-    html+='<td>'+m.state+'</td>';
-    html+='<td style="color:'+(fillOk2?'var(--green)':'var(--red)')+'">'+fp(m.fillRate)+'</td>';
-    html+='<td>'+fp(KSF_FILL_RATE_TARGET)+'</td>';
-    html+='<td>'+(fillOk2?'✅':'⚠️')+'</td>';
-    html+='<td style="color:'+(gmOk2?'var(--green)':'var(--red)')+'">'+fp(m.grossMarginPct)+'</td>';
-    html+='<td>'+fp(mktGmTarget)+'</td>';
-    html+='<td>'+(gmOk2?'✅':'⚠️')+'</td>';
-    html+='<td>'+(otActual!=null?fp(otActual):'—')+'</td>';
-    html+='<td>'+fp(otTarget||0.167)+'</td>';
-    html+='</tr>';
+    html+='<tr><td><strong>'+m.market+'</strong></td><td>'+m.state+'</td>';
+    html+='<td style="color:'+(fillOk2?'var(--green)':'var(--red)')+'">'+fp(m.fillRate)+'</td><td>'+fp(KSF_FILL_RATE_TARGET)+'</td><td style="color:'+(fillOk2?'var(--green)':'var(--red)')+'">'+(fillOk2?'On track':'Below')+'</td>';
+    html+='<td style="color:'+(gmOk2?'var(--green)':'var(--red)')+'">'+fp(m.grossMarginPct)+'</td><td>'+fp(mktGmTarget)+'</td><td style="color:'+(gmOk2?'var(--green)':'var(--red)')+'">'+(gmOk2?'On track':'Below')+'</td></tr>';
   });
   html+='</tbody></table></div>';
-
-  // ── CALL VOLUME BY SP (if Akixi data loaded) ──
-  if(callAggregated){
-    var weekAgents=callAggregated[curStart];
-    if(weekAgents&&Object.keys(weekAgents).length>0){
-      html+='<div class="fc"><div class="ct">Call Volume by Scheduling Partner — week of '+curStart+'</div>';
-      html+='<table class="tbl"><thead><tr><th>Name</th><th>Answered</th><th>Outbound</th><th>Inbound</th><th>Avg Talk</th><th>Target</th><th>Status</th></tr></thead><tbody>';
-      Object.keys(weekAgents).sort().forEach(function(agent){
-        var a=weekAgents[agent];
-        if(!a.answered&&!a.abandoned)return;
-        var ok=a.answered>=KSF_CALL_TARGET;
-        var avg=a.answered>0?Math.round(a.talk_secs/a.answered):0;
-        html+='<tr>';
-        html+='<td><strong>'+agent+'</strong></td>';
-        html+='<td style="color:'+(ok?'var(--green)':'var(--red)')+'">'+fn(a.answered)+'</td>';
-        html+='<td>'+fn(a.outbound)+'</td>';
-        html+='<td>'+fn(a.inbound)+'</td>';
-        html+='<td>'+fmtSecs(avg)+'</td>';
-        html+='<td>'+fn(KSF_CALL_TARGET)+'</td>';
-        html+='<td>'+(ok?'✅':'⚠️')+'</td>';
-        html+='</tr>';
-      });
-      html+='</tbody></table></div>';
-    } else {
-      html+='<div style="background:var(--orange-50);border-left:3px solid var(--orange);border-radius:var(--r);padding:10px 14px;margin-bottom:12px;font-size:12px;color:var(--text2)">No call data for week of '+curStart+'. Upload a newer Akixi Historic Call Log to see call volume.</div>';
-    }
-  }
-
-  // ── GM TREND (last 8 weeks) ──
-  html+='<div class="fc"><div class="ct">Gross Margin % — recent trend vs target</div>';
-  html+='<div style="font-size:12px;color:var(--text2);margin-bottom:8px">Company GM% budget target for '+curStart+': <strong>'+fp(gmTarget)+'</strong></div>';
-  html+='<div style="overflow-x:auto"><table class="tbl"><thead><tr><th>Week</th><th>Actual GM%</th><th>Budget GM%</th><th>Δ</th><th>Status</th></tr></thead><tbody>';
-  // Show current week only (trend would need historical actual data)
-  html+='<tr>';
-  html+='<td>'+curStart+'</td>';
-  html+='<td style="color:'+(gmOk?'var(--green)':'var(--red)')+'"><strong>'+fp(actualGM)+'</strong></td>';
-  html+='<td>'+fp(gmTarget)+'</td>';
+  if(callAggregated){var wa=callAggregated[curStart];if(wa&&Object.keys(wa).length){html+='<div class="fc"><div class="ct">Call Volume by SP &mdash; week of '+curStart+'</div><table class="tbl"><thead><tr><th>Name</th><th>Answered</th><th>Outbound</th><th>Inbound</th><th>Avg Talk</th><th>Target</th><th>Status</th></tr></thead><tbody>';Object.keys(wa).sort().forEach(function(agent){var a=wa[agent];if(!a.answered&&!a.abandoned)return;var ok=a.answered>=KSF_CALL_TARGET;var avg=a.answered>0?Math.round(a.talk_secs/a.answered):0;html+='<tr><td><strong>'+agent+'</strong></td><td style="color:'+(ok?'var(--green)':'var(--red)')+'">'+fn(a.answered)+'</td><td>'+fn(a.outbound)+'</td><td>'+fn(a.inbound)+'</td><td>'+fmtSecs(avg)+'</td><td>'+fn(KSF_CALL_TARGET)+'</td><td style="color:'+(ok?'var(--green)':'var(--red)')+'">'+(ok?'On track':'Below')+'</td></tr>';});html+='</tbody></table></div>';}}
   var delta=actualGM-gmTarget;
-  html+='<td style="color:'+(delta>=0?'var(--green)':'var(--red)')+'">'+(delta>=0?'+':'')+fp(delta)+'</td>';
-  html+='<td>'+(gmOk?'✅ On target':'⚠️ Below target')+'</td>';
-  html+='</tr>';
-  html+='</tbody></table></div></div>';
-
+  html+='<div class="fc"><div class="ct">GM% vs Weekly Budget Target</div><table class="tbl"><thead><tr><th>Week</th><th>Actual GM%</th><th>Budget</th><th>Diff</th></tr></thead><tbody>';
+  html+='<tr><td>'+curStart+'</td><td style="color:'+(gmOk?'var(--green)':'var(--red)')+'"><strong>'+fp(actualGM)+'</strong></td><td>'+fp(gmTarget)+'</td><td style="color:'+(delta>=0?'var(--green)':'var(--red)')+'">'+(delta>=0?'+':'')+fp(delta)+'</td></tr>';
+  html+='</tbody></table></div>';
   document.getElementById('ct').innerHTML=html;
 }
 
-
-// ── CALL METRICS HELPERS ──
-var callAggregated=null;
-var CALL_HISTORY={"2025-05-04":{"Megan Stewart":{"answered":22,"outbound":22,"inbound":0,"abandoned":0,"talk_secs":1500},"Haley MacBain":{"answered":26,"outbound":26,"inbound":0,"abandoned":0,"talk_secs":3146},"Jennifer Robinson":{"answered":15,"outbound":15,"inbound":0,"abandoned":0,"talk_secs":1785},"Patricia Huerta":{"answered":30,"outbound":30,"inbound":0,"abandoned":0,"talk_secs":2560}},"2025-05-11":{"Jennifer Robinson":{"answered":73,"outbound":73,"inbound":0,"abandoned":0,"talk_secs":10148},"Megan Stewart":{"answered":77,"outbound":77,"inbound":0,"abandoned":0,"talk_secs":4545},"Haley MacBain":{"answered":127,"outbound":127,"inbound":0,"abandoned":0,"talk_secs":11961},"Patricia Huerta":{"answered":88,"outbound":88,"inbound":0,"abandoned":0,"talk_secs":6907},"Meghan Daly":{"answered":1,"outbound":1,"inbound":0,"abandoned":0,"talk_secs":185}},"2025-05-18":{"Patricia Huerta":{"answered":98,"outbound":98,"inbound":0,"abandoned":0,"talk_secs":7272},"Jennifer Robinson":{"answered":109,"outbound":109,"inbound":0,"abandoned":0,"talk_secs":11747},"Haley MacBain":{"answered":149,"outbound":149,"inbound":0,"abandoned":0,"talk_secs":18269},"Megan Stewart":{"answered":77,"outbound":77,"inbound":0,"abandoned":0,"talk_secs":5396}},"2025-05-25":{"Patricia Huerta":{"answered":119,"outbound":119,"inbound":0,"abandoned":0,"talk_secs":9749},"Jennifer Robinson":{"answered":76,"outbound":76,"inbound":0,"abandoned":0,"talk_secs":7580},"Haley MacBain":{"answered":94,"outbound":94,"inbound":0,"abandoned":0,"talk_secs":10822},"Megan Stewart":{"answered":58,"outbound":58,"inbound":0,"abandoned":0,"talk_secs":3413}},"2025-06-01":{"Haley MacBain":{"answered":137,"outbound":137,"inbound":0,"abandoned":0,"talk_secs":16464},"Jennifer Robinson":{"answered":110,"outbound":110,"inbound":0,"abandoned":0,"talk_secs":14227},"Patricia Huerta":{"answered":172,"outbound":172,"inbound":0,"abandoned":0,"talk_secs":13132},"Megan Stewart":{"answered":56,"outbound":56,"inbound":0,"abandoned":0,"talk_secs":4235}},"2025-06-08":{"Patricia Huerta":{"answered":174,"outbound":174,"inbound":0,"abandoned":0,"talk_secs":14250},"Haley MacBain":{"answered":117,"outbound":117,"inbound":0,"abandoned":0,"talk_secs":12343},"Jennifer Robinson":{"answered":99,"outbound":99,"inbound":0,"abandoned":0,"talk_secs":10747},"Megan Stewart":{"answered":69,"outbound":69,"inbound":0,"abandoned":0,"talk_secs":5563}},"2025-06-15":{"Jennifer Robinson":{"answered":90,"outbound":90,"inbound":0,"abandoned":0,"talk_secs":10190},"Patricia Huerta":{"answered":129,"outbound":129,"inbound":0,"abandoned":0,"talk_secs":11698},"Megan Stewart":{"answered":73,"outbound":73,"inbound":0,"abandoned":0,"talk_secs":4908},"Haley MacBain":{"answered":77,"outbound":77,"inbound":0,"abandoned":0,"talk_secs":8227}},"2025-06-22":{"Patricia Huerta":{"answered":86,"outbound":86,"inbound":0,"abandoned":0,"talk_secs":9669},"Jennifer Robinson":{"answered":107,"outbound":107,"inbound":0,"abandoned":0,"talk_secs":13533},"Megan Stewart":{"answered":57,"outbound":57,"inbound":0,"abandoned":0,"talk_secs":3440},"Haley MacBain":{"answered":102,"outbound":102,"inbound":0,"abandoned":0,"talk_secs":13347}},"2025-06-29":{"Megan Stewart":{"answered":37,"outbound":37,"inbound":0,"abandoned":0,"talk_secs":3874},"Jennifer Robinson":{"answered":75,"outbound":75,"inbound":0,"abandoned":0,"talk_secs":9048},"Patricia Huerta":{"answered":124,"outbound":124,"inbound":0,"abandoned":0,"talk_secs":11469},"Haley MacBain":{"answered":99,"outbound":99,"inbound":0,"abandoned":0,"talk_secs":13918}},"2025-07-06":{"Megan Stewart":{"answered":39,"outbound":39,"inbound":0,"abandoned":0,"talk_secs":2505},"Jennifer Robinson":{"answered":131,"outbound":131,"inbound":0,"abandoned":0,"talk_secs":12947},"Patricia Huerta":{"answered":130,"outbound":130,"inbound":0,"abandoned":0,"talk_secs":11009},"Haley MacBain":{"answered":149,"outbound":149,"inbound":0,"abandoned":0,"talk_secs":16516}},"2025-07-13":{"Haley MacBain":{"answered":127,"outbound":127,"inbound":0,"abandoned":0,"talk_secs":15005},"Jennifer Robinson":{"answered":127,"outbound":127,"inbound":0,"abandoned":0,"talk_secs":13542},"Patricia Huerta":{"answered":106,"outbound":106,"inbound":0,"abandoned":0,"talk_secs":7512}},"2025-07-20":{"Megan Stewart":{"answered":173,"outbound":173,"inbound":0,"abandoned":0,"talk_secs":11598},"Haley MacBain":{"answered":121,"outbound":121,"inbound":0,"abandoned":0,"talk_secs":12653},"Jennifer Robinson":{"answered":127,"outbound":127,"inbound":0,"abandoned":0,"talk_secs":14943}},"2025-07-27":{"Patricia Huerta":{"answered":129,"outbound":129,"inbound":0,"abandoned":0,"talk_secs":10692},"Jennifer Robinson":{"answered":60,"outbound":60,"inbound":0,"abandoned":0,"talk_secs":6106},"Megan Stewart":{"answered":90,"outbound":90,"inbound":0,"abandoned":0,"talk_secs":7067},"Haley MacBain":{"answered":89,"outbound":89,"inbound":0,"abandoned":0,"talk_secs":15867}},"2025-08-03":{"Patricia Huerta":{"answered":104,"outbound":104,"inbound":0,"abandoned":0,"talk_secs":9726},"Jennifer Robinson":{"answered":102,"outbound":102,"inbound":0,"abandoned":0,"talk_secs":12051},"Megan Stewart":{"answered":82,"outbound":82,"inbound":0,"abandoned":0,"talk_secs":5646},"Haley MacBain":{"answered":111,"outbound":111,"inbound":0,"abandoned":0,"talk_secs":13902}},"2025-08-10":{"Patricia Huerta":{"answered":218,"outbound":218,"inbound":0,"abandoned":0,"talk_secs":17689},"Haley MacBain":{"answered":64,"outbound":64,"inbound":0,"abandoned":0,"talk_secs":8023},"Megan Stewart":{"answered":83,"outbound":83,"inbound":0,"abandoned":0,"talk_secs":4785}},"2025-08-17":{"Megan Stewart":{"answered":92,"outbound":92,"inbound":0,"abandoned":0,"talk_secs":5530},"Patricia Huerta":{"answered":183,"outbound":183,"inbound":0,"abandoned":0,"talk_secs":16730},"Haley MacBain":{"answered":50,"outbound":50,"inbound":0,"abandoned":0,"talk_secs":7527}},"2025-08-24":{"Megan Stewart":{"answered":122,"outbound":122,"inbound":0,"abandoned":0,"talk_secs":8098},"Patricia Huerta":{"answered":204,"outbound":204,"inbound":0,"abandoned":0,"talk_secs":16509},"Haley MacBain":{"answered":87,"outbound":87,"inbound":0,"abandoned":0,"talk_secs":9869},"Jennifer Robinson":{"answered":79,"outbound":79,"inbound":0,"abandoned":0,"talk_secs":6826}},"2025-08-31":{"Patricia Huerta":{"answered":98,"outbound":98,"inbound":0,"abandoned":0,"talk_secs":9333},"Jennifer Robinson":{"answered":78,"outbound":78,"inbound":0,"abandoned":0,"talk_secs":9976},"Haley MacBain":{"answered":105,"outbound":105,"inbound":0,"abandoned":0,"talk_secs":11568},"Megan Stewart":{"answered":46,"outbound":46,"inbound":0,"abandoned":0,"talk_secs":3545}},"2025-09-07":{"Jennifer Robinson":{"answered":85,"outbound":85,"inbound":0,"abandoned":0,"talk_secs":9590},"Megan Stewart":{"answered":89,"outbound":89,"inbound":0,"abandoned":0,"talk_secs":6490},"Patricia Huerta":{"answered":111,"outbound":111,"inbound":0,"abandoned":0,"talk_secs":12544},"Haley MacBain":{"answered":144,"outbound":144,"inbound":0,"abandoned":0,"talk_secs":18380}},"2025-09-14":{"Patricia Huerta":{"answered":152,"outbound":152,"inbound":0,"abandoned":0,"talk_secs":13963},"Jennifer Robinson":{"answered":96,"outbound":96,"inbound":0,"abandoned":0,"talk_secs":9245},"Megan Stewart":{"answered":98,"outbound":98,"inbound":0,"abandoned":0,"talk_secs":8485},"Haley MacBain":{"answered":150,"outbound":150,"inbound":0,"abandoned":0,"talk_secs":18809},"Jemima Amissah":{"answered":0,"outbound":0,"inbound":0,"abandoned":1,"talk_secs":0}},"2025-09-21":{"Patricia Huerta":{"answered":130,"outbound":130,"inbound":0,"abandoned":0,"talk_secs":9616},"Jennifer Robinson":{"answered":58,"outbound":58,"inbound":0,"abandoned":0,"talk_secs":6696},"Megan Stewart":{"answered":177,"outbound":177,"inbound":0,"abandoned":0,"talk_secs":12775},"Haley MacBain":{"answered":66,"outbound":66,"inbound":0,"abandoned":0,"talk_secs":8127}},"2025-09-28":{"Haley MacBain":{"answered":125,"outbound":125,"inbound":0,"abandoned":0,"talk_secs":14760},"Megan Stewart":{"answered":96,"outbound":96,"inbound":0,"abandoned":0,"talk_secs":8285},"Patricia Huerta":{"answered":94,"outbound":94,"inbound":0,"abandoned":0,"talk_secs":8417},"Jennifer Robinson":{"answered":60,"outbound":60,"inbound":0,"abandoned":0,"talk_secs":7809}},"2025-10-05":{"Patricia Huerta":{"answered":75,"outbound":75,"inbound":0,"abandoned":0,"talk_secs":6333},"Jennifer Robinson":{"answered":97,"outbound":97,"inbound":0,"abandoned":0,"talk_secs":10139},"Haley MacBain":{"answered":84,"outbound":84,"inbound":0,"abandoned":0,"talk_secs":11330},"Megan Stewart":{"answered":53,"outbound":53,"inbound":0,"abandoned":0,"talk_secs":5176}},"2025-10-12":{"Megan Stewart":{"answered":71,"outbound":71,"inbound":0,"abandoned":0,"talk_secs":5925},"Haley MacBain":{"answered":92,"outbound":92,"inbound":0,"abandoned":0,"talk_secs":12277},"Patricia Huerta":{"answered":108,"outbound":108,"inbound":0,"abandoned":0,"talk_secs":12004},"Jennifer Robinson":{"answered":67,"outbound":67,"inbound":0,"abandoned":0,"talk_secs":6661},"Meghan Daly":{"answered":4,"outbound":4,"inbound":0,"abandoned":0,"talk_secs":537}},"2025-10-19":{"Jennifer Robinson":{"answered":92,"outbound":92,"inbound":0,"abandoned":0,"talk_secs":8105},"Patricia Huerta":{"answered":187,"outbound":187,"inbound":0,"abandoned":0,"talk_secs":18759},"Megan Stewart":{"answered":83,"outbound":83,"inbound":0,"abandoned":0,"talk_secs":5581},"Haley MacBain":{"answered":92,"outbound":92,"inbound":0,"abandoned":0,"talk_secs":12646},"Meghan Daly":{"answered":41,"outbound":41,"inbound":0,"abandoned":0,"talk_secs":3389}},"2025-10-26":{"Megan Stewart":{"answered":80,"outbound":80,"inbound":0,"abandoned":0,"talk_secs":4487},"Jennifer Robinson":{"answered":107,"outbound":107,"inbound":0,"abandoned":0,"talk_secs":14551},"Patricia Huerta":{"answered":124,"outbound":124,"inbound":0,"abandoned":0,"talk_secs":10871},"Meghan Daly":{"answered":60,"outbound":60,"inbound":0,"abandoned":0,"talk_secs":6319},"Haley MacBain":{"answered":80,"outbound":80,"inbound":0,"abandoned":0,"talk_secs":10270}},"2025-11-02":{"Meghan Daly":{"answered":120,"outbound":120,"inbound":0,"abandoned":0,"talk_secs":11256},"Jennifer Robinson":{"answered":93,"outbound":93,"inbound":0,"abandoned":0,"talk_secs":10539},"Patricia Huerta":{"answered":104,"outbound":104,"inbound":0,"abandoned":0,"talk_secs":11301},"Megan Stewart":{"answered":77,"outbound":77,"inbound":0,"abandoned":0,"talk_secs":6816}},"2025-11-09":{"Meghan Daly":{"answered":143,"outbound":143,"inbound":0,"abandoned":0,"talk_secs":12888},"Jennifer Robinson":{"answered":68,"outbound":68,"inbound":0,"abandoned":0,"talk_secs":8357},"Megan Stewart":{"answered":130,"outbound":130,"inbound":0,"abandoned":0,"talk_secs":9049},"Patricia Huerta":{"answered":114,"outbound":114,"inbound":0,"abandoned":0,"talk_secs":8871}},"2025-11-16":{"Meghan Daly":{"answered":89,"outbound":89,"inbound":0,"abandoned":0,"talk_secs":9072},"Megan Stewart":{"answered":118,"outbound":118,"inbound":0,"abandoned":0,"talk_secs":7706},"Patricia Huerta":{"answered":100,"outbound":100,"inbound":0,"abandoned":0,"talk_secs":9461},"Jennifer Robinson":{"answered":103,"outbound":103,"inbound":0,"abandoned":0,"talk_secs":12613},"Haley MacBain":{"answered":31,"outbound":31,"inbound":0,"abandoned":0,"talk_secs":5594}},"2025-11-23":{"Meghan Daly":{"answered":54,"outbound":54,"inbound":0,"abandoned":0,"talk_secs":4203},"Haley MacBain":{"answered":86,"outbound":86,"inbound":0,"abandoned":0,"talk_secs":11402},"Jennifer Robinson":{"answered":76,"outbound":76,"inbound":0,"abandoned":0,"talk_secs":8643},"Megan Stewart":{"answered":48,"outbound":48,"inbound":0,"abandoned":0,"talk_secs":3534},"Patricia Huerta":{"answered":39,"outbound":39,"inbound":0,"abandoned":0,"talk_secs":2238}},"2025-11-30":{"Meghan Daly":{"answered":61,"outbound":61,"inbound":0,"abandoned":0,"talk_secs":5974},"Haley MacBain":{"answered":120,"outbound":120,"inbound":0,"abandoned":0,"talk_secs":14875},"Patricia Huerta":{"answered":154,"outbound":154,"inbound":0,"abandoned":0,"talk_secs":15491},"Jennifer Robinson":{"answered":52,"outbound":52,"inbound":0,"abandoned":0,"talk_secs":8270},"Megan Stewart":{"answered":95,"outbound":95,"inbound":0,"abandoned":0,"talk_secs":7025}},"2025-12-07":{"Jennifer Robinson":{"answered":92,"outbound":92,"inbound":0,"abandoned":0,"talk_secs":10947},"Megan Stewart":{"answered":90,"outbound":90,"inbound":0,"abandoned":0,"talk_secs":7960},"Meghan Daly":{"answered":29,"outbound":29,"inbound":0,"abandoned":0,"talk_secs":2094},"Patricia Huerta":{"answered":85,"outbound":85,"inbound":0,"abandoned":0,"talk_secs":10380},"Haley MacBain":{"answered":110,"outbound":110,"inbound":0,"abandoned":0,"talk_secs":12395}},"2025-12-14":{"Megan Stewart":{"answered":80,"outbound":80,"inbound":0,"abandoned":0,"talk_secs":5495},"Jennifer Robinson":{"answered":144,"outbound":144,"inbound":0,"abandoned":0,"talk_secs":17219},"Patricia Huerta":{"answered":130,"outbound":130,"inbound":0,"abandoned":0,"talk_secs":15614},"Haley MacBain":{"answered":57,"outbound":57,"inbound":0,"abandoned":0,"talk_secs":7590},"Meghan Daly":{"answered":45,"outbound":45,"inbound":0,"abandoned":0,"talk_secs":3209}},"2025-12-21":{"Jennifer Robinson":{"answered":126,"outbound":126,"inbound":0,"abandoned":0,"talk_secs":16277},"Megan Stewart":{"answered":67,"outbound":67,"inbound":0,"abandoned":0,"talk_secs":4175},"Meghan Daly":{"answered":51,"outbound":51,"inbound":0,"abandoned":0,"talk_secs":4597},"Haley MacBain":{"answered":1,"outbound":1,"inbound":0,"abandoned":0,"talk_secs":54}},"2025-12-28":{"Jennifer Robinson":{"answered":1,"outbound":1,"inbound":0,"abandoned":0,"talk_secs":615},"Patricia Huerta":{"answered":118,"outbound":118,"inbound":0,"abandoned":0,"talk_secs":14379},"Haley MacBain":{"answered":101,"outbound":101,"inbound":0,"abandoned":0,"talk_secs":15062},"Megan Stewart":{"answered":21,"outbound":21,"inbound":0,"abandoned":0,"talk_secs":1344}},"2026-01-04":{"Jennifer Robinson":{"answered":86,"outbound":86,"inbound":0,"abandoned":0,"talk_secs":11399},"Megan Stewart":{"answered":85,"outbound":85,"inbound":0,"abandoned":0,"talk_secs":6439},"Patricia Huerta":{"answered":126,"outbound":126,"inbound":0,"abandoned":0,"talk_secs":14139},"Meghan Daly":{"answered":50,"outbound":50,"inbound":0,"abandoned":0,"talk_secs":3461},"Haley MacBain":{"answered":91,"outbound":91,"inbound":0,"abandoned":0,"talk_secs":11145}},"2026-01-11":{"Meghan Daly":{"answered":41,"outbound":41,"inbound":0,"abandoned":0,"talk_secs":3851},"Haley MacBain":{"answered":113,"outbound":113,"inbound":0,"abandoned":0,"talk_secs":14723},"Patricia Huerta":{"answered":133,"outbound":133,"inbound":0,"abandoned":0,"talk_secs":15023},"Megan Stewart":{"answered":95,"outbound":95,"inbound":0,"abandoned":0,"talk_secs":6533},"Jennifer Robinson":{"answered":55,"outbound":55,"inbound":0,"abandoned":0,"talk_secs":5089}},"2026-01-18":{"Jennifer Robinson":{"answered":76,"outbound":76,"inbound":0,"abandoned":0,"talk_secs":6241},"Megan Stewart":{"answered":72,"outbound":72,"inbound":0,"abandoned":0,"talk_secs":5271},"Haley MacBain":{"answered":63,"outbound":63,"inbound":0,"abandoned":0,"talk_secs":9291},"Meghan Daly":{"answered":22,"outbound":22,"inbound":0,"abandoned":0,"talk_secs":2906},"Patricia Huerta":{"answered":73,"outbound":73,"inbound":0,"abandoned":0,"talk_secs":9521}},"2026-01-25":{"Jennifer Robinson":{"answered":139,"outbound":139,"inbound":0,"abandoned":0,"talk_secs":8706},"Haley MacBain":{"answered":105,"outbound":105,"inbound":0,"abandoned":0,"talk_secs":13215},"Meghan Daly":{"answered":24,"outbound":24,"inbound":0,"abandoned":0,"talk_secs":2278},"Patricia Huerta":{"answered":116,"outbound":116,"inbound":0,"abandoned":0,"talk_secs":12322},"Megan Stewart":{"answered":95,"outbound":95,"inbound":0,"abandoned":0,"talk_secs":7118}},"2026-02-01":{"Megan Stewart":{"answered":54,"outbound":54,"inbound":0,"abandoned":0,"talk_secs":4115},"Haley MacBain":{"answered":82,"outbound":82,"inbound":0,"abandoned":0,"talk_secs":11023},"Meghan Daly":{"answered":27,"outbound":27,"inbound":0,"abandoned":0,"talk_secs":2472},"Jennifer Robinson":{"answered":110,"outbound":110,"inbound":0,"abandoned":0,"talk_secs":10693},"Patricia Huerta":{"answered":129,"outbound":129,"inbound":0,"abandoned":0,"talk_secs":15018}},"2026-02-08":{"Megan Stewart":{"answered":107,"outbound":107,"inbound":0,"abandoned":0,"talk_secs":8775},"Jennifer Robinson":{"answered":120,"outbound":120,"inbound":0,"abandoned":0,"talk_secs":12722},"Patricia Huerta":{"answered":128,"outbound":128,"inbound":0,"abandoned":0,"talk_secs":11928},"Haley MacBain":{"answered":51,"outbound":51,"inbound":0,"abandoned":0,"talk_secs":7381},"Meghan Daly":{"answered":10,"outbound":10,"inbound":0,"abandoned":0,"talk_secs":1017}},"2026-02-15":{"Jennifer Robinson":{"answered":114,"outbound":114,"inbound":0,"abandoned":0,"talk_secs":9762},"Patricia Huerta":{"answered":105,"outbound":105,"inbound":0,"abandoned":0,"talk_secs":10763},"Haley MacBain":{"answered":39,"outbound":39,"inbound":0,"abandoned":0,"talk_secs":6179},"Megan Stewart":{"answered":31,"outbound":31,"inbound":0,"abandoned":0,"talk_secs":2599},"Meghan Daly":{"answered":13,"outbound":13,"inbound":0,"abandoned":0,"talk_secs":1166}},"2026-02-22":{"Haley MacBain":{"answered":77,"outbound":77,"inbound":0,"abandoned":0,"talk_secs":9421},"Jennifer Robinson":{"answered":62,"outbound":62,"inbound":0,"abandoned":0,"talk_secs":7197},"Meghan Daly":{"answered":21,"outbound":21,"inbound":0,"abandoned":0,"talk_secs":1544},"Megan Stewart":{"answered":53,"outbound":53,"inbound":0,"abandoned":0,"talk_secs":4465},"Patricia Huerta":{"answered":147,"outbound":147,"inbound":0,"abandoned":0,"talk_secs":11990}},"2026-03-01":{"Jennifer Robinson":{"answered":106,"outbound":106,"inbound":0,"abandoned":0,"talk_secs":7709},"Patricia Huerta":{"answered":117,"outbound":117,"inbound":0,"abandoned":0,"talk_secs":9699},"Megan Stewart":{"answered":119,"outbound":119,"inbound":0,"abandoned":0,"talk_secs":6634},"Meghan Daly":{"answered":18,"outbound":18,"inbound":0,"abandoned":0,"talk_secs":2090},"Haley MacBain":{"answered":48,"outbound":48,"inbound":0,"abandoned":0,"talk_secs":8537}},"2026-03-08":{"Jennifer Robinson":{"answered":154,"outbound":154,"inbound":0,"abandoned":0,"talk_secs":12659},"Meghan Daly":{"answered":29,"outbound":29,"inbound":0,"abandoned":0,"talk_secs":2197},"Megan Stewart":{"answered":76,"outbound":76,"inbound":0,"abandoned":0,"talk_secs":4969},"Patricia Huerta":{"answered":111,"outbound":111,"inbound":0,"abandoned":0,"talk_secs":8308},"Haley MacBain":{"answered":53,"outbound":53,"inbound":0,"abandoned":0,"talk_secs":7644}},"2026-03-15":{"Jennifer Robinson":{"answered":137,"outbound":137,"inbound":0,"abandoned":0,"talk_secs":8203},"Megan Stewart":{"answered":75,"outbound":75,"inbound":0,"abandoned":0,"talk_secs":3988},"Patricia Huerta":{"answered":127,"outbound":127,"inbound":0,"abandoned":0,"talk_secs":8586},"Meghan Daly":{"answered":50,"outbound":50,"inbound":0,"abandoned":0,"talk_secs":3682},"Haley MacBain":{"answered":73,"outbound":73,"inbound":0,"abandoned":0,"talk_secs":11510}},"2026-03-22":{"Meghan Daly":{"answered":54,"outbound":54,"inbound":0,"abandoned":0,"talk_secs":4614},"Haley MacBain":{"answered":78,"outbound":78,"inbound":0,"abandoned":0,"talk_secs":10577},"Patricia Huerta":{"answered":93,"outbound":93,"inbound":0,"abandoned":0,"talk_secs":8331},"Megan Stewart":{"answered":37,"outbound":37,"inbound":0,"abandoned":0,"talk_secs":2500},"Jennifer Robinson":{"answered":129,"outbound":129,"inbound":0,"abandoned":0,"talk_secs":11029}},"2026-03-29":{"Megan Stewart":{"answered":8,"outbound":8,"inbound":0,"abandoned":0,"talk_secs":555},"Jennifer Robinson":{"answered":60,"outbound":60,"inbound":0,"abandoned":0,"talk_secs":5257},"Patricia Huerta":{"answered":54,"outbound":54,"inbound":0,"abandoned":0,"talk_secs":5291},"Haley MacBain":{"answered":14,"outbound":14,"inbound":0,"abandoned":0,"talk_secs":2168},"Meghan Daly":{"answered":12,"outbound":12,"inbound":0,"abandoned":0,"talk_secs":567}}};
-
-function parseDuration(s){
-  if(!s||!s.trim())return 0;
-  var p=s.trim().split(':');
-  try{
-    if(p.length===3)return parseInt(p[0])*3600+parseInt(p[1])*60+parseInt(p[2]);
-    if(p.length===2)return parseInt(p[0])*60+parseInt(p[1]);
-  }catch(e){}
-  return 0;
-}
-
-function getSundayOfRow(dateStr){
-  if(!dateStr)return null;
-  var m=dateStr.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
-  var d=m?new Date(parseInt(m[3]),parseInt(m[1])-1,parseInt(m[2])):new Date(dateStr);
-  if(isNaN(d))return null;
-  d.setDate(d.getDate()-d.getDay());
-  return d.toISOString().split('T')[0];
-}
-
-function aggregateCallData(rows){
-  var agg={};
-  Object.keys(CALL_HISTORY).forEach(function(week){
-    agg[week]={};
-    Object.keys(CALL_HISTORY[week]).forEach(function(agent){
-      agg[week][agent]=Object.assign({},CALL_HISTORY[week][agent]);
-    });
-  });
-  var EXCLUDE=['Andrew Dobson','Common trunk gateway device.','Esther Larsh'];
-  rows.forEach(function(r){
-    var name=(r['Dev Name (Clg)']||'').trim();
-    if(!name||name.includes('[')||EXCLUDE.indexOf(name)>=0)return;
-    var status=(r['S']||'').trim();
-    var type=(r['Type']||'').trim();
-    var talk=parseDuration(r['Talk Time']||'');
-    var week=getSundayOfRow(r['Started (Dist)']||'');
-    if(!week)return;
-    if(!agg[week])agg[week]={};
-    if(!agg[week][name])agg[week][name]={answered:0,outbound:0,inbound:0,abandoned:0,talk_secs:0};
-    var a=agg[week][name];
-    if(status==='Answered'){a.answered++;a.talk_secs+=talk;if(type==='Ext/Out')a.outbound++;else a.inbound++;}
-    else if(status==='Abandoned')a.abandoned++;
-  });
-  return agg;
-}
-
-function fmtSecs(s){
-  if(!s)return'—';
-  var m=Math.floor(s/60),sec=s%60;
-  return m+'m '+(sec<10?'0':'')+sec+'s';
-}
-
-
 function renderCallMetrics(){
   var html='';
-  html+='<div class="fc" style="background:var(--orange-50);border-color:var(--orange);margin-bottom:16px">';
-  html+='<div class="ct" style="color:var(--orange)">Upload Akixi Historic Call Log</div>';
-  html+='<p style="font-size:12px;color:var(--text2);margin-bottom:12px">Export the <strong>Historic Call Log</strong> from Akixi with agent name columns included. Drop it below.</p>';
+  html+='<div class="fc" style="background:var(--orange-50);border-color:var(--orange)">';
+  html+='<div class="ct" style="color:var(--orange)">Upload Call Metrics CSV</div>';
+  html+='<p style="font-size:12px;color:var(--text2);margin-bottom:14px">Drop a CSV exported from your phone system with columns: <strong>Week, SP Name, Outbound Calls, Inbound Calls</strong></p>';
   html+='<div class="upload-zone" id="callZone" onclick="document.getElementById(\'callFile\').click()" ondragover="event.preventDefault();this.classList.add(\'drag\')" ondragleave="this.classList.remove(\'drag\')" ondrop="handleDrop(event,\'call\')">';
   html+='<div class="upload-zone-icon">📞</div>';
-  html+='<div class="upload-zone-title">Drop Akixi Historic Call Log CSV here</div>';
-  html+='<div class="upload-zone-sub">Requires columns: Dev Name (Clg), Started (Dist), S, Type, Talk Time</div>';
+  html+='<div class="upload-zone-title">Drop call metrics CSV here or click to upload</div>';
+  html+='<div class="upload-zone-sub">Expected columns: Week, SP Name, Outbound Calls, Inbound Calls</div>';
   html+='</div>';
   html+='<input type="file" id="callFile" accept=".csv" style="display:none" onchange="loadCSV(this,\'call\')">';
   html+='<div class="upload-status" id="callStatus"></div>';
   html+='</div>';
 
-  if(callData&&callData.length>0&&!callAggregated){callAggregated=aggregateCallData(callData);}
-  // Pre-initialize from embedded history if no CSV uploaded yet
-  if(!callAggregated){callAggregated=aggregateCallData([]);}
-
-  var agg=callAggregated;
-  var weeks=Object.keys(agg).sort();
-  var agents=[];
-  weeks.forEach(function(w){Object.keys(agg[w]).forEach(function(a){if(agents.indexOf(a)<0)agents.push(a);});});
-  agents.sort();
-
-  var targetWeek=curStart;
-  if(!agg[targetWeek]){
-    var td=new Date(targetWeek);
-    targetWeek=weeks.reduce(function(best,w){return Math.abs(new Date(w)-td)<Math.abs(new Date(best)-td)?w:best;},weeks[weeks.length-1]);
-  }
-
-  var weekTotal={answered:0,outbound:0,inbound:0,abandoned:0,talk_secs:0};
-  if(agg[targetWeek])Object.values(agg[targetWeek]).forEach(function(a){weekTotal.answered+=a.answered;weekTotal.outbound+=a.outbound;weekTotal.inbound+=a.inbound;weekTotal.abandoned+=a.abandoned;weekTotal.talk_secs+=a.talk_secs;});
-  var avgTalk=weekTotal.answered>0?Math.round(weekTotal.talk_secs/weekTotal.answered):0;
-
-  html+='<div class="kg4">';
-  html+='<div class="kpi"><div class="kl">Total Calls</div><div class="kv b">'+fn(weekTotal.answered)+'</div><div class="ks">Week of '+targetWeek+'</div></div>';
-  html+='<div class="kpi"><div class="kl">Outbound</div><div class="kv o">'+fn(weekTotal.outbound)+'</div><div class="ks">'+(weekTotal.answered?Math.round(weekTotal.outbound/weekTotal.answered*100):0)+'% of answered</div></div>';
-  html+='<div class="kpi"><div class="kl">Inbound</div><div class="kv g">'+fn(weekTotal.inbound)+'</div><div class="ks">'+(weekTotal.answered?Math.round(weekTotal.inbound/weekTotal.answered*100):0)+'% of answered</div></div>';
-  html+='<div class="kpi"><div class="kl">Avg Talk Time</div><div class="kv">'+fmtSecs(avgTalk)+'</div><div class="ks">Per answered call</div></div>';
-  html+='</div>';
-
-  html+='<div class="fc"><div class="ct">By Scheduling Partner — week of '+targetWeek+'</div>';
-  html+='<table class="tbl"><thead><tr><th>Name</th><th>Answered</th><th>Outbound</th><th>Inbound</th><th>Abandoned</th><th>Avg Talk</th><th>Total Talk</th></tr></thead><tbody>';
-  agents.forEach(function(agent){
-    var a=(agg[targetWeek]&&agg[targetWeek][agent])||{answered:0,outbound:0,inbound:0,abandoned:0,talk_secs:0};
-    if(!a.answered&&!a.abandoned)return;
-    var avg=a.answered>0?Math.round(a.talk_secs/a.answered):0;
-    html+='<tr><td><strong>'+agent+'</strong></td><td>'+fn(a.answered)+'</td><td>'+fn(a.outbound)+'</td><td>'+fn(a.inbound)+'</td>';
-    html+='<td style="color:'+(a.abandoned>5?'var(--red)':'var(--text2)')+'">'+fn(a.abandoned)+'</td>';
-    html+='<td>'+fmtSecs(avg)+'</td><td>'+fmtSecs(a.talk_secs)+'</td></tr>';
-  });
-  html+='</tbody></table></div>';
-
-  var trendWeeks=weeks.slice(-8);
-  html+='<div class="fc" style="margin-top:16px"><div class="ct">8-Week Call Volume Trend</div>';
-  html+='<div style="overflow-x:auto"><table class="tbl"><thead><tr><th>Name</th>';
-  trendWeeks.forEach(function(w){html+='<th>'+w.slice(5)+'</th>';});
-  html+='<th>Avg/Wk</th></tr></thead><tbody>';
-  agents.forEach(function(agent){
-    var vals=trendWeeks.map(function(w){return agg[w]&&agg[w][agent]?agg[w][agent].answered:0;});
-    var total=vals.reduce(function(s,v){return s+v;},0);
-    if(!total)return;
-    var nonZero=vals.filter(function(v){return v>0;}).length||1;
-    var avg=Math.round(total/nonZero);
-    var maxV=Math.max.apply(null,vals)||1;
-    html+='<tr><td><strong>'+agent+'</strong></td>';
-    vals.forEach(function(v){
-      var col=v>=100?'var(--green)':v>=50?'var(--orange)':'var(--text3)';
-      html+='<td style="color:'+col+';font-weight:'+(v>=100?'600':'400')+'">'+fn(v)+'</td>';
+  if(callData && callData.length>0){
+    html+='<div class="fc"><div class="ct">Call metrics — loaded from CSV</div>';
+    html+='<table class="tbl"><thead><tr><th>Week</th><th>SP Name</th><th>Outbound Calls</th><th>Inbound Calls</th><th>Total Calls</th></tr></thead><tbody>';
+    callData.forEach(function(r){
+      var total=(parseFloat(r['Outbound Calls'])||0)+(parseFloat(r['Inbound Calls'])||0);
+      html+='<tr><td>'+( r['Week']||r['week']||'—')+'</td><td>'+( r['SP Name']||r['sp_name']||'—')+'</td>';
+      html+='<td>'+fn(parseFloat(r['Outbound Calls']||r['outbound_calls'])||0)+'</td>';
+      html+='<td>'+fn(parseFloat(r['Inbound Calls']||r['inbound_calls'])||0)+'</td>';
+      html+='<td><strong>'+fn(total)+'</strong></td></tr>';
     });
-    html+='<td style="font-weight:600">'+fn(avg)+'</td></tr>';
-  });
-  html+='</tbody></table></div></div>';
+    html+='</tbody></table></div>';
+  }
 
   document.getElementById('ct').innerHTML=html;
 }
@@ -832,8 +623,8 @@ function renderOT(){
   var prevInc=prevDate?sumMetric('Incentives (Actual)',prevDate):null;
 
   // Budget totals
-  var totalBudgetOTPct=OT_BUDGET_BY_WEEK[curStart]||Object.values(OT_BUDGET_BY_WEEK).slice(-1)[0]||0.167;
-  var totalBudgetRev=0;
+  var totalBudgetOTPct=OT_BUDGET_BY_WEEK[curStart]||0.167; var totalBudgetOT=0;
+  var totalBudgetRev=Object.values(BUDGET).reduce(function(s,b){return s+b.revenueWeekly;},0);
 
   var otPct=totalRev>0?totalOT/totalRev:0;
   var budgetOTPct=totalBudgetOTPct;
@@ -853,7 +644,7 @@ function renderOT(){
 
   // KPIs
   html+='<div class="kg">';
-  html+='<div class="kpi"><div class="kl">Total OT</div><div class="kv '+(otPct<budgetOTPct?'g':'r')+'">$'+fn(Math.round(totalOT))+'</div><div class="ks">'+fp(otPct)+' of rev · target '+fp(budgetOTPct)+'</div></div>';
+  html+='<div class="kpi"><div class="kl">Total OT</div><div class="kv '+(otPct<budgetOTPct?'g':'r')+'">$'+fn(Math.round(totalOT))+'</div><div class="ks">'+fp(otPct)+' of rev · budget '+fp(budgetOTPct)+'</div></div>';
   html+='<div class="kpi"><div class="kl">Tribute Secure</div><div class="kv a">$'+fn(Math.round(totalTS+totalGuar))+'</div><div class="ks">Tribute Secure admin + guaranteed pay'+(prevTS?' · prev $'+fn(Math.round(prevTS+( prevGuar||0))):'')+'</div></div>';
   html+='<div class="kpi"><div class="kl">Incentives</div><div class="kv b">$'+fn(Math.round(totalInc))+'</div><div class="ks">Latest week'+(prevInc?' · prev $'+fn(Math.round(prevInc)):'')+'</div></div>';
   html+='<div class="kpi"><div class="kl">Ubers</div><div class="kv o">$'+totalUberAmt.toFixed(0)+'</div><div class="ks">Week of '+nearestUberWk+'</div></div>';
@@ -871,8 +662,7 @@ function renderOT(){
     var rev=g('Hourly Revenue');
     if(!ot&&!inc&&!ts&&!guar&&!rev)return;
     var otPctMkt=rev>0?ot/rev:0;
-    var budgetOTPctMkt=totalBudgetOTPct;
-    var budgetOTAmt=rev*budgetOTPctMkt;
+    var budgetOTPctMkt=totalBudgetOTPct; var budgetOTAmt=rev*budgetOTPctMkt;
     html+='<tr>';
     html+='<td>'+geo+'</td>';
     html+='<td>$'+fn(Math.round(ot))+'</td>';
@@ -1162,7 +952,7 @@ function loadCSV(input, type){
   reader.onload=function(e){
     try{
       var rows=parseCSV(e.target.result);
-      if(type==='call'){callData=rows;callAggregated=null;showStatus('callStatus','✓ Loaded '+rows.length+' rows from '+file.name,'loaded');if(curTab==="callmetrics")renderCallMetrics();}
+      if(type==='call'){callData=rows;showStatus('callStatus','✓ Loaded '+rows.length+' rows from '+file.name,'loaded');}
       else if(type==='uber'){
         // Parse full Uber CSV — skip metadata rows, filter to TRIBUTE only
         uberData=rows;
@@ -1212,7 +1002,7 @@ function handleDrop(e, type){
   reader.onload=function(ev){
     try{
       var rows=parseCSV(ev.target.result);
-      if(type==='call'){callData=rows;callAggregated=null;showStatus('callStatus','✓ Loaded '+rows.length+' rows from '+file.name,'loaded');if(curTab==="callmetrics")renderCallMetrics();}
+      if(type==='call'){callData=rows;showStatus('callStatus','✓ Loaded '+rows.length+' rows from '+file.name,'loaded');}
       else if(type==='uber'){
         // Parse full Uber CSV — skip metadata rows, filter to TRIBUTE only
         uberData=rows;
@@ -1324,666 +1114,6 @@ curStart=fmtD(s);curEnd=fmtD(e);
 document.getElementById('cs').value=curStart;
 document.getElementById('ce').value=curEnd;
 fetchData();
-
-var mfData=null;
-
-async function fetchMatchFailures(){
-  document.getElementById('ct').innerHTML='<div class="loading"><div class="spin"></div>Loading match failure data...</div>';
-  try{
-    var r=await fetch(API+'?endpoint=match_failures&startDate='+curStart+'&endDate='+curEnd);
-    mfData=r.ok?await r.json():null;
-    renderMatchFailures();
-  }catch(e){
-    document.getElementById('ct').innerHTML='<div style="color:var(--red);padding:20px">Error loading match failures: '+e.message+'</div>';
-  }
-}
-
-function renderMatchFailures(){
-  // If no data yet, fetch it
-  if(!mfData||mfData.period&&mfData.period.start!==curStart){
-    fetchMatchFailures();
-    return;
-  }
-
-  var html='';
-  var co=mfData.company||{};
-  var byMarket=mfData.byMarket||[];
-  var byState=mfData.byState||[];
-  var incidents=mfData.incidents||[];
-
-  // Company KPIs
-  var ratePct=(co.matchFailureRate*100).toFixed(2);
-  var rateColor=co.onTarget?'var(--green)':'var(--red)';
-  html+='<div class="kg4">';
-  html+='<div class="kpi"><div class="kl">Match Failures</div><div class="kv" style="color:'+rateColor+'">'+fn(co.matchFailures)+'</div><div class="ks">Week of '+curStart+'</div></div>';
-  html+='<div class="kpi"><div class="kl">Active Clients</div><div class="kv b">'+fn(co.activeClients)+'</div><div class="ks">Company-wide</div></div>';
-  html+='<div class="kpi"><div class="kl">MF Rate</div><div class="kv" style="color:'+rateColor+'">'+ratePct+'%</div><div class="ks">Target ≤ 1.00%</div></div>';
-  html+='<div class="kpi"><div class="kl">Status</div><div class="kv" style="color:'+rateColor+'">'+( co.onTarget?'✅ On Target':'⚠️ Over Target')+'</div><div class="ks">'+( co.onTarget?'Within threshold':'Above 1% threshold')+'</div></div>';
-  html+='</div>';
-
-  // State breakdown
-  html+='<div class="fc"><div class="ct">By State</div>';
-  html+='<table class="tbl"><thead><tr><th>State</th><th>Match Failures</th><th>Active Clients</th><th>MF Rate</th><th>Status</th></tr></thead><tbody>';
-  byState.forEach(function(s){
-    var pct=(s.matchFailureRate*100).toFixed(2);
-    var ok=s.matchFailureRate<=0.01;
-    var col=ok?'var(--green)':'var(--red)';
-    html+='<tr><td><strong>'+s.state+'</strong></td><td style="color:'+col+'">'+fn(s.matchFailures)+'</td><td>'+fn(s.activeClients)+'</td>';
-    html+='<td style="color:'+col+';font-weight:600">'+pct+'%</td>';
-    html+='<td style="color:'+col+'">'+( ok?'✅':'⚠️')+'</td></tr>';
-  });
-  html+='</tbody></table></div>';
-
-  // Market breakdown
-  html+='<div class="fc"><div class="ct">By Market</div>';
-  html+='<table class="tbl"><thead><tr><th>Market</th><th>State</th><th>Match Failures</th><th>First MF</th><th>Repeat MF</th><th>Unique Clients</th><th>Active Clients</th><th>MF Rate</th><th>Status</th></tr></thead><tbody>';
-  byMarket.forEach(function(m){
-    var pct=(m.matchFailureRate*100).toFixed(2);
-    var ok=m.onTarget;
-    var col=ok?'var(--text)':'var(--red)';
-    html+='<tr><td><strong>'+m.market+'</strong></td><td>'+m.state+'</td>';
-    html+='<td style="color:'+(m.matchFailures>0?'var(--red)':'var(--text2)')+'">'+fn(m.matchFailures)+'</td>';
-    html+='<td>'+fn(m.firstMatchFailures)+'</td>';
-    html+='<td>'+fn(m.repeatMatchFailures)+'</td>';
-    html+='<td>'+fn(m.uniqueClients)+'</td>';
-    html+='<td>'+fn(m.activeClients)+'</td>';
-    html+='<td style="color:'+col+';font-weight:600">'+pct+'%</td>';
-    html+='<td style="color:'+col+'">'+( ok?'✅':'⚠️')+'</td></tr>';
-  });
-  html+='</tbody></table></div>';
-
-  // Incident list
-  if(incidents.length>0){
-    html+='<div class="fc"><div class="ct">Match Failure Incidents This Week ('+fn(incidents.length)+')</div>';
-    html+='<table class="tbl"><thead><tr><th>#</th><th>Date</th><th>Type</th><th>Client</th><th>Market</th><th>Submitted By</th><th>Status</th></tr></thead><tbody>';
-    incidents.forEach(function(inc){
-      var date=inc.incidentDate?inc.incidentDate.split('T')[0]:'—';
-      var shortType=inc.type.replace('Client Complaint: ','').replace('Connection: ','').replace('Care Skill: ','');
-      html+='<tr>';
-      html+='<td>'+fn(inc.incidentNum)+'</td>';
-      html+='<td>'+date+'</td>';
-      html+='<td><span style="font-size:11px;background:var(--orange-50);color:var(--orange);padding:2px 6px;border-radius:4px">'+shortType+'</span></td>';
-      html+='<td>'+( inc.clientFn||'')+(inc.clientFn&&inc.clientLn?' ':'')+(inc.clientLn||'')+'</td>';
-      html+='<td>'+( inc.gcity||'—')+'</td>';
-      html+='<td>'+(inc.submitter?(inc.submitter.fn+' '+inc.submitter.ln):'—')+'</td>';
-      html+='<td><span style="font-size:11px;color:'+(inc.st==='resolved'?'var(--green)':inc.st==='submitted'?'var(--orange)':'var(--text2)')+'">'+( inc.st||'—')+'</span></td>';
-      html+='</tr>';
-    });
-    html+='</tbody></table></div>';
-  } else {
-    html+='<div class="fc" style="text-align:center;padding:32px;color:var(--text3)">✅ No match failure incidents this week</div>';
-  }
-
-  document.getElementById('ct').innerHTML=html;
-}
-
-</script>
-</body>
-</html>
-+fn(Math.round(totalOT))+'</div><div class="ks">'+fp(otPct)+' of rev · target '+fp(budgetOTPct)+'</div></div>';
-  html+='<div class="kpi"><div class="kl">Tribute Secure</div><div class="kv a">$'+fn(Math.round(totalTS+totalGuar))+'</div><div class="ks">Tribute Secure admin + guaranteed pay'+(prevTS?' · prev $'+fn(Math.round(prevTS+( prevGuar||0))):'')+'</div></div>';
-  html+='<div class="kpi"><div class="kl">Incentives</div><div class="kv b">$'+fn(Math.round(totalInc))+'</div><div class="ks">Latest week'+(prevInc?' · prev $'+fn(Math.round(prevInc)):'')+'</div></div>';
-  html+='<div class="kpi"><div class="kl">Ubers</div><div class="kv o">$'+totalUberAmt.toFixed(0)+'</div><div class="ks">Week of '+nearestUberWk+'</div></div>';
-  html+='<div class="kpi"><div class="kl">Total Extra Costs</div><div class="kv r">$'+fn(Math.round(totalCost))+'</div><div class="ks">OT + Tribute Secure + Inc + Ubers</div></div>';
-  html+='</div>';
-
-  // Market table
-  html+='<div class="fc"><div class="ct">Cost detail by market — week of '+latestDate+'</div>';
-  html+='<table class="tbl"><thead><tr><th>Market</th><th>OT $</th><th>OT Budget</th><th>OT % Rev</th><th>Tribute Secure</th><th>Incentives $</th><th>Ubers $</th><th>Total Extra Cost</th></tr></thead><tbody>';
-  GEOS.forEach(function(geo){
-    var bgt=BUDGET[geo]||{};
-    var g=function(m){return ACTUALS[geo]&&ACTUALS[geo][m]&&ACTUALS[geo][m][latestDate]||0;};
-    var ot=g('Hourly OT'),inc=g('Incentives (Actual)'),lyft=g('Lyft/Uber Costs (Actual)');
-    var ts=g('TS Admin (Actual)'),guar=g('4 Week Guaranteed Admin (Actual) ');
-    var rev=g('Hourly Revenue');
-    if(!ot&&!inc&&!ts&&!guar&&!rev)return;
-    var otPctMkt=rev>0?ot/rev:0;
-    var budgetOTPctMkt=totalBudgetOTPct;
-    var budgetOTAmt=rev*budgetOTPctMkt;
-    html+='<tr>';
-    html+='<td>'+geo+'</td>';
-    html+='<td>$'+fn(Math.round(ot))+'</td>';
-    html+='<td style="color:var(--text3)"><span class="bdg '+(otPctMkt<=budgetOTPctMkt?'bg':'br')+'">'+fp(budgetOTPctMkt)+'</span></td>';
-    html+='<td><span class="bdg '+(otPctMkt<=budgetOTPctMkt?'bg':'br')+'">'+fp(otPctMkt)+'</span></td>';
-    var uberMktAmt=(UBER_DATA[nearestUberWk]&&UBER_DATA[nearestUberWk][geo]&&UBER_DATA[nearestUberWk][geo].amount)||0;
-    html+='<td style="color:'+(ts+guar>500?'var(--amber)':'inherit')+'">$'+fn(Math.round(ts+guar))+'</td>';
-    html+='<td>$'+fn(Math.round(inc))+'</td>';
-    html+='<td>$'+uberMktAmt.toFixed(0)+'</td>';
-    html+='<td><strong>$'+fn(Math.round(ot+ts+guar+inc+uberMktAmt))+'</strong></td>';
-    html+='</tr>';
-  });
-  html+='</tbody></table>';
-  html+='<div class="cn" style="margin-top:8px;font-size:11px;color:var(--text4)">Data from KSF Excel — updated through '+latestDate+'. Upload a new CSV below to add this week data.</div>';
-  html+='</div>';
-
-  // Trend chart (last 8 weeks)
-  var trendDates=sortedDates.slice(-8);
-  html+='<div class="fc"><div class="ct">Weekly cost trend — last 8 weeks</div>';
-  html+='<table class="tbl">';
-  html+='<thead><tr><th>Week</th><th>OT $</th><th>vs Budget</th><th>Tribute Secure</th><th>Incentives $</th><th>Ubers $</th><th>Total</th></tr></thead><tbody>';
-  trendDates.forEach(function(date){
-    var ot=sumMetric('Hourly OT',date);
-    var inc=sumMetric('Incentives (Actual)',date);
-    var lyft=sumMetric('Lyft/Uber Costs (Actual)',date);
-    var ts=sumMetric('TS Admin (Actual)',date);
-    var guar=sumMetric('4 Week Guaranteed Admin (Actual) ',date);
-    if(!ot&&!inc&&!ts&&!guar)return;
-    var diff=ot-totalBudgetOT;
-    var total=ot+ts+guar+inc+lyft;
-    html+='<tr>';
-    html+='<td>'+date+'</td>';
-    html+='<td>$'+fn(Math.round(ot))+'</td>';
-    html+='<td style="color:'+(diff<=0?'var(--green)':'var(--red)')+'">'+(diff<=0?'':'+')+'$'+fn(Math.round(Math.abs(diff)))+(diff<=0?' under':' over')+'</td>';
-    var uberWkAmt=Object.values(UBER_DATA[date]||{}).reduce(function(s,v){return s+(v.amount||0);},0);
-    var realTotal=ot+ts+guar+inc+uberWkAmt;
-    html+='<td style="color:'+(ts+guar>1000?'var(--amber)':'inherit')+'">$'+fn(Math.round(ts+guar))+'</td>';
-    html+='<td>$'+fn(Math.round(inc))+'</td>';
-    html+='<td>$'+uberWkAmt.toFixed(0)+'</td>';
-    html+='<td><strong>$'+fn(Math.round(realTotal))+'</strong></td>';
-    html+='</tr>';
-  });
-  html+='</tbody></table></div>';
-
-  // CSV upload for new data
-  html+='<div class="fc" style="background:var(--orange-50);border-color:var(--orange)">';
-  html+='<div class="ct" style="color:var(--orange)">Upload New Weekly Cost Data CSV</div>';
-  html+='<p style="font-size:12px;color:var(--text2);margin-bottom:12px">Export from iSolved or your payroll system. Expected columns: <strong>Week, Market, OT Amount, Tribute Secure Amount, Incentives Amount</strong></p>';
-  html+='<div class="upload-zone" id="otZone" onclick="document.getElementById(\'otFile\').click()" ondragover="event.preventDefault();this.classList.add(\'drag\')" ondragleave="this.classList.remove(\'drag\')" ondrop="handleDrop(event,\'ot\')">'; 
-  html+='<div class="upload-zone-icon">💰</div>';
-  html+='<div class="upload-zone-title">Drop OT & Incentives CSV here</div>';
-  html+='<div class="upload-zone-sub">Columns: Week, Market, OT Amount, Incentives Amount</div>';
-  html+='</div>';
-  html+='<input type="file" id="otFile" accept=".csv" style="display:none" onchange="loadCSV(this,\'ot\')">'; 
-  html+='<div class="upload-status" id="otStatus"></div>';
-  html+='</div>';
-
-  document.getElementById('ct').innerHTML=html;
-}
-
-function renderGM(){
-  var GEOS=['Baltimore','Annapolis','Bethesda','Boston','MetroWest Boston','North of Boston','South of Boston','Chicago','Northern Virginia'];
-  var STATE_MAP={'Baltimore':'Maryland','Annapolis':'Maryland','Bethesda':'Maryland','Boston':'Massachusetts','MetroWest Boston':'Massachusetts','North of Boston':'Massachusetts','South of Boston':'Massachusetts','Chicago':'Illinois','Northern Virginia':'Virginia'};
-  var STATES=['Massachusetts','Illinois','Maryland'];
-
-  // ── CURRENT WEEK (live from Viv ot_costs endpoint) ──
-  var allOTDates=new Set();
-  GEOS.forEach(function(g){Object.keys((ACTUALS[g]&&ACTUALS[g]['Hourly OT'])||{}).forEach(function(d){allOTDates.add(d);});});
-  var latestKSFWeek=Array.from(allOTDates).sort().pop();
-  // Use live otCostData for Tribute Secure and Incentives if available
-  var otMktsOT=(otCostData&&otCostData.byMarket)||[];
-
-  function getActual(geo,metric,week){return (ACTUALS[geo]&&ACTUALS[geo][metric]&&ACTUALS[geo][metric][week])||0;}
-  function getUber(geo,week){return (UBER_DATA[week]&&UBER_DATA[week][geo]&&UBER_DATA[week][geo].amount)||0;}
-
-  // Use KSF actuals as primary source — fall back to Viv only if week is newer than KSF
-  var ksf_hasCurrentWeek = !!getActual(GEOS[0],'Hourly Revenue',curStart);
-  var useKSF = ksf_hasCurrentWeek || latestKSFWeek >= curStart;
-
-  // Find nearest KSF week to curStart
-  var ksfWeekToUse = latestKSFWeek;
-  if(getActual('Baltimore','Hourly Revenue',curStart)) ksfWeekToUse = curStart;
-
-  // Viv fallback for current week pay cost
-  var otMkts=(otCostData&&otCostData.byMarket)||[];
-
-  function currentGM(mktName){
-    var bgt=BUDGET[mktName]||{};
-
-    // Try KSF actuals first for the selected week
-    var ksfRev=getActual(mktName,'Hourly Revenue',ksfWeekToUse);
-    var ksfReg=getActual(mktName,'Hourly Regular Pay',ksfWeekToUse);
-    var ksfOT=getActual(mktName,'Hourly OT',ksfWeekToUse);
-
-    // Viv fallback
-    var otMkt=otMkts.find(function(m){return m.market===mktName;});
-    var vMkt=(visitsData&&visitsData.markets||[]).find(function(m){return m.market===mktName;});
-
-    // Revenue: always use visitsData (Viv scheduling) — never otMkt.revenue which overcounts
-    var rev=vMkt?vMkt.revenue:(ksfRev||0);
-    if(!rev)return null;
-
-    var totalPayCost, vivGM, dataSource;
-    if(otMkt && otMkt.totalCost){
-      // Use Viv totalCost for pay (reg + OT blended) — most accurate
-      totalPayCost = otMkt.totalCost;
-      vivGM = rev - totalPayCost;
-      dataSource = 'Live Viv';
-    } else if(ksfReg||ksfOT){
-      // Fall back to KSF reg + OT
-      totalPayCost = ksfReg + ksfOT;
-      vivGM = rev - totalPayCost;
-      dataSource = 'KSF '+ksfWeekToUse;
-    } else {
-      // Last resort: budget estimate
-      totalPayCost = rev*(1-(getGmTarget(curStart)));
-      vivGM = rev-totalPayCost;
-      dataSource = 'Budget est.';
-    }
-
-    var ts=getActual(mktName,'TS Admin (Actual)',ksfWeekToUse)||0;
-    var guar=getActual(mktName,'4 Week Guaranteed Admin (Actual) ',ksfWeekToUse)||0;
-    var inc=getActual(mktName,'Incentives (Actual)',ksfWeekToUse)||0;
-    var uberWeeks=Object.keys(UBER_DATA).sort();
-    // Find nearest Uber week to selected week
-    var td=new Date(curStart);
-    var nearestUber=uberWeeks.reduce(function(best,w){
-      return Math.abs(new Date(w)-td)<Math.abs(new Date(best)-td)?w:best;
-    },uberWeeks[uberWeeks.length-1]);
-    var uber=getUber(mktName,nearestUber);
-
-    var schedGM=vivGM-ts-guar-inc-uber;
-    var schedGMPct=rev>0?schedGM/rev:0;
-    var budgetGMPct=GM_BUDGET_BY_MARKET[mktName]||getGmTarget(curStart);
-    return{market:mktName,state:STATE_MAP[mktName]||'',rev,
-      totalPayCost,ksfOT,ksfReg,vivGM,vivGMPct:rev>0?vivGM/rev:0,
-      ts,guar,inc,uber,
-      schedGM,schedGMPct,budgetGMPct,
-      dataSource};
-  }
-
-  var curMkts=GEOS.map(currentGM).filter(Boolean).filter(function(m){return m.rev>0;});
-  var curTotRev=curMkts.reduce(function(s,m){return s+m.rev;},0);
-  var curTotPayCost=curMkts.reduce(function(s,m){return s+m.totalPayCost;},0);
-  var curTotTS=curMkts.reduce(function(s,m){return s+m.ts;},0);
-  var curTotGuar=curMkts.reduce(function(s,m){return s+m.guar;},0);
-  var curTotInc=curMkts.reduce(function(s,m){return s+m.inc;},0);
-  var curTotUber=curMkts.reduce(function(s,m){return s+m.uber;},0);
-  var curTotVivGM=curMkts.reduce(function(s,m){return s+m.vivGM;},0);
-  var curTotGM=curMkts.reduce(function(s,m){return s+m.schedGM;},0);
-  var curTotGMPct=curTotRev>0?curTotGM/curTotRev:0;
-  var liveCount=curMkts.filter(function(m){return m.dataSource==='Live Viv';}).length;
-
-  var html='';
-
-  // Banner
-  var gmOk=curTotGMPct>=0.40;
-  html+='<div style="background:'+(gmOk?'var(--green-bg)':'var(--red-bg)')+';border-left:3px solid '+(gmOk?'var(--green)':'var(--red)')+';border-radius:var(--r);padding:12px 16px;margin-bottom:16px;font-size:13px">';
-  html+='<div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:'+(gmOk?'var(--green)':'var(--red)')+';margin-bottom:4px">Scheduling Gross Margin — '+curStart+' to '+curEnd+'</div>';
-  html+='Company GM: <strong>'+fp(curTotGMPct)+'</strong> — Revenue minus pay cost (from Viv), Tribute Secure, Incentives, and Ubers. Pay cost is pulled live from Viv visit data and includes regular pay + OT. '+(gmOk?'On track vs. budget targets.':'Below budget targets — review cost drivers.');
-  html+='</div>';
-
-  // KPIs
-  var dataNote=liveCount+'/'+curMkts.length+' markets live from Viv'+(liveCount<curMkts.length?' · '+( curMkts.length-liveCount)+' estimated':'');
-  html+='<div class="kg">';
-  html+='<div class="kpi"><div class="kl">Revenue</div><div class="kv o">'+fm(curTotRev)+'</div><div class="ks">This week · '+dataNote+'</div></div>';
-  var ksfSources=curMkts.filter(function(m){return m.dataSource&&m.dataSource.indexOf('KSF')>-1;}).length;
-  html+='<div class="kpi"><div class="kl">Pay Cost (Reg + OT)</div><div class="kv r">'+fm(curTotPayCost)+'</div><div class="ks">'+fp(curTotRev>0?curTotPayCost/curTotRev:0)+' of rev · '+ksfSources+'/'+curMkts.length+' from KSF</div></div>';
-  html+='<div class="kpi"><div class="kl">Tribute Secure + Inc + Uber</div><div class="kv a">'+fm(curTotTS+curTotGuar+curTotInc+curTotUber)+'</div><div class="ks">Additional cost items</div></div>';
-  html+='<div class="kpi"><div class="kl">Viv GM (before extras)</div><div class="kv b">'+fp(curTotRev>0?curTotVivGM/curTotRev:0)+'</div><div class="ks">Rev minus pay cost only</div></div>';
-  html+='<div class="kpi"><div class="kl">Scheduling GM</div><div class="kv '+(curTotGMPct>=0.40?'g':'r')+'">'+fp(curTotGMPct)+'</div><div class="ks">'+fm(curTotGM)+' after all costs</div></div>';
-  html+='</div>';
-
-  // ── BY MARKET TABLE ──
-  function gmRow(m, indent){
-    var ind=indent?'padding-left:20px':'';
-    var vs=m.schedGMPct-m.budgetGMPct;
-    var vsCls=vs>=0?'up':'dn'; var vsStr=(vs>=0?'▲':'▼')+' '+fp(Math.abs(vs));
-    return '<tr>'+
-      '<td style="'+ind+'">'+(indent?'<span style="color:var(--text3)">'+m.market+'</span>':m.market)+'</td>'+
-      '<td style="color:var(--text3);font-weight:normal">'+(indent?'':m.state)+'</td>'+
-      '<td>'+fk(m.rev)+'</td>'+
-      '<td style="color:var(--red)">'+fk(m.totalPayCost)+'<div style="font-size:9px;color:var(--text4)">'+(m.ksfReg?'Reg '+fk(m.ksfReg)+' · OT '+fk(m.ksfOT):fp(m.rev>0?m.totalPayCost/m.rev:0)+' of rev')+' · '+m.dataSource+'</div></td>'+
-      '<td style="color:var(--amber)">'+fk(m.ts+m.guar)+'</td>'+
-      '<td style="color:var(--amber)">'+fk(m.inc)+'</td>'+
-      '<td style="color:var(--orange)">'+fk(m.uber)+'</td>'+
-      '<td><span class="bdg '+(m.schedGMPct>=m.budgetGMPct?'bg':'br')+'">'+fp(m.schedGMPct)+'</span></td>'+
-      '<td style="color:var(--text3)">'+fp(m.budgetGMPct)+'</td>'+
-      '<td><span class="vs '+vsCls+'">'+vsStr+'</span></td>'+
-      '</tr>';
-  }
-
-  // State subtotals
-  function stateRows(stateName){
-    var sMkts=curMkts.filter(function(m){return m.state===stateName;});
-    if(!sMkts.length)return '';
-    var sRev=sMkts.reduce(function(s,m){return s+m.rev;},0);
-    var sOT=sMkts.reduce(function(s,m){return s+m.totalPayCost;},0);
-    var sTS=sMkts.reduce(function(s,m){return s+m.ts+m.guar;},0);
-    var sInc=sMkts.reduce(function(s,m){return s+m.inc+m.uber;},0);
-    var sGMPct=sRev>0?sGM/sRev:0;
-    var sGM=sMkts.reduce(function(s,m){return s+m.schedGM;},0);
-    var sGMPct=sRev>0?sGM/sRev:0;
-    var html='<tr style="background:var(--gray100)">'+
-      '<td colspan="2"><strong>'+stateName+'</strong></td>'+
-      '<td><strong>'+fk(sRev)+'</strong></td>'+
-      '<td style="color:var(--red)"><strong>'+fk(sOT)+'</strong></td>'+
-      '<td style="color:var(--amber)"><strong>'+fk(sTS)+'</strong></td>'+
-      '<td style="color:var(--amber)"><strong>'+fk(sMkts.reduce(function(s,m){return s+m.inc;},0))+'</strong></td>'+
-      '<td style="color:var(--orange)"><strong>'+fk(sMkts.reduce(function(s,m){return s+m.uber;},0))+'</strong></td>'+
-      '<td><strong><span class="bdg '+(sGMPct>=0.40?'bg':'br')+'">'+fp(sGMPct)+'</span></strong></td>'+
-      '<td></td><td></td></tr>';
-    sMkts.forEach(function(m){html+=gmRow(m,true);});
-    return html;
-  }
-
-  html+='<div class="fc"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">';
-  html+='<div class="ct" style="margin:0">Gross margin by market — '+curStart+' to '+curEnd+'</div>';
-  html+='<div style="font-size:10px;color:var(--text4)">Pay data from KSF week of '+ksfWeekToUse+(ksfWeekToUse!==curStart?' (nearest to selected)':' ✓')+'</div>';
-  html+='</div>';
-  html+='<table class="tbl"><thead><tr><th>Market</th><th>State</th><th>Revenue</th><th>Hourly Pay Cost</th><th>Tribute Secure</th><th>Incentives</th><th>Ubers</th><th>Sched GM %</th><th>Budget GM</th><th>vs Budget</th></tr></thead><tbody>';
-  STATES.forEach(function(st){html+=stateRows(st);});
-  html+='</tbody><tfoot><tr><td>Company Total</td><td></td><td>'+fm(curTotRev)+'</td><td style="color:var(--red)">'+fm(curTotPayCost)+'</td><td style="color:var(--amber)">'+fm(curTotTS+curTotGuar)+'</td><td style="color:var(--amber)">'+fm(curTotInc+curTotUber)+'</td><td><span class="bdg '+(curTotGMPct>=0.40?'bg':'br')+'">'+fp(curTotGMPct)+'</span></td><td>~42%</td><td></td></tr></tfoot>';
-  html+='</table></div>';
-
-  // ── HISTORICAL WEEKLY GM TREND (from KSF actuals) ──
-  var histWeeks=Array.from(allOTDates).sort().slice(-12);
-  html+='<div class="fc"><div class="ct">Historical weekly gross margin — last 12 weeks from KSF</div>';
-  html+='<table class="tbl"><thead><tr><th>Week</th><th>Revenue</th><th>OT</th><th>Tribute Secure</th><th>Incentives</th><th>Ubers</th><th>Total Cost</th><th>GM $</th><th>GM %</th><th>Budget</th></tr></thead><tbody>';
-  histWeeks.forEach(function(week){
-    var wRev=GEOS.reduce(function(s,g){return s+getActual(g,'Hourly Revenue',week);},0);
-    var wOT=GEOS.reduce(function(s,g){return s+getActual(g,'Hourly OT',week);},0);
-    var wTS=GEOS.reduce(function(s,g){return s+getActual(g,'TS Admin (Actual)',week);},0);
-    var wGuar=GEOS.reduce(function(s,g){return s+getActual(g,'4 Week Guaranteed Admin (Actual) ',week);},0);
-    var wInc=GEOS.reduce(function(s,g){return s+getActual(g,'Incentives (Actual)',week);},0);
-    var wUber=Object.values(UBER_DATA[week]||{}).reduce(function(s,v){return s+(v.amount||0);},0);
-    if(!wRev&&!wOT)return;
-    var wCost=wOT+wTS+wGuar+wInc+wUber;
-    var wGM=wRev-wCost;
-    var wGMPct=wRev>0?wGM/wRev:0;
-    html+='<tr>';
-    html+='<td>'+week+'</td>';
-    html+='<td>'+fm(wRev)+'</td>';
-    html+='<td style="color:var(--red)">'+fm(wOT)+'</td>';
-    html+='<td style="color:'+((wTS+wGuar)>1000?'var(--amber)':'inherit')+'">'+fm(wTS+wGuar)+'</td>';
-    html+='<td>'+fm(wInc)+'</td>';
-    html+='<td>$'+(wUber?wUber.toFixed(0):'—')+'</td>';
-    html+='<td><strong>'+fm(wCost)+'</strong></td>';
-    html+='<td><strong>'+fm(wGM)+'</strong></td>';
-    html+='<td><span class="bdg '+(wGMPct>=0.40?'bg':wGMPct>=0.35?'ba':'br')+'">'+fp(wGMPct)+'</span></td>';
-    html+='<td style="color:var(--text3)">~42%</td>';
-    html+='</tr>';
-  });
-  html+='</tbody></table></div>';
-
-  // ── COST BREAKDOWN WATERFALL (visual) ──
-  html+='<div class="fc"><div class="ct">Cost breakdown — current week</div>';
-  var items=[
-    {label:'Revenue',amt:curTotRev,color:'var(--green)',isRev:true},
-    {label:'Pay Cost (Reg + OT)',amt:curTotPayCost,color:'var(--red)',pct:curTotRev>0?curTotPayCost/curTotRev:0},
-    {label:'Tribute Secure',amt:curTotTS+curTotGuar,color:'var(--amber)',pct:curTotRev>0?(curTotTS+curTotGuar)/curTotRev:0},
-    {label:'4-Wk Guaranteed',amt:curTotGuar,color:'var(--amber)',pct:curTotRev>0?curTotGuar/curTotRev:0},
-    {label:'Incentives',amt:curTotInc,color:'var(--orange)',pct:curTotRev>0?curTotInc/curTotRev:0},
-    {label:'Ubers',amt:curTotUber,color:'var(--orange)',pct:curTotRev>0?curTotUber/curTotRev:0},
-    {label:'Scheduling GM',amt:curTotGM,color:curTotGMPct>=0.40?'var(--green)':'var(--red)',isGM:true},
-  ];
-  items.forEach(function(item){
-    var barW=Math.round(Math.abs(item.amt)/curTotRev*100);
-    html+='<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:.5px solid var(--gray100)">';
-    html+='<div style="font-size:12px;'+(item.isRev||item.isGM?'font-weight:600':'font-weight:normal;color:var(--text2)')+';width:160px;flex-shrink:0">'+item.label+'</div>';
-    html+='<div style="flex:1;height:16px;background:var(--gray100);border-radius:3px;overflow:hidden">';
-    html+='<div style="height:100%;width:'+barW+'%;background:'+item.color+';border-radius:3px;opacity:'+(item.isRev?1:0.75)+'"></div></div>';
-    html+='<div style="font-size:12px;font-weight:500;width:90px;text-align:right;color:'+item.color+'">'+fm(Math.round(item.amt))+'</div>';
-    html+='<div style="font-size:11px;color:var(--text4);width:55px;text-align:right">'+fp(Math.abs(item.amt)/curTotRev)+'</div>';
-    html+='</div>';
-  });
-  html+='</div>';
-
-  document.getElementById('ct').innerHTML=html;
-}
-
-// ── CSV HANDLING ──────────────────────────────────────────────────
-function loadCSV(input, type){
-  var file=input.files[0];
-  if(!file)return;
-  var reader=new FileReader();
-  reader.onload=function(e){
-    try{
-      var rows=parseCSV(e.target.result);
-      if(type==='call'){callData=rows;callAggregated=null;showStatus('callStatus','✓ Loaded '+rows.length+' rows from '+file.name,'loaded');if(curTab==="callmetrics")renderCallMetrics();}
-      else if(type==='uber'){
-        // Parse full Uber CSV — skip metadata rows, filter to TRIBUTE only
-        uberData=rows;
-        var tributeRows=rows.filter(function(r){
-          var code=(r['Expense Code']||'').toUpperCase().trim();
-          return code.endsWith('TRIBUTE');
-        });
-        showStatus('uberStatus','✓ Loaded '+rows.length+' total rows — '+tributeRows.length+' Tribute-paid trips added','loaded');
-      }
-      else if(type==='ot'){
-        rows.forEach(function(r){
-          var geo=r['Market']||r['market'];
-          var week=r['Week']||r['week'];
-          var ot=parseFloat(r['OT Amount']||r['ot_amount']||0);
-          var inc=parseFloat(r['Incentives Amount']||r['incentives_amount']||0);
-          var ts=parseFloat(r['TS Admin Amount']||r['ts_admin']||0);
-          var guar=parseFloat(r['Guaranteed Amount']||r['guaranteed']||0);
-          if(geo&&week){
-            if(!ACTUALS[geo])ACTUALS[geo]={};
-            var m=ACTUALS[geo];
-            if(!m['Hourly OT'])m['Hourly OT']={};
-            if(!m['Incentives (Actual)'])m['Incentives (Actual)']={};
-            if(!m['TS Admin (Actual)'])m['TS Admin (Actual)']={};
-            if(!m['4 Week Guaranteed Admin (Actual) '])m['4 Week Guaranteed Admin (Actual) ']={};
-            if(ot)m['Hourly OT'][week]=ot;
-            if(inc)m['Incentives (Actual)'][week]=inc;
-            if(ts)m['TS Admin (Actual)'][week]=ts;
-            if(guar)m['4 Week Guaranteed Admin (Actual) '][week]=guar;
-          }
-        });
-        showStatus('otStatus','✓ Loaded '+rows.length+' rows — actuals updated','loaded');
-      }
-      render();
-    }catch(err){
-      showStatus(type+'Status','Error parsing CSV: '+err.message,'error');
-    }
-  };
-  reader.readAsText(file);
-}
-
-function handleDrop(e, type){
-  e.preventDefault();
-  e.currentTarget.classList.remove('drag');
-  var file=e.dataTransfer.files[0];
-  if(!file||!file.name.endsWith('.csv')){alert('Please drop a CSV file');return;}
-  var reader=new FileReader();
-  reader.onload=function(ev){
-    try{
-      var rows=parseCSV(ev.target.result);
-      if(type==='call'){callData=rows;callAggregated=null;showStatus('callStatus','✓ Loaded '+rows.length+' rows from '+file.name,'loaded');if(curTab==="callmetrics")renderCallMetrics();}
-      else if(type==='uber'){
-        // Parse full Uber CSV — skip metadata rows, filter to TRIBUTE only
-        uberData=rows;
-        var tributeRows=rows.filter(function(r){
-          var code=(r['Expense Code']||'').toUpperCase().trim();
-          return code.endsWith('TRIBUTE');
-        });
-        showStatus('uberStatus','✓ Loaded '+rows.length+' total rows — '+tributeRows.length+' Tribute-paid trips added','loaded');
-      }
-      else if(type==='ot'){
-        rows.forEach(function(r){
-          var geo=r['Market']||r['market'];
-          var week=r['Week']||r['week'];
-          var ot=parseFloat(r['OT Amount']||r['ot_amount']||0);
-          var inc=parseFloat(r['Incentives Amount']||r['incentives_amount']||0);
-          var ts=parseFloat(r['TS Admin Amount']||r['ts_admin']||0);
-          var guar=parseFloat(r['Guaranteed Amount']||r['guaranteed']||0);
-          if(geo&&week){
-            if(!ACTUALS[geo])ACTUALS[geo]={};
-            var m=ACTUALS[geo];
-            if(!m['Hourly OT'])m['Hourly OT']={};
-            if(!m['Incentives (Actual)'])m['Incentives (Actual)']={};
-            if(!m['TS Admin (Actual)'])m['TS Admin (Actual)']={};
-            if(!m['4 Week Guaranteed Admin (Actual) '])m['4 Week Guaranteed Admin (Actual) ']={};
-            if(ot)m['Hourly OT'][week]=ot;
-            if(inc)m['Incentives (Actual)'][week]=inc;
-            if(ts)m['TS Admin (Actual)'][week]=ts;
-            if(guar)m['4 Week Guaranteed Admin (Actual) '][week]=guar;
-          }
-        });
-        showStatus('otStatus','✓ Loaded '+rows.length+' rows — actuals updated','loaded');
-      }
-      render();
-    }catch(err){showStatus(type+'Status','Error: '+err.message,'error');}
-  };
-  reader.readAsText(file);
-}
-
-function parseCSV(text){
-  var lines=text.trim().split('\n');
-  var headers=lines[0].split(',').map(h=>h.trim().replace(/^"|"$/g,''));
-  return lines.slice(1).filter(l=>l.trim()).map(function(line){
-    var vals=line.match(/(".*?"|[^,]+)(?=,|$)/g)||line.split(',');
-    var obj={};
-    headers.forEach((h,i)=>obj[h]=(vals[i]||'').trim().replace(/^"|"$/g,''));
-    return obj;
-  });
-}
-
-function showStatus(id, msg, cls){
-  var el=document.getElementById(id);
-  if(el){el.textContent=msg;el.className='upload-status '+cls;}
-}
-
-// ── DRAG/DROP FOR UPLOAD ZONES ───────────────────────────────────
-document.addEventListener('dragover', function(e){ e.preventDefault(); });
-document.addEventListener('drop', function(e){
-  e.preventDefault();
-  var zone = e.target.closest('.upload-zone');
-  if(!zone) return;
-  var id = zone.id;
-  var type = id==='uberZone'?'uber':id==='otZone'?'ot':id==='callZone'?'call':null;
-  if(!type) return;
-  var file = e.dataTransfer.files[0];
-  if(!file||!file.name.endsWith('.csv')){ alert('Please drop a CSV file'); return; }
-  var reader = new FileReader();
-  reader.onload = function(ev){
-    try{
-      var rows = parseCSV(ev.target.result);
-      if(type==='call'){ callData=rows; showStatus('callStatus','✓ Loaded '+rows.length+' rows from '+file.name,'loaded'); }
-      else if(type==='uber'){
-        uberData=rows;
-        var tr=rows.filter(function(r){ var c=(r['Expense Code']||'').toUpperCase(); return c.includes('- TRIBUTE')||c.includes('-TRIBUTE'); });
-        showStatus('uberStatus','✓ '+tr.length+' Tribute-paid trips loaded from '+file.name,'loaded');
-      }
-      else if(type==='ot'){
-        rows.forEach(function(r){
-          var geo=r['Market']||r['market']; var week=r['Week']||r['week'];
-          var ot=parseFloat(r['OT Amount']||0); var inc=parseFloat(r['Incentives Amount']||0);
-          var ts=parseFloat(r['TS Admin Amount']||0); var guar=parseFloat(r['Guaranteed Amount']||0);
-          if(geo&&week){
-            if(!ACTUALS[geo])ACTUALS[geo]={};
-            var m=ACTUALS[geo];
-            if(!m['Hourly OT'])m['Hourly OT']={};
-            if(!m['Incentives (Actual)'])m['Incentives (Actual)']={};
-            if(!m['TS Admin (Actual)'])m['TS Admin (Actual)']={};
-            if(!m['4 Week Guaranteed Admin (Actual) '])m['4 Week Guaranteed Admin (Actual) ']={};
-            if(ot)m['Hourly OT'][week]=ot; if(inc)m['Incentives (Actual)'][week]=inc;
-            if(ts)m['TS Admin (Actual)'][week]=ts; if(guar)m['4 Week Guaranteed Admin (Actual) '][week]=guar;
-          }
-        });
-        showStatus('otStatus','✓ Loaded '+rows.length+' rows','loaded');
-      }
-      render();
-    } catch(err){ console.error(err); }
-  };
-  reader.readAsText(file);
-});
-
-// ── CLOCK ──────────────────────────────────────────────────────────
-function updateClock(){
-  document.getElementById('clock').textContent=new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
-}
-
-// ── INIT ───────────────────────────────────────────────────────────
-updateClock();setInterval(updateClock,60000);
-var s=getSunday(0),e=new Date(s);e.setDate(s.getDate()+6);
-curStart=fmtD(s);curEnd=fmtD(e);
-document.getElementById('cs').value=curStart;
-document.getElementById('ce').value=curEnd;
-fetchData();
-
-var mfData=null;
-
-async function fetchMatchFailures(){
-  document.getElementById('ct').innerHTML='<div class="loading"><div class="spin"></div>Loading match failure data...</div>';
-  try{
-    var r=await fetch(API+'?endpoint=match_failures&startDate='+curStart+'&endDate='+curEnd);
-    mfData=r.ok?await r.json():null;
-    renderMatchFailures();
-  }catch(e){
-    document.getElementById('ct').innerHTML='<div style="color:var(--red);padding:20px">Error loading match failures: '+e.message+'</div>';
-  }
-}
-
-function renderMatchFailures(){
-  // If no data yet, fetch it
-  if(!mfData||mfData.period&&mfData.period.start!==curStart){
-    fetchMatchFailures();
-    return;
-  }
-
-  var html='';
-  var co=mfData.company||{};
-  var byMarket=mfData.byMarket||[];
-  var byState=mfData.byState||[];
-  var incidents=mfData.incidents||[];
-
-  // Company KPIs
-  var ratePct=(co.matchFailureRate*100).toFixed(2);
-  var rateColor=co.onTarget?'var(--green)':'var(--red)';
-  html+='<div class="kg4">';
-  html+='<div class="kpi"><div class="kl">Match Failures</div><div class="kv" style="color:'+rateColor+'">'+fn(co.matchFailures)+'</div><div class="ks">Week of '+curStart+'</div></div>';
-  html+='<div class="kpi"><div class="kl">Active Clients</div><div class="kv b">'+fn(co.activeClients)+'</div><div class="ks">Company-wide</div></div>';
-  html+='<div class="kpi"><div class="kl">MF Rate</div><div class="kv" style="color:'+rateColor+'">'+ratePct+'%</div><div class="ks">Target ≤ 1.00%</div></div>';
-  html+='<div class="kpi"><div class="kl">Status</div><div class="kv" style="color:'+rateColor+'">'+( co.onTarget?'✅ On Target':'⚠️ Over Target')+'</div><div class="ks">'+( co.onTarget?'Within threshold':'Above 1% threshold')+'</div></div>';
-  html+='</div>';
-
-  // State breakdown
-  html+='<div class="fc"><div class="ct">By State</div>';
-  html+='<table class="tbl"><thead><tr><th>State</th><th>Match Failures</th><th>Active Clients</th><th>MF Rate</th><th>Status</th></tr></thead><tbody>';
-  byState.forEach(function(s){
-    var pct=(s.matchFailureRate*100).toFixed(2);
-    var ok=s.matchFailureRate<=0.01;
-    var col=ok?'var(--green)':'var(--red)';
-    html+='<tr><td><strong>'+s.state+'</strong></td><td style="color:'+col+'">'+fn(s.matchFailures)+'</td><td>'+fn(s.activeClients)+'</td>';
-    html+='<td style="color:'+col+';font-weight:600">'+pct+'%</td>';
-    html+='<td style="color:'+col+'">'+( ok?'✅':'⚠️')+'</td></tr>';
-  });
-  html+='</tbody></table></div>';
-
-  // Market breakdown
-  html+='<div class="fc"><div class="ct">By Market</div>';
-  html+='<table class="tbl"><thead><tr><th>Market</th><th>State</th><th>Match Failures</th><th>First MF</th><th>Repeat MF</th><th>Unique Clients</th><th>Active Clients</th><th>MF Rate</th><th>Status</th></tr></thead><tbody>';
-  byMarket.forEach(function(m){
-    var pct=(m.matchFailureRate*100).toFixed(2);
-    var ok=m.onTarget;
-    var col=ok?'var(--text)':'var(--red)';
-    html+='<tr><td><strong>'+m.market+'</strong></td><td>'+m.state+'</td>';
-    html+='<td style="color:'+(m.matchFailures>0?'var(--red)':'var(--text2)')+'">'+fn(m.matchFailures)+'</td>';
-    html+='<td>'+fn(m.firstMatchFailures)+'</td>';
-    html+='<td>'+fn(m.repeatMatchFailures)+'</td>';
-    html+='<td>'+fn(m.uniqueClients)+'</td>';
-    html+='<td>'+fn(m.activeClients)+'</td>';
-    html+='<td style="color:'+col+';font-weight:600">'+pct+'%</td>';
-    html+='<td style="color:'+col+'">'+( ok?'✅':'⚠️')+'</td></tr>';
-  });
-  html+='</tbody></table></div>';
-
-  // Incident list
-  if(incidents.length>0){
-    html+='<div class="fc"><div class="ct">Match Failure Incidents This Week ('+fn(incidents.length)+')</div>';
-    html+='<table class="tbl"><thead><tr><th>#</th><th>Date</th><th>Type</th><th>Client</th><th>Market</th><th>Submitted By</th><th>Status</th></tr></thead><tbody>';
-    incidents.forEach(function(inc){
-      var date=inc.incidentDate?inc.incidentDate.split('T')[0]:'—';
-      var shortType=inc.type.replace('Client Complaint: ','').replace('Connection: ','').replace('Care Skill: ','');
-      html+='<tr>';
-      html+='<td>'+fn(inc.incidentNum)+'</td>';
-      html+='<td>'+date+'</td>';
-      html+='<td><span style="font-size:11px;background:var(--orange-50);color:var(--orange);padding:2px 6px;border-radius:4px">'+shortType+'</span></td>';
-      html+='<td>'+( inc.clientFn||'')+(inc.clientFn&&inc.clientLn?' ':'')+(inc.clientLn||'')+'</td>';
-      html+='<td>'+( inc.gcity||'—')+'</td>';
-      html+='<td>'+(inc.submitter?(inc.submitter.fn+' '+inc.submitter.ln):'—')+'</td>';
-      html+='<td><span style="font-size:11px;color:'+(inc.st==='resolved'?'var(--green)':inc.st==='submitted'?'var(--orange)':'var(--text2)')+'">'+( inc.st||'—')+'</span></td>';
-      html+='</tr>';
-    });
-    html+='</tbody></table></div>';
-  } else {
-    html+='<div class="fc" style="text-align:center;padding:32px;color:var(--text3)">✅ No match failure incidents this week</div>';
-  }
-
-  document.getElementById('ct').innerHTML=html;
-}
-
 </script>
 </body>
 </html>
