@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tribute · Scheduling Fill Dashboard</title>
+<style>
+:root{
+  --orange:#E8732A;--orange-lt:#FFF3EC;--green:#2E7D32;--green-bg:#F1F8E9;
+  --red:#C62828;--red-bg:#FFEBEE;--amber:#E65100;--amber-bg:#FFF3E0;
+  --charcoal:#1A1A1A;--text2:#444;--text3:#777;--text4:#AAA;
+  --gray50:#FAFAFA;--gray100:#F0F0F0;--gray200:#E0E0E0;
+  --r:8px;--font:'Lato',system-ui,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:var(--font);background:var(--gray50);color:var(--charcoal);font-size:13px;}
+.header{background:#fff;border-bottom:1px solid var(--gray200);padding:12px 20px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100;}
+.logo{font-weight:800;font-size:15px;color:var(--orange);}
+.logo span{font-weight:400;color:var(--text3);}
+.tabs{display:flex;gap:0;border-bottom:1px solid var(--gray200);background:#fff;padding:0 20px;overflow-x:auto;}
+.ntab{font-size:12px;font-weight:500;color:var(--text3);padding:10px 16px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap;}
+.ntab.on{color:var(--charcoal);border-bottom-color:var(--orange);}
+.ntab:hover{color:var(--charcoal);}
+.main{padding:16px 20px;max-width:1400px;}
+.fc{background:#fff;border:1px solid var(--gray200);border-radius:var(--r);padding:14px 16px;margin-bottom:12px;}
+.ct{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:10px;}
+.kg{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:12px;}
+.kg3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px;}
+.kg4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px;}
+.kpi{background:#fff;border:1px solid var(--gray200);border-radius:var(--r);padding:12px 14px;}
+.kl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:4px;}
+.kv{font-size:22px;font-weight:700;color:var(--charcoal);line-height:1;}
+.ks{font-size:10px;color:var(--text3);margin-top:4px;}
+.tbl{width:100%;border-collapse:collapse;font-size:12px;}
+.tbl th{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);padding:6px 8px;text-align:left;border-bottom:1px solid var(--gray200);background:var(--gray50);}
+.tbl td{padding:7px 8px;border-bottom:.5px solid var(--gray100);vertical-align:top;}
+.tbl tr:last-child td{border-bottom:none;}
+.tbl tbody tr:hover{background:var(--gray50);}
+.bdg{display:inline-block;padding:2px 7px;border-radius:10px;font-size:11px;font-weight:600;}
+.bg{background:var(--green-bg);color:var(--green);}
+.br{background:var(--red-bg);color:var(--red);}
+.ba{background:var(--amber-bg);color:var(--amber);}
+.pill{display:inline-block;padding:1px 6px;border-radius:8px;font-size:10px;font-weight:600;margin:1px;}
+.spin{display:inline-block;width:16px;height:16px;border:2px solid var(--gray200);border-top-color:var(--orange);border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.err{background:var(--red-bg);border-left:3px solid var(--red);border-radius:var(--r);padding:10px 14px;color:var(--red);font-size:12px;margin-bottom:12px;}
+.info{background:var(--orange-lt);border-left:3px solid var(--orange);border-radius:var(--r);padding:10px 14px;font-size:12px;margin-bottom:12px;}
+.day-grid td,.day-grid th{text-align:center;min-width:80px;}
+.day-grid td:first-child,.day-grid th:first-child{text-align:left;min-width:120px;}
+.z{color:var(--text4);}
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="logo">Tribute <span>Home Care &middot; Scheduling Fill Dashboard</span></div>
+  <div id="genAt" style="font-size:11px;color:var(--text3);margin-left:auto;"></div>
+  <button onclick="loadAll()" style="background:var(--orange);color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer;">&#x21bb; Refresh</button>
+</div>
+<div class="tabs">
+  <div class="ntab on" onclick="setTab('open',this)">Open Visits</div>
+  <div class="ntab" onclick="setTab('bookingsets',this)">Open Booking Sets</div>
+  <div class="ntab" onclick="setTab('timeoff',this)">Caregiver Time Off</div>
+</div>
+<div class="main" id="ct"><div class="info"><span class="spin"></span>&nbsp; Loading&hellip;</div></div>
+
+<script>
+var API='https://tribute-api-prod-bkc4hfcwf3f2f6bf.centralus-01.azurewebsites.net/api/vivProxy';
+var curTab='open';
+var openData=null, bookingData=null, timeoffData=null;
+
+function setTab(t,el){
+  curTab=t;
+  document.querySelectorAll('.ntab').forEach(function(x){x.classList.remove('on');});
+  if(el)el.classList.add('on');
+  render();
+}
+
+function fmt(n){return n===null||n===undefined?'—':n.toLocaleString();}
+function fp(n){return n===null||n===undefined?'—':(n*100).toFixed(1)+'%';}
+function badge(n,warn,bad){
+  var cls=n>=warn?'bg':n>=bad?'ba':'br';
+  return '<span class="bdg '+cls+'">'+fmt(n)+'</span>';
+}
+
+function loading(msg){
+  document.getElementById('ct').innerHTML='<div class="info"><span class="spin"></span>&nbsp; '+(msg||'Loading...')+'</div>';
+}
+function showErr(msg){
+  document.getElementById('ct').innerHTML='<div class="err">'+msg+'</div>';
+}
+
+function loadAll(){
+  openData=null; bookingData=null; timeoffData=null;
+  loading('Fetching open visits from Viv...');
+  Promise.all([
+    fetch(API+'?endpoint=open_visits').then(function(r){return r.json();}),
+    fetch(API+'?endpoint=open_booking_sets').then(function(r){return r.json();}),
+    fetch(API+'?endpoint=caregiver_timeoff').then(function(r){return r.json();})
+  ]).then(function(results){
+    openData=results[0];
+    bookingData=results[1];
+    timeoffData=results[2];
+    if(openData.generatedAt){
+      document.getElementById('genAt').textContent='Updated '+new Date(openData.generatedAt).toLocaleTimeString();
+    }
+    render();
+  }).catch(function(e){
+    showErr('Error loading data: '+e.message);
+  });
+}
+
+function render(){
+  if(!openData){loading('Loading...');return;}
+  if(curTab==='open')renderOpenVisits();
+  else if(curTab==='bookingsets')renderBookingSets();
+  else if(curTab==='timeoff')renderTimeOff();
+}
+
+function renderOpenVisits(){
+  var d=openData;
+  if(!d||d.error){showErr(d&&d.error||'No data');return;}
+  var w7=d.window7||{total:0,byState:{},byMarket:{}};
+  var w30=d.window30||{total:0,byState:{},byMarket:{}};
+  var grid=d.dayGrid||{};
+
+  var STATES=['Massachusetts','Maryland','Illinois'];
+  var MARKETS=['Boston','MetroWest Boston','North of Boston','South of Boston','Baltimore','Annapolis','Bethesda','Chicago'];
+
+  var html='';
+
+  // ── Top KPIs ──
+  html+='<div class="kg4">';
+  html+='<div class="kpi"><div class="kl">Open (7 days)</div><div class="kv '+(w7.total===0?'':'')+'">'+w7.total+'</div><div class="ks">Unassigned visits</div></div>';
+  html+='<div class="kpi"><div class="kl">Open (30 days)</div><div class="kv">'+w30.total+'</div><div class="ks">Unassigned visits</div></div>';
+  STATES.forEach(function(s){
+    html+='<div class="kpi"><div class="kl">'+s+'</div>';
+    html+='<div class="kv">'+(w7.byState[s]||0)+'<span style="font-size:13px;font-weight:400;color:var(--text3)"> / '+(w30.byState[s]||0)+'</span></div>';
+    html+='<div class="ks">7-day / 30-day</div></div>';
+  });
+  html+='</div>';
+
+  // ── 7-day grid: day × shift type ──
+  html+='<div class="fc"><div class="ct">Open Visits — Next 7 Days by Shift Type</div>';
+  html+='<div style="overflow-x:auto"><table class="tbl day-grid"><thead><tr>';
+  html+='<th>Date</th><th>Total</th><th>Long Hours<br><span style="font-weight:400;font-size:9px">(5+ hrs day)</span></th><th>Short Hours<br><span style="font-weight:400;font-size:9px">(&lt;5 hrs)</span></th><th>Overnight<br><span style="font-weight:400;font-size:9px">(7pm–7am)</span></th><th>Live-In<br><span style="font-weight:400;font-size:9px">(24+ hrs)</span></th></tr></thead><tbody>';
+  var gridKeys=Object.keys(grid).sort();
+  var colTotals={long:0,short:0,overnight:0,live_in:0,total:0};
+  gridKeys.forEach(function(dk){
+    var day=grid[dk];
+    colTotals.long+=day.long||0; colTotals.short+=day.short||0;
+    colTotals.overnight+=day.overnight||0; colTotals.live_in+=day.live_in||0;
+    colTotals.total+=day.total||0;
+    function c(n){return n?'<strong>'+n+'</strong>':'<span class="z">—</span>';}
+    html+='<tr>';
+    html+='<td><strong>'+(day.dow||dk)+'</strong></td>';
+    html+='<td>'+(day.total?'<span class="bdg '+(day.total>10?'br':day.total>5?'ba':'bg')+'">'+day.total+'</span>':'<span class="z">—</span>')+'</td>';
+    html+='<td>'+c(day.long)+'</td><td>'+c(day.short)+'</td><td>'+c(day.overnight)+'</td><td>'+c(day.live_in)+'</td>';
+    html+='</tr>';
+  });
+  html+='</tbody><tfoot><tr style="background:var(--gray100)"><td><strong>Total</strong></td>';
+  html+='<td><strong>'+colTotals.total+'</strong></td>';
+  html+='<td><strong>'+colTotals.long+'</strong></td><td><strong>'+colTotals.short+'</strong></td>';
+  html+='<td><strong>'+colTotals.overnight+'</strong></td><td><strong>'+colTotals.live_in+'</strong></td>';
+  html+='</tr></tfoot></table></div></div>';
+
+  // ── 7-day by market ──
+  html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">';
+
+  html+='<div class="fc"><div class="ct">7-Day Open Visits — by Market</div>';
+  html+='<table class="tbl"><thead><tr><th>Market</th><th>State</th><th>Open (7d)</th><th>Open (30d)</th></tr></thead><tbody>';
+  var mkts7=w7.byMarket||{};var mkts30=w30.byMarket||{};
+  MARKETS.forEach(function(m){
+    var n7=mkts7[m]||0; var n30=mkts30[m]||0;
+    if(!n7&&!n30)return;
+    var STATE_MAP={'Boston':'MA','MetroWest Boston':'MA','North of Boston':'MA','South of Boston':'MA','Baltimore':'MD','Annapolis':'MD','Bethesda':'MD','Chicago':'IL'};
+    html+='<tr><td><strong>'+m+'</strong></td><td style="color:var(--text3)">'+STATE_MAP[m]+'</td>';
+    html+='<td>'+(n7?'<span class="bdg '+(n7>10?'br':n7>4?'ba':'bg')+'">'+n7+'</span>':'<span class="z">0</span>')+'</td>';
+    html+='<td>'+n30+'</td></tr>';
+  });
+  html+='</tbody></table></div>';
+
+  html+='<div class="fc"><div class="ct">7-Day Open Visits — by State</div>';
+  html+='<table class="tbl"><thead><tr><th>State</th><th>Open (7d)</th><th>Open (30d)</th></tr></thead><tbody>';
+  STATES.forEach(function(s){
+    var n7=w7.byState[s]||0; var n30=w30.byState[s]||0;
+    html+='<tr><td><strong>'+s+'</strong></td>';
+    html+='<td>'+(n7?'<span class="bdg '+(n7>20?'br':n7>10?'ba':'bg')+'">'+n7+'</span>':'<span class="z">0</span>')+'</td>';
+    html+='<td>'+n30+'</td></tr>';
+  });
+  html+='</tbody></table></div>';
+  html+='</div>';
+
+  document.getElementById('ct').innerHTML=html;
+}
+
+function renderBookingSets(){
+  var d=bookingData;
+  if(!d||d.error){showErr(d&&d.error||'No data');return;}
+  var sets=d.bookingSets||[];
+  var html='';
+
+  html+='<div class="kg3">';
+  html+='<div class="kpi"><div class="kl">Open Booking Sets</div><div class="kv '+(sets.length>20?'br':sets.length>10?'ba':'bg')+'">'+sets.length+'</div><div class="ks">Recurring unassigned patterns</div></div>';
+
+  var STATES=['Massachusetts','Maryland','Illinois'];
+  STATES.forEach(function(s){
+    var n=sets.filter(function(x){return x.state===s;}).length;
+    html+='<div class="kpi"><div class="kl">'+s+'</div><div class="kv">'+n+'</div><div class="ks">Booking sets</div></div>';
+  });
+  html+='</div>';
+
+  if(!sets.length){
+    html+='<div class="fc" style="text-align:center;padding:30px;color:var(--text3)">No open booking sets found in the next 60 days.</div>';
+  } else {
+    html+='<div class="fc"><div class="ct">Open Booking Sets — Clients with Recurring Unassigned Visits</div>';
+    html+='<table class="tbl"><thead><tr><th>Client</th><th>Market</th><th>State</th><th>Open Visits</th><th>Next Open</th><th>Day Pattern</th><th>Account Manager</th></tr></thead><tbody>';
+    sets.forEach(function(s){
+      html+='<tr>';
+      html+='<td><strong>'+s.clientName+'</strong></td>';
+      html+='<td>'+s.market+'</td>';
+      html+='<td style="color:var(--text3)">'+s.state+'</td>';
+      html+='<td><span class="bdg '+(s.openVisitCount>=5?'br':s.openVisitCount>=3?'ba':'bg')+'">'+s.openVisitCount+'</span></td>';
+      html+='<td>'+s.nextDate+'</td>';
+      // Day pattern pills
+      var pattern='';
+      Object.keys(s.dayPattern||{}).forEach(function(day){
+        var dp=s.dayPattern[day];
+        var label=day.substring(0,3);
+        if(dp.day)pattern+='<span class="pill bg">'+label+' Day</span>';
+        if(dp.night)pattern+='<span class="pill ba">'+label+' Night</span>';
+      });
+      html+='<td>'+(pattern||'<span class="z">—</span>')+'</td>';
+      html+='<td style="color:var(--text3)">'+(s.accountManager||'—')+'</td>';
+      html+='</tr>';
+    });
+    html+='</tbody></table></div>';
+  }
+
+  document.getElementById('ct').innerHTML=html;
+}
+
+function renderTimeOff(){
+  var d=timeoffData;
+  if(!d||d.error){showErr(d&&d.error||'No data');return;}
+  var cgs=d.caregivers||[];
+  var html='';
+
+  html+='<div class="kg3">';
+  html+='<div class="kpi"><div class="kl">Caregivers with 3+ Days Off</div><div class="kv '+(cgs.length>10?'br':cgs.length>5?'ba':'bg')+'">'+cgs.length+'</div><div class="ks">Next 2 weeks</div></div>';
+  var totalClients=cgs.reduce(function(s,c){return s+c.activeClients.length;},0);
+  html+='<div class="kpi"><div class="kl">Active Clients at Risk</div><div class="kv">'+totalClients+'</div><div class="ks">Assigned in last 90 days</div></div>';
+  html+='<div class="kpi"><div class="kl">Avg Days Off</div><div class="kv">'+(cgs.length?Math.round(cgs.reduce(function(s,c){return s+c.timeOffCount;},0)/cgs.length):0)+'</div><div class="ks">Per caregiver</div></div>';
+  html+='</div>';
+
+  if(!cgs.length){
+    html+='<div class="fc" style="text-align:center;padding:30px;color:var(--text3)">No caregivers with 3+ time-off entries in the next 2 weeks.</div>';
+  } else {
+    html+='<div class="fc"><div class="ct">Caregivers with Extended Time Off — Next 2 Weeks</div>';
+    html+='<table class="tbl"><thead><tr><th>Caregiver</th><th>Market</th><th>Days Off</th><th>Leave Window</th><th>Active Clients</th></tr></thead><tbody>';
+    cgs.forEach(function(cg){
+      html+='<tr>';
+      html+='<td><strong>'+cg.name+'</strong></td>';
+      html+='<td>'+cg.market+'</td>';
+      html+='<td><span class="bdg '+(cg.timeOffCount>=5?'br':cg.timeOffCount>=3?'ba':'bg')+'">'+cg.timeOffCount+'</span></td>';
+      html+='<td>'+cg.timeOffStart+' &rarr; '+cg.timeOffEnd+'</td>';
+      // Active clients as pills
+      var clients=cg.activeClients.map(function(c){return '<span class="pill bg">'+c.name+'</span>';}).join('');
+      html+='<td>'+(clients||'<span class="z">None on file</span>')+'</td>';
+      html+='</tr>';
+    });
+    html+='</tbody></table></div>';
+  }
+
+  document.getElementById('ct').innerHTML=html;
+}
+
+// Auto-load on start
+loadAll();
+</script>
+</body>
+</html>
