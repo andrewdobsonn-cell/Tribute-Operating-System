@@ -89,24 +89,38 @@ function showErr(msg){
   document.getElementById('ct').innerHTML='<div class="err">'+msg+'</div>';
 }
 
+function safeFetch(url, label){
+  loading('Loading '+label+'...');
+  return fetch(url)
+    .then(function(r){
+      if(!r.ok) return{error:'HTTP '+r.status+' from '+label};
+      return r.text().then(function(txt){
+        try{return JSON.parse(txt);}
+        catch(e){return{error:'Bad JSON from '+label+': '+txt.substring(0,100)};}
+      });
+    })
+    .catch(function(e){return{error:'Network error on '+label+': '+e.message};});
+}
+
 function loadAll(){
   openData=null; bookingData=null; timeoffData=null;
-  loading('Fetching open visits from Viv...');
-  Promise.all([
-    fetch(API+'?endpoint=open_visits').then(function(r){return r.json();}),
-    fetch(API+'?endpoint=open_booking_sets').then(function(r){return r.json();}),
-    fetch(API+'?endpoint=caregiver_timeoff').then(function(r){return r.json();})
-  ]).then(function(results){
-    openData=results[0];
-    bookingData=results[1];
-    timeoffData=results[2];
-    if(openData.generatedAt){
-      document.getElementById('genAt').textContent='Updated '+new Date(openData.generatedAt).toLocaleTimeString();
-    }
-    render();
-  }).catch(function(e){
-    showErr('Error loading data: '+e.message);
-  });
+  loading('Loading open visits...');
+  // Load sequentially so we can see which step fails
+  safeFetch(API+'?endpoint=open_visits','open_visits').then(function(r){
+    openData=r;
+    if(r.error){showErr('open_visits failed: '+r.error);return;}
+    loading('Loading booking sets...');
+    return safeFetch(API+'?endpoint=open_booking_sets','open_booking_sets').then(function(r2){
+      bookingData=r2;
+      loading('Loading caregiver time off...');
+      return safeFetch(API+'?endpoint=caregiver_timeoff','caregiver_timeoff').then(function(r3){
+        timeoffData=r3;
+        var genAt=openData&&openData.generatedAt;
+        if(genAt) document.getElementById('genAt').textContent='Updated '+new Date(genAt).toLocaleTimeString();
+        render();
+      });
+    });
+  }).catch(function(e){showErr('Unexpected error: '+e.message);});
 }
 
 function render(){
