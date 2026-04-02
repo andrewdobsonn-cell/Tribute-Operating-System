@@ -118,6 +118,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <div class="ntab" onclick="setTab('uber',this)">Ubers</div>
   <div class="ntab" onclick="setTab('ot',this)">OT & Incentives</div>
   <div class="ntab" onclick="setTab('gm',this)">Gross Margin</div>
+  <div class="ntab" onclick="setTab('matchfailures',this)">Match Failures</div>
 </div>
 
 <div class="main">
@@ -223,6 +224,7 @@ function render(){
   else if(curTab==='uber')renderUber();
   else if(curTab==='ot')renderOT();
   else if(curTab==='gm')renderGM();
+  else if(curTab==='matchfailures')renderMatchFailures();
 }
 
 function renderOverview(){
@@ -1185,6 +1187,99 @@ curStart=fmtD(s);curEnd=fmtD(e);
 document.getElementById('cs').value=curStart;
 document.getElementById('ce').value=curEnd;
 fetchData();
+
+var mfData=null;
+
+async function fetchMatchFailures(){
+  document.getElementById('ct').innerHTML='<div class="loading"><div class="spin"></div>Loading match failure data...</div>';
+  try{
+    var r=await fetch(API+'?endpoint=match_failures&startDate='+curStart+'&endDate='+curEnd);
+    mfData=r.ok?await r.json():null;
+    renderMatchFailures();
+  }catch(e){
+    document.getElementById('ct').innerHTML='<div style="color:var(--red);padding:20px">Error loading match failures: '+e.message+'</div>';
+  }
+}
+
+function renderMatchFailures(){
+  // If no data yet, fetch it
+  if(!mfData||mfData.period&&mfData.period.start!==curStart){
+    fetchMatchFailures();
+    return;
+  }
+
+  var html='';
+  var co=mfData.company||{};
+  var byMarket=mfData.byMarket||[];
+  var byState=mfData.byState||[];
+  var incidents=mfData.incidents||[];
+
+  // Company KPIs
+  var ratePct=(co.matchFailureRate*100).toFixed(2);
+  var rateColor=co.onTarget?'var(--green)':'var(--red)';
+  html+='<div class="kg4">';
+  html+='<div class="kpi"><div class="kl">Match Failures</div><div class="kv" style="color:'+rateColor+'">'+fn(co.matchFailures)+'</div><div class="ks">Week of '+curStart+'</div></div>';
+  html+='<div class="kpi"><div class="kl">Active Clients</div><div class="kv b">'+fn(co.activeClients)+'</div><div class="ks">Company-wide</div></div>';
+  html+='<div class="kpi"><div class="kl">MF Rate</div><div class="kv" style="color:'+rateColor+'">'+ratePct+'%</div><div class="ks">Target ≤ 1.00%</div></div>';
+  html+='<div class="kpi"><div class="kl">Status</div><div class="kv" style="color:'+rateColor+'">'+( co.onTarget?'✅ On Target':'⚠️ Over Target')+'</div><div class="ks">'+( co.onTarget?'Within threshold':'Above 1% threshold')+'</div></div>';
+  html+='</div>';
+
+  // State breakdown
+  html+='<div class="fc"><div class="ct">By State</div>';
+  html+='<table class="tbl"><thead><tr><th>State</th><th>Match Failures</th><th>Active Clients</th><th>MF Rate</th><th>Status</th></tr></thead><tbody>';
+  byState.forEach(function(s){
+    var pct=(s.matchFailureRate*100).toFixed(2);
+    var ok=s.matchFailureRate<=0.01;
+    var col=ok?'var(--green)':'var(--red)';
+    html+='<tr><td><strong>'+s.state+'</strong></td><td style="color:'+col+'">'+fn(s.matchFailures)+'</td><td>'+fn(s.activeClients)+'</td>';
+    html+='<td style="color:'+col+';font-weight:600">'+pct+'%</td>';
+    html+='<td style="color:'+col+'">'+( ok?'✅':'⚠️')+'</td></tr>';
+  });
+  html+='</tbody></table></div>';
+
+  // Market breakdown
+  html+='<div class="fc"><div class="ct">By Market</div>';
+  html+='<table class="tbl"><thead><tr><th>Market</th><th>State</th><th>Match Failures</th><th>First MF</th><th>Repeat MF</th><th>Unique Clients</th><th>Active Clients</th><th>MF Rate</th><th>Status</th></tr></thead><tbody>';
+  byMarket.forEach(function(m){
+    var pct=(m.matchFailureRate*100).toFixed(2);
+    var ok=m.onTarget;
+    var col=ok?'var(--text)':'var(--red)';
+    html+='<tr><td><strong>'+m.market+'</strong></td><td>'+m.state+'</td>';
+    html+='<td style="color:'+(m.matchFailures>0?'var(--red)':'var(--text2)')+'">'+fn(m.matchFailures)+'</td>';
+    html+='<td>'+fn(m.firstMatchFailures)+'</td>';
+    html+='<td>'+fn(m.repeatMatchFailures)+'</td>';
+    html+='<td>'+fn(m.uniqueClients)+'</td>';
+    html+='<td>'+fn(m.activeClients)+'</td>';
+    html+='<td style="color:'+col+';font-weight:600">'+pct+'%</td>';
+    html+='<td style="color:'+col+'">'+( ok?'✅':'⚠️')+'</td></tr>';
+  });
+  html+='</tbody></table></div>';
+
+  // Incident list
+  if(incidents.length>0){
+    html+='<div class="fc"><div class="ct">Match Failure Incidents This Week ('+fn(incidents.length)+')</div>';
+    html+='<table class="tbl"><thead><tr><th>#</th><th>Date</th><th>Type</th><th>Client</th><th>Market</th><th>Submitted By</th><th>Status</th></tr></thead><tbody>';
+    incidents.forEach(function(inc){
+      var date=inc.incidentDate?inc.incidentDate.split('T')[0]:'—';
+      var shortType=inc.type.replace('Client Complaint: ','').replace('Connection: ','').replace('Care Skill: ','');
+      html+='<tr>';
+      html+='<td>'+fn(inc.incidentNum)+'</td>';
+      html+='<td>'+date+'</td>';
+      html+='<td><span style="font-size:11px;background:var(--orange-50);color:var(--orange);padding:2px 6px;border-radius:4px">'+shortType+'</span></td>';
+      html+='<td>'+( inc.clientFn||'')+(inc.clientFn&&inc.clientLn?' ':'')+(inc.clientLn||'')+'</td>';
+      html+='<td>'+( inc.gcity||'—')+'</td>';
+      html+='<td>'+(inc.submitter?(inc.submitter.fn+' '+inc.submitter.ln):'—')+'</td>';
+      html+='<td><span style="font-size:11px;color:'+(inc.st==='resolved'?'var(--green)':inc.st==='submitted'?'var(--orange)':'var(--text2)')+'">'+( inc.st||'—')+'</span></td>';
+      html+='</tr>';
+    });
+    html+='</tbody></table></div>';
+  } else {
+    html+='<div class="fc" style="text-align:center;padding:32px;color:var(--text3)">✅ No match failure incidents this week</div>';
+  }
+
+  document.getElementById('ct').innerHTML=html;
+}
+
 </script>
 </body>
 </html>
