@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Tribute · Scheduling Fill Dashboard</title>
+<title>Tribute Home Care · Scheduling Fill</title>
 <style>
 :root{
   --orange:#E8732A;--orange-lt:#FFF3EC;--green:#2E7D32;--green-bg:#F1F8E9;
@@ -155,14 +155,14 @@ function loadAll(){
     if(r&&r.generatedAt)document.getElementById('genAt').textContent='Live · Viv Technologies · '+new Date(r.generatedAt).toLocaleTimeString();
     if(curTab==='open')render();
     loading('Loading booking sets...');
-    return new Promise(function(res){setTimeout(res,1500);}).then(function(){
+    return new Promise(function(res){setTimeout(res,300);}).then(function(){
       return safeFetch(API+'?endpoint=open_booking_sets','open_booking_sets');
     });
   }).then(function(r){
     bookingData=r;
     if(curTab==='bookingsets')render();
     loading('Loading caregiver time off...');
-    return new Promise(function(res){setTimeout(res,1000);}).then(function(){
+    return new Promise(function(res){setTimeout(res,300);}).then(function(){
       return safeFetch(API+'?endpoint=caregiver_timeoff','caregiver_timeoff');
     });
   }).then(function(r){
@@ -309,31 +309,15 @@ function renderBookingSets(){
 
   var MKT_STATE={'Boston':'Massachusetts','MetroWest Boston':'Massachusetts','North of Boston':'Massachusetts','South of Boston':'Massachusetts','Baltimore':'Maryland','Annapolis':'Maryland','Bethesda':'Maryland','Chicago':'Illinois'};
 
-  // Determine shift type for each set based on dayPattern
-  function getSetShiftTypes(s){
-    var types={long:false,short:false,overnight:false,livein:false};
-    // For now we infer from visit count patterns - to be enhanced when shift data is in bookingSets
-    // Check day pattern for night shifts
-    Object.keys(s.dayPattern||{}).forEach(function(dow){
-      var dp=s.dayPattern[dow];
-      if(dp.night>0)types.overnight=true;
-      if(dp.day>0)types.long=true; // assume day visits are long hours
-    });
-    return types;
-  }
-
-  // Filter
+  // Filter using shiftTypes from proxy
   var filtered=sets.filter(function(s){
     if(filters.state!=='all'&&s.state!==filters.state)return false;
     if(filters.market!=='all'&&s.market!==filters.market)return false;
-    var st=getSetShiftTypes(s);
-    var anyShift=false;
-    if(filters.shifts.long&&st.long)anyShift=true;
-    if(filters.shifts.short&&st.short)anyShift=true;
-    if(filters.shifts.overnight&&st.overnight)anyShift=true;
-    if(filters.shifts.livein&&st.livein)anyShift=true;
-    if(!anyShift&&(st.long||st.short||st.overnight||st.livein))return false;
-    return true;
+    var st=s.shiftTypes||{long:true,short:true,overnight:true,livein:true};
+    // Must have at least one enabled shift type
+    var anyMatch=(filters.shifts.long&&st.long)||(filters.shifts.short&&st.short)||
+                 (filters.shifts.overnight&&st.overnight)||(filters.shifts.livein&&st.livein);
+    return anyMatch;
   });
 
   // Sort
@@ -395,15 +379,17 @@ function renderBookingSets(){
       curState=s.state;
       html+='<tr><td colspan="6" class="state-header">'+curState+'</td></tr>';
     }
-    // Build day pattern pills
+    // Build day pattern pills — only show shift types that are active in filters
     var pattern='';
     var DAYS=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
     DAYS.forEach(function(day){
       var dp=s.dayPattern[day];
       if(!dp)return;
       var label=day.substring(0,3);
-      if(dp.day>0)pattern+='<span class="shift-pill sp-long">'+label+' Day'+(dp.day>1?' ×'+dp.day:'')+'</span>';
-      if(dp.night>0)pattern+='<span class="shift-pill sp-overnight">'+label+' Night'+(dp.night>1?' ×'+dp.night:'')+'</span>';
+      if(filters.shifts.long&&dp.long>0)pattern+='<span class="shift-pill sp-long">'+label+' Long'+(dp.long>1?' ×'+dp.long:'')+'</span>';
+      if(filters.shifts.short&&dp.short>0)pattern+='<span class="shift-pill sp-short">'+label+' Short'+(dp.short>1?' ×'+dp.short:'')+'</span>';
+      if(filters.shifts.overnight&&dp.overnight>0)pattern+='<span class="shift-pill sp-overnight">'+label+' Night'+(dp.overnight>1?' ×'+dp.overnight:'')+'</span>';
+      if(filters.shifts.livein&&dp.livein>0)pattern+='<span class="shift-pill sp-livein">'+label+' Live-In'+(dp.livein>1?' ×'+dp.livein:'')+'</span>';
     });
 
     html+='<tr>';
