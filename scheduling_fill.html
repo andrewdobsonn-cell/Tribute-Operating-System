@@ -8,24 +8,22 @@
 :root{
   --orange:#E8732A;--orange-lt:#FFF3EC;--green:#2E7D32;--green-bg:#F1F8E9;
   --red:#C62828;--red-bg:#FFEBEE;--amber:#E65100;--amber-bg:#FFF3E0;
-  --blue:#1565C0;--blue-bg:#E3F2FD;
+  --blue:#1565C0;--blue-bg:#E3F2FD;--purple:#6A1B9A;--purple-bg:#F3E5F5;
   --charcoal:#1A1A1A;--text2:#444;--text3:#777;--text4:#AAA;
   --gray50:#FAFAFA;--gray100:#F0F0F0;--gray200:#E0E0E0;--gray300:#C8C8C8;
   --r:8px;--font:'Lato',system-ui,sans-serif;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:var(--font);background:var(--gray50);color:var(--charcoal);font-size:13px;}
-.header{background:#fff;border-bottom:1px solid var(--gray200);padding:12px 20px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100;}
+.header{background:#fff;border-bottom:1px solid var(--gray200);padding:12px 20px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100;flex-wrap:wrap;}
 .logo{font-weight:800;font-size:15px;color:var(--orange);}
 .logo span{font-weight:400;color:var(--text3);}
-.live-dot{width:7px;height:7px;background:#4CAF50;border-radius:50%;display:inline-block;margin-right:4px;}
-.tabs{display:flex;gap:0;border-bottom:1px solid var(--gray200);background:#fff;padding:0 20px;overflow-x:auto;}
+.tabs{display:flex;border-bottom:1px solid var(--gray200);background:#fff;padding:0 20px;overflow-x:auto;}
 .ntab{font-size:12px;font-weight:500;color:var(--text3);padding:10px 16px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap;}
 .ntab.on{color:var(--charcoal);border-bottom-color:var(--orange);}
 .ntab:hover{color:var(--charcoal);}
 .main{padding:16px 20px;max-width:1600px;}
 
-/* Filter bar */
 .filter-bar{background:#fff;border:1px solid var(--gray200);border-radius:var(--r);padding:10px 14px;margin-bottom:12px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;}
 .filter-bar label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);}
 .filter-bar select{font-size:12px;padding:4px 8px;border:1px solid var(--gray200);border-radius:5px;background:#fff;color:var(--charcoal);cursor:pointer;}
@@ -35,51 +33,58 @@ body{font-family:var(--font);background:var(--gray50);color:var(--charcoal);font
 .toggle.on{background:var(--charcoal);color:#fff;border-color:var(--charcoal);}
 .toggle.long.on{background:var(--blue);border-color:var(--blue);color:#fff;}
 .toggle.short.on{background:var(--green);border-color:var(--green);color:#fff;}
-.toggle.overnight.on{background:#6A1B9A;border-color:#6A1B9A;color:#fff;}
+.toggle.overnight.on{background:var(--purple);border-color:var(--purple);color:#fff;}
 .toggle.livein.on{background:var(--orange);border-color:var(--orange);color:#fff;}
 .filter-sep{width:1px;height:24px;background:var(--gray200);}
-.result-count{font-size:11px;color:var(--text3);margin-left:auto;}
+.result-count{font-size:11px;color:var(--text3);}
 
-/* KPI row */
+.action-bar{display:flex;gap:8px;align-items:center;margin-left:auto;}
+.btn{font-size:11px;font-weight:600;padding:5px 12px;border-radius:6px;cursor:pointer;border:1px solid var(--gray200);background:#fff;color:var(--text2);display:inline-flex;align-items:center;gap:5px;}
+.btn:hover{background:var(--gray100);}
+.btn.primary{background:var(--orange);color:#fff;border-color:var(--orange);}
+.btn.primary:hover{background:#d4621f;}
+.btn.edit-on{background:var(--amber-bg);color:var(--amber);border-color:var(--amber);}
+
 .kg{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:12px;}
 .kpi{background:#fff;border:1px solid var(--gray200);border-radius:var(--r);padding:12px 14px;}
 .kl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:4px;}
 .kv{font-size:22px;font-weight:700;color:var(--charcoal);line-height:1;}
 .ks{font-size:10px;color:var(--text3);margin-top:4px;}
 
-/* Table */
 .fc{background:#fff;border:1px solid var(--gray200);border-radius:var(--r);overflow:hidden;margin-bottom:12px;}
 .fc-head{padding:10px 14px;border-bottom:1px solid var(--gray200);display:flex;align-items:center;gap:8px;}
 .fc-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);}
 .tbl{width:100%;border-collapse:collapse;font-size:12px;}
 .tbl th{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);padding:8px 12px;text-align:left;border-bottom:1px solid var(--gray200);background:var(--gray50);white-space:nowrap;cursor:pointer;user-select:none;}
-.tbl th:hover{color:var(--charcoal);}
-.tbl th .sort-icon{color:var(--text4);margin-left:3px;font-size:9px;}
-.tbl td{padding:8px 12px;border-bottom:.5px solid var(--gray100);vertical-align:middle;}
+.tbl th.no-sort{cursor:default;}
+.tbl th .si{color:var(--text4);margin-left:3px;font-size:9px;}
+.tbl td{padding:7px 12px;border-bottom:.5px solid var(--gray100);vertical-align:middle;}
 .tbl tr:last-child td{border-bottom:none;}
 .tbl tbody tr:hover{background:#FAFAFA;}
 
-/* Badges */
+/* Editable cells */
+.editable{cursor:text;min-width:60px;}
+.editable:hover{background:var(--orange-lt);border-radius:3px;}
+.editable input,.editable select{font-size:12px;border:1px solid var(--orange);border-radius:3px;padding:2px 5px;width:100%;background:#fff;font-family:var(--font);}
+.edit-hint{font-size:9px;color:var(--text4);margin-top:2px;}
+.deleted{opacity:0.4;text-decoration:line-through;}
+
 .bdg{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;}
 .bg{background:var(--green-bg);color:var(--green);}
 .br{background:var(--red-bg);color:var(--red);}
 .ba{background:var(--amber-bg);color:var(--amber);}
 .bb{background:var(--blue-bg);color:var(--blue);}
 
-/* Shift type pills */
-.shift-pill{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:8px;font-size:10px;font-weight:600;margin:1px;}
+.sp{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:8px;font-size:10px;font-weight:600;margin:1px;}
 .sp-long{background:var(--blue-bg);color:var(--blue);}
 .sp-short{background:var(--green-bg);color:var(--green);}
-.sp-overnight{background:#F3E5F5;color:#6A1B9A;}
+.sp-overnight{background:var(--purple-bg);color:var(--purple);}
 .sp-livein{background:var(--orange-lt);color:var(--orange);}
 
-/* Day grid */
+.state-header{background:var(--gray100);padding:6px 12px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);border-bottom:.5px solid var(--gray200);}
 .day-grid td,.day-grid th{text-align:center;min-width:72px;}
 .day-grid td:first-child,.day-grid th:first-child{text-align:left;min-width:130px;}
 .day-grid td:nth-child(2),.day-grid th:nth-child(2){min-width:60px;}
-
-/* State section headers */
-.state-header{background:var(--gray100);padding:6px 12px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);border-bottom:.5px solid var(--gray200);}
 
 .spin{display:inline-block;width:14px;height:14px;border:2px solid var(--gray200);border-top-color:var(--orange);border-radius:50%;animation:spin .7s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg);}}
@@ -87,8 +92,6 @@ body{font-family:var(--font);background:var(--gray50);color:var(--charcoal);font
 .info{background:var(--orange-lt);border-left:3px solid var(--orange);border-radius:var(--r);padding:10px 14px;font-size:12px;margin-bottom:12px;}
 .empty{text-align:center;padding:40px;color:var(--text3);font-size:13px;}
 .z{color:var(--text4);}
-
-select, .toggle {outline: none;}
 </style>
 </head>
 <body>
@@ -113,10 +116,11 @@ select, .toggle {outline: none;}
 var API='https://tribute-api-prod-bkc4hfcwf3f2f6bf.centralus-01.azurewebsites.net/api/vivProxy';
 var curTab='open';
 var openData=null,bookingData=null,timeoffData=null;
-
-// Filter state
 var filters={state:'all',market:'all',shifts:{long:true,short:true,overnight:true,livein:true}};
 var sortCol='openVisitCount',sortDir=-1;
+var editMode=false;
+// Manual overrides: {cid: {hide:bool, clientName, accountManager, daysNote, nightsNote}}
+var overrides={};
 
 var STATE_MARKETS={
   'Massachusetts':['Boston','MetroWest Boston','North of Boston','South of Boston'],
@@ -124,6 +128,9 @@ var STATE_MARKETS={
   'Illinois':['Chicago']
 };
 var ALL_MARKETS=['Boston','MetroWest Boston','North of Boston','South of Boston','Baltimore','Annapolis','Bethesda','Chicago'];
+var MKT_STATE={'Boston':'Massachusetts','MetroWest Boston':'Massachusetts','North of Boston':'Massachusetts','South of Boston':'Massachusetts','Baltimore':'Maryland','Annapolis':'Maryland','Bethesda':'Maryland','Chicago':'Illinois'};
+var DAY_ABB={Sunday:'Su',Monday:'M',Tuesday:'Tu',Wednesday:'W',Thursday:'Th',Friday:'F',Saturday:'Sa'};
+var DAY_ORDER=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 
 function setTab(t,el){
   curTab=t;
@@ -134,17 +141,11 @@ function setTab(t,el){
 
 function loading(msg){document.getElementById('ct').innerHTML='<div class="info"><span class="spin"></span>&nbsp; '+(msg||'Loading...')+'</div>';}
 function showErr(msg){document.getElementById('ct').innerHTML='<div class="err">'+msg+'</div>';}
-function fmt(n){return n===null||n===undefined?'—':n.toLocaleString();}
 
 function safeFetch(url,label){
   return fetch(url)
-    .then(function(r){
-      return r.text().then(function(txt){
-        try{return JSON.parse(txt);}
-        catch(e){return{error:label+' bad JSON: '+txt.substring(0,80)};}
-      });
-    })
-    .catch(function(e){return{error:label+' network: '+e.message};});
+    .then(function(r){return r.text().then(function(txt){try{return JSON.parse(txt);}catch(e){return{error:label+' bad JSON'};} });})
+    .catch(function(e){return{error:label+': '+e.message};});
 }
 
 function loadAll(){
@@ -177,13 +178,13 @@ function render(){
   else if(curTab==='timeoff')renderTimeOff();
 }
 
-// ── FILTER BAR ──────────────────────────────────────────────────────────────
-function filterBarHTML(showShifts){
-  var markets = filters.state==='all' ? ALL_MARKETS : (STATE_MARKETS[filters.state]||ALL_MARKETS);
+// ── FILTER BAR ───────────────────────────────────────────────────────────────
+function filterBarHTML(showShifts, showEdit, resultCount, total){
+  var markets=filters.state==='all'?ALL_MARKETS:(STATE_MARKETS[filters.state]||ALL_MARKETS);
   var html='<div class="filter-bar">';
   html+='<label>State</label>';
   html+='<select onchange="filters.state=this.value;filters.market=\'all\';render()">';
-  html+='<option value="all"'+(filters.state==='all'?' selected':'')+'">All States</option>';
+  html+='<option value="all"'+(filters.state==='all'?' selected':'')+'>All States</option>';
   ['Massachusetts','Maryland','Illinois'].forEach(function(s){
     html+='<option value="'+s+'"'+(filters.state===s?' selected':'')+'>'+s+'</option>';
   });
@@ -191,28 +192,29 @@ function filterBarHTML(showShifts){
   html+='<label>Market</label>';
   html+='<select onchange="filters.market=this.value;render()">';
   html+='<option value="all"'+(filters.market==='all'?' selected':'')+'>All Markets</option>';
-  markets.forEach(function(m){
-    html+='<option value="'+m+'"'+(filters.market===m?' selected':'')+'>'+m+'</option>';
-  });
+  markets.forEach(function(m){html+='<option value="'+m+'"'+(filters.market===m?' selected':'')+'>'+m+'</option>';});
   html+='</select>';
   if(showShifts){
     html+='<div class="filter-sep"></div>';
     html+='<label>Shift Type</label>';
     html+='<div class="toggle-group">';
-    html+='<div class="toggle long'+(filters.shifts.long?' on':'')+'" onclick="filters.shifts.long=!filters.shifts.long;render()">Long Hours</div>';
-    html+='<div class="toggle short'+(filters.shifts.short?' on':'')+'" onclick="filters.shifts.short=!filters.shifts.short;render()">Short Hours</div>';
-    html+='<div class="toggle overnight'+(filters.shifts.overnight?' on':'')+'" onclick="filters.shifts.overnight=!filters.shifts.overnight;render()">Overnight</div>';
-    html+='<div class="toggle livein'+(filters.shifts.livein?' on':'')+'" onclick="filters.shifts.livein=!filters.shifts.livein;render()">Live-In</div>';
+    ['long','short','overnight','livein'].forEach(function(s){
+      var labels={long:'Long Hours',short:'Short Hours',overnight:'Overnight',livein:'Live-In'};
+      html+='<div class="toggle '+s+(filters.shifts[s]?' on':'')+'" onclick="filters.shifts.'+s+'=!filters.shifts.'+s+';render()">'+labels[s]+'</div>';
+    });
     html+='</div>';
   }
-  html+='<span class="result-count" id="resultCount"></span>';
+  if(resultCount!==undefined){
+    html+='<span class="result-count">'+resultCount+(total!==undefined?' of '+total:'')+'</span>';
+  }
+  if(showEdit){
+    html+='<div class="action-bar">';
+    html+='<button class="btn '+(editMode?'edit-on':'')+'" onclick="editMode=!editMode;render()">'+(editMode?'&#10003; Done Editing':'&#9998; Edit')+'</button>';
+    html+='<button class="btn primary" onclick="downloadCSV()">&#8595; Download CSV</button>';
+    html+='</div>';
+  }
   html+='</div>';
   return html;
-}
-
-function setResultCount(n,label){
-  var el=document.getElementById('resultCount');
-  if(el)el.textContent=n+' '+label;
 }
 
 // ── OPEN VISITS ──────────────────────────────────────────────────────────────
@@ -223,187 +225,240 @@ function renderOpenVisits(){
   var w7=d.window7||{total:0,byState:{},byMarket:{}};
   var w30=d.window30||{total:0,byState:{},byMarket:{}};
   var grid=d.dayGrid||{};
-
-  // Apply filters to grid
-  var fState=filters.state; var fMarket=filters.market;
-
   var html='';
-
-  // KPIs
   html+='<div class="kg">';
   html+='<div class="kpi"><div class="kl">Open (7 days)</div><div class="kv '+(w7.total>20?'br':w7.total>10?'ba':'')+'">'+w7.total+'</div><div class="ks">Unassigned visits</div></div>';
   html+='<div class="kpi"><div class="kl">Open (30 days)</div><div class="kv">'+w30.total+'</div><div class="ks">Unassigned visits</div></div>';
   ['Massachusetts','Maryland','Illinois'].forEach(function(s){
     var n7=w7.byState[s]||0,n30=w30.byState[s]||0;
-    html+='<div class="kpi"><div class="kl">'+s.replace('Massachusetts','Mass.').replace('Illinois','Illinois')+'</div>';
-    html+='<div class="kv">'+n7+'<span style="font-size:13px;font-weight:400;color:var(--text3)"> / '+n30+'</span></div>';
-    html+='<div class="ks">7d / 30d open</div></div>';
+    html+='<div class="kpi"><div class="kl">'+s.replace('Massachusetts','Mass.')+'</div><div class="kv">'+n7+'<span style="font-size:13px;font-weight:400;color:var(--text3)"> / '+n30+'</span></div><div class="ks">7d / 30d open</div></div>';
   });
   html+='</div>';
-
-  // Filter bar (no shift toggles for open visits — we show grid instead)
-  html+=filterBarHTML(false);
-
-  // 7-day grid
+  html+=filterBarHTML(false,false);
   html+='<div class="fc"><div class="fc-head"><span class="fc-title">Next 7 Days — Open Visits by Shift Type</span></div>';
   html+='<div style="overflow-x:auto"><table class="tbl day-grid"><thead><tr>';
-  html+='<th style="cursor:default">Date</th><th style="cursor:default">Total</th>';
-  html+='<th style="cursor:default"><span class="shift-pill sp-long">Long Hours</span><div style="font-size:9px;color:var(--text4);font-weight:400;margin-top:2px">5+ hrs daytime</div></th>';
-  html+='<th style="cursor:default"><span class="shift-pill sp-short">Short Hours</span><div style="font-size:9px;color:var(--text4);font-weight:400;margin-top:2px">&lt;5 hrs</div></th>';
-  html+='<th style="cursor:default"><span class="shift-pill sp-overnight">Overnight</span><div style="font-size:9px;color:var(--text4);font-weight:400;margin-top:2px">7pm – 7am</div></th>';
-  html+='<th style="cursor:default"><span class="shift-pill sp-livein">Live-In</span><div style="font-size:9px;color:var(--text4);font-weight:400;margin-top:2px">24+ hrs</div></th>';
+  html+='<th class="no-sort">Date</th><th class="no-sort">Total</th>';
+  html+='<th class="no-sort"><span class="sp sp-long">Long Hours</span></th>';
+  html+='<th class="no-sort"><span class="sp sp-short">Short Hours</span></th>';
+  html+='<th class="no-sort"><span class="sp sp-overnight">Overnight</span></th>';
+  html+='<th class="no-sort"><span class="sp sp-livein">Live-In</span></th>';
   html+='</tr></thead><tbody>';
   var gridKeys=Object.keys(grid).sort();
   var ct={long:0,short:0,overnight:0,live_in:0,total:0};
   gridKeys.forEach(function(dk){
     var day=grid[dk];
     ct.long+=day.long||0;ct.short+=day.short||0;ct.overnight+=day.overnight||0;ct.live_in+=day.live_in||0;ct.total+=day.total||0;
-    function c(n,cls){return n?'<span class="shift-pill '+cls+'">'+n+'</span>':'<span class="z">—</span>';}
-    html+='<tr>';
-    html+='<td><strong>'+(day.dow||dk)+'</strong></td>';
+    function c(n,cls){return n?'<span class="sp '+cls+'">'+n+'</span>':'<span class="z">—</span>';}
+    html+='<tr><td><strong>'+(day.dow||dk)+'</strong></td>';
     html+='<td>'+(day.total?'<span class="bdg '+(day.total>10?'br':day.total>5?'ba':'bg')+'">'+day.total+'</span>':'<span class="z">—</span>')+'</td>';
-    html+='<td>'+c(day.long,'sp-long')+'</td><td>'+c(day.short,'sp-short')+'</td><td>'+c(day.overnight,'sp-overnight')+'</td><td>'+c(day.live_in,'sp-livein')+'</td>';
-    html+='</tr>';
+    html+='<td>'+c(day.long,'sp-long')+'</td><td>'+c(day.short,'sp-short')+'</td><td>'+c(day.overnight,'sp-overnight')+'</td><td>'+c(day.live_in,'sp-livein')+'</td></tr>';
   });
-  html+='</tbody><tfoot><tr style="background:var(--gray100)"><td><strong>Total</strong></td>';
-  html+='<td><strong>'+ct.total+'</strong></td>';
-  html+='<td><strong>'+ct.long+'</strong></td><td><strong>'+ct.short+'</strong></td><td><strong>'+ct.overnight+'</strong></td><td><strong>'+ct.live_in+'</strong></td>';
-  html+='</tr></tfoot></table></div></div>';
-
-  // By market table
+  html+='</tbody><tfoot><tr style="background:var(--gray100)"><td><strong>Total</strong></td><td><strong>'+ct.total+'</strong></td><td><strong>'+ct.long+'</strong></td><td><strong>'+ct.short+'</strong></td><td><strong>'+ct.overnight+'</strong></td><td><strong>'+ct.live_in+'</strong></td></tr></tfoot></table></div></div>';
   html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">';
-  html+='<div class="fc"><div class="fc-head"><span class="fc-title">By Market</span></div><table class="tbl"><thead><tr><th>Market</th><th>State</th><th>7-Day</th><th>30-Day</th></tr></thead><tbody>';
-  var STATE_ABB={'Massachusetts':'MA','Maryland':'MD','Illinois':'IL'};
-  var MKT_STATE={'Boston':'Massachusetts','MetroWest Boston':'Massachusetts','North of Boston':'Massachusetts','South of Boston':'Massachusetts','Baltimore':'Maryland','Annapolis':'Maryland','Bethesda':'Maryland','Chicago':'Illinois'};
+  html+='<div class="fc"><div class="fc-head"><span class="fc-title">By Market</span></div><table class="tbl"><thead><tr><th class="no-sort">Market</th><th class="no-sort">State</th><th class="no-sort">7-Day</th><th class="no-sort">30-Day</th></tr></thead><tbody>';
   var filteredMkts=ALL_MARKETS.filter(function(m){
-    if(fState!=='all'&&MKT_STATE[m]!==fState)return false;
-    if(fMarket!=='all'&&m!==fMarket)return false;
+    if(filters.state!=='all'&&MKT_STATE[m]!==filters.state)return false;
+    if(filters.market!=='all'&&m!==filters.market)return false;
     return true;
   });
   filteredMkts.forEach(function(m){
     var n7=w7.byMarket[m]||0,n30=w30.byMarket[m]||0;
     if(!n7&&!n30)return;
-    html+='<tr><td><strong>'+m+'</strong></td><td style="color:var(--text3)">'+STATE_ABB[MKT_STATE[m]]+'</td>';
-    html+='<td>'+(n7?'<span class="bdg '+(n7>10?'br':n7>4?'ba':'bg')+'">'+n7+'</span>':'<span class="z">0</span>')+'</td>';
-    html+='<td>'+n30+'</td></tr>';
+    html+='<tr><td><strong>'+m+'</strong></td><td style="color:var(--text3)">'+(MKT_STATE[m]||'')+'</td>';
+    html+='<td>'+(n7?'<span class="bdg '+(n7>10?'br':n7>4?'ba':'bg')+'">'+n7+'</span>':'<span class="z">0</span>')+'</td><td>'+n30+'</td></tr>';
   });
   html+='</tbody></table></div>';
-  html+='<div class="fc"><div class="fc-head"><span class="fc-title">By State</span></div><table class="tbl"><thead><tr><th>State</th><th>7-Day</th><th>30-Day</th></tr></thead><tbody>';
-  var filteredStates=fState==='all'?['Massachusetts','Maryland','Illinois']:[fState];
-  filteredStates.forEach(function(s){
+  html+='<div class="fc"><div class="fc-head"><span class="fc-title">By State</span></div><table class="tbl"><thead><tr><th class="no-sort">State</th><th class="no-sort">7-Day</th><th class="no-sort">30-Day</th></tr></thead><tbody>';
+  (filters.state==='all'?['Massachusetts','Maryland','Illinois']:[filters.state]).forEach(function(s){
     var n7=w7.byState[s]||0,n30=w30.byState[s]||0;
-    html+='<tr><td><strong>'+s+'</strong></td>';
-    html+='<td>'+(n7?'<span class="bdg '+(n7>20?'br':n7>10?'ba':'bg')+'">'+n7+'</span>':'<span class="z">0</span>')+'</td>';
-    html+='<td>'+n30+'</td></tr>';
+    html+='<tr><td><strong>'+s+'</strong></td><td>'+(n7?'<span class="bdg '+(n7>20?'br':n7>10?'ba':'bg')+'">'+n7+'</span>':'<span class="z">0</span>')+'</td><td>'+n30+'</td></tr>';
   });
   html+='</tbody></table></div></div>';
   document.getElementById('ct').innerHTML=html;
 }
 
 // ── OPEN BOOKING SETS ────────────────────────────────────────────────────────
+function getFilteredBookingSets(){
+  var d=bookingData;
+  if(!d||!d.bookingSets)return[];
+  var sets=d.bookingSets;
+  return sets.filter(function(s){
+    var ov=overrides[s.cid]||{};
+    if(ov.hide)return false;
+    if(filters.state!=='all'&&s.state!==filters.state)return false;
+    if(filters.market!=='all'&&s.market!==filters.market)return false;
+    var st=s.shiftTypes||{};
+    var anyMatch=(filters.shifts.long&&st.long)||(filters.shifts.short&&st.short)||
+                 (filters.shifts.overnight&&st.overnight)||(filters.shifts.livein&&st.livein);
+    return anyMatch;
+  });
+}
+
 function renderBookingSets(){
   var d=bookingData;
   if(!d){loading('Loading booking sets...');return;}
   if(d.error){showErr(d.error);return;}
   var sets=d.bookingSets||[];
-
-  var MKT_STATE={'Boston':'Massachusetts','MetroWest Boston':'Massachusetts','North of Boston':'Massachusetts','South of Boston':'Massachusetts','Baltimore':'Maryland','Annapolis':'Maryland','Bethesda':'Maryland','Chicago':'Illinois'};
-
-  // Filter using shiftTypes from proxy
-  var filtered=sets.filter(function(s){
-    if(filters.state!=='all'&&s.state!==filters.state)return false;
-    if(filters.market!=='all'&&s.market!==filters.market)return false;
-    var st=s.shiftTypes||{long:true,short:true,overnight:true,livein:true};
-    // Must have at least one enabled shift type
-    var anyMatch=(filters.shifts.long&&st.long)||(filters.shifts.short&&st.short)||
-                 (filters.shifts.overnight&&st.overnight)||(filters.shifts.livein&&st.livein);
-    return anyMatch;
-  });
-
-  // Sort
+  var filtered=getFilteredBookingSets();
   filtered.sort(function(a,b){
+    var ov=overrides;
     var av,bv;
-    if(sortCol==='openVisitCount'){av=a.openVisitCount;bv=b.openVisitCount;}
-    else if(sortCol==='clientName'){av=a.clientName;bv=b.clientName;}
+    if(sortCol==='clientName'){av=(overrides[a.cid]&&overrides[a.cid].clientName)||a.clientName;bv=(overrides[b.cid]&&overrides[b.cid].clientName)||b.clientName;}
+    else if(sortCol==='accountManager'){av=(overrides[a.cid]&&overrides[a.cid].accountManager)||a.accountManager;bv=(overrides[b.cid]&&overrides[b.cid].accountManager)||b.accountManager;}
     else if(sortCol==='market'){av=a.market;bv=b.market;}
     else if(sortCol==='state'){av=a.state;bv=b.state;}
     else if(sortCol==='nextDate'){av=a.nextDate;bv=b.nextDate;}
     else{av=a.openVisitCount;bv=b.openVisitCount;}
-    if(av<bv)return sortDir;
-    if(av>bv)return -sortDir;
-    return 0;
+    if(av<bv)return sortDir;if(av>bv)return -sortDir;return 0;
   });
 
   var html='';
-
-  // KPIs
   html+='<div class="kg">';
-  html+='<div class="kpi"><div class="kl">Open Booking Sets</div><div class="kv '+(sets.length>15?'br':sets.length>8?'ba':'')+'">'+sets.length+'</div><div class="ks">Clients w/ recurring gaps</div></div>';
+  html+='<div class="kpi"><div class="kl">Open Booking Sets</div><div class="kv '+(filtered.length>15?'br':filtered.length>8?'ba':'')+'">'+filtered.length+'</div><div class="ks">Clients w/ vacant slots</div></div>';
   ['Massachusetts','Maryland','Illinois'].forEach(function(s){
-    var n=sets.filter(function(x){return x.state===s;}).length;
+    var n=filtered.filter(function(x){return x.state===s;}).length;
     html+='<div class="kpi"><div class="kl">'+s.replace('Massachusetts','Mass.')+'</div><div class="kv">'+n+'</div><div class="ks">Booking sets</div></div>';
   });
   html+='</div>';
+  html+=filterBarHTML(true,true,filtered.length,sets.length);
+  if(!filtered.length){html+='<div class="fc"><div class="empty">No booking sets match the current filters.</div></div>';document.getElementById('ct').innerHTML=html;return;}
 
-  html+=filterBarHTML(true);
+  function si(col){if(sortCol!==col)return '<span class="si">⇅</span>';return '<span class="si">'+(sortDir===-1?'↓':'↑')+'</span>';}
+  function th(col,label){return '<th onclick="sortCol=\''+col+'\';sortDir=(sortCol===\''+col+'\')?-sortDir:-1;render()">'+label+si(col)+'</th>';}
 
-  if(!filtered.length){
-    html+='<div class="fc"><div class="empty">No booking sets match the current filters.</div></div>';
-    document.getElementById('ct').innerHTML=html;
-    setResultCount(0,'results');
-    return;
-  }
-
-  function sortIcon(col){
-    if(sortCol!==col)return '<span class="sort-icon">⇅</span>';
-    return '<span class="sort-icon">'+(sortDir===-1?'↓':'↑')+'</span>';
-  }
-  function th(col,label){
-    return '<th onclick="sortCol=\''+col+'\';sortDir=sortCol===\''+col+'\'?-sortDir:-1;render()">'+label+sortIcon(col)+'</th>';
-  }
-
-  html+='<div class="fc"><div class="fc-head"><span class="fc-title">Clients with Recurring Unassigned Visit Slots</span></div>';
+  html+='<div class="fc"><div class="fc-head"><span class="fc-title">Open Booking Sets</span>';
+  if(editMode)html+='<span style="font-size:10px;color:var(--amber);margin-left:8px">&#9998; Click any cell to edit · Toggle hide to remove from CSV</span>';
+  html+='</div>';
   html+='<table class="tbl"><thead><tr>';
   html+=th('clientName','Client');
+  html+=th('accountManager','Account Manager');
+  html+='<th class="no-sort">Days Open</th>';
+  html+='<th class="no-sort">Nights Open</th>';
   html+=th('market','Market');
-  html+=th('state','State');
-  html+=th('openVisitCount','Open Visits');
-  html+=th('nextDate','Next Open');
-  html+='<th style="cursor:default">Day Pattern</th>';
+  html+=th('openVisitCount','# Open');
+  if(editMode)html+='<th class="no-sort">Hide</th>';
   html+='</tr></thead><tbody>';
 
-  // Group by state for section headers
   var curState='';
   filtered.forEach(function(s){
+    var ov=overrides[s.cid]||{};
+    var clientName=ov.clientName||s.clientName;
+    var accountManager=ov.accountManager||s.accountManager||'';
+
+    // Day/Night columns
+    var daySlots=[],nightSlots=[];
+    DAY_ORDER.forEach(function(day){
+      var dp=s.dayPattern[day];if(!dp)return;
+      var abb=DAY_ABB[day];
+      if(filters.shifts.long&&dp.long>0)daySlots.push(abb);
+      if(filters.shifts.short&&dp.short>0)daySlots.push(abb+'(S)');
+      if(filters.shifts.livein&&dp.livein>0)daySlots.push(abb+'(LI)');
+      if(filters.shifts.overnight&&dp.overnight>0)nightSlots.push(abb);
+    });
+    if(ov.daysNote)daySlots=[ov.daysNote];
+    if(ov.nightsNote)nightSlots=[ov.nightsNote];
+
     if(s.state!==curState&&filters.state==='all'&&filters.market==='all'){
       curState=s.state;
-      html+='<tr><td colspan="6" class="state-header">'+curState+'</td></tr>';
+      html+='<tr><td colspan="'+(editMode?7:6)+'" class="state-header">'+curState+'</td></tr>';
     }
-    // Build day pattern pills — only show shift types that are active in filters
-    var pattern='';
-    var DAYS=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-    DAYS.forEach(function(day){
-      var dp=s.dayPattern[day];
-      if(!dp)return;
-      var label=day.substring(0,3);
-      if(filters.shifts.long&&dp.long>0)pattern+='<span class="shift-pill sp-long">'+label+' Long'+(dp.long>1?' ×'+dp.long:'')+'</span>';
-      if(filters.shifts.short&&dp.short>0)pattern+='<span class="shift-pill sp-short">'+label+' Short'+(dp.short>1?' ×'+dp.short:'')+'</span>';
-      if(filters.shifts.overnight&&dp.overnight>0)pattern+='<span class="shift-pill sp-overnight">'+label+' Night'+(dp.overnight>1?' ×'+dp.overnight:'')+'</span>';
-      if(filters.shifts.livein&&dp.livein>0)pattern+='<span class="shift-pill sp-livein">'+label+' Live-In'+(dp.livein>1?' ×'+dp.livein:'')+'</span>';
-    });
 
-    html+='<tr>';
-    html+='<td><strong>'+s.clientName+'</strong></td>';
+    html+='<tr data-cid="'+s.cid+'">';
+    if(editMode){
+      html+='<td class="editable" onclick="editCell(this,\'clientName\',\''+s.cid+'\')">'+esc(clientName)+'</td>';
+      html+='<td class="editable" onclick="editCell(this,\'accountManager\',\''+s.cid+'\')">'+esc(accountManager||'<span class=\'z\'>—</span>')+'</td>';
+      html+='<td class="editable" onclick="editCell(this,\'daysNote\',\''+s.cid+'\')">'+(daySlots.length?daySlots.join(', '):'<span class=\'z\'>—</span>')+'</td>';
+      html+='<td class="editable" onclick="editCell(this,\'nightsNote\',\''+s.cid+'\')">'+(nightSlots.length?nightSlots.join(', '):'<span class=\'z\'>—</span>')+'</td>';
+    } else {
+      html+='<td><strong>'+esc(clientName)+'</strong></td>';
+      html+='<td style="color:var(--text2)">'+esc(accountManager||'<span class="z">—</span>')+'</td>';
+      html+='<td>'+(daySlots.length?'<span class="sp sp-long">'+daySlots.join(', ')+'</span>':'<span class="z">—</span>')+'</td>';
+      html+='<td>'+(nightSlots.length?'<span class="sp sp-overnight">'+nightSlots.join(', ')+'</span>':'<span class="z">—</span>')+'</td>';
+    }
     html+='<td>'+s.market+'</td>';
-    html+='<td style="color:var(--text3)">'+s.state+'</td>';
     html+='<td><span class="bdg '+(s.openVisitCount>=8?'br':s.openVisitCount>=4?'ba':'bb')+'">'+s.openVisitCount+'</span></td>';
-    html+='<td>'+s.nextDate+'</td>';
-    html+='<td>'+(pattern||'<span class="z">—</span>')+'</td>';
+    if(editMode)html+='<td><input type="checkbox" '+(ov.hide?'checked':'')+' onchange="toggleHide(\''+s.cid+'\',this.checked)" title="Hide from list and CSV"></td>';
     html+='</tr>';
   });
   html+='</tbody></table></div>';
   document.getElementById('ct').innerHTML=html;
-  setResultCount(filtered.length,'of '+sets.length+' booking sets');
+}
+
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+function editCell(td, field, cid){
+  if(td.querySelector('input'))return;
+  var current=(overrides[cid]&&overrides[cid][field])||'';
+  // For days/nights, get the computed value if no override
+  if(!current){
+    var s=(bookingData.bookingSets||[]).find(function(x){return x.cid===cid;});
+    if(s){
+      if(field==='daysNote'){
+        var ds=[];
+        DAY_ORDER.forEach(function(day){var dp=s.dayPattern[day];if(!dp)return;var ab=DAY_ABB[day];if(dp.long>0)ds.push(ab);if(dp.short>0)ds.push(ab+'(S)');if(dp.livein>0)ds.push(ab+'(LI)');});
+        current=ds.join(', ');
+      } else if(field==='nightsNote'){
+        var ns=[];
+        DAY_ORDER.forEach(function(day){var dp=s.dayPattern[day];if(!dp)return;if(dp.overnight>0)ns.push(DAY_ABB[day]);});
+        current=ns.join(', ');
+      } else if(field==='clientName'){current=s.clientName;}
+      else if(field==='accountManager'){current=s.accountManager||'';}
+    }
+  }
+  var input=document.createElement('input');
+  input.type='text';input.value=current;
+  td.innerHTML='';td.appendChild(input);
+  input.focus();input.select();
+  function save(){
+    if(!overrides[cid])overrides[cid]={};
+    overrides[cid][field]=input.value;
+    render();
+  }
+  input.onblur=save;
+  input.onkeydown=function(e){if(e.key==='Enter')save();if(e.key==='Escape'){render();}};
+}
+
+function toggleHide(cid,val){
+  if(!overrides[cid])overrides[cid]={};
+  overrides[cid].hide=val;
+  render();
+}
+
+// ── CSV DOWNLOAD ──────────────────────────────────────────────────────────────
+function downloadCSV(){
+  var filtered=getFilteredBookingSets();
+  if(!filtered.length){alert('No booking sets to export.');return;}
+  var state=filters.state==='all'?'All States':filters.state;
+  var rows=[['Client First Name','Client Last Name','Account Manager','Days','Nights','Location']];
+  filtered.forEach(function(s){
+    var ov=overrides[s.cid]||{};
+    var fullName=(ov.clientName||s.clientName||'').trim();
+    // Split name into first/last — split on last space
+    var spaceIdx=fullName.lastIndexOf(' ');
+    var fn=spaceIdx>0?fullName.substring(0,spaceIdx):fullName;
+    var ln=spaceIdx>0?fullName.substring(spaceIdx+1):'';
+    var am=ov.accountManager||s.accountManager||'';
+    var daySlots=[],nightSlots=[];
+    DAY_ORDER.forEach(function(day){
+      var dp=s.dayPattern[day];if(!dp)return;
+      var ab=DAY_ABB[day];
+      if(dp.long>0||dp.short>0||dp.livein>0)daySlots.push(ab);
+      if(dp.overnight>0)nightSlots.push(ab);
+    });
+    var days=ov.daysNote||daySlots.join(', ');
+    var nights=ov.nightsNote||nightSlots.join(', ');
+    rows.push([fn,ln,am,days,nights,s.market]);
+  });
+  var csv=rows.map(function(r){return r.map(function(c){return'"'+String(c).replace(/"/g,'""')+'"';}).join(',');}).join('\n');
+  var blob=new Blob([csv],{type:'text/csv'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');
+  a.href=url;
+  var today=new Date();
+  var ds=today.toISOString().split('T')[0];
+  a.download='Open_Booking_Sets_'+state.replace(/\s/g,'_')+'_'+ds+'.csv';
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 // ── CAREGIVER TIME OFF ────────────────────────────────────────────────────────
@@ -412,38 +467,11 @@ function renderTimeOff(){
   if(!d){loading('Loading caregiver time off...');return;}
   if(d.error){showErr(d.error);return;}
   var cgs=d.caregivers||[];
-
   var filtered=cgs.filter(function(c){
     if(filters.state!=='all'&&c.state!==filters.state)return false;
     if(filters.market!=='all'&&c.market!==filters.market)return false;
     return true;
   });
-
-  var html='';
-
-  // KPIs
-  html+='<div class="kg">';
-  html+='<div class="kpi"><div class="kl">Caregivers Off</div><div class="kv '+(cgs.length>20?'br':cgs.length>10?'ba':'')+'">'+cgs.length+'</div><div class="ks">3+ days next 2 weeks</div></div>';
-  html+='<div class="kpi"><div class="kl">Avg Days Off</div><div class="kv">'+(cgs.length?Math.round(cgs.reduce(function(s,c){return s+c.timeOffCount;},0)/cgs.length):0)+'</div><div class="ks">Per caregiver</div></div>';
-  ['Massachusetts','Maryland','Illinois'].forEach(function(s){
-    var n=cgs.filter(function(x){return x.state===s;}).length;
-    html+='<div class="kpi"><div class="kl">'+s.replace('Massachusetts','Mass.')+'</div><div class="kv">'+n+'</div><div class="ks">Caregivers off</div></div>';
-  });
-  html+='</div>';
-
-  html+=filterBarHTML(false);
-
-  if(!filtered.length){
-    html+='<div class="fc"><div class="empty">No caregivers match the current filters.</div></div>';
-    document.getElementById('ct').innerHTML=html;
-    setResultCount(0,'results');
-    return;
-  }
-
-  function th(col,label){
-    return '<th onclick="sortCol=\''+col+'\';sortDir=sortCol===\''+col+'\'?-sortDir:-1;renderTimeOff()">'+label+'<span class="sort-icon">'+(sortCol===col?(sortDir===-1?'↓':'↑'):'⇅')+'</span></th>';
-  }
-
   filtered.sort(function(a,b){
     var av,bv;
     if(sortCol==='name'){av=a.name;bv=b.name;}
@@ -454,34 +482,32 @@ function renderTimeOff(){
     if(av<bv)return sortDir;if(av>bv)return -sortDir;return 0;
   });
 
-  html+='<div class="fc"><div class="fc-head"><span class="fc-title">Caregivers with Extended Time Off — Next 2 Weeks</span></div>';
-  html+='<table class="tbl"><thead><tr>';
-  html+=th('name','Caregiver');
-  html+=th('market','Market');
-  html+=th('state','State');
-  html+=th('timeOffCount','Days Off');
-  html+=th('timeOffStart','Leave Start');
-  html+='<th style="cursor:default">Leave End</th>';
-  html+='</tr></thead><tbody>';
+  var html='';
+  html+='<div class="kg">';
+  html+='<div class="kpi"><div class="kl">Caregivers Off</div><div class="kv '+(cgs.length>20?'br':cgs.length>10?'ba':'')+'">'+cgs.length+'</div><div class="ks">3+ days next 2 weeks</div></div>';
+  html+='<div class="kpi"><div class="kl">Avg Days Off</div><div class="kv">'+(cgs.length?Math.round(cgs.reduce(function(s,c){return s+c.timeOffCount;},0)/cgs.length):0)+'</div><div class="ks">Per caregiver</div></div>';
+  ['Massachusetts','Maryland','Illinois'].forEach(function(s){
+    var n=cgs.filter(function(x){return x.state===s;}).length;
+    html+='<div class="kpi"><div class="kl">'+s.replace('Massachusetts','Mass.')+'</div><div class="kv">'+n+'</div><div class="ks">Caregivers off</div></div>';
+  });
+  html+='</div>';
+  html+=filterBarHTML(false,false,filtered.length,cgs.length);
+  if(!filtered.length){html+='<div class="fc"><div class="empty">No caregivers match.</div></div>';document.getElementById('ct').innerHTML=html;return;}
 
+  function si(col){if(sortCol!==col)return '<span class="si">⇅</span>';return '<span class="si">'+(sortDir===-1?'↓':'↑')+'</span>';}
+  function th(col,label){return '<th onclick="sortCol=\''+col+'\';sortDir=(sortCol===\''+col+'\')?-sortDir:-1;renderTimeOff()">'+label+si(col)+'</th>';}
+
+  html+='<div class="fc"><div class="fc-head"><span class="fc-title">Caregivers with Extended Time Off — Next 2 Weeks</span></div>';
+  html+='<table class="tbl"><thead><tr>'+th('name','Caregiver')+th('market','Market')+th('state','State')+th('timeOffCount','Days Off')+th('timeOffStart','Leave Start')+'<th class="no-sort">Leave End</th></tr></thead><tbody>';
   var curState='';
   filtered.forEach(function(cg){
-    if(cg.state!==curState&&filters.state==='all'&&filters.market==='all'){
-      curState=cg.state;
-      html+='<tr><td colspan="6" class="state-header">'+curState+'</td></tr>';
-    }
-    html+='<tr>';
-    html+='<td><strong>'+cg.name+'</strong></td>';
-    html+='<td>'+cg.market+'</td>';
-    html+='<td style="color:var(--text3)">'+cg.state+'</td>';
+    if(cg.state!==curState&&filters.state==='all'&&filters.market==='all'){curState=cg.state;html+='<tr><td colspan="6" class="state-header">'+curState+'</td></tr>';}
+    html+='<tr><td><strong>'+esc(cg.name)+'</strong></td><td>'+cg.market+'</td><td style="color:var(--text3)">'+cg.state+'</td>';
     html+='<td><span class="bdg '+(cg.timeOffCount>=10?'br':cg.timeOffCount>=5?'ba':'bb')+'">'+cg.timeOffCount+'</span></td>';
-    html+='<td>'+cg.timeOffStart+'</td>';
-    html+='<td>'+cg.timeOffEnd+'</td>';
-    html+='</tr>';
+    html+='<td>'+cg.timeOffStart+'</td><td>'+cg.timeOffEnd+'</td></tr>';
   });
   html+='</tbody></table></div>';
   document.getElementById('ct').innerHTML=html;
-  setResultCount(filtered.length,'of '+cgs.length+' caregivers');
 }
 
 loadAll();
