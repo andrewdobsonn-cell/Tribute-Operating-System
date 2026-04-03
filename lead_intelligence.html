@@ -193,7 +193,11 @@ function loadData(){
       if(d.error){showErr(d.error);return;}
       hsData=d;
       if(d.generatedAt){
-      var matchTxt=d.vivMatchCount?' · '+d.vivMatchCount+' Viv matches':'';
+      var matchTxt='';
+      if(d.vivMatchCount){
+        matchTxt=' · '+d.vivMatchCount+' Viv matches';
+        if(d.vivIdMatches||d.vivNameMatches) matchTxt+=' ('+( d.vivIdMatches||0)+' ID, '+(d.vivNameMatches||0)+' name)';
+      }
       document.getElementById('genAt').textContent=new Date(d.generatedAt).toLocaleString()+matchTxt;
     }
       render();
