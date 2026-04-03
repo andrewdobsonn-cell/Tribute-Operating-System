@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tribute · Lead Intelligence</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --orange:#E8732A;--orange-lt:#FFF3EC;--orange-mid:#F5924A;
+  --green:#1B7A3E;--green-bg:#EBF7F0;
+  --red:#C62828;--red-bg:#FFEBEE;
+  --amber:#B45309;--amber-bg:#FEF3C7;
+  --blue:#1E40AF;--blue-bg:#EFF6FF;
+  --purple:#6D28D9;--purple-bg:#F5F3FF;
+  --charcoal:#111827;--text2:#374151;--text3:#6B7280;--text4:#9CA3AF;
+  --gray50:#F9FAFB;--gray100:#F3F4F6;--gray200:#E5E7EB;--gray300:#D1D5DB;
+  --r:10px;--font:'DM Sans',sans-serif;--mono:'DM Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:var(--font);background:var(--gray50);color:var(--charcoal);font-size:13px;min-height:100vh;}
+
+/* Header */
+.hd{background:#fff;border-bottom:1px solid var(--gray200);padding:12px 24px;display:flex;align-items:center;gap:14px;position:sticky;top:0;z-index:200;flex-wrap:wrap;}
+.logo{font-weight:700;font-size:15px;color:var(--charcoal);}
+.logo em{color:var(--orange);font-style:normal;}
+.badge{background:var(--orange-lt);color:var(--orange);font-size:10px;font-weight:600;padding:2px 8px;border-radius:10px;letter-spacing:.04em;}
+#genAt{font-size:11px;color:var(--text4);font-family:var(--mono);}
+.hd-right{margin-left:auto;display:flex;gap:8px;align-items:center;}
+.btn{font-size:11px;font-weight:600;padding:6px 14px;border-radius:7px;cursor:pointer;border:1px solid var(--gray200);background:#fff;color:var(--text2);font-family:var(--font);}
+.btn:hover{background:var(--gray100);}
+.btn.primary{background:var(--orange);color:#fff;border-color:var(--orange);}
+.btn.primary:hover{background:var(--orange-mid);}
+
+/* Tabs */
+.tabs{background:#fff;border-bottom:1px solid var(--gray200);padding:0 24px;display:flex;gap:0;overflow-x:auto;}
+.tab{font-size:12px;font-weight:500;color:var(--text3);padding:11px 16px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap;}
+.tab.on{color:var(--charcoal);border-bottom-color:var(--orange);}
+.tab:hover{color:var(--charcoal);}
+
+/* Main */
+.main{padding:20px 24px;max-width:1800px;}
+
+/* Filter bar */
+.filters{background:#fff;border:1px solid var(--gray200);border-radius:var(--r);padding:12px 16px;margin-bottom:16px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;}
+.filters label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);}
+.filters select,.filters input[type=text]{font-size:12px;padding:5px 10px;border:1px solid var(--gray200);border-radius:6px;background:#fff;color:var(--charcoal);font-family:var(--font);}
+.filters select:focus,.filters input:focus{outline:none;border-color:var(--orange);}
+.fsep{width:1px;height:24px;background:var(--gray200);}
+.filter-count{font-size:11px;color:var(--text3);font-family:var(--mono);margin-left:auto;}
+
+/* KPI grid */
+.kgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px;}
+.kpi{background:#fff;border:1px solid var(--gray200);border-radius:var(--r);padding:14px 16px;position:relative;overflow:hidden;}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--gray200);}
+.kpi.green::before{background:var(--green);}
+.kpi.red::before{background:var(--red);}
+.kpi.amber::before{background:var(--amber);}
+.kpi.blue::before{background:var(--blue);}
+.kpi.orange::before{background:var(--orange);}
+.kpi.purple::before{background:var(--purple);}
+.kl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:6px;}
+.kv{font-size:26px;font-weight:700;color:var(--charcoal);line-height:1;font-family:var(--mono);}
+.kv.sm{font-size:20px;}
+.ks{font-size:10px;color:var(--text3);margin-top:4px;}
+
+/* Cards */
+.card{background:#fff;border:1px solid var(--gray200);border-radius:var(--r);overflow:hidden;margin-bottom:14px;}
+.card-head{padding:12px 16px;border-bottom:1px solid var(--gray200);display:flex;align-items:center;gap:8px;}
+.card-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);}
+.card-sub{font-size:11px;color:var(--text4);margin-left:auto;}
+
+/* Table */
+.tbl{width:100%;border-collapse:collapse;font-size:12px;}
+.tbl th{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);padding:8px 14px;text-align:left;border-bottom:1px solid var(--gray200);background:var(--gray50);white-space:nowrap;cursor:pointer;user-select:none;}
+.tbl th.ns{cursor:default;}
+.tbl th .si{color:var(--text4);margin-left:3px;}
+.tbl td{padding:8px 14px;border-bottom:.5px solid var(--gray100);vertical-align:middle;}
+.tbl tr:last-child td{border-bottom:none;}
+.tbl tbody tr:hover td{background:#FAFAFA;}
+
+/* Stage pills */
+.stage{display:inline-block;padding:2px 9px;border-radius:20px;font-size:10px;font-weight:600;white-space:nowrap;}
+.s-won{background:var(--green-bg);color:var(--green);}
+.s-utf{background:var(--red-bg);color:var(--red);}
+.s-lost{background:var(--gray100);color:var(--text3);}
+.s-qualified{background:var(--blue-bg);color:var(--blue);}
+.s-progress{background:var(--amber-bg);color:var(--amber);}
+.s-turndown{background:var(--purple-bg);color:var(--purple);}
+
+/* Bar chart */
+.bar-row{display:flex;align-items:center;gap:10px;padding:6px 16px;border-bottom:.5px solid var(--gray100);}
+.bar-row:last-child{border-bottom:none;}
+.bar-label{font-size:12px;color:var(--charcoal);width:180px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.bar-track{flex:1;height:8px;background:var(--gray100);border-radius:4px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:4px;transition:width .4s ease;}
+.bar-val{font-size:11px;color:var(--text3);font-family:var(--mono);width:60px;text-align:right;flex-shrink:0;}
+
+/* Funnel */
+.funnel{padding:16px;}
+.funnel-step{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:.5px solid var(--gray100);}
+.funnel-step:last-child{border-bottom:none;}
+.funnel-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
+.funnel-info{flex:1;}
+.funnel-name{font-size:12px;font-weight:600;color:var(--charcoal);}
+.funnel-desc{font-size:10px;color:var(--text3);margin-top:1px;}
+.funnel-num{font-size:20px;font-weight:700;font-family:var(--mono);color:var(--charcoal);}
+.funnel-pct{font-size:10px;color:var(--text3);font-family:var(--mono);}
+
+/* Grid layouts */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
+
+/* Donut */
+.donut-wrap{display:flex;align-items:center;gap:20px;padding:16px;}
+.donut-legend{flex:1;}
+.legend-item{display:flex;align-items:center;gap:8px;padding:4px 0;}
+.legend-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0;}
+.legend-label{font-size:12px;color:var(--text2);flex:1;}
+.legend-val{font-size:12px;font-family:var(--mono);color:var(--charcoal);font-weight:600;}
+.legend-pct{font-size:10px;color:var(--text3);font-family:var(--mono);width:36px;text-align:right;}
+
+svg.donut{flex-shrink:0;}
+
+/* Utilities */
+.z{color:var(--text4);}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid var(--gray200);border-top-color:var(--orange);border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.loading-msg{background:var(--orange-lt);border-left:3px solid var(--orange);border-radius:var(--r);padding:12px 16px;font-size:12px;margin-bottom:16px;}
+.err{background:var(--red-bg);border-left:3px solid var(--red);border-radius:var(--r);padding:12px 16px;color:var(--red);font-size:12px;}
+.empty{text-align:center;padding:40px;color:var(--text3);}
+
+@media(max-width:900px){.grid2,.grid3{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+
+<div class="hd">
+  <div class="logo">Tribute <em>·</em> Lead Intelligence</div>
+  <span class="badge">HubSpot + Viv</span>
+  <span id="genAt"></span>
+  <div class="hd-right">
+    <button class="btn" onclick="hardRefresh()">⟳ Force Refresh</button>
+    <button class="btn primary" onclick="exportCSV()">↓ Export</button>
+  </div>
+</div>
+
+<div class="tabs">
+  <div class="tab on" onclick="setTab('funnel',this)">Lead Funnel</div>
+  <div class="tab" onclick="setTab('sources',this)">Referral Sources</div>
+  <div class="tab" onclick="setTab('markets',this)">By Market</div>
+  <div class="tab" onclick="setTab('lost',this)">Lost Analysis</div>
+  <div class="tab" onclick="setTab('deals',this)">All Deals</div>
+</div>
+
+<div class="main" id="ct">
+  <div class="loading-msg"><span class="spin"></span>&nbsp; Loading HubSpot data — this may take 30-60 seconds on first load...</div>
+</div>
+
+<script>
+var API='https://tribute-api-prod-bkc4hfcwf3f2f6bf.centralus-01.azurewebsites.net/api/vivProxy';
+var curTab='funnel';
+var hsData=null;
+var filters={market:'all',source:'all',stage:'all',dateFrom:'',dateTo:'',search:''};
+var sortCol='createDate',sortDir=-1;
+
+var STAGE_LABELS={
+  'qualifiedtobuy':'Qualified','contractsent':'Contract Sent','closedwon':'Closed Won',
+  'closedlost':'Lost: Client Decision','3665246':'Lost: Unable to Fill',
+  '12704675':'Turndown','143971688':'Unable to Fill (Returning)'
+};
+var STAGE_CLASS={
+  'qualifiedtobuy':'s-qualified','contractsent':'s-progress','closedwon':'s-won',
+  'closedlost':'s-lost','3665246':'s-utf','12704675':'s-turndown','143971688':'s-utf'
+};
+var COLORS=['#E8732A','#1E40AF','#1B7A3E','#C62828','#6D28D9','#B45309','#0891B2','#BE185D','#065F46','#92400E'];
+
+function setTab(t,el){
+  curTab=t;
+  document.querySelectorAll('.tab').forEach(function(x){x.classList.remove('on');});
+  if(el)el.classList.add('on');
+  render();
+}
+
+function loading(msg){document.getElementById('ct').innerHTML='<div class="loading-msg"><span class="spin"></span>&nbsp; '+(msg||'Loading...')+'</div>';}
+function showErr(msg){document.getElementById('ct').innerHTML='<div class="err">'+msg+'</div>';}
+function fmt(n){return(n||0).toLocaleString();}
+function fmtPct(n){return(n||0).toFixed(1)+'%';}
+function fmtK(n){return n>=1000?'$'+(n/1000).toFixed(1)+'K':'$'+n;}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+function hardRefresh(){
+  fetch(API+'?endpoint=refresh_cache&keys=hubspot_deals').then(function(){loadData();});
+}
+
+function loadData(){
+  loading('Loading HubSpot data — first load may take 30-60 seconds...');
+  fetch(API+'?endpoint=hubspot_deals')
+    .then(function(r){return r.json();})
+    .then(function(d){
+      if(d.error){showErr(d.error);return;}
+      hsData=d;
+      if(d.generatedAt)document.getElementById('genAt').textContent=new Date(d.generatedAt).toLocaleString();
+      render();
+    })
+    .catch(function(e){showErr('Error: '+e.message);});
+}
+
+function getFiltered(){
+  if(!hsData||!hsData.deals)return[];
+  return hsData.deals.filter(function(d){
+    if(filters.market!=='all'&&d.market!==filters.market)return false;
+    if(filters.stage!=='all'&&d.stage!==filters.stage)return false;
+    if(filters.source!=='all'&&d.leadSource!==filters.source)return false;
+    if(filters.dateFrom&&d.createDate<filters.dateFrom)return false;
+    if(filters.dateTo&&d.createDate>filters.dateTo+'T99')return false;
+    if(filters.search){
+      var q=filters.search.toLowerCase();
+      if((d.clientName||'').toLowerCase().indexOf(q)<0&&
+         (d.dealName||'').toLowerCase().indexOf(q)<0&&
+         (d.referredBy||'').toLowerCase().indexOf(q)<0)return false;
+    }
+    return true;
+  });
+}
+
+function buildFilterBar(){
+  if(!hsData)return'';
+  var deals=hsData.deals||[];
+  var markets=[...new Set(deals.map(function(d){return d.market;}).filter(Boolean))].sort();
+  var sources=[...new Set(deals.map(function(d){return d.leadSource;}).filter(Boolean))].sort();
+  var filtered=getFiltered();
+  var html='<div class="filters">';
+  html+='<label>Market</label><select onchange="filters.market=this.value;render()">';
+  html+='<option value="all">All Markets</option>';
+  markets.forEach(function(m){html+='<option value="'+m+'"'+(filters.market===m?' selected':'')+'>'+m+'</option>';});
+  html+='</select>';
+  html+='<label>Stage</label><select onchange="filters.stage=this.value;render()">';
+  html+='<option value="all">All Stages</option>';
+  Object.keys(STAGE_LABELS).forEach(function(k){html+='<option value="'+k+'"'+(filters.stage===k?' selected':'')+'>'+STAGE_LABELS[k]+'</option>';});
+  html+='</select>';
+  html+='<label>Lead Source</label><select onchange="filters.source=this.value;render()">';
+  html+='<option value="all">All Sources</option>';
+  sources.forEach(function(s){html+='<option value="'+s+'"'+(filters.source===s?' selected':'')+'>'+s+'</option>';});
+  html+='</select>';
+  html+='<div class="fsep"></div>';
+  html+='<label>From</label><input type="date" value="'+filters.dateFrom+'" onchange="filters.dateFrom=this.value;render()">';
+  html+='<label>To</label><input type="date" value="'+filters.dateTo+'" onchange="filters.dateTo=this.value;render()">';
+  html+='<div class="fsep"></div>';
+  html+='<input type="text" placeholder="Search client / referral..." value="'+esc(filters.search)+'" oninput="filters.search=this.value;render()" style="min-width:180px">';
+  html+='<span class="filter-count">'+filtered.length+' / '+deals.length+' deals</span>';
+  html+='</div>';
+  return html;
+}
+
+// ── FUNNEL TAB ────────────────────────────────────────────────────────────────
+function renderFunnel(){
+  var d=getFiltered();
+  var total=d.length;
+  var qualified=d.filter(function(x){return x.stage==='qualifiedtobuy';}).length;
+  var inProgress=d.filter(function(x){return x.stage==='contractsent';}).length;
+  var won=d.filter(function(x){return x.isClosedWon;}).length;
+  var utf=d.filter(function(x){return x.stage==='3665246'||x.stage==='143971688';}).length;
+  var turndown=d.filter(function(x){return x.stage==='12704675';}).length;
+  var lostDecision=d.filter(function(x){return x.stage==='closedlost';}).length;
+  var convRate=total>0?(won/total*100).toFixed(1):0;
+  var utfRate=total>0?(utf/total*100).toFixed(1):0;
+  var avgDays=0;
+  var wonWithDates=d.filter(function(x){return x.isClosedWon&&x.createDate&&x.closeDate;});
+  if(wonWithDates.length){
+    var totalDays=wonWithDates.reduce(function(s,x){return s+(new Date(x.closeDate)-new Date(x.createDate))/(1000*86400);},0);
+    avgDays=Math.round(totalDays/wonWithDates.length);
+  }
+
+  var html=buildFilterBar();
+  html+='<div class="kgrid">';
+  html+='<div class="kpi blue"><div class="kl">Total Leads</div><div class="kv">'+fmt(total)+'</div><div class="ks">All time in HubSpot</div></div>';
+  html+='<div class="kpi orange"><div class="kl">In Pipeline</div><div class="kv">'+fmt(qualified+inProgress)+'</div><div class="ks">Qualified + Contract Sent</div></div>';
+  html+='<div class="kpi green"><div class="kl">Closed Won</div><div class="kv">'+fmt(won)+'</div><div class="ks">Converted to clients</div></div>';
+  html+='<div class="kpi green"><div class="kl">Conversion Rate</div><div class="kv sm">'+convRate+'%</div><div class="ks">Won / Total leads</div></div>';
+  html+='<div class="kpi red"><div class="kl">Unable to Fill</div><div class="kv">'+fmt(utf)+'</div><div class="ks">'+utfRate+'% of total</div></div>';
+  html+='<div class="kpi purple"><div class="kl">Turndown</div><div class="kv">'+fmt(turndown)+'</div><div class="ks">Internal decline</div></div>';
+  html+='<div class="kpi amber"><div class="kl">Lost: Client Decision</div><div class="kv">'+fmt(lostDecision)+'</div><div class="ks">Client chose other</div></div>';
+  html+='<div class="kpi blue"><div class="kl">Avg Days to Convert</div><div class="kv">'+avgDays+'</div><div class="ks">Lead → Closed Won</div></div>';
+  html+='</div>';
+
+  html+='<div class="grid2">';
+
+  // Funnel visualization
+  html+='<div class="card"><div class="card-head"><span class="card-title">Lead Funnel</span></div><div class="funnel">';
+  var steps=[
+    {name:'Total Leads',desc:'All inquiries received',n:total,icon:'📥',color:'#1E40AF',bg:'#EFF6FF'},
+    {name:'Qualified',desc:'Moved to qualified stage',n:qualified+inProgress,icon:'✓',color:'#B45309',bg:'#FEF3C7'},
+    {name:'Contract Sent',desc:'Service agreement sent',n:inProgress,icon:'📄',color:'#E8732A',bg:'#FFF3EC'},
+    {name:'Closed Won',desc:'Converted to active client',n:won,icon:'🎯',color:'#1B7A3E',bg:'#EBF7F0'},
+  ];
+  steps.forEach(function(s){
+    var pct=total>0?(s.n/total*100).toFixed(1):'0.0';
+    html+='<div class="funnel-step">';
+    html+='<div class="funnel-icon" style="background:'+s.bg+';color:'+s.color+'">'+s.icon+'</div>';
+    html+='<div class="funnel-info"><div class="funnel-name">'+s.name+'</div><div class="funnel-desc">'+s.desc+'</div></div>';
+    html+='<div style="text-align:right"><div class="funnel-num">'+fmt(s.n)+'</div><div class="funnel-pct">'+pct+'%</div></div>';
+    html+='</div>';
+  });
+  html+='</div></div>';
+
+  // Outcome breakdown donut
+  var outcomes=[
+    {label:'Closed Won',n:won,color:'#1B7A3E'},
+    {label:'Unable to Fill',n:utf,color:'#C62828'},
+    {label:'Lost: Client Decision',n:lostDecision,color:'#6B7280'},
+    {label:'Turndown',n:turndown,color:'#6D28D9'},
+    {label:'In Pipeline',n:qualified+inProgress,color:'#E8732A'},
+  ].filter(function(x){return x.n>0;});
+  html+='<div class="card"><div class="card-head"><span class="card-title">Outcome Distribution</span></div>';
+  html+=buildDonut(outcomes, total);
+  html+='</div>';
+
+  html+='</div>';
+
+  // Market breakdown
+  var byMarket={};
+  d.forEach(function(x){byMarket[x.market]=(byMarket[x.market]||{total:0,won:0,utf:0});byMarket[x.market].total++;if(x.isClosedWon)byMarket[x.market].won++;if(x.stage==='3665246'||x.stage==='143971688')byMarket[x.market].utf++;});
+  var mkts=Object.keys(byMarket).sort(function(a,b){return byMarket[b].total-byMarket[a].total;});
+  html+='<div class="card"><div class="card-head"><span class="card-title">By Market</span></div><table class="tbl"><thead><tr><th class="ns">Market</th><th class="ns">Total</th><th class="ns">Won</th><th class="ns">Conv %</th><th class="ns">UTF</th><th class="ns">UTF %</th></tr></thead><tbody>';
+  mkts.forEach(function(m){
+    var r=byMarket[m];
+    var conv=r.total>0?(r.won/r.total*100).toFixed(1):0;
+    var utfP=r.total>0?(r.utf/r.total*100).toFixed(1):0;
+    html+='<tr><td><strong>'+esc(m)+'</strong></td><td>'+fmt(r.total)+'</td><td><span style="color:var(--green);font-weight:600">'+r.won+'</span></td><td>'+conv+'%</td><td><span style="color:var(--red)">'+r.utf+'</span></td><td>'+utfP+'%</td></tr>';
+  });
+  html+='</tbody></table></div>';
+
+  document.getElementById('ct').innerHTML=html;
+}
+
+// ── REFERRAL SOURCES TAB ──────────────────────────────────────────────────────
+function renderSources(){
+  var d=getFiltered();
+  var bySource={};
+  d.forEach(function(x){
+    var src=x.leadSource||'Unknown';
+    if(!bySource[src])bySource[src]={total:0,won:0,utf:0,turndown:0};
+    bySource[src].total++;
+    if(x.isClosedWon)bySource[src].won++;
+    if(x.stage==='3665246'||x.stage==='143971688')bySource[src].utf++;
+    if(x.stage==='12704675')bySource[src].turndown++;
+  });
+  var srcs=Object.keys(bySource).sort(function(a,b){return bySource[b].total-bySource[a].total;});
+  var maxTotal=srcs.length>0?bySource[srcs[0]].total:1;
+
+  var html=buildFilterBar();
+  html+='<div class="grid2">';
+  html+='<div class="card"><div class="card-head"><span class="card-title">Lead Volume by Source</span></div>';
+  srcs.forEach(function(s,i){
+    var r=bySource[s];
+    var pct=(r.total/maxTotal*100).toFixed(0);
+    html+='<div class="bar-row"><div class="bar-label">'+esc(s||'Unknown')+'</div>';
+    html+='<div class="bar-track"><div class="bar-fill" style="width:'+pct+'%;background:'+COLORS[i%COLORS.length]+'"></div></div>';
+    html+='<div class="bar-val">'+fmt(r.total)+'</div></div>';
+  });
+  html+='</div>';
+
+  html+='<div class="card"><div class="card-head"><span class="card-title">Conversion Rate by Source</span></div><table class="tbl"><thead><tr><th class="ns">Source</th><th class="ns">Leads</th><th class="ns">Won</th><th class="ns">Conv%</th><th class="ns">UTF%</th></tr></thead><tbody>';
+  srcs.forEach(function(s){
+    var r=bySource[s];
+    var conv=r.total>0?(r.won/r.total*100).toFixed(1):0;
+    var utfP=r.total>0?(r.utf/r.total*100).toFixed(1):0;
+    html+='<tr><td>'+esc(s||'Unknown')+'</td><td>'+r.total+'</td><td><span style="color:var(--green);font-weight:600">'+r.won+'</span></td><td>'+conv+'%</td><td><span style="color:var(--red)">'+utfP+'%</span></td></tr>';
+  });
+  html+='</tbody></table></div>';
+  html+='</div>';
+
+  document.getElementById('ct').innerHTML=html;
+}
+
+// ── MARKETS TAB ───────────────────────────────────────────────────────────────
+function renderMarkets(){
+  var d=getFiltered();
+  var byMarket={};
+  d.forEach(function(x){
+    var m=x.market||'Unknown';
+    if(!byMarket[m])byMarket[m]={total:0,won:0,utf:0,turndown:0,lost:0,qualified:0};
+    byMarket[m].total++;
+    if(x.isClosedWon)byMarket[m].won++;
+    if(x.stage==='3665246'||x.stage==='143971688')byMarket[m].utf++;
+    if(x.stage==='12704675')byMarket[m].turndown++;
+    if(x.stage==='closedlost')byMarket[m].lost++;
+    if(x.stage==='qualifiedtobuy'||x.stage==='contractsent')byMarket[m].qualified++;
+  });
+  var mkts=Object.keys(byMarket).sort(function(a,b){return byMarket[b].total-byMarket[a].total;});
+  var maxTotal=mkts.length>0?byMarket[mkts[0]].total:1;
+
+  var html=buildFilterBar();
+  html+='<div class="card"><div class="card-head"><span class="card-title">Market Performance</span></div><table class="tbl"><thead><tr><th class="ns">Market</th><th class="ns">Total</th><th class="ns">In Pipeline</th><th class="ns">Won</th><th class="ns">Conv%</th><th class="ns">UTF</th><th class="ns">UTF%</th><th class="ns">Turndown</th><th class="ns">Lost Decision</th></tr></thead><tbody>';
+  mkts.forEach(function(m){
+    var r=byMarket[m];
+    var conv=r.total>0?(r.won/r.total*100).toFixed(1):0;
+    var utfP=r.total>0?(r.utf/r.total*100).toFixed(1):0;
+    html+='<tr>';
+    html+='<td><strong>'+esc(m)+'</strong></td>';
+    html+='<td>'+r.total+'</td>';
+    html+='<td><span style="color:var(--amber);font-weight:600">'+r.qualified+'</span></td>';
+    html+='<td><span style="color:var(--green);font-weight:600">'+r.won+'</span></td>';
+    html+='<td>'+conv+'%</td>';
+    html+='<td><span style="color:var(--red)">'+r.utf+'</span></td>';
+    html+='<td>'+utfP+'%</td>';
+    html+='<td>'+r.turndown+'</td>';
+    html+='<td>'+r.lost+'</td>';
+    html+='</tr>';
+  });
+  html+='</tbody></table></div>';
+
+  // Volume bars
+  html+='<div class="card"><div class="card-head"><span class="card-title">Lead Volume by Market</span></div>';
+  mkts.forEach(function(m,i){
+    var r=byMarket[m];
+    var pct=(r.total/maxTotal*100).toFixed(0);
+    var wonPct=r.total>0?(r.won/r.total*100).toFixed(0):0;
+    html+='<div class="bar-row"><div class="bar-label">'+esc(m)+'</div>';
+    html+='<div class="bar-track"><div class="bar-fill" style="width:'+pct+'%;background:'+COLORS[i%COLORS.length]+'"></div></div>';
+    html+='<div class="bar-val">'+fmt(r.total)+' <span style="color:var(--text4);font-size:10px">('+wonPct+'% won)</span></div></div>';
+  });
+  html+='</div>';
+
+  document.getElementById('ct').innerHTML=html;
+}
+
+// ── LOST ANALYSIS TAB ─────────────────────────────────────────────────────────
+function renderLost(){
+  var d=getFiltered();
+  var utf=d.filter(function(x){return x.stage==='3665246'||x.stage==='143971688';});
+  var turndown=d.filter(function(x){return x.stage==='12704675';});
+  var lostDecision=d.filter(function(x){return x.stage==='closedlost';});
+
+  // UTF reason breakdown
+  var utfReasons={};
+  utf.forEach(function(x){var r=x.utfReason||'Not specified';utfReasons[r]=(utfReasons[r]||0)+1;});
+  var utfReasonsArr=Object.keys(utfReasons).sort(function(a,b){return utfReasons[b]-utfReasons[a];});
+
+  // Turndown reason breakdown
+  var tdReasons={};
+  turndown.forEach(function(x){var r=x.turndownReason||'Not specified';tdReasons[r]=(tdReasons[r]||0)+1;});
+  var tdReasonsArr=Object.keys(tdReasons).sort(function(a,b){return tdReasons[b]-tdReasons[a];});
+
+  var html=buildFilterBar();
+  html+='<div class="kgrid">';
+  html+='<div class="kpi red"><div class="kl">Unable to Fill</div><div class="kv">'+utf.length+'</div><div class="ks">'+(d.length>0?(utf.length/d.length*100).toFixed(1):0)+'% of filtered leads</div></div>';
+  html+='<div class="kpi purple"><div class="kl">Turndown</div><div class="kv">'+turndown.length+'</div><div class="ks">Internal decline</div></div>';
+  html+='<div class="kpi"><div class="kl">Lost: Client Decision</div><div class="kv">'+lostDecision.length+'</div><div class="ks">Client chose other provider</div></div>';
+  html+='<div class="kpi amber"><div class="kl">Total Lost</div><div class="kv">'+(utf.length+turndown.length+lostDecision.length)+'</div><div class="ks">'+(d.length>0?((utf.length+turndown.length+lostDecision.length)/d.length*100).toFixed(1):0)+'% of filtered</div></div>';
+  html+='</div>';
+
+  html+='<div class="grid2">';
+
+  // UTF reasons
+  html+='<div class="card"><div class="card-head"><span class="card-title">Unable to Fill — Reasons</span><span class="card-sub">'+utf.length+' total</span></div>';
+  var maxUtf=utfReasonsArr.length>0?utfReasons[utfReasonsArr[0]]:1;
+  utfReasonsArr.forEach(function(r,i){
+    var pct=(utfReasons[r]/maxUtf*100).toFixed(0);
+    var pctOfTotal=utf.length>0?(utfReasons[r]/utf.length*100).toFixed(1):0;
+    html+='<div class="bar-row"><div class="bar-label">'+esc(r)+'</div>';
+    html+='<div class="bar-track"><div class="bar-fill" style="width:'+pct+'%;background:#C62828"></div></div>';
+    html+='<div class="bar-val">'+utfReasons[r]+' <span style="color:var(--text4);font-size:9px">('+pctOfTotal+'%)</span></div></div>';
+  });
+  if(!utfReasonsArr.length)html+='<div class="empty">No data</div>';
+  html+='</div>';
+
+  // Turndown reasons
+  html+='<div class="card"><div class="card-head"><span class="card-title">Turndown — Reasons</span><span class="card-sub">'+turndown.length+' total</span></div>';
+  var maxTd=tdReasonsArr.length>0?tdReasons[tdReasonsArr[0]]:1;
+  tdReasonsArr.forEach(function(r,i){
+    var pct=(tdReasons[r]/maxTd*100).toFixed(0);
+    var pctOfTotal=turndown.length>0?(tdReasons[r]/turndown.length*100).toFixed(1):0;
+    html+='<div class="bar-row"><div class="bar-label">'+esc(r)+'</div>';
+    html+='<div class="bar-track"><div class="bar-fill" style="width:'+pct+'%;background:#6D28D9"></div></div>';
+    html+='<div class="bar-val">'+tdReasons[r]+' <span style="color:var(--text4);font-size:9px">('+pctOfTotal+'%)</span></div></div>';
+  });
+  if(!tdReasonsArr.length)html+='<div class="empty">No data</div>';
+  html+='</div>';
+  html+='</div>';
+
+  // UTF by market
+  var utfByMkt={};
+  utf.forEach(function(x){var m=x.market||'Unknown';utfByMkt[m]=(utfByMkt[m]||0)+1;});
+  var utfMkts=Object.keys(utfByMkt).sort(function(a,b){return utfByMkt[b]-utfByMkt[a];});
+  html+='<div class="card"><div class="card-head"><span class="card-title">Unable to Fill by Market</span></div><table class="tbl"><thead><tr><th class="ns">Market</th><th class="ns">UTF Count</th><th class="ns">% of Market Leads</th></tr></thead><tbody>';
+  // Build market totals
+  var mktTotals={};
+  d.forEach(function(x){var m=x.market||'Unknown';mktTotals[m]=(mktTotals[m]||0)+1;});
+  utfMkts.forEach(function(m){
+    var n=utfByMkt[m];
+    var mktTotal=mktTotals[m]||1;
+    var pct=(n/mktTotal*100).toFixed(1);
+    html+='<tr><td><strong>'+esc(m)+'</strong></td><td><span style="color:var(--red);font-weight:600">'+n+'</span></td><td>'+pct+'%</td></tr>';
+  });
+  html+='</tbody></table></div>';
+
+  document.getElementById('ct').innerHTML=html;
+}
+
+// ── ALL DEALS TAB ─────────────────────────────────────────────────────────────
+function renderDeals(){
+  var d=getFiltered();
+  d.sort(function(a,b){
+    var av,bv;
+    if(sortCol==='clientName'){av=a.clientName;bv=b.clientName;}
+    else if(sortCol==='market'){av=a.market;bv=b.market;}
+    else if(sortCol==='stage'){av=a.stageLabel;bv=b.stageLabel;}
+    else if(sortCol==='owner'){av=a.ownerName;bv=b.ownerName;}
+    else if(sortCol==='createDate'){av=a.createDate;bv=b.createDate;}
+    else{av=a.createDate;bv=b.createDate;}
+    if(av<bv)return sortDir;if(av>bv)return -sortDir;return 0;
+  });
+
+  function si(col){if(sortCol!==col)return'<span class="si">⇅</span>';return'<span class="si">'+(sortDir===-1?'↓':'↑')+'</span>';}
+  function th(col,lbl){return'<th onclick="sortCol=\''+col+'\';sortDir=(sortCol===\''+col+'\')?-sortDir:-1;render()">'+lbl+si(col)+'</th>';}
+
+  var html=buildFilterBar();
+  html+='<div class="card"><div class="card-head"><span class="card-title">All Deals</span><span class="card-sub">'+d.length+' records</span></div>';
+  html+='<div style="overflow-x:auto"><table class="tbl"><thead><tr>';
+  html+=th('clientName','Client');
+  html+=th('market','Market');
+  html+=th('stage','Stage');
+  html+='<th class="ns">Lead Source</th>';
+  html+='<th class="ns">Referred By</th>';
+  html+=th('owner','Owner');
+  html+=th('createDate','Created');
+  html+='<th class="ns">Lost Reason</th>';
+  html+='</tr></thead><tbody>';
+  d.slice(0,500).forEach(function(x){
+    var cls=STAGE_CLASS[x.stage]||'s-lost';
+    var lostReason=(x.utfReason||x.turndownReason||x.lostReason||'').slice(0,60);
+    html+='<tr>';
+    html+='<td><strong>'+esc(x.clientName||x.dealName)+'</strong></td>';
+    html+='<td>'+esc(x.market||'')+'</td>';
+    html+='<td><span class="stage '+cls+'">'+esc(x.stageLabel)+'</span></td>';
+    html+='<td style="color:var(--text3)">'+esc(x.leadSource||'')+'</td>';
+    html+='<td style="color:var(--text3);max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(x.referredBy||'')+'</td>';
+    html+='<td style="color:var(--text3)">'+esc(x.ownerName||'')+'</td>';
+    html+='<td style="color:var(--text3);white-space:nowrap">'+((x.createDate||'').split('T')[0])+'</td>';
+    html+='<td style="color:var(--text3);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+esc(lostReason)+'">'+esc(lostReason)+'</td>';
+    html+='</tr>';
+  });
+  if(d.length>500)html+='<tr><td colspan="8" style="text-align:center;color:var(--text4);padding:12px">Showing 500 of '+d.length+' — use filters to narrow</td></tr>';
+  html+='</tbody></table></div></div>';
+  document.getElementById('ct').innerHTML=html;
+}
+
+// ── DONUT CHART ───────────────────────────────────────────────────────────────
+function buildDonut(items, total){
+  var size=160,cx=80,cy=80,r=60,inner=36;
+  var paths='';
+  var startAngle=-Math.PI/2;
+  items.forEach(function(item){
+    if(!item.n)return;
+    var angle=(item.n/total)*2*Math.PI;
+    var endAngle=startAngle+angle;
+    var x1=cx+r*Math.cos(startAngle),y1=cy+r*Math.sin(startAngle);
+    var x2=cx+r*Math.cos(endAngle),y2=cy+r*Math.sin(endAngle);
+    var xi1=cx+inner*Math.cos(startAngle),yi1=cy+inner*Math.sin(startAngle);
+    var xi2=cx+inner*Math.cos(endAngle),yi2=cy+inner*Math.sin(endAngle);
+    var large=angle>Math.PI?1:0;
+    paths+='<path d="M '+xi1+' '+yi1+' L '+x1+' '+y1+' A '+r+' '+r+' 0 '+large+' 1 '+x2+' '+y2+' L '+xi2+' '+yi2+' A '+inner+' '+inner+' 0 '+large+' 0 '+xi1+' '+yi1+' Z" fill="'+item.color+'" opacity="0.9"/>';
+    startAngle=endAngle;
+  });
+  var html='<div class="donut-wrap">';
+  html+='<svg class="donut" width="'+size+'" height="'+size+'" viewBox="0 0 '+size+' '+size+'">'+paths;
+  html+='<text x="'+cx+'" y="'+(cy-6)+'" text-anchor="middle" font-size="18" font-weight="700" fill="#111827">'+total+'</text>';
+  html+='<text x="'+cx+'" y="'+(cy+12)+'" text-anchor="middle" font-size="9" fill="#9CA3AF">TOTAL</text>';
+  html+='</svg>';
+  html+='<div class="donut-legend">';
+  items.forEach(function(item){
+    var pct=total>0?(item.n/total*100).toFixed(1):0;
+    html+='<div class="legend-item"><div class="legend-dot" style="background:'+item.color+'"></div><div class="legend-label">'+esc(item.label)+'</div><div class="legend-val">'+item.n+'</div><div class="legend-pct">'+pct+'%</div></div>';
+  });
+  html+='</div></div>';
+  return html;
+}
+
+// ── CSV EXPORT ────────────────────────────────────────────────────────────────
+function exportCSV(){
+  var d=getFiltered();
+  var rows=[['Client Name','Deal Name','Stage','Market','Lead Source','Referred By','Location of Care','UTF Reason','Turndown Reason','Lost Reason','Service Level','Owner','Created Date','Close Date']];
+  d.forEach(function(x){
+    rows.push([x.clientName,x.dealName,x.stageLabel,x.market,x.leadSource,x.referredBy,x.locationOfCare,x.utfReason,x.turndownReason,x.lostReason,x.serviceLevel,x.ownerName,(x.createDate||'').split('T')[0],(x.closeDate||'').split('T')[0]]);
+  });
+  var csv=rows.map(function(r){return r.map(function(c){return'"'+String(c||'').replace(/"/g,'""')+'"';}).join(',');}).join('\n');
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+  a.download='Tribute_Leads_'+new Date().toISOString().split('T')[0]+'.csv';
+  a.click();
+}
+
+function render(){
+  if(!hsData){loading('Loading...');return;}
+  if(curTab==='funnel')renderFunnel();
+  else if(curTab==='sources')renderSources();
+  else if(curTab==='markets')renderMarkets();
+  else if(curTab==='lost')renderLost();
+  else if(curTab==='deals')renderDeals();
+}
+
+loadData();
+</script>
+</body>
+</html>
