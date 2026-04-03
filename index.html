@@ -279,7 +279,7 @@ body {
 /* ── DASHBOARD TILES ── */
 .dash-nav {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 10px;
   margin-bottom: 28px;
 }
@@ -738,7 +738,22 @@ body {
     <div class="dash-tile" onclick="loadDash('caregiver_intelligence',this)">
       <div class="tile-icon">🧠</div>
       <div class="tile-name">Caregiver Intelligence</div>
-      <div class="tile-desc">Hours distribution, lifecycle, roster and utilization by market</div>
+      <div class="tile-desc">Deep caregiver analytics, preferences and employment patterns</div>
+    </div>
+    <div class="dash-tile" onclick="loadDash('service_mix',this)">
+      <div class="tile-icon">🔀</div>
+      <div class="tile-name">Service Mix</div>
+      <div class="tile-desc">Visit type distribution, shift patterns and billing analysis</div>
+    </div>
+    <div class="dash-tile" onclick="loadDash('ksf_dashboard',this)">
+      <div class="tile-icon">📋</div>
+      <div class="tile-name">KSF Dashboard</div>
+      <div class="tile-desc">Scheduling performance, gross margin and KSF scorecard</div>
+    </div>
+    <div class="dash-tile" onclick="loadDash('scheduling_fill',this)">
+      <div class="tile-icon">📅</div>
+      <div class="tile-name">Scheduling Fill</div>
+      <div class="tile-desc">Open visits, open booking sets and caregiver time off</div>
     </div>
   </div>
 
@@ -841,8 +856,11 @@ var DASHES = {
   caregiver_hours:     { title:'Caregiver Hours',       file:'caregiver_hours.html' },
   revenue_trends:      { title:'Revenue Trends',        file:'revenue_trends.html' },
   client_dashboard:    { title:'Client Census',         file:'client_dashboard.html' },
-  caregiver_dashboard:    { title:'Caregiver Engine',         file:'caregiver_dashboard.html' },
-  caregiver_intelligence: { title:'Caregiver Intelligence',  file:'caregiver_intelligence.html' },
+  caregiver_dashboard:   { title:'Caregiver Engine',        file:'caregiver_dashboard.html' },
+  caregiver_intelligence:{ title:'Caregiver Intelligence',   file:'caregiver_intelligence.html' },
+  service_mix:           { title:'Service Mix',              file:'service_mix.html' },
+  ksf_dashboard:         { title:'KSF Dashboard',            file:'ksf_dashboard.html' },
+  scheduling_fill:       { title:'Scheduling Fill',          file:'scheduling_fill.html' },
 };
 
 var curDash = 'executive';
