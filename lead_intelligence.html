@@ -134,6 +134,9 @@ body{font-family:var(--font);background:var(--gray50);color:var(--charcoal);font
   <div class="tab" onclick="setTab('markets',this)">By Market</div>
   <div class="tab" onclick="setTab('lost',this)">Lost Analysis</div>
   <div class="tab" onclick="setTab('hiring',this)">Hiring Signals</div>
+  <div class="tab" onclick="setTab('lifecycle',this)">Client Lifecycle</div>
+  <div class="tab" onclick="setTab('community',this)">Community</div>
+  <div class="tab" onclick="setTab('refquality',this)">Referral Quality</div>
   <div class="tab" onclick="setTab('deals',this)">All Deals</div>
 </div>
 <div class="main" id="ct">
@@ -161,9 +164,10 @@ function getVivRev(deal){
   return deal.amount || 0;
 }
 function getVivStatus(deal){
-  // Only show Viv status for Closed Won deals — name matches on lost deals are unreliable
+  // Only show Viv status for Closed Won deals with ID matches — name matches too unreliable for status
   if(!deal.viv) return null;
   if(!deal.isClosedWon) return null;
+  if(deal.viv.matchType !== 'id') return null;
   return deal.viv.isActive ? 'Active' : 'Ended';
 }
 
@@ -685,6 +689,249 @@ function renderDeals(){
 
 function hexToRgb(hex){var r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);return r+','+g+','+b;}
 
+// ── TAB: CLIENT LIFECYCLE ────────────────────────────────────────────────────
+function renderLifecycle(){
+  var d=getFiltered();
+  var won=d.filter(function(x){return x.isClosedWon;});
+  var vivMatched=won.filter(function(x){return x.viv;});
+  var active=vivMatched.filter(function(x){return x.viv.isActive;});
+  var ended=vivMatched.filter(function(x){return !x.viv.isActive;});
+  var noMatch=won.filter(function(x){return !x.viv;});
+
+  // Days active calculation for ID-matched clients with start dates
+  var durations=vivMatched.filter(function(x){return x.startDate;}).map(function(x){
+    var start=new Date(x.startDate);
+    var end=x.viv&&!x.viv.isActive&&x.closeDate?new Date(x.closeDate):new Date();
+    return Math.max(0,Math.round((end-start)/86400000));
+  });
+  var avgDuration=durations.length?Math.round(durations.reduce(function(s,n){return s+n;},0)/durations.length):0;
+  var medDuration=durations.length?durations.sort(function(a,b){return a-b;})[Math.floor(durations.length/2)]:0;
+
+  // Revenue by active vs ended
+  var activeRev=active.reduce(function(s,x){return s+getVivRev(x);},0);
+  var endedRev=ended.reduce(function(s,x){return s+getVivRev(x);},0);
+
+  // Tenure buckets
+  var buckets={'<30 days':0,'30–90 days':0,'90–180 days':0,'180–365 days':0,'1–2 years':0,'2+ years':0};
+  durations.forEach(function(d){
+    if(d<30)buckets['<30 days']++;
+    else if(d<90)buckets['30–90 days']++;
+    else if(d<180)buckets['90–180 days']++;
+    else if(d<365)buckets['180–365 days']++;
+    else if(d<730)buckets['1–2 years']++;
+    else buckets['2+ years']++;
+  });
+
+  // Churn by lead source
+  var srcChurn={};
+  vivMatched.forEach(function(x){
+    var src=x.leadSource||'Unknown';
+    if(!srcChurn[src])srcChurn[src]={active:0,ended:0,totalRev:0};
+    if(x.viv.isActive)srcChurn[src].active++;else srcChurn[src].ended++;
+    srcChurn[src].totalRev+=getVivRev(x);
+  });
+
+  // Churn by market
+  var mktChurn={};
+  vivMatched.forEach(function(x){
+    var m=x.market||'Unknown';
+    if(!mktChurn[m])mktChurn[m]={active:0,ended:0,totalRev:0};
+    if(x.viv.isActive)mktChurn[m].active++;else mktChurn[m].ended++;
+    mktChurn[m].totalRev+=getVivRev(x);
+  });
+
+  var html=buildFilterBar();
+  html+='<div class="kgrid">';
+  html+='<div class="kpi green"><div class="kl">Closed Won</div><div class="kv">'+fmt(won.length)+'</div><div class="ks">Total converted leads</div></div>';
+  html+='<div class="kpi green"><div class="kl">Active Clients</div><div class="kv">'+fmt(active.length)+'</div><div class="ks">Currently on service (Viv)</div></div>';
+  html+='<div class="kpi"><div class="kl">Ended Clients</div><div class="kv">'+fmt(ended.length)+'</div><div class="ks">No longer on service</div></div>';
+  html+='<div class="kpi blue"><div class="kl">Viv Matched</div><div class="kv">'+fmt(vivMatched.length)+'</div><div class="ks">'+fmt(noMatch.length)+' unmatched</div></div>';
+  html+='<div class="kpi green"><div class="kl">Active Weekly Rev</div><div class="kv sm">'+fmtRevPlain(activeRev)+'</div><div class="ks">From active converted clients</div></div>';
+  html+='<div class="kpi blue"><div class="kl">Avg Client Tenure</div><div class="kv">'+avgDuration+'d</div><div class="ks">Median: '+medDuration+'d</div></div>';
+  html+='</div>';
+
+  html+='<div class="grid2">';
+
+  // Tenure buckets
+  html+='<div class="card"><div class="card-head"><span class="card-title">Client Tenure Distribution</span><span class="card-sub">'+durations.length+' clients with start dates</span></div>';
+  var maxBucket=Math.max.apply(null,Object.values(buckets).concat([1]));
+  Object.keys(buckets).forEach(function(b){
+    var n=buckets[b];
+    html+='<div class="bar-row"><div class="bar-label">'+b+'</div>';
+    html+='<div class="bar-track"><div class="bar-fill" style="width:'+(n/maxBucket*100).toFixed(0)+'%;background:var(--blue)"></div></div>';
+    html+='<div class="bar-val">'+n+'</div></div>';
+  });
+  html+='</div>';
+
+  // Active vs ended donut
+  var lifeItems=[{label:'Active',n:active.length,color:'#1B7A3E'},{label:'Ended',n:ended.length,color:'#6B7280'},{label:'No Viv Match',n:noMatch.length,color:'#E5E7EB'}].filter(function(x){return x.n>0;});
+  html+='<div class="card"><div class="card-head"><span class="card-title">Active vs. Ended</span></div>'+buildDonut(lifeItems,won.length)+'</div>';
+  html+='</div>';
+
+  // Retention by market
+  var mkts=Object.keys(mktChurn).sort(function(a,b){return(mktChurn[b].active+mktChurn[b].ended)-(mktChurn[a].active+mktChurn[a].ended);});
+  html+='<div class="card"><div class="card-head"><span class="card-title">Retention by Market</span></div>';
+  html+='<table class="tbl"><thead><tr><th class="ns">Market</th><th class="ns">Active</th><th class="ns">Ended</th><th class="ns">Retention%</th><th class="ns">Active Weekly Rev</th></tr></thead><tbody>';
+  mkts.forEach(function(m){
+    var r=mktChurn[m];var tot=r.active+r.ended;
+    var ret=tot>0?(r.active/tot*100).toFixed(1):0;
+    html+='<tr><td><strong>'+esc(m)+'</strong></td>';
+    html+='<td style="color:var(--green);font-weight:600">'+r.active+'</td>';
+    html+='<td style="color:var(--text3)">'+r.ended+'</td>';
+    html+='<td>'+ret+'%</td>';
+    html+='<td style="color:var(--green)">'+fmtRevPlain(r.totalRev)+'</td></tr>';
+  });
+  html+='</tbody></table></div>';
+
+  // Retention by lead source
+  var srcs=Object.keys(srcChurn).sort(function(a,b){return(srcChurn[b].active+srcChurn[b].ended)-(srcChurn[a].active+srcChurn[a].ended);});
+  html+='<div class="card"><div class="card-head"><span class="card-title">Retention by Lead Source</span></div>';
+  html+='<table class="tbl"><thead><tr><th class="ns">Lead Source</th><th class="ns">Active</th><th class="ns">Ended</th><th class="ns">Retention%</th><th class="ns">Total Weekly Rev</th></tr></thead><tbody>';
+  srcs.forEach(function(s){
+    var r=srcChurn[s];var tot=r.active+r.ended;
+    var ret=tot>0?(r.active/tot*100).toFixed(1):0;
+    html+='<tr><td>'+esc(s)+'</td>';
+    html+='<td style="color:var(--green);font-weight:600">'+r.active+'</td>';
+    html+='<td style="color:var(--text3)">'+r.ended+'</td>';
+    html+='<td>'+ret+'%</td>';
+    html+='<td style="color:var(--green)">'+fmtRevPlain(r.totalRev)+'</td></tr>';
+  });
+  html+='</tbody></table></div>';
+
+  document.getElementById('ct').innerHTML=html;
+}
+
+// ── TAB: COMMUNITY ────────────────────────────────────────────────────────────
+function renderCommunity(){
+  var d=getFiltered();
+  var byCommunity={};
+  d.forEach(function(x){
+    var loc=x.locationOfCare||'Unknown';
+    if(!byCommunity[loc])byCommunity[loc]={total:0,won:0,utf:0,turndown:0,lost:0,activeClients:0,totalRev:0,utfRev:0,lostReasons:{}};
+    byCommunity[loc].total++;
+    if(x.isClosedWon){
+      byCommunity[loc].won++;
+      if(x.viv&&x.viv.isActive)byCommunity[loc].activeClients++;
+      byCommunity[loc].totalRev+=getVivRev(x);
+    }
+    if(x.stage==='3665246'||x.stage==='143971688'){byCommunity[loc].utf++;byCommunity[loc].utfRev+=x.amount||0;}
+    if(x.stage==='12704675')byCommunity[loc].turndown++;
+    if(x.stage==='closedlost')byCommunity[loc].lost++;
+    var lr=primaryReason(x.utfReason||x.turndownReason||x.lostReason);
+    if(lr&&lr!=='Not specified'){byCommunity[loc].lostReasons[lr]=(byCommunity[loc].lostReasons[lr]||0)+1;}
+  });
+
+  var communities=Object.keys(byCommunity).sort(function(a,b){return byCommunity[b].total-byCommunity[a].total;});
+
+  var html=buildFilterBar();
+  html+='<div class="card"><div class="card-head"><span class="card-title">Community Performance</span><span class="card-sub">'+communities.length+' locations</span></div>';
+  html+='<div style="overflow-x:auto"><table class="tbl"><thead><tr>';
+  html+='<th class="ns">Location of Care</th><th class="ns">Leads</th><th class="ns">Won</th><th class="ns">Conv%</th><th class="ns">Active</th><th class="ns">UTF</th><th class="ns">UTF%</th><th class="ns">Active Weekly Rev</th><th class="ns">Ann. Lost Rev</th><th class="ns">Top Lost Reason</th>';
+  html+='</tr></thead><tbody>';
+  communities.forEach(function(loc){
+    var r=byCommunity[loc];
+    var conv=r.total>0?(r.won/r.total*100).toFixed(1):0;
+    var utfP=r.total>0?(r.utf/r.total*100).toFixed(1):0;
+    var topReason=Object.keys(r.lostReasons).sort(function(a,b){return r.lostReasons[b]-r.lostReasons[a];})[0]||'—';
+    html+='<tr>';
+    html+='<td><strong>'+esc(loc)+'</strong></td>';
+    html+='<td>'+r.total+'</td>';
+    html+='<td style="color:var(--green);font-weight:600">'+r.won+'</td>';
+    html+='<td>'+conv+'%</td>';
+    html+='<td style="color:var(--green)">'+r.activeClients+'</td>';
+    html+='<td style="color:var(--red)">'+r.utf+'</td>';
+    html+='<td>'+utfP+'%</td>';
+    html+='<td style="color:var(--green)">'+fmtRevPlain(r.totalRev)+'</td>';
+    html+='<td style="color:var(--red)">'+fmtAnn(r.utfRev)+'</td>';
+    html+='<td style="color:var(--text3);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(topReason)+'</td>';
+    html+='</tr>';
+  });
+  html+='</tbody></table></div></div>';
+
+  document.getElementById('ct').innerHTML=html;
+}
+
+// ── TAB: REFERRAL QUALITY ─────────────────────────────────────────────────────
+function renderRefQuality(){
+  var d=getFiltered();
+  var bySource={};
+  d.forEach(function(x){
+    var src=x.leadSource||'Unknown';
+    if(!bySource[src])bySource[src]={leads:0,won:0,utf:0,activeClients:0,totalRev:0,utfRev:0,wonRevDeals:0,startDates:[]};
+    bySource[src].leads++;
+    if(x.isClosedWon){
+      bySource[src].won++;
+      var rev=getVivRev(x);
+      bySource[src].totalRev+=rev;
+      if(rev>0)bySource[src].wonRevDeals++;
+      if(x.viv&&x.viv.isActive)bySource[src].activeClients++;
+      if(x.startDate)bySource[src].startDates.push(new Date(x.startDate));
+    }
+    if(x.stage==='3665246'||x.stage==='143971688'){bySource[src].utf++;bySource[src].utfRev+=x.amount||0;}
+  });
+
+  var srcs=Object.keys(bySource).sort(function(a,b){return bySource[b].totalRev-bySource[a].totalRev;});
+
+  var html=buildFilterBar();
+
+  // Top KPIs
+  var topRevSrc=srcs[0]||'—';
+  var topConvSrc=srcs.slice().sort(function(a,b){
+    var ca=bySource[a].leads>5?(bySource[a].won/bySource[a].leads):0;
+    var cb=bySource[b].leads>5?(bySource[b].won/bySource[b].leads):0;
+    return cb-ca;
+  })[0]||'—';
+
+  html+='<div class="grid2">';
+
+  // Revenue quality table
+  html+='<div class="card"><div class="card-head"><span class="card-title">Referral Source Quality — Revenue</span></div>';
+  html+='<table class="tbl"><thead><tr><th class="ns">Source</th><th class="ns">Leads</th><th class="ns">Won</th><th class="ns">Conv%</th><th class="ns">Active</th><th class="ns">Retention%</th><th class="ns">Total Weekly Rev</th><th class="ns">Avg Rev/Client</th></tr></thead><tbody>';
+  srcs.forEach(function(s){
+    var r=bySource[s];
+    var conv=r.leads>0?(r.won/r.leads*100).toFixed(1):0;
+    var ret=r.won>0?(r.activeClients/r.won*100).toFixed(1):0;
+    var avg=r.wonRevDeals>0?Math.round(r.totalRev/r.wonRevDeals):0;
+    html+='<tr><td>'+esc(s)+'</td><td>'+r.leads+'</td>';
+    html+='<td style="color:var(--green);font-weight:600">'+r.won+'</td>';
+    html+='<td>'+conv+'%</td>';
+    html+='<td style="color:var(--green)">'+r.activeClients+'</td>';
+    html+='<td>'+ret+'%</td>';
+    html+='<td style="color:var(--green);font-weight:600">'+fmtRevPlain(r.totalRev)+'</td>';
+    html+='<td>'+fmtRevPlain(avg)+'</td></tr>';
+  });
+  html+='</tbody></table></div>';
+
+  // Operational fit table
+  html+='<div class="card"><div class="card-head"><span class="card-title">Referral Source Fit — Staffing</span></div>';
+  html+='<table class="tbl"><thead><tr><th class="ns">Source</th><th class="ns">Leads</th><th class="ns">UTF</th><th class="ns">UTF%</th><th class="ns">Ann. Lost Rev</th><th class="ns">Turndown</th></tr></thead><tbody>';
+  var srcsByUtf=srcs.slice().sort(function(a,b){
+    var ua=bySource[a].leads>0?bySource[a].utf/bySource[a].leads:0;
+    var ub=bySource[b].leads>0?bySource[b].utf/bySource[b].leads:0;
+    return ub-ua;
+  });
+  srcsByUtf.forEach(function(s){
+    var r=bySource[s];
+    var utfP=r.leads>0?(r.utf/r.leads*100).toFixed(1):0;
+    html+='<tr><td>'+esc(s)+'</td><td>'+r.leads+'</td>';
+    html+='<td style="color:var(--red)">'+r.utf+'</td>';
+    html+='<td style="color:var(--red)">'+utfP+'%</td>';
+    html+='<td style="color:var(--red)">'+fmtAnn(r.utfRev)+'</td>';
+    var td=d.filter(function(x){return(x.leadSource||'Unknown')===s&&x.stage==='12704675';}).length;
+    html+='<td>'+td+'</td></tr>';
+  });
+  html+='</tbody></table></div>';
+  html+='</div>';
+
+  // Summary callout
+  if(topRevSrc!=='—'){
+    var tr=bySource[topRevSrc];
+    html+='<div class="gap-callout" style="background:linear-gradient(135deg,#EBF7F0,#D1FAE5);border-color:var(--green)"><div><div class="gap-label" style="color:var(--green)">Top Revenue Source</div><div class="gap-val">'+esc(topRevSrc)+'</div><div class="gap-sub">'+fmtRevPlain(tr.totalRev)+'/week · '+tr.won+' clients won · '+(tr.won>0?(tr.activeClients/tr.won*100).toFixed(0):0)+'% retention</div></div></div>';
+  }
+
+  document.getElementById('ct').innerHTML=html;
+}
+
 function exportCSV(){
   var d=getFiltered();
   var rows=[['Client Name','Deal Name','Stage','Market','State','Service Level','Lead Source','Referred By','Location of Care','UTF Reason','Turndown Reason','Lost Reason','Est. Weekly Revenue','Owner','Created Date','Close Date','Start Date']];
@@ -702,6 +949,9 @@ function render(){
   else if(curTab==='markets')renderMarkets();
   else if(curTab==='lost')renderLost();
   else if(curTab==='hiring')renderHiring();
+  else if(curTab==='lifecycle')renderLifecycle();
+  else if(curTab==='community')renderCommunity();
+  else if(curTab==='refquality')renderRefQuality();
   else if(curTab==='deals')renderDeals();
 }
 
