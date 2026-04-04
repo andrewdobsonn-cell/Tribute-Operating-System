@@ -164,10 +164,10 @@ function getVivRev(deal){
   return deal.amount || 0;
 }
 function getVivStatus(deal){
-  // Only show Viv status for Closed Won deals with ID matches — name matches too unreliable for status
+  // Show Viv status for Closed Won deals with any match
+  // ID matches are high confidence, name matches are medium confidence
   if(!deal.viv) return null;
   if(!deal.isClosedWon) return null;
-  if(deal.viv.matchType !== 'id') return null;
   return deal.viv.isActive ? 'Active' : 'Ended';
 }
 
