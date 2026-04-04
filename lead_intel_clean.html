@@ -1033,8 +1033,13 @@ function renderSupply(){
 
   // Filter open visits by market using window30 byMarket breakdown
   var openVisitsByMkt=openVisits&&openVisits.window30&&openVisits.window30.byMarket?openVisits.window30.byMarket:[];
+  var openVisitsByComm=openVisits&&openVisits.window30&&openVisits.window30.byCommunity?openVisits.window30.byCommunity:[];
   var filteredOvTotal=0;
-  if(filters.market!=='all'){
+  if(filters.vivCommunity!=='all'){
+    // Filter by Viv community
+    var commData=openVisitsByComm.find(function(c){return c.community===filters.vivCommunity;});
+    filteredOvTotal=commData?commData.open||0:0;
+  } else if(filters.market!=='all'){
     var mktData=openVisitsByMkt.find(function(m){return m.market===filters.market;});
     filteredOvTotal=mktData?mktData.open||mktData.total||0:0;
   } else if(filters.state!=='all'){
@@ -1045,15 +1050,22 @@ function renderSupply(){
     filteredOvTotal=openVisits&&openVisits.window30?openVisits.window30.total:0;
   }
 
-  // Filter caregivers by state
+  // Active caregivers — use visit-based counts for granular filtering
   var filteredCgActive=0;
-  if(caregivers&&caregivers.byState){
-    if(filters.state!=='all'){
-      var stData=caregivers.byState.find(function(s){return s.state===filters.state;});
-      filteredCgActive=stData?stData.active:0;
-    } else {
-      filteredCgActive=caregivers.totals?caregivers.totals.active:0;
-    }
+  var ov30=openVisits&&openVisits.window30;
+  if(filters.vivCommunity!=='all'&&ov30&&ov30.byCommunity){
+    var commCg=ov30.byCommunity.find(function(c){return c.community===filters.vivCommunity;});
+    filteredCgActive=commCg?commCg.activeCaregivers||0:0;
+  } else if(filters.market!=='all'&&ov30&&ov30.byMarket){
+    var mktCg=ov30.byMarket.find(function(m){return m.market===filters.market;});
+    filteredCgActive=mktCg?mktCg.activeCaregivers||0:0;
+  } else if(filters.state!=='all'&&ov30&&ov30.byState){
+    var stCg=ov30.byState.find(function(s){return s.state===filters.state;});
+    filteredCgActive=stCg?stCg.activeCaregivers||0:0;
+  } else if(ov30){
+    filteredCgActive=ov30.totalActiveCaregivers||0;
+  } else if(caregivers&&caregivers.totals){
+    filteredCgActive=caregivers.totals.active||0;
   }
 
   // KPIs
@@ -1067,7 +1079,7 @@ function renderSupply(){
   html+='<div class="kpi red"><div class="kl">Unmet Demand (UTF)</div><div class="kv">'+fmt(totalUtf)+'</div><div class="ks">'+fmtAnn(totalUtfRev)+' annualized lost</div></div>';
   html+='<div class="kpi amber"><div class="kl">Open Visits (28d)</div><div class="kv">'+fmt(openVisitCount)+'</div><div class="ks">Unfilled shifts next 28 days</div></div>';
   html+='<div class="kpi amber"><div class="kl">Open Booking Sets</div><div class="kv">'+fmt(openBsCount)+'</div><div class="ks">Recurring unassigned slots</div></div>';
-  html+='<div class="kpi blue"><div class="kl">Active Caregivers</div><div class="kv">'+fmt(activeCgs)+'</div><div class="ks">Currently hired in Viv</div></div>';
+  html+='<div class="kpi blue"><div class="kl">Active Caregivers</div><div class="kv">'+fmt(activeCgs)+'</div><div class="ks">With visits in this filter</div></div>';
   html+='</div>';
 
   html+='<div class="grid2">';
