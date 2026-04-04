@@ -185,9 +185,11 @@ function getVivStatus(deal){
 
 function getStateFromMarket(m){
   var m2=(m||'').toUpperCase().trim();
-  if(['BOS','MWB','NB','SOB','NBOS','BOSTON','METROWEST BOSTON','NORTH OF BOSTON','SOUTH OF BOSTON'].some(function(x){return m2===x||m2.indexOf(x)===0;}))return'Massachusetts';
-  if(['BAL','ANN','BETH','BALTIMORE','ANNAPOLIS','BETHESDA'].some(function(x){return m2===x||m2.indexOf(x)===0;}))return'Maryland';
+  if(['BOS','MWB','NB','SOB','SB','NBOS','BOSTON','METROWEST BOSTON','NORTH OF BOSTON','SOUTH OF BOSTON'].some(function(x){return m2===x||m2.indexOf(x)===0;}))return'Massachusetts';
+  if(['BAL','ANN','BETH','BET','BALTIMORE','ANNAPOLIS','BETHESDA'].some(function(x){return m2===x||m2.indexOf(x)===0;}))return'Maryland';
   if(['CHI','CHICAGO'].some(function(x){return m2===x||m2.indexOf(x)===0;}))return'Illinois';
+  if(['NVA','NOVA','NORTHERN VIRGINIA'].some(function(x){return m2===x||m2.indexOf(x)===0;}))return'Virginia';
+  if(['NNJ','NORTHERN NEW JERSEY'].some(function(x){return m2===x||m2.indexOf(x)===0;}))return'New Jersey';
   return'';
 }
 
