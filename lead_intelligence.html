@@ -147,7 +147,7 @@ body{font-family:var(--font);background:var(--gray50);color:var(--charcoal);font
 var API='https://tribute-api-prod-bkc4hfcwf3f2f6bf.centralus-01.azurewebsites.net/api/vivProxy';
 var curTab='funnel';
 var hsData=null;
-var filters={market:'all',state:'all',company:'all',source:'all',stage:'all',dateFrom:'',dateTo:'',search:''};
+var filters={market:'all',state:'all',company:'all',vivCommunity:'all',source:'all',stage:'all',dateFrom:'',dateTo:'',search:''};
 var sortCol='createDate',sortDir=-1;
 var activeOnlyRevenue=false;
 
@@ -163,6 +163,12 @@ function getVivRev(deal){
   if(deal.isClosedWon && deal.viv && deal.viv.billRate && deal.viv.billedHoursWeekly) return Math.round(deal.viv.billRate * deal.viv.billedHoursWeekly);
   return deal.amount || 0;
 }
+function getVivCommunity(deal){
+  // Get community from Viv if matched, fall back to HubSpot locationOfCare
+  if(deal.viv && deal.viv.community) return deal.viv.community;
+  return deal.locationOfCare || 'Private Home';
+}
+
 function getStartDate(deal){
   // Prefer Viv start date over HubSpot start date
   if(deal.viv && deal.viv.startDate) return deal.viv.startDate.split('T')[0];
@@ -233,6 +239,7 @@ function getFiltered(){
     if(filters.source!=='all'&&d.leadSource!==filters.source)return false;
     if(filters.state!=='all'&&getStateFromMarket(d.market)!==filters.state)return false;
     if(filters.company!=='all'&&d.locationOfCare!==filters.company)return false;
+    if(filters.vivCommunity!=='all'&&(!d.viv||d.viv.community!==filters.vivCommunity))return false;
     if(filters.dateFrom&&d.createDate<filters.dateFrom)return false;
     if(filters.dateTo&&d.createDate>filters.dateTo+'T99')return false;
     if(filters.search){var q=filters.search.toLowerCase();if((d.clientName||'').toLowerCase().indexOf(q)<0&&(d.dealName||'').toLowerCase().indexOf(q)<0&&(d.referredBy||'').toLowerCase().indexOf(q)<0)return false;}
@@ -264,6 +271,13 @@ function buildFilterBar(){
   html+='<label>Location</label><select onchange="filters.company=this.value;render()"><option value="all">All</option>';
   companies.forEach(function(s){html+='<option value="'+s+'"'+(filters.company===s?' selected':'')+'>'+s+'</option>';});
   html+='</select>';
+  // Viv community filter (from matched records)
+  var vivCommunities=[...new Set(deals.filter(function(d){return d.viv&&d.viv.community;}).map(function(d){return d.viv.community;}).filter(Boolean))].sort();
+  if(vivCommunities.length){
+    html+='<label>Viv Community</label><select onchange="filters.vivCommunity=this.value;render()"><option value="all">All</option>';
+    vivCommunities.forEach(function(s){html+='<option value="'+s+'"'+(filters.vivCommunity===s?' selected':'')+'>'+s+'</option>';});
+    html+='</select>';
+  }
   html+='<div class="fsep"></div>';
   html+='<label>From</label><input type="date" value="'+filters.dateFrom+'" onchange="filters.dateFrom=this.value;render()">';
   html+='<label>To</label><input type="date" value="'+filters.dateTo+'" onchange="filters.dateTo=this.value;render()">';
@@ -377,11 +391,12 @@ function renderRevenue(){
   // Panel A - Active Revenue
   html+='<div class="card"><div class="card-head"><span class="card-title">Active Revenue — Converted Leads</span>';
   html+='<label style="margin-left:auto;display:flex;align-items:center;gap:6px;font-size:11px;cursor:pointer"><input type="checkbox" '+(activeOnlyRevenue?'checked':'')+' onchange="activeOnlyRevenue=this.checked;renderRevenue()"> Active only (12mo)</label>';
-  html+='</div><div style="overflow-x:auto"><table class="tbl"><thead><tr><th class="ns">Client</th><th class="ns">Market</th><th class="ns">SL</th><th class="ns">Start Date</th><th class="ns">Weekly Rev</th><th class="ns">Source</th><th class="ns">Viv Status</th></tr></thead><tbody>';
+  html+='</div><div style="overflow-x:auto"><table class="tbl"><thead><tr><th class="ns">Client</th><th class="ns">Market</th><th class="ns">SL</th><th class="ns">Community</th><th class="ns">Start Date</th><th class="ns">Weekly Rev</th><th class="ns">Source</th><th class="ns">Viv Status</th></tr></thead><tbody>';
   activeWon.sort(function(a,b){return (b.amount||0)-(a.amount||0);}).forEach(function(x){
     var missing=x.isClosedWon&&(!x.amount||x.amount===0);
     html+='<tr><td><strong>'+esc(getClientName(x))+'</strong>'+(missing?' <span style="font-size:9px;color:var(--amber)">⚠ Missing Rev Data</span>':'')+'</td>';
     html+='<td>'+esc(x.market||'')+'</td><td><span class="stage s-qualified">'+esc(x.serviceLevel||'—')+'</span></td>';
+    html+='<td style="color:var(--text3);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(getVivCommunity(x))+'</td>';
     html+='<td style="color:var(--text3)">'+getStartDate(x)+'</td>';
     var rev=getVivRev(x);var vivBadge=x.viv?'<span style="font-size:9px;background:#EBF7F0;color:#1B7A3E;border-radius:3px;padding:1px 4px;margin-left:4px">Viv</span>':'';
     html+='<td style="color:var(--green);font-weight:600">'+fmtRevPlain(rev)+vivBadge+'</td>';
@@ -820,7 +835,7 @@ function renderCommunity(){
   var d=getFiltered();
   var byCommunity={};
   d.forEach(function(x){
-    var loc=x.locationOfCare||'Unknown';
+    var loc=getVivCommunity(x)||'Unknown';
     if(!byCommunity[loc])byCommunity[loc]={total:0,won:0,utf:0,turndown:0,lost:0,activeClients:0,totalRev:0,utfRev:0,lostReasons:{}};
     byCommunity[loc].total++;
     if(x.isClosedWon){
