@@ -163,6 +163,18 @@ function getVivRev(deal){
   if(deal.isClosedWon && deal.viv && deal.viv.billRate && deal.viv.billedHoursWeekly) return Math.round(deal.viv.billRate * deal.viv.billedHoursWeekly);
   return deal.amount || 0;
 }
+function getStartDate(deal){
+  // Prefer Viv start date over HubSpot start date
+  if(deal.viv && deal.viv.startDate) return deal.viv.startDate.split('T')[0];
+  return (deal.startDate||'').split('T')[0];
+}
+
+function getClientName(deal){
+  // Prefer Viv name (clean First Last format) over HubSpot name
+  if(deal.viv && deal.viv.clientName) return deal.viv.clientName;
+  return deal.clientName || deal.dealName || '';
+}
+
 function getVivStatus(deal){
   // Show Viv status for Closed Won deals with any match
   // ID matches are high confidence, name matches are medium confidence
@@ -366,9 +378,9 @@ function renderRevenue(){
   html+='</div><div style="overflow-x:auto"><table class="tbl"><thead><tr><th class="ns">Client</th><th class="ns">Market</th><th class="ns">SL</th><th class="ns">Start Date</th><th class="ns">Weekly Rev</th><th class="ns">Source</th><th class="ns">Viv Status</th></tr></thead><tbody>';
   activeWon.sort(function(a,b){return (b.amount||0)-(a.amount||0);}).forEach(function(x){
     var missing=x.isClosedWon&&(!x.amount||x.amount===0);
-    html+='<tr><td><strong>'+esc(x.clientName||x.dealName)+'</strong>'+(missing?' <span style="font-size:9px;color:var(--amber)">⚠ Missing Rev Data</span>':'')+'</td>';
+    html+='<tr><td><strong>'+esc(getClientName(x))+'</strong>'+(missing?' <span style="font-size:9px;color:var(--amber)">⚠ Missing Rev Data</span>':'')+'</td>';
     html+='<td>'+esc(x.market||'')+'</td><td><span class="stage s-qualified">'+esc(x.serviceLevel||'—')+'</span></td>';
-    html+='<td style="color:var(--text3)">'+(x.startDate||'').split('T')[0]+'</td>';
+    html+='<td style="color:var(--text3)">'+getStartDate(x)+'</td>';
     var rev=getVivRev(x);var vivBadge=x.viv?'<span style="font-size:9px;background:#EBF7F0;color:#1B7A3E;border-radius:3px;padding:1px 4px;margin-left:4px">Viv</span>':'';
     html+='<td style="color:var(--green);font-weight:600">'+fmtRevPlain(rev)+vivBadge+'</td>';
     html+='<td style="color:var(--text3)">'+esc(x.leadSource||'')+'</td>';
@@ -935,7 +947,7 @@ function renderRefQuality(){
 function exportCSV(){
   var d=getFiltered();
   var rows=[['Client Name','Deal Name','Stage','Market','State','Service Level','Lead Source','Referred By','Location of Care','UTF Reason','Turndown Reason','Lost Reason','Est. Weekly Revenue','Owner','Created Date','Close Date','Start Date']];
-  d.forEach(function(x){rows.push([x.clientName,x.dealName,x.stageLabel,x.market,getStateFromMarket(x.market),x.serviceLevel,x.leadSource,x.referredBy,x.locationOfCare,x.utfReason,x.turndownReason,x.lostReason,x.amount?'$'+x.amount:'',x.ownerName,(x.createDate||'').split('T')[0],(x.closeDate||'').split('T')[0],(x.startDate||'').split('T')[0]]);});
+  d.forEach(function(x){rows.push([x.clientName,x.dealName,x.stageLabel,x.market,getStateFromMarket(x.market),x.serviceLevel,x.leadSource,x.referredBy,x.locationOfCare,x.utfReason,x.turndownReason,x.lostReason,x.amount?'$'+x.amount:'',x.ownerName,(x.createDate||'').split('T')[0],(x.closeDate||'').split('T')[0],getStartDate(x)]);});
   var csv=rows.map(function(r){return r.map(function(c){return'"'+String(c||'').replace(/"/g,'""')+'"';}).join(',');}).join('\n');
   var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='Tribute_Leads_'+new Date().toISOString().split('T')[0]+'.csv';a.click();
 }
