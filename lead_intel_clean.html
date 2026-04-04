@@ -223,12 +223,13 @@ function loadData(){
     fetch(API+'?endpoint=hubspot_deals').then(function(r){return r.json();}),
     fetch(API+'?endpoint=open_visits&startDate='+sd+'&endDate='+ed).then(function(r){return r.json();}).catch(function(){return null;}),
     fetch(API+'?endpoint=open_booking_sets').then(function(r){return r.json();}).catch(function(){return null;}),
-    fetch(API+'?endpoint=caregivers&fast=true').then(function(r){return r.json();}).catch(function(){return null;})
+    fetch(API+'?endpoint=caregivers&fast=true').then(function(r){return r.json();}).catch(function(){return null;}),
+    fetch(API+'?endpoint=clients').then(function(r){return r.json();}).catch(function(){return null;})
   ]).then(function(results){
     var d=results[0];
     if(d&&d.error){showErr(d.error);return;}
     hsData=d;
-    supplyData={openVisits:results[1],bookingSets:results[2],caregivers:results[3]};
+    supplyData={openVisits:results[1],bookingSets:results[2],caregivers:results[3],clients:results[4]};
     if(d&&d.generatedAt){
       var matchTxt='';
       if(d.vivMatchCount){matchTxt=' · '+d.vivMatchCount+' Viv matches';if(d.vivIdMatches||d.vivNameMatches)matchTxt+=' ('+(d.vivIdMatches||0)+' ID, '+(d.vivNameMatches||0)+' name)';}
@@ -780,7 +781,9 @@ function renderLifecycle(){
   var html=buildFilterBar();
   html+='<div class="kgrid">';
   html+='<div class="kpi green"><div class="kl">Closed Won</div><div class="kv">'+fmt(won.length)+'</div><div class="ks">Total converted leads</div></div>';
-  html+='<div class="kpi green"><div class="kl">Active Clients</div><div class="kv">'+fmt(active.length)+'</div><div class="ks">Currently on service (Viv)</div></div>';
+  var totalVivActive=supplyData&&supplyData.clients&&supplyData.clients.summary?supplyData.clients.summary.active:null;
+  html+='<div class="kpi green"><div class="kl">Active from Leads</div><div class="kv">'+fmt(active.length)+'</div><div class="ks">HubSpot-sourced, on service</div></div>';
+  html+='<div class="kpi blue"><div class="kl">Total Active (Viv)</div><div class="kv">'+(totalVivActive!==null?fmt(totalVivActive):'—')+'</div><div class="ks">All active clients in Viv</div></div>';
   html+='<div class="kpi"><div class="kl">Ended Clients</div><div class="kv">'+fmt(ended.length)+'</div><div class="ks">No longer on service</div></div>';
   html+='<div class="kpi blue"><div class="kl">Viv Matched</div><div class="kv">'+fmt(vivMatched.length)+'</div><div class="ks">'+fmt(noMatch.length)+' unmatched</div></div>';
   html+='<div class="kpi green"><div class="kl">Active Weekly Rev</div><div class="kv sm">'+fmtRevPlain(activeRev)+'</div><div class="ks">From active converted clients</div></div>';
