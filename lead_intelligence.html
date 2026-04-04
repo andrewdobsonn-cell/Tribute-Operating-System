@@ -155,13 +155,15 @@ var SL_ORDER=['A','B','C','D','Live-In'];
 var COLORS=['#E8732A','#1E40AF','#1B7A3E','#C62828','#6D28D9','#B45309','#0891B2','#BE185D','#065F46','#92400E'];
 
 function getVivRev(deal){
-  // Use Viv weekly revenue if matched, fall back to HubSpot amount
-  if(deal.viv && deal.viv.weeklyRevenue) return deal.viv.weeklyRevenue;
-  if(deal.viv && deal.viv.billRate && deal.viv.billedHoursWeekly) return Math.round(deal.viv.billRate * deal.viv.billedHoursWeekly);
+  // Only use Viv revenue for Closed Won deals — avoid false matches on lost leads
+  if(deal.isClosedWon && deal.viv && deal.viv.weeklyRevenue) return deal.viv.weeklyRevenue;
+  if(deal.isClosedWon && deal.viv && deal.viv.billRate && deal.viv.billedHoursWeekly) return Math.round(deal.viv.billRate * deal.viv.billedHoursWeekly);
   return deal.amount || 0;
 }
 function getVivStatus(deal){
+  // Only show Viv status for Closed Won deals — name matches on lost deals are unreliable
   if(!deal.viv) return null;
+  if(!deal.isClosedWon) return null;
   return deal.viv.isActive ? 'Active' : 'Ended';
 }
 
