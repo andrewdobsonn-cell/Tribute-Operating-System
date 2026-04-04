@@ -219,24 +219,53 @@ function loadData(){
   var today=new Date();
   var sd=today.toISOString().split('T')[0];
   var ed=new Date(today.getTime()+28*86400000).toISOString().split('T')[0];
-  Promise.all([
-    fetch(API+'?endpoint=hubspot_deals').then(function(r){return r.json();}),
-    fetch(API+'?endpoint=open_visits&startDate='+sd+'&endDate='+ed).then(function(r){return r.json();}).catch(function(){return null;}),
-    fetch(API+'?endpoint=open_booking_sets').then(function(r){return r.json();}).catch(function(){return null;}),
-    fetch(API+'?endpoint=caregivers&fast=true').then(function(r){return r.json();}).catch(function(){return null;}),
-    fetch(API+'?endpoint=clients').then(function(r){return r.json();}).catch(function(){return null;})
-  ]).then(function(results){
-    var d=results[0];
-    if(d&&d.error){showErr(d.error);return;}
-    hsData=d;
-    supplyData={openVisits:results[1],bookingSets:results[2],caregivers:results[3],clients:results[4]};
-    if(d&&d.generatedAt){
-      var matchTxt='';
-      if(d.vivMatchCount){matchTxt=' · '+d.vivMatchCount+' Viv matches';if(d.vivIdMatches||d.vivNameMatches)matchTxt+=' ('+(d.vivIdMatches||0)+' ID, '+(d.vivNameMatches||0)+' name)';}
-      document.getElementById('genAt').textContent=new Date(d.generatedAt).toLocaleString()+matchTxt;
-    }
-    render();
-  }).catch(function(e){showErr('Error: '+e.message);});
+  // Step 1: fetch hubspot_deals first to check viv match count
+  fetch(API+'?endpoint=hubspot_deals')
+    .then(function(r){return r.json();})
+    .then(function(d){
+      if(d&&d.error){showErr(d.error);return;}
+      // If no Viv matches, rebuild viv_client_map automatically then refetch
+      if(!d.vivMatchCount||d.vivMatchCount===0){
+        loading('Building Viv client map — first time setup, please wait ~2 minutes...');
+        // Run all 18 batches sequentially
+        var buildNext=function(skip){
+          return fetch(API+'?endpoint=build_viv_map&skip='+skip)
+            .then(function(r){return r.json();})
+            .then(function(b){
+              loading('Building Viv map: '+b.totalProcessed+'/'+b.totalClients+' clients ('+b.hsIdMatches+' matches found)...');
+              if(!b.done&&b.nextSkip){return buildNext(b.nextSkip);}
+              return b;
+            });
+        };
+        return buildNext(0).then(function(){
+          // Clear and refetch hubspot_deals with fresh map
+          loading('Viv map built — loading dashboard data...');
+          return fetch(API+'?endpoint=refresh_cache&keys=hubspot_deals')
+            .then(function(){return fetch(API+'?endpoint=hubspot_deals').then(function(r){return r.json();});});
+        });
+      }
+      return d;
+    })
+    .then(function(d){
+      if(!d||d.error){showErr(d?d.error:'Load failed');return;}
+      hsData=d;
+      // Fetch supply data in parallel
+      return Promise.all([
+        fetch(API+'?endpoint=open_visits&startDate='+sd+'&endDate='+ed).then(function(r){return r.json();}).catch(function(){return null;}),
+        fetch(API+'?endpoint=open_booking_sets').then(function(r){return r.json();}).catch(function(){return null;}),
+        fetch(API+'?endpoint=caregivers&fast=true').then(function(r){return r.json();}).catch(function(){return null;}),
+        fetch(API+'?endpoint=clients').then(function(r){return r.json();}).catch(function(){return null;})
+      ]).then(function(supply){
+        supplyData={openVisits:supply[0],bookingSets:supply[1],caregivers:supply[2],clients:supply[3]};
+        if(d.generatedAt){
+          var matchTxt='';
+          if(d.vivMatchCount){matchTxt=' · '+d.vivMatchCount+' Viv matches';if(d.vivIdMatches||d.vivNameMatches)matchTxt+=' ('+(d.vivIdMatches||0)+' ID, '+(d.vivNameMatches||0)+' name)';}
+          document.getElementById('genAt').textContent=new Date(d.generatedAt).toLocaleString()+matchTxt;
+        }
+        render();
+      });
+    })
+    .catch(function(e){showErr('Error: '+e.message);});
 }
 
 
