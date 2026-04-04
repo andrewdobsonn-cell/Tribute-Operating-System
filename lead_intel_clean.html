@@ -810,7 +810,8 @@ function renderLifecycle(){
   var html=buildFilterBar();
   html+='<div class="kgrid">';
   html+='<div class="kpi green"><div class="kl">Closed Won</div><div class="kv">'+fmt(won.length)+'</div><div class="ks">Total converted leads</div></div>';
-  var totalVivActive=supplyData&&supplyData.clients&&supplyData.clients.summary?supplyData.clients.summary.active:null;
+  var totalVivActive=supplyData&&supplyData.clients&&(supplyData.clients.totals||supplyData.clients.summary)?
+    (supplyData.clients.totals?supplyData.clients.totals.active:supplyData.clients.summary.active):null;
   html+='<div class="kpi green"><div class="kl">Active from Leads</div><div class="kv">'+fmt(active.length)+'</div><div class="ks">HubSpot-sourced, on service</div></div>';
   html+='<div class="kpi blue"><div class="kl">Total Active (Viv)</div><div class="kv">'+(totalVivActive!==null?fmt(totalVivActive):'—')+'</div><div class="ks">All active clients in Viv</div></div>';
   html+='<div class="kpi"><div class="kl">Ended Clients</div><div class="kv">'+fmt(ended.length)+'</div><div class="ks">No longer on service</div></div>';
