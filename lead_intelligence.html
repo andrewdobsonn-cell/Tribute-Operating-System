@@ -1,6 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script>
+// Auth check — redirect to login if not authenticated
+(function(){
+  var HASH='d0b2ed6ff86d3d9d183b902204b70814f6a59639343f3ad32ac4bd9067f43088';
+  if(sessionStorage.getItem('tribute_auth')!==HASH){
+    window.location.href='login.html';
+  }
+})();
+</script>
+
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Tribute · Lead Intelligence</title>
@@ -134,6 +144,7 @@ body{font-family:var(--font);background:var(--gray50);color:var(--charcoal);font
   <div class="tab" onclick="setTab('markets',this)">By Market</div>
   <div class="tab" onclick="setTab('lost',this)">Lost Analysis</div>
   <div class="tab" onclick="setTab('hiring',this)">Hiring Signals</div>
+  <div class="tab" onclick="setTab('supply',this)">Supply &amp; Demand</div>
   <div class="tab" onclick="setTab('lifecycle',this)">Client Lifecycle</div>
   <div class="tab" onclick="setTab('community',this)">Community</div>
   <div class="tab" onclick="setTab('refquality',this)">Referral Quality</div>
@@ -211,25 +222,32 @@ function primaryReason(r){return(r||'Not specified').split(';')[0].split(',')[0]
 
 function hardRefresh(){fetch(API+'?endpoint=refresh_cache&keys=hubspot_deals').then(function(){loadData();});}
 
+var supplyData=null;
+
 function loadData(){
-  loading('Loading HubSpot data — first load may take 30–60 seconds...');
-  fetch(API+'?endpoint=hubspot_deals')
-    .then(function(r){return r.json();})
-    .then(function(d){
-      if(d.error){showErr(d.error);return;}
-      hsData=d;
-      if(d.generatedAt){
+  loading('Loading HubSpot + Viv data — first load may take 30–60 seconds...');
+  var today=new Date();
+  var sd=today.toISOString().split('T')[0];
+  var ed=new Date(today.getTime()+28*86400000).toISOString().split('T')[0];
+  Promise.all([
+    fetch(API+'?endpoint=hubspot_deals').then(function(r){return r.json();}),
+    fetch(API+'?endpoint=open_visits&startDate='+sd+'&endDate='+ed).then(function(r){return r.json();}).catch(function(){return null;}),
+    fetch(API+'?endpoint=open_booking_sets').then(function(r){return r.json();}).catch(function(){return null;}),
+    fetch(API+'?endpoint=caregivers&fast=true').then(function(r){return r.json();}).catch(function(){return null;})
+  ]).then(function(results){
+    var d=results[0];
+    if(d&&d.error){showErr(d.error);return;}
+    hsData=d;
+    supplyData={openVisits:results[1],bookingSets:results[2],caregivers:results[3]};
+    if(d&&d.generatedAt){
       var matchTxt='';
-      if(d.vivMatchCount){
-        matchTxt=' · '+d.vivMatchCount+' Viv matches';
-        if(d.vivIdMatches||d.vivNameMatches) matchTxt+=' ('+( d.vivIdMatches||0)+' ID, '+(d.vivNameMatches||0)+' name)';
-      }
+      if(d.vivMatchCount){matchTxt=' · '+d.vivMatchCount+' Viv matches';if(d.vivIdMatches||d.vivNameMatches)matchTxt+=' ('+(d.vivIdMatches||0)+' ID, '+(d.vivNameMatches||0)+' name)';}
       document.getElementById('genAt').textContent=new Date(d.generatedAt).toLocaleString()+matchTxt;
     }
-      render();
-    })
-    .catch(function(e){showErr('Error: '+e.message);});
+    render();
+  }).catch(function(e){showErr('Error: '+e.message);});
 }
+
 
 function getFiltered(){
   if(!hsData||!hsData.deals)return[];
@@ -961,6 +979,136 @@ function renderRefQuality(){
   document.getElementById('ct').innerHTML=html;
 }
 
+
+// ── TAB: SUPPLY & DEMAND ──────────────────────────────────────────────────────
+function renderSupply(){
+  var d=getFiltered();
+  var html=buildFilterBar();
+
+  // Demand side from HubSpot
+  var utf=d.filter(function(x){return x.stage==='3665246'||x.stage==='143971688';});
+  var utfByMkt={};
+  utf.forEach(function(x){
+    var m=x.market||'Unknown';
+    if(!utfByMkt[m])utfByMkt[m]={count:0,rev:0,slBreakdown:{}};
+    utfByMkt[m].count++;utfByMkt[m].rev+=x.amount||0;
+    var sl=x.serviceLevel||'C';
+    utfByMkt[m].slBreakdown[sl]=(utfByMkt[m].slBreakdown[sl]||0)+1;
+  });
+
+  // Supply side from Viv
+  var openVisits=supplyData&&supplyData.openVisits;
+  var bookingSets=supplyData&&supplyData.bookingSets;
+  var caregivers=supplyData&&supplyData.caregivers;
+
+  // KPIs
+  var totalUtf=utf.length;
+  var totalUtfRev=utf.reduce(function(s,x){return s+(x.amount||0);},0);
+  var openVisitCount=openVisits&&openVisits.openVisits?openVisits.openVisits.length:0;
+  var openBsCount=bookingSets&&bookingSets.total?bookingSets.total:0;
+  var activeCgs=caregivers&&caregivers.totals?caregivers.totals.active:0;
+
+  html+='<div class="kgrid">';
+  html+='<div class="kpi red"><div class="kl">Unmet Demand (UTF)</div><div class="kv">'+fmt(totalUtf)+'</div><div class="ks">'+fmtAnn(totalUtfRev)+' annualized lost</div></div>';
+  html+='<div class="kpi amber"><div class="kl">Open Visits (28d)</div><div class="kv">'+fmt(openVisitCount)+'</div><div class="ks">Unfilled shifts next 28 days</div></div>';
+  html+='<div class="kpi amber"><div class="kl">Open Booking Sets</div><div class="kv">'+fmt(openBsCount)+'</div><div class="ks">Recurring unassigned slots</div></div>';
+  html+='<div class="kpi blue"><div class="kl">Active Caregivers</div><div class="kv">'+fmt(activeCgs)+'</div><div class="ks">Currently hired in Viv</div></div>';
+  html+='</div>';
+
+  html+='<div class="grid2">';
+
+  // Demand by market (UTF)
+  html+='<div class="card"><div class="card-head"><span class="card-title">Demand Gap by Market (UTF Leads)</span></div>';
+  html+='<table class="tbl"><thead><tr><th class="ns">Market</th><th class="ns">UTF Leads</th><th class="ns">Ann. Lost Rev</th><th class="ns">Top Schedule Need</th></tr></thead><tbody>';
+  Object.keys(utfByMkt).sort(function(a,b){return utfByMkt[b].rev-utfByMkt[a].rev;}).forEach(function(m){
+    var r=utfByMkt[m];
+    var topSl=Object.keys(r.slBreakdown).sort(function(a,b){return r.slBreakdown[b]-r.slBreakdown[a];})[0]||'—';
+    html+='<tr><td><strong>'+esc(m)+'</strong></td>';
+    html+='<td style="color:var(--red)">'+r.count+'</td>';
+    html+='<td style="color:var(--red)">'+fmtAnn(r.rev)+'</td>';
+    html+='<td><span class="stage s-utf">'+esc(topSl)+'</span> '+esc(SL_LABELS[topSl]||'')+'</td></tr>';
+  });
+  html+='</tbody></table></div>';
+
+  // Open booking sets by market
+  if(bookingSets&&bookingSets.bookingSets&&bookingSets.bookingSets.length){
+    var bsByMkt={};
+    bookingSets.bookingSets.forEach(function(bs){
+      var m=bs.market||'Unknown';
+      if(!bsByMkt[m])bsByMkt[m]={total:0,overnight:0,long:0,short:0,livein:0};
+      bsByMkt[m].total+=bs.openVisitCount||0;
+      if(bs.shiftTypes){
+        if(bs.shiftTypes.overnight)bsByMkt[m].overnight+=bs.openVisitCount||0;
+        if(bs.shiftTypes.long)bsByMkt[m].long+=bs.openVisitCount||0;
+        if(bs.shiftTypes.short)bsByMkt[m].short+=bs.openVisitCount||0;
+        if(bs.shiftTypes.livein)bsByMkt[m].livein+=bs.openVisitCount||0;
+      }
+    });
+    html+='<div class="card"><div class="card-head"><span class="card-title">Open Recurring Slots by Market (Viv)</span></div>';
+    html+='<table class="tbl"><thead><tr><th class="ns">Market</th><th class="ns">Open Slots</th><th class="ns">Overnight</th><th class="ns">Long Day</th><th class="ns">Short</th><th class="ns">Live-In</th></tr></thead><tbody>';
+    Object.keys(bsByMkt).sort(function(a,b){return bsByMkt[b].total-bsByMkt[a].total;}).forEach(function(m){
+      var r=bsByMkt[m];
+      html+='<tr><td><strong>'+esc(m)+'</strong></td>';
+      html+='<td style="font-weight:600">'+r.total+'</td>';
+      html+='<td style="color:var(--purple)">'+r.overnight+'</td>';
+      html+='<td style="color:var(--blue)">'+r.long+'</td>';
+      html+='<td style="color:var(--text3)">'+r.short+'</td>';
+      html+='<td style="color:var(--amber)">'+r.livein+'</td></tr>';
+    });
+    html+='</tbody></table></div>';
+  } else {
+    html+='<div class="card"><div class="card-head"><span class="card-title">Open Recurring Slots (Viv)</span></div><div class="empty">No open booking set data available</div></div>';
+  }
+  html+='</div>';
+
+  // UTF by service level vs open booking set shift types — the core match
+  html+='<div class="card"><div class="card-head"><span class="card-title">Demand vs. Supply — Schedule Type Alignment</span><span class="card-sub">UTF demand (HubSpot) vs. open slots (Viv)</span></div>';
+  html+='<table class="tbl"><thead><tr><th class="ns">Schedule Type</th><th class="ns">HubSpot UTF Leads</th><th class="ns">Ann. Lost Rev</th><th class="ns">Viv Open Slots</th><th class="ns">Gap Assessment</th></tr></thead><tbody>';
+  var vivSlots={overnight:0,long:0,short:0,livein:0};
+  if(bookingSets&&bookingSets.bookingSets){
+    bookingSets.bookingSets.forEach(function(bs){
+      if(bs.shiftTypes){
+        if(bs.shiftTypes.overnight)vivSlots.overnight+=bs.openVisitCount||0;
+        if(bs.shiftTypes.long)vivSlots.long+=bs.openVisitCount||0;
+        if(bs.shiftTypes.short)vivSlots.short+=bs.openVisitCount||0;
+        if(bs.shiftTypes.livein)vivSlots.livein+=bs.openVisitCount||0;
+      }
+    });
+  }
+  var slToViv={A:'short',B:'long',C:'long','Live-In':'livein'};
+  var slUtfData={};
+  utf.forEach(function(x){var sl=x.serviceLevel||'C';if(!slUtfData[sl])slUtfData[sl]={count:0,rev:0};slUtfData[sl].count++;slUtfData[sl].rev+=x.amount||0;});
+  SL_ORDER.filter(function(sl){return slUtfData[sl];}).forEach(function(sl){
+    var u=slUtfData[sl];
+    var vivKey=slToViv[sl]||'long';
+    var slots=vivSlots[vivKey]||0;
+    var gap=u.count>slots?'⚠ High demand':'✓ Manageable';
+    var gapColor=u.count>slots?'var(--red)':'var(--green)';
+    html+='<tr><td><strong>'+sl+'</strong> <span style="color:var(--text3);font-size:11px">'+esc(SL_LABELS[sl]||'')+'</span></td>';
+    html+='<td style="color:var(--red)">'+u.count+'</td>';
+    html+='<td style="color:var(--red)">'+fmtAnn(u.rev)+'</td>';
+    html+='<td style="color:var(--amber)">'+slots+'</td>';
+    html+='<td style="color:'+gapColor+';font-weight:600">'+gap+'</td></tr>';
+  });
+  html+='</tbody></table></div>';
+
+  // Caregiver summary if available
+  if(caregivers&&caregivers.byState){
+    html+='<div class="card"><div class="card-head"><span class="card-title">Caregiver Workforce by State (Viv)</span></div>';
+    html+='<table class="tbl"><thead><tr><th class="ns">State</th><th class="ns">Active</th><th class="ns">Total</th><th class="ns">Active Rate</th></tr></thead><tbody>';
+    (caregivers.byState||[]).forEach(function(s){
+      var rate=s.total>0?(s.active/s.total*100).toFixed(1):0;
+      html+='<tr><td><strong>'+esc(s.state)+'</strong></td>';
+      html+='<td style="color:var(--green);font-weight:600">'+s.active+'</td>';
+      html+='<td>'+s.total+'</td>';
+      html+='<td>'+rate+'%</td></tr>';
+    });
+    html+='</tbody></table></div>';
+  }
+
+  document.getElementById('ct').innerHTML=html;
+}
+
 function exportCSV(){
   var d=getFiltered();
   var rows=[['Client Name','Deal Name','Stage','Market','State','Service Level','Lead Source','Referred By','Location of Care','UTF Reason','Turndown Reason','Lost Reason','Est. Weekly Revenue','Owner','Created Date','Close Date','Start Date']];
@@ -978,6 +1126,7 @@ function render(){
   else if(curTab==='markets')renderMarkets();
   else if(curTab==='lost')renderLost();
   else if(curTab==='hiring')renderHiring();
+  else if(curTab==='supply')renderSupply();
   else if(curTab==='lifecycle')renderLifecycle();
   else if(curTab==='community')renderCommunity();
   else if(curTab==='refquality')renderRefQuality();
