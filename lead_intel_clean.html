@@ -1019,18 +1019,49 @@ function renderSupply(){
     utfByMkt[m].slBreakdown[sl]=(utfByMkt[m].slBreakdown[sl]||0)+1;
   });
 
-  // Supply side from Viv
+  // Supply side from Viv — filter by active market/state filters
   var openVisits=supplyData&&supplyData.openVisits;
   var bookingSets=supplyData&&supplyData.bookingSets;
   var caregivers=supplyData&&supplyData.caregivers;
 
+  // Filter booking sets by market if filter active
+  var filteredBs=bookingSets&&bookingSets.bookingSets?bookingSets.bookingSets.filter(function(bs){
+    if(filters.market!=='all'&&bs.market!==filters.market)return false;
+    if(filters.state!=='all'&&getStateFromMarket(bs.market)!==filters.state)return false;
+    return true;
+  }):[];
+
+  // Filter open visits by market using window30 byMarket breakdown
+  var openVisitsByMkt=openVisits&&openVisits.window30&&openVisits.window30.byMarket?openVisits.window30.byMarket:[];
+  var filteredOvTotal=0;
+  if(filters.market!=='all'){
+    var mktData=openVisitsByMkt.find(function(m){return m.market===filters.market;});
+    filteredOvTotal=mktData?mktData.open||mktData.total||0:0;
+  } else if(filters.state!=='all'){
+    openVisitsByMkt.forEach(function(m){
+      if(getStateFromMarket(m.market)===filters.state)filteredOvTotal+=m.open||m.total||0;
+    });
+  } else {
+    filteredOvTotal=openVisits&&openVisits.window30?openVisits.window30.total:0;
+  }
+
+  // Filter caregivers by state
+  var filteredCgActive=0;
+  if(caregivers&&caregivers.byState){
+    if(filters.state!=='all'){
+      var stData=caregivers.byState.find(function(s){return s.state===filters.state;});
+      filteredCgActive=stData?stData.active:0;
+    } else {
+      filteredCgActive=caregivers.totals?caregivers.totals.active:0;
+    }
+  }
+
   // KPIs
   var totalUtf=utf.length;
   var totalUtfRev=utf.reduce(function(s,x){return s+(x.amount||0);},0);
-  var openVisitCount=openVisits&&openVisits.window30?openVisits.window30.total:
-    (openVisits&&openVisits.window7?openVisits.window7.total:0);
-  var openBsCount=bookingSets&&bookingSets.total?bookingSets.total:0;
-  var activeCgs=caregivers&&caregivers.totals?caregivers.totals.active:0;
+  var openVisitCount=filteredOvTotal;
+  var openBsCount=filteredBs.reduce(function(s,bs){return s+(bs.openVisitCount||0);},0);
+  var activeCgs=filteredCgActive;
 
   html+='<div class="kgrid">';
   html+='<div class="kpi red"><div class="kl">Unmet Demand (UTF)</div><div class="kv">'+fmt(totalUtf)+'</div><div class="ks">'+fmtAnn(totalUtfRev)+' annualized lost</div></div>';
@@ -1055,9 +1086,9 @@ function renderSupply(){
   html+='</tbody></table></div>';
 
   // Open booking sets by market
-  if(bookingSets&&bookingSets.bookingSets&&bookingSets.bookingSets.length){
+  if(filteredBs&&filteredBs.length){
     var bsByMkt={};
-    bookingSets.bookingSets.forEach(function(bs){
+    filteredBs.forEach(function(bs){
       var m=bs.market||'Unknown';
       if(!bsByMkt[m])bsByMkt[m]={total:0,overnight:0,long:0,short:0,livein:0};
       bsByMkt[m].total+=bs.openVisitCount||0;
@@ -1068,7 +1099,7 @@ function renderSupply(){
         if(bs.shiftTypes.livein)bsByMkt[m].livein+=bs.openVisitCount||0;
       }
     });
-    html+='<div class="card"><div class="card-head"><span class="card-title">Open Recurring Slots by Market (Viv)</span></div>';
+    html+='<div class="card"><div class="card-head"><span class="card-title">Open Recurring Slots by Market (Viv)</span><span class="card-sub">'+(filters.market!=='all'?filters.market:filters.state!=='all'?filters.state:'All Markets')+'</span></div>';
     html+='<table class="tbl"><thead><tr><th class="ns">Market</th><th class="ns">Open Slots</th><th class="ns">Overnight</th><th class="ns">Long Day</th><th class="ns">Short</th><th class="ns">Live-In</th></tr></thead><tbody>';
     Object.keys(bsByMkt).sort(function(a,b){return bsByMkt[b].total-bsByMkt[a].total;}).forEach(function(m){
       var r=bsByMkt[m];
@@ -1089,8 +1120,8 @@ function renderSupply(){
   html+='<div class="card"><div class="card-head"><span class="card-title">Demand vs. Supply — Schedule Type Alignment</span><span class="card-sub">UTF demand (HubSpot) vs. open slots (Viv)</span></div>';
   html+='<table class="tbl"><thead><tr><th class="ns">Schedule Type</th><th class="ns">HubSpot UTF Leads</th><th class="ns">Ann. Lost Rev</th><th class="ns">Viv Open Slots</th><th class="ns">Gap Assessment</th></tr></thead><tbody>';
   var vivSlots={overnight:0,long:0,short:0,livein:0};
-  if(bookingSets&&bookingSets.bookingSets){
-    bookingSets.bookingSets.forEach(function(bs){
+  if(filteredBs){
+    filteredBs.forEach(function(bs){
       if(bs.shiftTypes){
         if(bs.shiftTypes.overnight)vivSlots.overnight+=bs.openVisitCount||0;
         if(bs.shiftTypes.long)vivSlots.long+=bs.openVisitCount||0;
