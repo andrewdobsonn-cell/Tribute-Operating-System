@@ -1027,7 +1027,8 @@ function renderSupply(){
   // KPIs
   var totalUtf=utf.length;
   var totalUtfRev=utf.reduce(function(s,x){return s+(x.amount||0);},0);
-  var openVisitCount=openVisits&&openVisits.openVisits?openVisits.openVisits.length:0;
+  var openVisitCount=openVisits&&openVisits.window30?openVisits.window30.total:
+    (openVisits&&openVisits.window7?openVisits.window7.total:0);
   var openBsCount=bookingSets&&bookingSets.total?bookingSets.total:0;
   var activeCgs=caregivers&&caregivers.totals?caregivers.totals.active:0;
 
