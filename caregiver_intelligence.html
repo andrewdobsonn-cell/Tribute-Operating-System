@@ -452,9 +452,17 @@ function renderOverview(){
     cgAvgMap[cg.id]=avgHrs(hrs);
   });
 
+  // Build PTO map from current week — caregivers with PTO/leave are NOT zero hours
+  var cgPtoMap={};
+  var curWeekData=allHoursWeeks[curWeek];
+  if(curWeekData&&curWeekData.caregivers){
+    curWeekData.caregivers.forEach(function(cg){if(cg.ptoHrs>0)cgPtoMap[cg.id]=cg.ptoHrs;});
+  }
+
   var total=cgs.length;
   var otCGs=cgs.filter(function(cg){return !isLiveIn(cg)&&cgAvgMap[cg.id]>=40;});
-  var zeroCGs=cgs.filter(function(cg){return cgAvgMap[cg.id]===0;});
+  // Exclude caregivers on PTO/leave from zero hours — they are accounted for
+  var zeroCGs=cgs.filter(function(cg){return cgAvgMap[cg.id]===0&&!cgPtoMap[cg.id];});
   var workingCGs=cgs.filter(function(cg){return cgAvgMap[cg.id]>0&&!isLiveIn(cg);});
   var compAvg=workingCGs.length?workingCGs.reduce(function(s,cg){return s+cgAvgMap[cg.id];},0)/workingCGs.length:0;
   var bio=allHoursWeeks[curWeek]||{};
