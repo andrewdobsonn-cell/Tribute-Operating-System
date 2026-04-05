@@ -898,7 +898,7 @@ function showNeverBooked(){
   var list=window._neverBookedList||[];
   var html='<div class="modal-overlay" onclick="if(event.target===this)this.remove()">';
   html+='<div class="modal">';
-  html+='<div class="modal-head"><span class="modal-title">Never Booked Caregivers ('+list.length+')</span><button class="modal-close" onclick="this.closest('.modal-overlay').remove()">×</button></div>';
+  html+='<div class="modal-head"><span class="modal-title">Never Booked Caregivers ('+list.length+')</span><button class="modal-close" onclick="this.closest(\'.modal-overlay\').remove()">×</button></div>';
   html+='<p style="font-size:12px;color:var(--text3);margin-bottom:14px">Hired caregivers with no booking history in Viv.</p>';
   html+='<table style="width:100%;border-collapse:collapse;font-size:12px">';
   html+='<thead><tr style="background:var(--bg)"><th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text4);border-bottom:1px solid var(--border)">Name</th><th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text4);border-bottom:1px solid var(--border)">Market</th><th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text4);border-bottom:1px solid var(--border)">State</th><th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text4);border-bottom:1px solid var(--border)">Hire Date</th><th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text4);border-bottom:1px solid var(--border)">Type</th></tr></thead><tbody>';
