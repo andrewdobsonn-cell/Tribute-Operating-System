@@ -77,6 +77,20 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .zero-bar-wrap{flex:1;height:8px;background:var(--bg);border-radius:4px;overflow:hidden;}
 .zero-bar{height:100%;background:var(--red);border-radius:4px;}
 .zero-val{width:28px;text-align:right;font-size:12px;font-weight:600;color:var(--text1);}
+/* Modal */
+.modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.45);z-index:1000;display:flex;align-items:center;justify-content:center;}
+.modal{background:#fff;border-radius:10px;padding:24px;max-width:800px;width:90%;max-height:80vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.18);}
+.modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.modal-title{font-size:14px;font-weight:700;color:var(--text1);}
+.modal-close{font-size:20px;cursor:pointer;color:var(--text3);background:none;border:none;line-height:1;padding:4px 8px;}
+.modal-close:hover{color:var(--text1);}
+/* Modal */
+.modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.45);z-index:1000;display:flex;align-items:center;justify-content:center;}
+.modal{background:#fff;border-radius:10px;padding:24px;max-width:820px;width:92%;max-height:80vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.18);}
+.modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.modal-title{font-size:14px;font-weight:700;color:var(--text1);}
+.modal-close{font-size:20px;cursor:pointer;color:var(--text3);background:none;border:none;line-height:1;padding:4px 8px;}
+.modal-close:hover{color:var(--text1);}
 /* Tables */
 .tbl-wrap{overflow-x:auto;}
 table{width:100%;border-collapse:collapse;font-size:12px;}
@@ -531,7 +545,19 @@ function renderOverview(){
   // Zero breakdown
   html+='<div class="fc"><div class="ct">Zero-Hour Breakdown <span style="font-size:11px;text-transform:none;letter-spacing:0;color:var(--text3)">'+zeroCGs.length+' active CGs</span></div>';
   html+='<div class="zero-row"><div class="zero-label">New hire (&lt;30d)</div><div class="zero-bar-wrap"><div class="zero-bar" style="width:'+Math.round(zNew/zMaxZ*100)+'%;background:var(--blue)"></div></div><div class="zero-val">'+zNew+'</div></div>';
-  html+='<div class="zero-row"><div class="zero-label">Never booked</div><div class="zero-bar-wrap"><div class="zero-bar" style="width:'+Math.round(zNever/zMaxZ*100)+'%;background:var(--amber)"></div></div><div class="zero-val">'+zNever+'</div></div>';
+    // Build never booked list for drilldown
+  var neverBookedList=zeroCGs.filter(function(cg){
+    var bio=bioMap[cg.id];
+    return !(bio&&bio.queries&&bio.queries.lastBooking);
+  }).sort(function(a,b){
+    var ad=a.hireDate?new Date(a.hireDate):new Date(0);
+    var bd=b.hireDate?new Date(b.hireDate):new Date(0);
+    return bd-ad;
+  });
+  window._neverBookedList=neverBookedList;
+
+  window._neverBookedList=zeroCGs.filter(function(cg){var bio=bioMap[cg.id];return !(bio&&bio.queries&&bio.queries.lastBooking);}).sort(function(a,b){var ad=a.hireDate?new Date(a.hireDate):new Date(0);var bd=b.hireDate?new Date(b.hireDate):new Date(0);return bd-ad;});
+  html+='<div class="zero-row" style="cursor:pointer" onclick="showNeverBooked()" title="Click to see list"><div class="zero-label" style="color:var(--amber);text-decoration:underline;text-decoration-style:dotted">Never booked</div><div class="zero-bar-wrap"><div class="zero-bar" style="width:'+Math.round(zNever/zMaxZ*100)+'%;background:var(--amber)"></div></div><div class="zero-val" style="color:var(--amber)">'+zNever+'</div></div>';
   html+='<div class="zero-row"><div class="zero-label">Dormant 60d+</div><div class="zero-bar-wrap"><div class="zero-bar" style="width:'+Math.round(zDormant/zMaxZ*100)+'%;background:var(--red)"></div></div><div class="zero-val">'+zDormant+'</div></div>';
   html+='<div style="margin-top:12px;font-size:11px;color:var(--text4)">Caregivers with zero 4-week average hours classified by reason</div>';
   html+='</div>';
@@ -866,6 +892,29 @@ function openModal(cgId){
 
 function closeModal(){
   document.getElementById('modalOverlay').classList.remove('open');
+}
+
+function showNeverBooked(){
+  var list=window._neverBookedList||[];
+  var html='<div class="modal-overlay" onclick="if(event.target===this)this.remove()">';
+  html+='<div class="modal">';
+  html+='<div class="modal-head"><span class="modal-title">Never Booked Caregivers ('+list.length+')</span><button class="modal-close" onclick="this.closest('.modal-overlay').remove()">×</button></div>';
+  html+='<p style="font-size:12px;color:var(--text3);margin-bottom:14px">Hired caregivers with no booking history in Viv.</p>';
+  html+='<table style="width:100%;border-collapse:collapse;font-size:12px">';
+  html+='<thead><tr style="background:var(--bg)"><th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text4);border-bottom:1px solid var(--border)">Name</th><th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text4);border-bottom:1px solid var(--border)">Market</th><th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text4);border-bottom:1px solid var(--border)">State</th><th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text4);border-bottom:1px solid var(--border)">Hire Date</th><th style="padding:8px 12px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text4);border-bottom:1px solid var(--border)">Type</th></tr></thead><tbody>';
+  list.forEach(function(cg){
+    var hd=cg.hireDate?cg.hireDate.split('T')[0]:'—';
+    var daysSinceHire=cg.hireDate?Math.floor((new Date()-new Date(cg.hireDate))/86400000):null;
+    var daysStr=daysSinceHire!==null?'('+daysSinceHire+'d ago)':'';
+    html+='<tr><td style="padding:8px 12px;border-bottom:.5px solid var(--border)"><strong>'+(cg.name||'—')+'</strong></td>';
+    html+='<td style="padding:8px 12px;border-bottom:.5px solid var(--border);color:var(--text3)">'+(cg.market||'—')+'</td>';
+    html+='<td style="padding:8px 12px;border-bottom:.5px solid var(--border);color:var(--text3)">'+(cg.state||'—')+'</td>';
+    html+='<td style="padding:8px 12px;border-bottom:.5px solid var(--border);color:var(--text3)">'+hd+' <span style="color:var(--text4);font-size:10px">'+daysStr+'</span></td>';
+    html+='<td style="padding:8px 12px;border-bottom:.5px solid var(--border);color:var(--text3)">'+(cg.cgType||'—')+'</td></tr>';
+  });
+  if(!list.length)html+='<tr><td colspan="5" style="padding:20px;text-align:center;color:var(--text4)">No never-booked caregivers</td></tr>';
+  html+='</tbody></table></div></div>';
+  document.body.insertAdjacentHTML('beforeend',html);
 }
 
 // ── INIT ──
