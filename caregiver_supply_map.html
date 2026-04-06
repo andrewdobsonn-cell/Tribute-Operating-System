@@ -115,6 +115,11 @@ input[type=range]{flex:1;accent-color:var(--orange);cursor:pointer;height:4px;}
 .dc.match{background:var(--green);color:#fff;border-color:var(--green);}
 .dc.partial{background:#7c5e0a;color:#facc15;border-color:#a16207;}
 .dc.req{border-color:var(--text3);color:var(--text3);}
+.dc.avail{background:rgba(34,197,94,.15);color:var(--green);border-color:rgba(34,197,94,.35);}
+.dc.avail-match{background:var(--green);color:#fff;border-color:var(--green);}
+.dc.unavail-req{background:rgba(239,68,68,.12);color:var(--red);border-color:rgba(239,68,68,.3);}
+.dow-summary{margin-top:7px;}
+.dow-summary-label{font-size:9px;font-weight:700;text-transform:uppercase;color:var(--text3);letter-spacing:.05em;margin-bottom:3px;}
 </style>
 </head>
 <body>
@@ -314,6 +319,25 @@ function cgMatchesShiftDay(cg,shiftKey,day){
   return'none';
 }
 
+// Map day names to availability.availability dayOfWeek values (0=Sun..6=Sat)
+var DAY_TO_DOW={Mon:1,Tue:2,Wed:3,Thu:4,Fri:5,Sat:6,Sun:0};
+
+function cgAvailableOnDay(cg,day){
+  // 1. Check structured availability windows first
+  if(cg.availWindows&&cg.availWindows.length>0){
+    var dowNum=DAY_TO_DOW[day];
+    return cg.availWindows.some(function(w){return w.dow===dowNum;});
+  }
+  // 2. Fall back to text-based detection from availNotes
+  var notes=(cg.availNotes||'').toLowerCase();
+  if(!notes)return false;
+  var dayLow=day.toLowerCase();
+  // If no specific days are mentioned in notes, treat as available all days
+  var anyDayMentioned=DAYS.some(function(d){return notes.includes(d.toLowerCase());});
+  if(!anyDayMentioned)return true;
+  return notes.includes(dayLow);
+}
+
 function getRequests(){
   var reqs=[];
   SHIFTS.forEach(function(sh){
@@ -490,8 +514,25 @@ function renderResults(list,reqs,maxMiles){
     if(x.matchLevel==='match')html+='<span class="badge" style="background:rgba(34,197,94,.12);color:#22C55E">✔ Full match</span>';
     else if(x.matchLevel==='partial')html+='<span class="badge" style="background:rgba(234,179,8,.12);color:#EAB308">~ Partial match</span>';
     html+='</div>';
+
+    // Always show day-of-week availability summary
+    var reqDaysAll=[...new Set(reqs.map(function(r){return r.day;}))];
+    html+='<div class="dow-summary"><div class="dow-summary-label">Day Availability</div>';
+    html+='<div class="day-row"><div class="day-chips">';
+    DAYS.forEach(function(day,di){
+      var isAvail=cgAvailableOnDay(cg,day);
+      var isReqDay=reqDaysAll.includes(day);
+      var cls='dc';
+      if(isAvail&&isReqDay)cls='dc avail-match';
+      else if(!isAvail&&isReqDay)cls='dc unavail-req';
+      else if(isAvail)cls='dc avail';
+      html+='<div class="'+cls+'">'+DAY_SHORT[di]+'</div>';
+    });
+    html+='</div></div></div>';
+
+    // Show shift-type detail rows if schedule checkboxes are checked
     if(shiftsToShow.length>0){
-      html+='<div class="sched-avail"><div class="sched-avail-label">Availability for requested shifts</div>';
+      html+='<div class="sched-avail"><div class="sched-avail-label">Shift Fit</div>';
       shiftsToShow.forEach(function(sh){
         var reqDaysForShift=reqs.filter(function(r){return r.shift===sh.key;}).map(function(r){return r.day;});
         if(!reqDaysForShift.length)return;
@@ -507,9 +548,11 @@ function renderResults(list,reqs,maxMiles){
         html+='</div></div>';
       });
       html+='</div>';
-    } else {
+    }
+    // Show availability notes snippet if no shift details
+    if(shiftsToShow.length===0){
       var notes=(cg.availNotes||'');
-      if(notes){html+='<div style="font-size:10px;color:var(--text3);margin-top:6px;line-height:1.4">'+esc(notes.slice(0,100))+(notes.length>100?'…':'')+'</div>';}
+      if(notes){html+='<div style="font-size:10px;color:var(--text3);margin-top:4px;line-height:1.4">'+esc(notes.slice(0,100))+(notes.length>100?'…':'')+'</div>';}
     }
     html+='</div>';
   });
