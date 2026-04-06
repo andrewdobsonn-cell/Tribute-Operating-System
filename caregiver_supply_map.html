@@ -353,6 +353,11 @@ function cgMatchesShiftDay(cg,shiftKey,day){
 var DAY_TO_DOW={Mon:1,Tue:2,Wed:3,Thu:4,Fri:5,Sat:6,Sun:0};
 
 function cgAvailableOnDay(cg,day){
+  var dowNum=DAY_TO_DOW[day];
+  // 0. If caregiver already has visits scheduled on this day, they're not available
+  if(cg.scheduledDays&&cg.scheduledDays.length>0){
+    if(cg.scheduledDays.indexOf(dowNum)>=0)return false;
+  }
   var notes=(cg.availNotes||'').toLowerCase();
   // 1. If notes mention specific days, use that as the source of truth
   if(notes&&notesMentionAnyDay(notes)){
@@ -360,7 +365,6 @@ function cgAvailableOnDay(cg,day){
   }
   // 2. If notes exist but no days mentioned, check structured windows
   if(cg.availWindows&&cg.availWindows.length>0){
-    var dowNum=DAY_TO_DOW[day];
     return cg.availWindows.some(function(w){return w.dow===dowNum;});
   }
   // 3. If notes exist but no days and no windows, assume available all days
