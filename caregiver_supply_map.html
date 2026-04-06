@@ -303,16 +303,47 @@ function buildScheduleGrid(){
   });
 }
 
+// Day aliases: each day maps to all common abbreviations/forms, ordered longest-first
+// to avoid false positives (e.g. "sa" inside "saturday" is fine, but "s" inside "sun" is not)
+var DAY_ALIASES={
+  Mon:['monday','mon','mo'],
+  Tue:['tuesday','tues','tue','tu'],
+  Wed:['wednesday','wed','we'],
+  Thu:['thursday','thurs','thur','thu','th'],
+  Fri:['friday','fri','fr'],
+  Sat:['saturday','sat','sa'],
+  Sun:['sunday','sun','su']
+};
+
+// Word-boundary-aware day detection: checks if any alias appears as a distinct token
+// in the notes. Uses regex word boundaries to prevent "sa" matching inside "massage", etc.
+var _dayRegexCache={};
+function _getDayRegex(day){
+  if(!_dayRegexCache[day]){
+    // Build pattern: \b(monday|mon|mo)\b  — longest aliases first
+    var alts=DAY_ALIASES[day].join('|');
+    _dayRegexCache[day]=new RegExp('\\b('+alts+')\\b','i');
+  }
+  return _dayRegexCache[day];
+}
+
+function notesMentionDay(notes,day){
+  return _getDayRegex(day).test(notes);
+}
+
+function notesMentionAnyDay(notes){
+  return DAYS.some(function(d){return notesMentionDay(notes,d);});
+}
+
 function cgMatchesShiftDay(cg,shiftKey,day){
   var sh=SHIFTS.find(function(s){return s.key===shiftKey;});
   var notes=(cg.availNotes||'').toLowerCase();
   var type=(cg.cgType||'').toLowerCase();
-  var dayLow=day.toLowerCase();
-  var noDayMentioned=!DAYS.some(function(d){return notes.includes(d.toLowerCase());});
-  if(shiftKey==='livein'&&type.includes('live')){return noDayMentioned||notes.includes(dayLow)?'match':'partial';}
-  if(shiftKey==='over'&&type.includes('overnight')){return noDayMentioned||notes.includes(dayLow)?'match':'partial';}
+  var noDayMentioned=!notesMentionAnyDay(notes);
+  var hasDay=notesMentionDay(notes,day);
+  if(shiftKey==='livein'&&type.includes('live')){return noDayMentioned||hasDay?'match':'none';}
+  if(shiftKey==='over'&&type.includes('overnight')){return noDayMentioned||hasDay?'match':'none';}
   var hasShift=sh.kw.some(function(k){return notes.includes(k);});
-  var hasDay=notes.includes(dayLow);
   if(hasShift&&hasDay)return'match';
   if(hasShift&&noDayMentioned)return'partial';
   if(!hasShift&&hasDay)return'partial';
@@ -323,19 +354,20 @@ function cgMatchesShiftDay(cg,shiftKey,day){
 var DAY_TO_DOW={Mon:1,Tue:2,Wed:3,Thu:4,Fri:5,Sat:6,Sun:0};
 
 function cgAvailableOnDay(cg,day){
-  // 1. Check structured availability windows first
+  var notes=(cg.availNotes||'').toLowerCase();
+  // 1. If notes mention specific days, use that as the source of truth
+  if(notes&&notesMentionAnyDay(notes)){
+    return notesMentionDay(notes,day);
+  }
+  // 2. If notes exist but no days mentioned, check structured windows
   if(cg.availWindows&&cg.availWindows.length>0){
     var dowNum=DAY_TO_DOW[day];
     return cg.availWindows.some(function(w){return w.dow===dowNum;});
   }
-  // 2. Fall back to text-based detection from availNotes
-  var notes=(cg.availNotes||'').toLowerCase();
-  if(!notes)return false;
-  var dayLow=day.toLowerCase();
-  // If no specific days are mentioned in notes, treat as available all days
-  var anyDayMentioned=DAYS.some(function(d){return notes.includes(d.toLowerCase());});
-  if(!anyDayMentioned)return true;
-  return notes.includes(dayLow);
+  // 3. If notes exist but no days and no windows, assume available all days
+  if(notes)return true;
+  // 4. No notes and no windows — unknown, show as unavailable
+  return false;
 }
 
 function getRequests(){
