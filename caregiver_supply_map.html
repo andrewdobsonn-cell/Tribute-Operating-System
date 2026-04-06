@@ -346,7 +346,6 @@ function cgMatchesShiftDay(cg,shiftKey,day){
   var hasShift=sh.kw.some(function(k){return notes.includes(k);});
   if(hasShift&&hasDay)return'match';
   if(hasShift&&noDayMentioned)return'partial';
-  if(!hasShift&&hasDay)return'partial';
   return'none';
 }
 
