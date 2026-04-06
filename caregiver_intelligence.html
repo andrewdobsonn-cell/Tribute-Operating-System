@@ -598,7 +598,7 @@ function renderHours(){
   var underList=cgData.filter(function(x){return x.avg>0&&x.avg<20;})
     .sort(function(a,b){return a.avg-b.avg;}).slice(0,20);
   // Zero
-  var zeroList=cgData.filter(function(x){return x.avg===0;})
+  var zeroList=cgData.filter(function(x){return x.avg===0&&!cgPtoMap[x.id];})
     .sort(function(a,b){return (a.cg.name||'').localeCompare(b.cg.name||'');}).slice(0,30);
 
   var maxAvg=Math.max.apply(null,cgData.map(function(x){return x.avg;})||[1])||1;
@@ -615,7 +615,7 @@ function renderHours(){
   html+='<div class="fc"><div class="ct">OT Caregivers (avg ≥ 40h) <span style="font-size:11px;text-transform:none;letter-spacing:0;color:var(--text4)">'+otList.length+'</span></div><div class="tbl-wrap"><table><thead><tr><th>Name</th><th>Market</th><th>Type</th><th>Avg Hrs</th></tr></thead><tbody>'+cgRows(otList)+'</tbody></table></div></div>';
   html+='<div class="fc"><div class="ct">Underutilized (&lt;20h avg) <span style="font-size:11px;text-transform:none;letter-spacing:0;color:var(--text4)">'+underList.length+'</span></div><div class="tbl-wrap"><table><thead><tr><th>Name</th><th>Market</th><th>Type</th><th>Avg Hrs</th></tr></thead><tbody>'+cgRows(underList)+'</tbody></table></div></div>';
   html+='</div>';
-  html+='<div class="fc"><div class="ct">Zero-Hour Caregivers (4-week avg = 0) <span style="font-size:11px;text-transform:none;letter-spacing:0;color:var(--text4)">'+zeroList.length+'</span></div><div class="tbl-wrap"><table><thead><tr><th>Name</th><th>Market</th><th>Type</th><th>Hire Date</th><th>Last Booking</th><th>Availability</th></tr></thead><tbody>';
+  html+='<div class="fc"><div class="ct">Zero-Hour Caregivers (4-wk avg = 0, excl. PTO/Leave) <span style="font-size:11px;text-transform:none;letter-spacing:0;color:var(--text4)">'+zeroList.length+'</span></div><div class="tbl-wrap"><table><thead><tr><th>Name</th><th>Market</th><th>Type</th><th>Hire Date</th><th>Last Booking</th><th>Availability</th></tr></thead><tbody>';
   html+=zeroList.map(function(x){
     var bio=bioMap[x.cg.id];
     var lb=bio&&bio.queries&&bio.queries.lastBooking;
