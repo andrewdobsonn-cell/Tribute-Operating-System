@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Caregiver Utilization — Tribute OS</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0B1120;--bg2:#111827;--bg3:#1E293B;--bg4:#334155;
+  --border:#1E293B;--border2:#334155;
+  --text:#E2E8F0;--text2:#94A3B8;--text3:#64748B;
+  --orange:#E8541A;--orange-light:#F47A4A;
+  --green:#22C55E;--green-bg:rgba(34,197,94,.12);
+  --red:#EF4444;--red-bg:rgba(239,68,68,.12);
+  --yellow:#EAB308;--yellow-bg:rgba(234,179,8,.12);
+  --blue:#3B82F6;--blue-bg:rgba(59,130,246,.12);
+  --purple:#A855F7;--purple-bg:rgba(168,85,247,.12);
+  --navy:#0F2647;--slate:#44546A;
+  --r:8px;--rl:12px;
+  --shadow:0 4px 24px rgba(0,0,0,.3);
+}
+html{scroll-behavior:smooth}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:13px;line-height:1.5;-webkit-font-smoothing:antialiased}
+
+/* Topbar */
+.topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 32px;display:flex;align-items:center;justify-content:space-between;height:52px;position:sticky;top:0;z-index:100}
+.topbar-brand{display:flex;align-items:baseline;gap:6px}
+.topbar-tribute{font-family:'DM Serif Display',serif;font-size:20px;color:var(--orange);letter-spacing:-.01em}
+.topbar-sub{font-size:11px;color:var(--text3);font-weight:400}
+.topbar-back{color:var(--text2);text-decoration:none;font-size:12px;display:flex;align-items:center;gap:4px;transition:color .2s}
+.topbar-back:hover{color:var(--orange)}
+
+/* Loading */
+.loading-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:70vh;gap:16px}
+.spinner{width:36px;height:36px;border:3px solid var(--border2);border-top-color:var(--orange);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Tabs */
+.tab-bar{display:flex;gap:2px;background:var(--bg2);border-bottom:1px solid var(--border);padding:0 32px;overflow-x:auto}
+.tab-btn{padding:10px 18px;font-size:12px;font-weight:500;color:var(--text3);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;white-space:nowrap;transition:all .2s}
+.tab-btn:hover{color:var(--text2)}
+.tab-btn.active{color:var(--orange);border-bottom-color:var(--orange)}
+
+/* Layout */
+.content{padding:24px 32px;max-width:1600px;margin:0 auto}
+.section{display:none}
+.section.active{display:block}
+
+/* KPI row */
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:24px}
+.kpi{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);padding:16px 20px}
+.kpi-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
+.kpi-value{font-size:26px;font-weight:600;color:var(--text)}
+.kpi-value.green{color:var(--green)}
+.kpi-value.red{color:var(--red)}
+.kpi-value.yellow{color:var(--yellow)}
+.kpi-value.orange{color:var(--orange)}
+
+/* Tables */
+.table-wrap{overflow-x:auto;background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl)}
+table{width:100%;border-collapse:collapse;font-size:12px}
+thead th{background:var(--bg3);color:var(--text2);font-weight:500;padding:10px 12px;text-align:left;position:sticky;top:0;border-bottom:1px solid var(--border2);cursor:pointer;user-select:none;white-space:nowrap}
+thead th:hover{color:var(--text)}
+thead th.sortable::after{content:'';display:inline-block;width:0;height:0;margin-left:4px;vertical-align:middle}
+thead th.asc::after{border-left:4px solid transparent;border-right:4px solid transparent;border-bottom:5px solid var(--orange)}
+thead th.desc::after{border-left:4px solid transparent;border-right:4px solid transparent;border-top:5px solid var(--orange)}
+tbody td{padding:8px 12px;border-bottom:1px solid var(--border);color:var(--text);white-space:nowrap}
+tbody tr:hover{background:rgba(255,255,255,.03)}
+
+/* Summary rows */
+tr.overall-row{background:var(--navy)}
+tr.overall-row td{color:#fff;font-weight:600;border-bottom:1px solid rgba(255,255,255,.1)}
+tr.type-row{background:var(--bg2)}
+tr.type-row td{color:var(--text);font-weight:400}
+tr.prn-row{background:rgba(238,224,204,.08)}
+tr.prn-row td{color:#C49A6C;font-style:italic}
+tr.pto-row{background:rgba(168,85,247,.06)}
+tr.pto-row td{color:var(--purple);font-style:italic}
+tr.spacer-row td{padding:4px;border:none}
+
+/* Util bars */
+.util-bar{display:flex;align-items:center;gap:8px}
+.util-track{width:80px;height:6px;background:var(--bg);border-radius:3px;overflow:hidden;flex-shrink:0}
+.util-fill{height:100%;border-radius:3px;transition:width .3s}
+.util-pct{font-size:11px;font-weight:500;min-width:36px}
+.u-green .util-fill{background:var(--green)}.u-green .util-pct{color:var(--green)}
+.u-yellow .util-fill{background:var(--yellow)}.u-yellow .util-pct{color:var(--yellow)}
+.u-red .util-fill{background:var(--red)}.u-red .util-pct{color:var(--red)}
+.u-over .util-fill{background:var(--orange)}.u-over .util-pct{color:var(--orange)}
+
+/* Day chips */
+.day-chips{display:flex;gap:3px}
+.dc{display:inline-flex;align-items:center;justify-content:center;width:28px;height:22px;border-radius:4px;font-size:10px;font-weight:500;border:1px solid var(--border2);color:var(--text3);background:var(--bg)}
+.dc.green-bg{background:var(--green-bg);color:var(--green);border-color:rgba(34,197,94,.3)}
+.dc.red-bg{background:var(--red-bg);color:var(--red);border-color:rgba(239,68,68,.3)}
+.dc.yellow-bg{background:var(--yellow-bg);color:var(--yellow);border-color:rgba(234,179,8,.3)}
+.dc.neutral{background:var(--bg3);color:var(--text3)}
+
+/* Type badges */
+.type-badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:500;white-space:nowrap}
+.type-long{background:var(--green-bg);color:var(--green)}
+.type-overnight{background:rgba(249,115,22,.12);color:#F97316}
+.type-short{background:var(--yellow-bg);color:var(--yellow)}
+.type-livein{background:var(--blue-bg);color:var(--blue)}
+.type-prn{background:rgba(238,224,204,.15);color:#C49A6C}
+
+/* Filter bar */
+.filter-bar{display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;align-items:center}
+.filter-bar select,.filter-bar input{background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:6px 10px;border-radius:var(--r);font-size:12px;font-family:inherit}
+.filter-bar select:focus,.filter-bar input:focus{outline:none;border-color:var(--orange)}
+.filter-label{font-size:11px;color:var(--text3);margin-right:-8px}
+
+/* Day breakdown grid */
+.day-grid{display:grid;gap:16px}
+.day-market-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);overflow:hidden}
+.day-market-header{background:var(--navy);color:#fff;padding:10px 16px;font-size:13px;font-weight:600;display:flex;justify-content:space-between;align-items:center}
+.day-market-body{padding:0}
+.day-row{display:grid;grid-template-columns:140px 90px repeat(7,1fr);align-items:center;border-bottom:1px solid var(--border);font-size:12px}
+.day-row.header{background:var(--bg3);font-weight:500;color:var(--text2)}
+.day-row > div{padding:6px 10px;text-align:center}
+.day-row > div:first-child{text-align:left}
+.day-row > div:nth-child(2){text-align:left}
+.day-cell{font-weight:500;font-size:11px}
+.day-cell.high{color:var(--red);background:rgba(239,68,68,.06)}
+.day-cell.mid{color:var(--yellow);background:rgba(234,179,8,.06)}
+.day-cell.low{color:var(--green);background:rgba(34,197,94,.06)}
+.day-cell.empty{color:var(--text3)}
+
+/* Timestamp */
+.timestamp{font-size:11px;color:var(--text3);margin-bottom:12px}
+
+/* Responsive */
+@media(max-width:900px){
+  .content{padding:16px}
+  .tab-bar{padding:0 16px}
+  .topbar{padding:0 16px}
+  .kpi-row{grid-template-columns:repeat(2,1fr)}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-brand">
+    <span class="topbar-tribute">Tribute</span>
+    <span class="topbar-sub">Caregiver Utilization</span>
+  </div>
+  <a href="index.html" class="topbar-back">&larr; Back to Dashboard</a>
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" data-tab="summary">Market Summary</button>
+  <button class="tab-btn" data-tab="state">State Summary</button>
+  <button class="tab-btn" data-tab="detail">Caregiver Detail</button>
+  <button class="tab-btn" data-tab="daybreak">Day Breakdown</button>
+  <button class="tab-btn" data-tab="roster">Unused Roster</button>
+</div>
+
+<div id="loading" class="loading-wrap">
+  <div class="spinner"></div>
+  <div style="color:var(--text2);font-size:13px">Loading utilization data...</div>
+</div>
+
+<div id="app" class="content" style="display:none">
+  <!-- Market Summary -->
+  <div id="tab-summary" class="section active">
+    <div class="timestamp" id="ts-summary"></div>
+    <div class="kpi-row" id="kpi-summary"></div>
+    <div class="table-wrap"><table id="tbl-summary"><thead></thead><tbody></tbody></table></div>
+  </div>
+
+  <!-- State Summary -->
+  <div id="tab-state" class="section">
+    <div class="timestamp" id="ts-state"></div>
+    <div class="kpi-row" id="kpi-state"></div>
+    <div class="table-wrap"><table id="tbl-state"><thead></thead><tbody></tbody></table></div>
+  </div>
+
+  <!-- Caregiver Detail -->
+  <div id="tab-detail" class="section">
+    <div class="timestamp" id="ts-detail"></div>
+    <div class="filter-bar">
+      <span class="filter-label">Market</span>
+      <select id="flt-market"><option value="">All Markets</option></select>
+      <span class="filter-label">Type</span>
+      <select id="flt-type"><option value="">All Types</option></select>
+      <span class="filter-label">Search</span>
+      <input type="text" id="flt-search" placeholder="Name..." style="width:160px">
+      <span class="filter-label">Show</span>
+      <select id="flt-show">
+        <option value="all">All</option>
+        <option value="zero">Zero Utilization</option>
+        <option value="over">Over 100%</option>
+        <option value="under50">Under 50%</option>
+      </select>
+    </div>
+    <div class="table-wrap" style="max-height:70vh;overflow-y:auto"><table id="tbl-detail"><thead></thead><tbody></tbody></table></div>
+  </div>
+
+  <!-- Day Breakdown -->
+  <div id="tab-daybreak" class="section">
+    <div class="timestamp" id="ts-daybreak"></div>
+    <div class="filter-bar">
+      <span class="filter-label">Market</span>
+      <select id="flt-day-market"><option value="">All Markets</option></select>
+    </div>
+    <div class="day-grid" id="day-grid"></div>
+  </div>
+
+  <!-- Unused Roster -->
+  <div id="tab-roster" class="section">
+    <div class="timestamp" id="ts-roster"></div>
+    <div class="filter-bar">
+      <span class="filter-label">Market</span>
+      <select id="flt-roster-market"><option value="">All Markets</option></select>
+      <span class="filter-label">Day</span>
+      <select id="flt-roster-day">
+        <option value="">All Days</option>
+        <option value="0">Sunday</option><option value="1">Monday</option><option value="2">Tuesday</option>
+        <option value="3">Wednesday</option><option value="4">Thursday</option><option value="5">Friday</option>
+        <option value="6">Saturday</option>
+      </select>
+    </div>
+    <div class="table-wrap" style="max-height:70vh;overflow-y:auto"><table id="tbl-roster"><thead></thead><tbody></tbody></table></div>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+
+// ── CONSTANTS ──
+var API='https://tribute-api-prod-bkc4hfcwf3f2f6bf.centralus-01.azurewebsites.net/api/vivProxy';
+var MKT_ORDER=['Boston','North of Boston','MetroWest Boston','South of Boston','Chicago','Annapolis','Baltimore','Bethesda','Unknown'];
+var ST_ORDER=['Massachusetts','Illinois','Maryland','Unknown'];
+var STATE_MAP={'Boston':'Massachusetts','North of Boston':'Massachusetts','MetroWest Boston':'Massachusetts','South of Boston':'Massachusetts','Chicago':'Illinois','Annapolis':'Maryland','Baltimore':'Maryland','Bethesda':'Maryland'};
+var TYPE_NAMES=['Long Hours','Overnight','Short Hours','Live-In'];
+var DAY_NAMES=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+var DAY_FULL=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+
+// Day pattern matching (mirrors Python DAY_MAP)
+var DAY_ALIASES={
+  0:['su','sun','sunday'],1:['mo','mon','monday'],2:['tu','tue','tuesday'],
+  3:['we','wed','wednesday'],4:['th','thu','thursday'],5:['fr','fri','friday'],
+  6:['sa','sat','saturday']
+};
+var _dayRegex={};
+function getDayRegex(dow){
+  if(!_dayRegex[dow]){
+    var alts=DAY_ALIASES[dow].join('|');
+    _dayRegex[dow]=new RegExp('\\b('+alts+')\\b','i');
+  }
+  return _dayRegex[dow];
+}
+function notesMentionDay(notes,dow){return getDayRegex(dow).test(notes);}
+function notesMentionAnyDay(notes){for(var d=0;d<7;d++){if(notesMentionDay(notes,d))return true;}return false;}
+
+// Parse availability days from notes for a section keyword
+function parseAvailDays(notes,section){
+  var result={};
+  var nl=notes.toLowerCase();
+  // Strip TS prefixes
+  nl=nl.replace(/ts\s?40\s/g,'').replace(/ts\s?30\s/g,'');
+  var clean=notes.replace(/ts\s?40\s/gi,'').replace(/ts\s?30\s/gi,'');
+
+  if(section==='Any'){
+    for(var d=0;d<7;d++){if(notesMentionDay(nl,d))result[d]=1.0;}
+    return result;
+  }
+
+  var kwMap={
+    'Long Hours':['long hour days','long hours days'],
+    'Overnight':['overnight days','overnights'],
+    'Short Hours':['short hour days','short hours days']
+  };
+  var keywords=kwMap[section]||[];
+  var secStart=-1;
+  for(var i=0;i<keywords.length;i++){
+    var idx=nl.indexOf(keywords[i]);
+    if(idx>=0){secStart=idx;break;}
+  }
+  if(secStart<0)return result;
+
+  var eqIdx=clean.indexOf('=',secStart);
+  if(eqIdx<0)return result;
+
+  var nextSec=clean.length;
+  var secKws=['long hour','overnight','short hour','live-in','live in'];
+  for(var k=0;k<secKws.length;k++){
+    var nxt=nl.indexOf(secKws[k],secStart+1);
+    if(nxt>secStart&&nxt<nextSec)nextSec=nxt;
+  }
+  var segment=clean.substring(eqIdx+1,nextSec);
+  var segLower=segment.toLowerCase();
+
+  // Check e/o days
+  var eoPattern=/e\/o\s+(su|sun|sunday|mo|mon|monday|tu|tue|tuesday|we|wed|wednesday|th|thu|thursday|fr|fri|friday|sa|sat|saturday)/gi;
+  var m;
+  while((m=eoPattern.exec(segment))!==null){
+    for(var d2=0;d2<7;d2++){
+      if(DAY_ALIASES[d2].indexOf(m[1].toLowerCase())>=0){result[d2]=0.5;break;}
+    }
+  }
+
+  // Regular days
+  for(var d3=0;d3<7;d3++){
+    if(notesMentionDay(segLower,d3)&&!(d3 in result)){
+      result[d3]=1.0;
+    }
+  }
+  return result;
+}
+
+// Primary type from notes
+function ptFromNotes(notes){
+  var nl=notes.toLowerCase();
+  if(nl.indexOf('live-in')>=0||nl.indexOf('live in')>=0)return 3;
+  if(nl.indexOf('long hour')>=0)return 0;
+  if(nl.indexOf('overnight')>=0)return 1;
+  return 2;
+}
+
+// ── PROCESS CAREGIVERS (mirrors Python logic) ──
+function processCaregivers(rawCaregivers){
+  var rows=[];
+  for(var i=0;i<rawCaregivers.length;i++){
+    var cg=rawCaregivers[i];
+    var notes=(cg.availNotes||'').trim();
+    var nl=notes.toLowerCase();
+    var market=cg.market||'Unknown';
+    var state=cg.state||STATE_MAP[market]||'Unknown';
+    var desiredHrs=cg.desiredHrs||0;
+    var scheduledHrs=cg.scheduledHrs||0;
+    var cgType=(cg.cgType||'').toLowerCase();
+
+    // Determine primary type
+    var primType;
+    if(cgType.indexOf('live')>=0)primType=3;
+    else if(cgType.indexOf('overnight')>=0)primType=1;
+    else primType=ptFromNotes(notes);
+
+    // If scheduledHrs > 0 and type can be refined... keep it simple for now
+    var isLI=nl.indexOf('live-in')>=0||nl.indexOf('live in')>=0;
+    var hasHourly=nl.indexOf('long hour')>=0||nl.indexOf('overnight')>=0||nl.indexOf('short hour')>=0;
+    var isMixed=isLI&&hasHourly;
+
+    if(scheduledHrs===0&&isMixed&&primType===3){
+      if(nl.indexOf('long hour')>=0)primType=0;
+      else if(nl.indexOf('overnight')>=0)primType=1;
+      else primType=2;
+    }
+
+    var ptName=TYPE_NAMES[primType];
+
+    // Availability days + capacity calculation
+    var availDays,dailyRate;
+    if(isLI&&primType===3){
+      availDays={};for(var d=0;d<7;d++)availDays[d]=1.0;
+      dailyRate=24;desiredHrs=168;
+      ptName='Live-In';
+    } else if(isLI&&isMixed&&primType!==3){
+      if(nl.indexOf('long hour')>=0){
+        availDays=parseAvailDays(notes,'Long Hours');
+        ptName='Live-In / Long Hours';
+      } else {
+        availDays=parseAvailDays(notes,'Overnight');
+        ptName='Live-In / Overnight';
+      }
+      dailyRate=12;
+    } else if(primType===0){
+      availDays=parseAvailDays(notes,'Long Hours');
+      dailyRate=12;
+    } else if(primType===1){
+      availDays=parseAvailDays(notes,'Overnight');
+      dailyRate=12;
+    } else {
+      availDays=parseAvailDays(notes,'Any');
+      dailyRate=0;
+    }
+
+    // Adjusted capacity
+    var adjCap;
+    var remainW=0;
+    for(var dk in availDays){remainW+=availDays[dk];}
+
+    if(isLI&&!isMixed&&primType!==3){
+      adjCap=scheduledHrs;
+    } else if(dailyRate>0){
+      var maxAch=remainW*dailyRate;
+      adjCap=maxAch>=desiredHrs?Math.min(maxAch,desiredHrs):maxAch;
+      adjCap=Math.max(adjCap,scheduledHrs);
+    } else {
+      adjCap=Math.max(desiredHrs,scheduledHrs);
+    }
+    adjCap=Math.max(adjCap,0);
+    var util=adjCap>0?(scheduledHrs/adjCap):null;
+
+    // Per-day capacity & availability
+    var dayCap=[0,0,0,0,0,0,0];
+    var dayWorked=[0,0,0,0,0,0,0];
+    var dayAvail=[0,0,0,0,0,0,0];
+
+    if(dailyRate>0){
+      for(var dd=0;dd<7;dd++){
+        var wt=availDays[dd]||0;
+        if(wt>0){
+          dayCap[dd]=dailyRate*wt;
+          dayAvail[dd]=wt;
+        }
+      }
+    }
+
+    // Map scheduledDays to dayWorked (approximate — we don't have per-day hours from this endpoint)
+    var schDays=cg.scheduledDays||[];
+    if(schDays.length>0&&scheduledHrs>0){
+      var hrsPerDay=scheduledHrs/schDays.length;
+      for(var sd=0;sd<schDays.length;sd++){
+        dayWorked[schDays[sd]]=parseFloat(hrsPerDay.toFixed(1));
+      }
+      // Ensure days with work have capacity
+      for(var dd2=0;dd2<7;dd2++){
+        if(dayCap[dd2]===0&&dayWorked[dd2]>0&&dailyRate>0){
+          dayCap[dd2]=dailyRate;
+          dayAvail[dd2]=1.0;
+        }
+      }
+    }
+
+    // Skip caregivers with no desired hours and no work
+    if(desiredHrs===0&&scheduledHrs===0)continue;
+
+    var row={
+      id:cg.id,
+      name:cg.name||'',
+      market:market,
+      state:state,
+      svcType:ptName,
+      primType:primType,
+      desiredHrs:desiredHrs,
+      adjCap:adjCap,
+      worked:scheduledHrs,
+      util:util,
+      isLI:isLI,
+      isPRN:desiredHrs===0&&scheduledHrs>0,
+      dayCap:dayCap,
+      dayWorked:dayWorked,
+      dayAvail:dayAvail,
+      notes:notes,
+      gap:cg.gap||0,
+      scheduledDays:schDays
+    };
+    rows.push(row);
+  }
+  return rows;
+}
+
+// ── SUMMARY AGGREGATION ──
+function buildSummary(rows,keyField,orderList){
+  var groups=[];
+  for(var oi=0;oi<orderList.length;oi++){
+    var key=orderList[oi];
+    var keyRows=rows.filter(function(r){return r[keyField]===key&&!r.isPRN;});
+    if(!keyRows.length)continue;
+
+    var totCount=keyRows.length;
+    var totDesired=keyRows.reduce(function(s,r){return s+r.desiredHrs;},0);
+    var totCap=keyRows.reduce(function(s,r){return s+r.adjCap;},0);
+    var totWorked=keyRows.reduce(function(s,r){return s+r.worked;},0);
+    var totWrkCap=keyRows.reduce(function(s,r){
+      return s+(r.worked>r.adjCap&&r.adjCap>0?Math.min(r.worked,r.adjCap):r.worked);
+    },0);
+    var totUtil=totCap>0?totWrkCap/totCap:null;
+    var totOver=keyRows.filter(function(r){return r.adjCap>0&&r.worked>r.adjCap;}).length;
+    var totZero=keyRows.filter(function(r){return r.adjCap>0&&r.worked===0;}).length;
+    var totWorking=totCount-totZero;
+
+    groups.push({key:key,type:'overall',svcType:'Active Caregivers',count:totCount,
+      desired:totDesired,adjCap:totCap,worked:totWorked,util:totUtil,
+      over100:totOver,zeroUtil:totZero,working:totWorking});
+
+    // Type breakdown
+    for(var ti=0;ti<4;ti++){
+      var tRows=keyRows.filter(function(r){return r.primType===ti;});
+      if(!tRows.length)continue;
+      var tCap=tRows.reduce(function(s,r){return s+r.adjCap;},0);
+      var tWorked=tRows.reduce(function(s,r){return s+r.worked;},0);
+      var tWrkCap=tRows.reduce(function(s,r){
+        return s+(r.worked>r.adjCap&&r.adjCap>0?Math.min(r.worked,r.adjCap):r.worked);
+      },0);
+      groups.push({key:'',type:'subtype',typeIdx:ti,svcType:TYPE_NAMES[ti],count:tRows.length,
+        desired:tRows.reduce(function(s,r){return s+r.desiredHrs;},0),
+        adjCap:tCap,worked:tWorked,
+        util:tCap>0?tWrkCap/tCap:null,
+        over100:tRows.filter(function(r){return r.adjCap>0&&r.worked>r.adjCap;}).length,
+        zeroUtil:tRows.filter(function(r){return r.adjCap>0&&r.worked===0;}).length,
+        working:tRows.length-tRows.filter(function(r){return r.adjCap>0&&r.worked===0;}).length});
+    }
+
+    // PRN
+    var prnRows=rows.filter(function(r){return r[keyField]===key&&r.isPRN;});
+    groups.push({key:'',type:'prn',svcType:'PRN Worked',count:prnRows.length,
+      desired:0,adjCap:0,worked:prnRows.reduce(function(s,r){return s+r.worked;},0),
+      util:null,over100:0,zeroUtil:0,working:prnRows.length});
+
+    groups.push({key:key,type:'spacer'});
+  }
+  return groups;
+}
+
+// ── RENDERING ──
+function pct(v){return v!==null&&v!==undefined?(v*100).toFixed(1)+'%':'—';}
+function num(v,d){return(v||0).toFixed(d===undefined?1:d);}
+function utilClass(v){
+  if(v===null||v===undefined)return'';
+  if(v>1)return'u-over';if(v>=0.85)return'u-green';if(v>=0.5)return'u-yellow';return'u-red';
+}
+function utilBar(v){
+  if(v===null||v===undefined)return'<span style="color:var(--text3)">—</span>';
+  var cls=utilClass(v);
+  var w=Math.min(v*100,100);
+  return'<div class="util-bar '+cls+'"><div class="util-track"><div class="util-fill" style="width:'+w+'%"></div></div><span class="util-pct">'+pct(v)+'</span></div>';
+}
+function typeBadge(name){
+  var cls='type-short';
+  var nl=(name||'').toLowerCase();
+  if(nl.indexOf('long')>=0)cls='type-long';
+  else if(nl.indexOf('overnight')>=0)cls='type-overnight';
+  else if(nl.indexOf('live')>=0)cls='type-livein';
+  else if(nl.indexOf('prn')>=0)cls='type-prn';
+  else if(nl.indexOf('short')>=0)cls='type-short';
+  return'<span class="type-badge '+cls+'">'+esc(name)+'</span>';
+}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+function renderKPIs(containerId,rows){
+  var active=rows.filter(function(r){return!r.isPRN;});
+  var totalCap=active.reduce(function(s,r){return s+r.adjCap;},0);
+  var totalWorked=active.reduce(function(s,r){return s+r.worked;},0);
+  var totalWrkCap=active.reduce(function(s,r){
+    return s+(r.worked>r.adjCap&&r.adjCap>0?Math.min(r.worked,r.adjCap):r.worked);
+  },0);
+  var overallUtil=totalCap>0?totalWrkCap/totalCap:0;
+  var zeroCount=active.filter(function(r){return r.adjCap>0&&r.worked===0;}).length;
+  var overCount=active.filter(function(r){return r.adjCap>0&&r.worked>r.adjCap;}).length;
+  var totalGap=active.reduce(function(s,r){return s+Math.max(0,r.adjCap-r.worked);},0);
+
+  var uCls=overallUtil>=0.85?'green':overallUtil>=0.5?'yellow':'red';
+  document.getElementById(containerId).innerHTML=
+    '<div class="kpi"><div class="kpi-label">Active Caregivers</div><div class="kpi-value">'+active.length+'</div></div>'+
+    '<div class="kpi"><div class="kpi-label">Overall Utilization</div><div class="kpi-value '+uCls+'">'+pct(overallUtil)+'</div></div>'+
+    '<div class="kpi"><div class="kpi-label">Total Hours Worked</div><div class="kpi-value">'+num(totalWorked,0)+'</div></div>'+
+    '<div class="kpi"><div class="kpi-label">Total Capacity</div><div class="kpi-value">'+num(totalCap,0)+'</div></div>'+
+    '<div class="kpi"><div class="kpi-label">Available Gap</div><div class="kpi-value orange">'+num(totalGap,0)+' hrs</div></div>'+
+    '<div class="kpi"><div class="kpi-label">Zero Utilization</div><div class="kpi-value red">'+zeroCount+'</div></div>'+
+    '<div class="kpi"><div class="kpi-label">Over 100%</div><div class="kpi-value yellow">'+overCount+'</div></div>';
+}
+
+function renderSummaryTable(tableId,summaryData){
+  var tbl=document.getElementById(tableId);
+  tbl.querySelector('thead').innerHTML=
+    '<tr><th>Market / State</th><th>Service Type</th><th>Count</th><th>Desired Hrs</th>'+
+    '<th>Adj Capacity</th><th>Hrs Worked</th><th>Utilization</th><th>Over 100%</th>'+
+    '<th>Zero Util</th><th># Working</th></tr>';
+  var html='';
+  for(var i=0;i<summaryData.length;i++){
+    var g=summaryData[i];
+    if(g.type==='spacer'){html+='<tr class="spacer-row"><td colspan="10"></td></tr>';continue;}
+    var cls=g.type==='overall'?'overall-row':g.type==='prn'?'prn-row':'type-row';
+    html+='<tr class="'+cls+'">';
+    html+='<td>'+esc(g.key)+'</td>';
+    html+='<td>'+(g.type==='subtype'?'&nbsp;&nbsp;':'')+esc(g.svcType)+'</td>';
+    html+='<td>'+g.count+'</td>';
+    html+='<td>'+num(g.desired)+'</td>';
+    html+='<td>'+num(g.adjCap)+'</td>';
+    html+='<td>'+num(g.worked)+'</td>';
+    html+='<td>'+utilBar(g.util)+'</td>';
+    html+='<td>'+g.over100+'</td>';
+    html+='<td>'+g.zeroUtil+'</td>';
+    html+='<td>'+g.working+'</td>';
+    html+='</tr>';
+  }
+  tbl.querySelector('tbody').innerHTML=html;
+}
+
+// Detail table with sorting
+var detailSortCol=12,detailSortDir=-1; // default: util desc
+var allRows=[];
+function renderDetailTable(){
+  var market=document.getElementById('flt-market').value;
+  var type=document.getElementById('flt-type').value;
+  var search=document.getElementById('flt-search').value.toLowerCase();
+  var show=document.getElementById('flt-show').value;
+
+  var filtered=allRows.filter(function(r){
+    if(market&&r.market!==market)return false;
+    if(type&&r.svcType!==type)return false;
+    if(search&&r.name.toLowerCase().indexOf(search)<0)return false;
+    if(show==='zero')return r.adjCap>0&&r.worked===0;
+    if(show==='over')return r.adjCap>0&&r.util!==null&&r.util>1;
+    if(show==='under50')return r.util!==null&&r.util<0.5;
+    return true;
+  });
+
+  // Sort
+  var cols=['name','market','state','svcType','primType','desiredHrs','adjCap','worked','util','gap','','','util'];
+  filtered.sort(function(a,b){
+    var k=cols[detailSortCol]||'name';
+    var va=a[k],vb=b[k];
+    if(va===null)va=-999;if(vb===null)vb=-999;
+    if(typeof va==='string')va=va.toLowerCase();
+    if(typeof vb==='string')vb=vb.toLowerCase();
+    return va<vb?-detailSortDir:va>vb?detailSortDir:0;
+  });
+
+  var tbl=document.getElementById('tbl-detail');
+  var thLabels=['Name','Market','State','Service Type','Desired','Adj Capacity','Hrs Worked','Utilization','Gap','Scheduled Days','Day Availability'];
+  var thHtml='<tr>';
+  for(var h=0;h<thLabels.length;h++){
+    var sc=h===detailSortCol?(detailSortDir===1?'asc':'desc'):'';
+    thHtml+='<th class="sortable '+sc+'" data-col="'+h+'">'+thLabels[h]+'</th>';
+  }
+  thHtml+='</tr>';
+  tbl.querySelector('thead').innerHTML=thHtml;
+
+  var html='';
+  for(var i=0;i<filtered.length;i++){
+    var r=filtered[i];
+    var rowCls=r.isPRN?'prn-row':'';
+    html+='<tr class="'+rowCls+'">';
+    html+='<td>'+esc(r.name)+'</td>';
+    html+='<td>'+esc(r.market)+'</td>';
+    html+='<td>'+esc(r.state)+'</td>';
+    html+='<td>'+typeBadge(r.svcType)+'</td>';
+    html+='<td>'+num(r.desiredHrs)+'</td>';
+    html+='<td>'+num(r.adjCap)+'</td>';
+    html+='<td>'+num(r.worked)+'</td>';
+    html+='<td>'+utilBar(r.util)+'</td>';
+    html+='<td>'+num(r.gap)+'</td>';
+
+    // Scheduled days chips
+    var schHtml='<div class="day-chips">';
+    for(var d=0;d<7;d++){
+      var hasSch=r.scheduledDays.indexOf(d)>=0;
+      schHtml+='<div class="dc '+(hasSch?'green-bg':'')+'">'+DAY_NAMES[d]+'</div>';
+    }
+    schHtml+='</div>';
+    html+='<td>'+schHtml+'</td>';
+
+    // Day availability chips
+    var availHtml='<div class="day-chips">';
+    for(var d2=0;d2<7;d2++){
+      var avail=r.dayAvail[d2]>0;
+      var worked2=r.dayWorked[d2]>0;
+      var cls2='dc';
+      if(avail&&!worked2)cls2='dc green-bg';
+      else if(avail&&worked2)cls2='dc yellow-bg';
+      else if(!avail&&worked2)cls2='dc red-bg';
+      availHtml+='<div class="'+cls2+'">'+DAY_NAMES[d2]+'</div>';
+    }
+    availHtml+='</div>';
+    html+='<td>'+availHtml+'</td>';
+    html+='</tr>';
+  }
+  tbl.querySelector('tbody').innerHTML=html;
+
+  // Bind sort
+  tbl.querySelectorAll('th').forEach(function(th){
+    th.addEventListener('click',function(){
+      var col=parseInt(this.getAttribute('data-col'));
+      if(col===detailSortCol)detailSortDir*=-1;
+      else{detailSortCol=col;detailSortDir=1;}
+      renderDetailTable();
+    });
+  });
+}
+
+// Day Breakdown
+function renderDayBreakdown(rows){
+  var mktFilter=document.getElementById('flt-day-market').value;
+  var grid=document.getElementById('day-grid');
+  var html='';
+  var dayTypes=[0,1,3]; // Long Hours, Overnight, Live-In
+
+  var markets=mktFilter?[mktFilter]:MKT_ORDER;
+  for(var mi=0;mi<markets.length;mi++){
+    var mkt=markets[mi];
+    var mktRows=rows.filter(function(r){return r.market===mkt&&!r.isPRN;});
+    var hasData=mktRows.some(function(r){return dayTypes.indexOf(r.primType)>=0;});
+    if(!hasData)continue;
+
+    html+='<div class="day-market-card">';
+    html+='<div class="day-market-header"><span>'+esc(mkt)+'</span><span>'+mktRows.length+' caregivers</span></div>';
+    html+='<div class="day-market-body">';
+
+    // Header
+    html+='<div class="day-row header"><div>Type</div><div>Metric</div>';
+    for(var d=0;d<7;d++)html+='<div>'+DAY_NAMES[d]+'</div>';
+    html+='</div>';
+
+    // Overall
+    var ovCap=[0,0,0,0,0,0,0],ovWrk=[0,0,0,0,0,0,0],ovAvail=[0,0,0,0,0,0,0];
+    mktRows.forEach(function(r){
+      if(dayTypes.indexOf(r.primType)<0)return;
+      for(var d=0;d<7;d++){
+        ovCap[d]+=r.dayCap[d];ovWrk[d]+=r.dayWorked[d];
+        if(r.dayCap[d]>0)ovAvail[d]+=r.dayAvail[d];
+      }
+    });
+    html+=dayRowHtml('Overall','Util %',ovCap,ovWrk,true);
+    html+=dayAvailRowHtml('# Avail',ovAvail,true);
+
+    // Per type
+    for(var ti=0;ti<dayTypes.length;ti++){
+      var tIdx=dayTypes[ti];
+      var tRows=mktRows.filter(function(r){return r.primType===tIdx;});
+      if(!tRows.length)continue;
+      var tCap=[0,0,0,0,0,0,0],tWrk=[0,0,0,0,0,0,0],tAvail=[0,0,0,0,0,0,0];
+      tRows.forEach(function(r){
+        for(var d=0;d<7;d++){
+          tCap[d]+=r.dayCap[d];tWrk[d]+=r.dayWorked[d];
+          if(r.dayCap[d]>0)tAvail[d]+=r.dayAvail[d];
+        }
+      });
+      html+=dayRowHtml(TYPE_NAMES[tIdx],'Util %',tCap,tWrk,false);
+      html+=dayAvailRowHtml('# Avail',tAvail,false);
+    }
+
+    html+='</div></div>';
+  }
+  grid.innerHTML=html;
+}
+
+function dayRowHtml(label,metric,cap,wrk,isOverall){
+  var html='<div class="day-row'+(isOverall?' overall-row':'')+'"><div>'+esc(label)+'</div><div>'+metric+'</div>';
+  for(var d=0;d<7;d++){
+    if(cap[d]>0){
+      var u=Math.min(wrk[d]/cap[d],1);
+      var cls='day-cell';
+      if(u>=0.95)cls+=' high';
+      else if(u>=0.85)cls+=' mid';
+      else cls+=' low';
+      html+='<div class="'+cls+'">'+(u*100).toFixed(0)+'%</div>';
+    } else {
+      html+='<div class="day-cell empty">—</div>';
+    }
+  }
+  html+='</div>';
+  return html;
+}
+
+function dayAvailRowHtml(metric,avail,isOverall){
+  var html='<div class="day-row"><div></div><div>'+metric+'</div>';
+  for(var d=0;d<7;d++){
+    html+='<div class="day-cell" style="color:var(--text2)">'+num(avail[d],1)+'</div>';
+  }
+  html+='</div>';
+  return html;
+}
+
+// Unused Roster
+function renderRoster(rows){
+  var mkt=document.getElementById('flt-roster-market').value;
+  var dayFilter=document.getElementById('flt-roster-day').value;
+
+  var tbl=document.getElementById('tbl-roster');
+  tbl.querySelector('thead').innerHTML=
+    '<tr><th>Caregiver</th><th>Market</th><th>State</th><th>Day</th><th>Service Type</th>'+
+    '<th>Adj Capacity</th><th>Hrs Worked</th><th>Week Util</th></tr>';
+
+  var rosterRows=[];
+  var activeRows=rows.filter(function(r){return!r.isPRN;});
+  for(var i=0;i<activeRows.length;i++){
+    var r=activeRows[i];
+    if(mkt&&r.market!==mkt)continue;
+    if([0,1,3].indexOf(r.primType)<0)continue;
+    for(var d=0;d<7;d++){
+      if(dayFilter!==''&&d!==parseInt(dayFilter))continue;
+      if(r.dayCap[d]>0&&r.dayWorked[d]===0){
+        rosterRows.push({name:r.name,market:r.market,state:r.state,
+          day:DAY_FULL[d],svcType:r.svcType,adjCap:r.adjCap,worked:r.worked,util:r.util});
+      }
+    }
+  }
+
+  var html='';
+  for(var j=0;j<rosterRows.length;j++){
+    var rr=rosterRows[j];
+    html+='<tr>';
+    html+='<td>'+esc(rr.name)+'</td>';
+    html+='<td>'+esc(rr.market)+'</td>';
+    html+='<td>'+esc(rr.state)+'</td>';
+    html+='<td>'+esc(rr.day)+'</td>';
+    html+='<td>'+typeBadge(rr.svcType)+'</td>';
+    html+='<td>'+num(rr.adjCap)+'</td>';
+    html+='<td>'+num(rr.worked)+'</td>';
+    html+='<td>'+utilBar(rr.util)+'</td>';
+    html+='</tr>';
+  }
+  if(!html)html='<tr><td colspan="8" style="text-align:center;color:var(--text3);padding:24px">No unused caregivers found for the selected filters.</td></tr>';
+  tbl.querySelector('tbody').innerHTML=html;
+}
+
+// Populate filter dropdowns
+function populateFilters(rows){
+  var markets={},types={};
+  rows.forEach(function(r){markets[r.market]=1;types[r.svcType]=1;});
+
+  var mktOpts='<option value="">All Markets</option>';
+  MKT_ORDER.forEach(function(m){if(markets[m])mktOpts+='<option>'+esc(m)+'</option>';});
+  document.getElementById('flt-market').innerHTML=mktOpts;
+  document.getElementById('flt-day-market').innerHTML=mktOpts;
+  document.getElementById('flt-roster-market').innerHTML=mktOpts;
+
+  var tOpts='<option value="">All Types</option>';
+  Object.keys(types).sort().forEach(function(t){tOpts+='<option>'+esc(t)+'</option>';});
+  document.getElementById('flt-type').innerHTML=tOpts;
+}
+
+// Tab switching
+document.querySelectorAll('.tab-btn').forEach(function(btn){
+  btn.addEventListener('click',function(){
+    document.querySelectorAll('.tab-btn').forEach(function(b){b.classList.remove('active');});
+    document.querySelectorAll('.section').forEach(function(s){s.classList.remove('active');});
+    this.classList.add('active');
+    document.getElementById('tab-'+this.getAttribute('data-tab')).classList.add('active');
+  });
+});
+
+// ── FETCH & INIT ──
+function init(){
+  fetch(API+'?endpoint=caregiver_supply')
+    .then(function(res){return res.json();})
+    .then(function(data){
+      var raw=data.caregivers||[];
+      allRows=processCaregivers(raw);
+
+      var ts='Data as of '+(data.generatedAt?new Date(data.generatedAt).toLocaleString():'now')+' &middot; Week of '+(data.weekOf||'current');
+      document.querySelectorAll('[id^="ts-"]').forEach(function(el){el.innerHTML=ts;});
+
+      // KPIs
+      renderKPIs('kpi-summary',allRows);
+      renderKPIs('kpi-state',allRows);
+
+      // Summary tables
+      var mktSummary=buildSummary(allRows,'market',MKT_ORDER);
+      renderSummaryTable('tbl-summary',mktSummary);
+      var stSummary=buildSummary(allRows,'state',ST_ORDER);
+      renderSummaryTable('tbl-state',stSummary);
+
+      // Filters
+      populateFilters(allRows);
+
+      // Detail
+      renderDetailTable();
+
+      // Day breakdown
+      renderDayBreakdown(allRows);
+
+      // Roster
+      renderRoster(allRows);
+
+      // Filter event bindings
+      ['flt-market','flt-type','flt-show'].forEach(function(id){
+        document.getElementById(id).addEventListener('change',renderDetailTable);
+      });
+      document.getElementById('flt-search').addEventListener('input',renderDetailTable);
+      document.getElementById('flt-day-market').addEventListener('change',function(){renderDayBreakdown(allRows);});
+      ['flt-roster-market','flt-roster-day'].forEach(function(id){
+        document.getElementById(id).addEventListener('change',function(){renderRoster(allRows);});
+      });
+
+      document.getElementById('loading').style.display='none';
+      document.getElementById('app').style.display='block';
+    })
+    .catch(function(err){
+      document.getElementById('loading').innerHTML=
+        '<div style="color:var(--red);font-size:14px">Failed to load data</div>'+
+        '<div style="color:var(--text3);font-size:12px">'+esc(err.message)+'</div>'+
+        '<div style="color:var(--text3);font-size:11px;margin-top:8px">Ensure the proxy is running at '+esc(API)+'</div>';
+    });
+}
+
+init();
+})();
+</script>
+</body>
+</html>
