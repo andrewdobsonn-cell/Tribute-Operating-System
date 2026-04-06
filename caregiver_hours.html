@@ -1,6 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script>
+// Auth check — redirect to login if not authenticated
+(function(){
+  var HASH='d0b2ed6ff86d3d9d183b902204b70814f6a59639343f3ad32ac4bd9067f43088';
+  if(sessionStorage.getItem('tribute_auth')!==HASH){
+    window.location.href='login.html';
+  }
+})();
+</script>
+
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Tribute — Caregiver Hours</title>
@@ -207,7 +217,7 @@ async function fetchData(){
 // Filter data by current nav selection
 function getFiltered(){
   if(!data)return null;
-  var cgs=data.caregivers;
+  var cgs=data.caregivers.filter(function(c){return c.cgType&&c.cgType!=='Standard';});
   if(curNav==='ma')cgs=cgs.filter(function(c){return c.state==='Massachusetts'});
   else if(curNav==='il')cgs=cgs.filter(function(c){return c.state==='Illinois'});
   else if(curNav==='md')cgs=cgs.filter(function(c){return c.state==='Maryland'});
@@ -508,7 +518,7 @@ function renderOpenHours(){
 
 function renderTypes(){
   var cgs=getFiltered();
-  var types=['Live-In','Overnight','Long Hour','Short Hour','Standard'];
+  var types=['Live-In','Overnight','Long Hour','Short Hour'];
   var html='';
   html+='<div class="banner"><div class="bl">Caregiver types &mdash; '+navLabel()+'</div>';
   html+='Caregivers categorized by their availability type. Utilization and happiness by type shows where scheduling gaps exist.</div>';
@@ -553,14 +563,14 @@ function renderTypes(){
   html+='<div class="fc"><div class="ct">Type comparison &mdash; '+navLabel()+'</div>';
   html+='<table class="tbl"><thead><tr><th>Type</th><th>Count</th><th>Scheduled / Desired</th><th>Utilization</th><th>0-25% / 25-50%</th><th>50-75%</th><th>75-100%</th><th>75%+ Rate</th><th>Hours Gap</th></tr></thead>';
   html+='<tbody>'+tblRows+'</tbody></table>';
-  html+='<div class="cn">Live-In = 24h availability &middot; Overnight = night shift past midnight &middot; Long Hour = 12h+ day shifts &middot; Short Hour = &lt;8h daytime &middot; Standard = general availability. Detected from availability notes.</div></div>';
+  html+='<div class="cn">Live-In = 24h availability &middot; Overnight = night shift past midnight &middot; Long Hour = 12h+ day shifts &middot; Short Hour = &lt;8h daytime. Detected from availability notes.</div></div>';
 
   document.getElementById('ct').innerHTML=html;
 }
 
 function renderHeatmap(){
   var cgs=getFiltered();
-  var types=['Live-In','Overnight','Long Hour','Short Hour','Standard'];
+  var types=['Live-In','Overnight','Long Hour','Short Hour'];
   var html='';
   html+='<div class="banner"><div class="bl">Heatmap &mdash; '+navLabel()+' &mdash; '+curStart+' to '+curEnd+'</div>';
   html+='Each cell = one caregiver. Color = happiness. Hover for details. Grouped by caregiver type.</div>';
@@ -673,7 +683,7 @@ function renderList(){
   html+='<input class="srch" type="text" id="cgSrch" placeholder="Search by name, market, MCE, or type..." oninput="listSearch=this.value;renderListTable()" style="flex:1;min-width:200px;margin:0">';
   html+='<select onchange="filterByType(this.value)" style="font-size:11px;padding:7px 10px;border:.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text);cursor:pointer">';
   html+='<option value="">All types</option>';
-  ['Live-In','Overnight','Long Hour','Short Hour','Standard'].forEach(function(t){html+='<option>'+t+'</option>';});
+  ['Live-In','Overnight','Long Hour','Short Hour'].forEach(function(t){html+='<option>'+t+'</option>';});
   html+='</select>';
   html+='<select onchange="filterByBucket(this.value)" style="font-size:11px;padding:7px 10px;border:.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text);cursor:pointer">';
   html+='<option value="">All happiness</option>';
@@ -847,5 +857,16 @@ function toggleMCE(id){
   fetchData();
 })();
 </script>
+
+<script>
+function forceRefresh() {
+  var btn = document.getElementById('forceRefreshBtn');
+  if(btn) { btn.textContent = '⟳ Refreshing...'; btn.disabled = true; }
+  fetch('https://tribute-api-prod-bkc4hfcwf3f2f6bf.centralus-01.azurewebsites.net/api/vivProxy?endpoint=refresh_cache&keys=caregiver_hours')
+    .then(function() { window.location.reload(); })
+    .catch(function() { window.location.reload(); });
+}
+</script>
+<button id="forceRefreshBtn" onclick="forceRefresh()" style="position:fixed;bottom:16px;right:16px;z-index:9999;background:#E8732A;color:#fff;border:none;border-radius:6px;padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.15);">⟳ Force Refresh</button>
 </body>
 </html>
