@@ -462,8 +462,14 @@ function renderOverview(){
 
   var total=cgs.length;
   var otCGs=cgs.filter(function(cg){return !isLiveIn(cg)&&cgAvgMap[cg.id]>=40;});
-  // Exclude caregivers on PTO/leave from zero hours — they are accounted for
-  var zeroCGs=cgs.filter(function(cg){return cgAvgMap[cg.id]===0&&!cgPtoMap[cg.id];});
+  // Exclude from zero-hours only if PTO covers their FULL availability (truly unavailable)
+  // Partial PTO = still has open hours = still a zero-hour caregiver
+  var zeroCGs=cgs.filter(function(cg){
+    if(cgAvgMap[cg.id]!==0)return false;
+    var pto=cgPtoMap[cg.id]||0;
+    var desired=cg.baseDesiredHrs||cg.desiredHrs||0;
+    return !(desired>0&&pto>=desired); // exclude only if fully on PTO
+  });
   var workingCGs=cgs.filter(function(cg){return cgAvgMap[cg.id]>0&&!isLiveIn(cg);});
   var compAvg=workingCGs.length?workingCGs.reduce(function(s,cg){return s+cgAvgMap[cg.id];},0)/workingCGs.length:0;
   var bio=allHoursWeeks[curWeek]||{};
@@ -604,7 +610,12 @@ function renderHours(){
   var underList=cgData.filter(function(x){return x.avg>0&&x.avg<20;})
     .sort(function(a,b){return a.avg-b.avg;}).slice(0,20);
   // Zero
-  var zeroList=cgData.filter(function(x){return x.avg===0&&!cgPtoMap[x.id];})
+  var zeroList=cgData.filter(function(x){
+    if(x.avg!==0)return false;
+    var pto=cgPtoMap[x.cg.id]||0;
+    var desired=x.cg.baseDesiredHrs||x.cg.desiredHrs||0;
+    return !(desired>0&&pto>=desired); // exclude only if fully on PTO
+  })
     .sort(function(a,b){return (a.cg.name||'').localeCompare(b.cg.name||'');}).slice(0,30);
 
   var maxAvg=Math.max.apply(null,cgData.map(function(x){return x.avg;})||[1])||1;
