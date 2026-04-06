@@ -760,6 +760,11 @@ body {
       <div class="tile-name">Lead Intelligence</div>
       <div class="tile-desc">HubSpot + Viv lead funnel, referral sources and conversion analytics</div>
     </div>
+    <div class="dash-tile" onclick="loadDash('caregiver_supply_map',this)">
+      <div class="tile-icon">🗺️</div>
+      <div class="tile-name">Caregiver Supply Map</div>
+      <div class="tile-desc">Geographic supply visualization, intake matching and availability by distance</div>
+    </div>
   </div>
 
   <!-- ACTIVE DASHBOARD FRAME -->
@@ -867,6 +872,7 @@ var DASHES = {
   ksf_dashboard:          { title:'KSF Dashboard',            file:'ksf_dashboard.html' },
   scheduling_fill:        { title:'Scheduling Fill',          file:'scheduling_fill.html' },
   lead_intelligence:      { title:'Lead Intelligence',        file:'lead_intel_clean.html' },
+  caregiver_supply_map:   { title:'Caregiver Supply Map',     file:'caregiver_supply_map.html' },
 };
 
 var curDash = 'executive';
