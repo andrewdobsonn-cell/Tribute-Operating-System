@@ -210,7 +210,7 @@ tr.clickable:hover td{background:var(--bg);}
     <option value="Overnight">Overnight</option>
     <option value="Long Hour">Long Hour</option>
     <option value="Short Hour">Short Hour</option>
-    <option value="Standard">Standard</option>
+
   </select>
 </div>
 
@@ -311,7 +311,9 @@ function isLiveIn(cg){
 // ── GET FILTERED ACTIVE CGs ──
 function getActiveCGs(){
   if(!curWeek||!allHoursWeeks[curWeek])return [];
-  return allHoursWeeks[curWeek].caregivers||[];
+  return (allHoursWeeks[curWeek].caregivers||[]).filter(function(cg){
+    return cg.cgType&&cg.cgType!=='Standard';
+  });
 }
 var MKT_TO_STATE={
   'Boston':'Massachusetts','MetroWest Boston':'Massachusetts',
@@ -332,7 +334,7 @@ function getFilteredCGs(){
   return getActiveCGs().filter(function(cg){
     if(state&&cgState(cg)!==state)return false;
     if(mkt&&cg.market!==mkt)return false;
-    if(type&&(cg.cgType||'Standard')!==type)return false;
+    if(type&&(cg.cgType||'')!==type)return false;
     return true;
   });
 }
