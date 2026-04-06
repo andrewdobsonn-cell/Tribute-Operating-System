@@ -1,16 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<script>
-// Auth check — redirect to login if not authenticated
-(function(){
-  var HASH='d0b2ed6ff86d3d9d183b902204b70814f6a59639343f3ad32ac4bd9067f43088';
-  if(sessionStorage.getItem('tribute_auth')!==HASH){
-    window.location.href='login.html';
-  }
-})();
-</script>
-
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Tribute — Caregiver Hours</title>
