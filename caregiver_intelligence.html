@@ -462,13 +462,13 @@ function renderOverview(){
 
   var total=cgs.length;
   var otCGs=cgs.filter(function(cg){return !isLiveIn(cg)&&cgAvgMap[cg.id]>=40;});
-  // Exclude from zero-hours only if PTO covers their FULL availability (truly unavailable)
-  // Partial PTO = still has open hours = still a zero-hour caregiver
+  // Exclude from zero-hours: fully on PTO OR has 0 stated availability
   var zeroCGs=cgs.filter(function(cg){
     if(cgAvgMap[cg.id]!==0)return false;
-    var pto=cgPtoMap[cg.id]||0;
     var desired=cg.baseDesiredHrs||cg.desiredHrs||0;
-    return !(desired>0&&pto>=desired); // exclude only if fully on PTO
+    if(desired===0)return false; // no stated availability — not a gap
+    var pto=cgPtoMap[cg.id]||0;
+    return !(pto>=desired); // exclude if fully on PTO
   });
   var workingCGs=cgs.filter(function(cg){return cgAvgMap[cg.id]>0&&!isLiveIn(cg);});
   var compAvg=workingCGs.length?workingCGs.reduce(function(s,cg){return s+cgAvgMap[cg.id];},0)/workingCGs.length:0;
@@ -612,9 +612,10 @@ function renderHours(){
   // Zero
   var zeroList=cgData.filter(function(x){
     if(x.avg!==0)return false;
-    var pto=cgPtoMap[x.cg.id]||0;
     var desired=x.cg.baseDesiredHrs||x.cg.desiredHrs||0;
-    return !(desired>0&&pto>=desired); // exclude only if fully on PTO
+    if(desired===0)return false; // no stated availability
+    var pto=cgPtoMap[x.cg.id]||0;
+    return !(pto>=desired); // exclude if fully on PTO
   })
     .sort(function(a,b){return (a.cg.name||'').localeCompare(b.cg.name||'');}).slice(0,30);
 
