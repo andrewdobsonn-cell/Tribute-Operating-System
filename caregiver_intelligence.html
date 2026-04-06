@@ -232,6 +232,8 @@ var curWeek=null;
 var curTab='overview';
 var rosterSort={col:'name',dir:1};
 var rosterSearch='';
+var cgPtoMap={};        // module-scope: id -> ptoHrs for current week (shared across all tabs)
+var cgAvgMap={};        // module-scope: id -> 4-week avg hrs (shared across all tabs)
 
 // ── CLOCK ──
 setInterval(function(){
@@ -446,14 +448,13 @@ function renderOverview(){
   for(var i=0;i<4;i++){weeks.unshift(fmtD(new Date(d)));d.setUTCDate(d.getUTCDate()-7);}
 
   // Compute 4-week avg per caregiver
-  var cgAvgMap={};
+  // Rebuild shared maps for current filter/week — available to all tabs
+  cgAvgMap={};
   cgs.forEach(function(cg){
     var hrs=get4WkHrs(cg.id);
     cgAvgMap[cg.id]=avgHrs(hrs);
   });
-
-  // Build PTO map from current week — caregivers with PTO/leave are NOT zero hours
-  var cgPtoMap={};
+  cgPtoMap={};
   var curWeekData=allHoursWeeks[curWeek];
   if(curWeekData&&curWeekData.caregivers){
     curWeekData.caregivers.forEach(function(cg){if(cg.ptoHrs>0)cgPtoMap[cg.id]=cg.ptoHrs;});
@@ -580,6 +581,11 @@ function renderOverview(){
 function renderHours(){
   var cgs=getFilteredCGs();
   if(!cgs.length){document.getElementById('main').innerHTML='<div class="loading" style="color:var(--text4)">No data</div>';return;}
+
+  // Ensure PTO map is current for this tab (cgPtoMap is module-scope, shared with Overview)
+  cgPtoMap={};
+  var _cwd=allHoursWeeks[curWeek];
+  if(_cwd&&_cwd.caregivers){_cwd.caregivers.forEach(function(cg){if(cg.ptoHrs>0)cgPtoMap[cg.id]=cg.ptoHrs;});}
 
   var weeks=[];
   var d=new Date(curWeek);d.setUTCHours(0,0,0,0);
