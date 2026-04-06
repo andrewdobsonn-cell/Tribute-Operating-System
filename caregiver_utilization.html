@@ -38,25 +38,20 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .tab-btn.active{color:var(--orange);border-bottom-color:var(--orange)}
 .content{padding:24px 32px;max-width:1600px;margin:0 auto}
 .section{display:none}.section.active{display:block}
-.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:24px}
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:12px;margin-bottom:24px}
 .kpi{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);padding:14px 18px}
 .kpi-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px}
-.kpi-value{font-size:24px;font-weight:600;color:var(--text)}
+.kpi-value{font-size:22px;font-weight:600;color:var(--text)}
 .kpi-value.green{color:var(--green)}.kpi-value.red{color:var(--red)}.kpi-value.yellow{color:var(--yellow)}.kpi-value.orange{color:var(--orange)}.kpi-value.blue{color:var(--blue)}
+.kpi-sub{font-size:10px;color:var(--text3);margin-top:2px}
 .table-wrap{overflow-x:auto;background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl)}
 table{width:100%;border-collapse:collapse;font-size:12px}
 thead th{background:var(--bg3);color:var(--text2);font-weight:500;padding:10px 12px;text-align:left;position:sticky;top:0;border-bottom:1px solid var(--border2);cursor:pointer;user-select:none;white-space:nowrap}
 thead th:hover{color:var(--text)}
-thead th.asc::after{content:'';display:inline-block;margin-left:4px;border-left:4px solid transparent;border-right:4px solid transparent;border-bottom:5px solid var(--orange)}
-thead th.desc::after{content:'';display:inline-block;margin-left:4px;border-left:4px solid transparent;border-right:4px solid transparent;border-top:5px solid var(--orange)}
+thead th.sorted-asc::after{content:' \u25B2';color:var(--orange)}
+thead th.sorted-desc::after{content:' \u25BC';color:var(--orange)}
 tbody td{padding:8px 12px;border-bottom:1px solid var(--border);color:var(--text);white-space:nowrap}
 tbody tr:hover{background:rgba(255,255,255,.03)}
-tr.overall-row{background:var(--navy)}
-tr.overall-row td{color:#fff;font-weight:600;border-bottom:1px solid rgba(255,255,255,.1)}
-tr.type-row td{color:var(--text)}
-tr.prn-row td{color:#C49A6C;font-style:italic;background:rgba(238,224,204,.06)}
-tr.pto-row td{color:var(--purple);font-style:italic;background:rgba(168,85,247,.04)}
-tr.spacer-row td{padding:4px;border:none}
 .util-bar{display:flex;align-items:center;gap:6px}
 .util-track{width:70px;height:6px;background:var(--bg);border-radius:3px;overflow:hidden;flex-shrink:0}
 .util-fill{height:100%;border-radius:3px}
@@ -65,40 +60,20 @@ tr.spacer-row td{padding:4px;border:none}
 .u-yellow .util-fill{background:var(--yellow)}.u-yellow .util-pct{color:var(--yellow)}
 .u-red .util-fill{background:var(--red)}.u-red .util-pct{color:var(--red)}
 .u-over .util-fill{background:var(--orange)}.u-over .util-pct{color:var(--orange)}
-.day-chips{display:flex;gap:3px}
-.dc{display:inline-flex;align-items:center;justify-content:center;width:26px;height:20px;border-radius:4px;font-size:10px;font-weight:500;border:1px solid var(--border2);color:var(--text3);background:var(--bg)}
-.dc.g{background:var(--green-bg);color:var(--green);border-color:rgba(34,197,94,.3)}
-.dc.r{background:var(--red-bg);color:var(--red);border-color:rgba(239,68,68,.3)}
-.dc.y{background:var(--yellow-bg);color:var(--yellow);border-color:rgba(234,179,8,.3)}
 .type-badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:500;white-space:nowrap}
 .type-long{background:var(--green-bg);color:var(--green)}
 .type-overnight{background:rgba(249,115,22,.12);color:#F97316}
 .type-short{background:var(--yellow-bg);color:var(--yellow)}
 .type-livein{background:var(--blue-bg);color:var(--blue)}
-.type-prn{background:rgba(238,224,204,.15);color:#C49A6C}
 .filter-bar{display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;align-items:center}
 .filter-bar select,.filter-bar input{background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:6px 10px;border-radius:var(--r);font-size:12px;font-family:inherit}
 .filter-bar select:focus,.filter-bar input:focus{outline:none;border-color:var(--orange)}
 .fl{font-size:11px;color:var(--text3);margin-right:-8px}
-.day-grid{display:grid;gap:16px}
-.dmc{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);overflow:hidden}
-.dmh{background:var(--navy);color:#fff;padding:10px 16px;font-size:13px;font-weight:600;display:flex;justify-content:space-between}
-.dr{display:grid;grid-template-columns:140px 80px repeat(7,1fr);align-items:center;border-bottom:1px solid var(--border);font-size:12px}
-.dr.hdr{background:var(--bg3);font-weight:500;color:var(--text2)}
-.dr>div{padding:6px 8px;text-align:center}
-.dr>div:first-child,.dr>div:nth-child(2){text-align:left}
-.dcl{font-weight:500;font-size:11px}
-.dcl.hi{color:var(--red);background:rgba(239,68,68,.06)}
-.dcl.mi{color:var(--yellow);background:rgba(234,179,8,.06)}
-.dcl.lo{color:var(--green);background:rgba(34,197,94,.06)}
-.dcl.em{color:var(--text3)}
-/* TS payout badges */
-.payout-ok{color:var(--green)}.payout-warn{color:var(--yellow);font-weight:600}.payout-high{color:var(--orange);font-weight:700}
-/* Heatmap cells */
-.hm-cell{padding:6px;text-align:center;border-radius:4px;font-weight:600;font-size:11px}
 .ts{font-size:11px;color:var(--text3);margin-bottom:12px}
-/* Travel gap severity */
+.sev-alert{color:var(--red);font-weight:600}.sev-warning{color:var(--orange)}.sev-info{color:var(--text2)}
 .gap-low{color:var(--text2)}.gap-med{color:var(--yellow)}.gap-high{color:var(--orange);font-weight:600}
+.payout-ok{color:var(--green)}.payout-warn{color:var(--yellow);font-weight:600}.payout-high{color:var(--orange);font-weight:700}
+.hm-cell{padding:6px;text-align:center;border-radius:4px;font-weight:600;font-size:11px}
 @media(max-width:900px){.content{padding:16px}.tab-bar,.topbar{padding:0 16px}.kpi-row{grid-template-columns:repeat(2,1fr)}}
 </style>
 </head>
@@ -109,408 +84,518 @@ tr.spacer-row td{padding:4px;border:none}
 </div>
 <div class="tab-bar">
   <button class="tab-btn active" data-tab="dash">Dashboard</button>
-  <button class="tab-btn" data-tab="summary">Market Summary</button>
+  <button class="tab-btn" data-tab="market">Market Summary</button>
   <button class="tab-btn" data-tab="state">State Summary</button>
   <button class="tab-btn" data-tab="detail">Caregiver Detail</button>
   <button class="tab-btn" data-tab="daybreak">Day Breakdown</button>
   <button class="tab-btn" data-tab="roster">Caregiver Roster</button>
   <button class="tab-btn" data-tab="ts">TS Admin Tracker</button>
   <button class="tab-btn" data-tab="travel">Travel Time</button>
+  <button class="tab-btn" data-tab="lhon">Long Hrs &amp; Overnights</button>
+  <button class="tab-btn" data-tab="shiftmix">Shift Mix</button>
+  <button class="tab-btn" data-tab="newhires">New Hires 90 Days</button>
+  <button class="tab-btn" data-tab="validation">Validation</button>
 </div>
 <div id="loading" class="loading-wrap"><div class="spinner"></div><div style="color:var(--text2);font-size:13px">Loading utilization data...</div></div>
 <div id="app" class="content" style="display:none">
-  <div id="tab-dash" class="section active"><div class="ts" id="ts-dash"></div><div class="kpi-row" id="kpi-dash"></div><div id="heatmap-wrap"></div></div>
-  <div id="tab-summary" class="section"><div class="ts" id="ts-summary"></div><div class="kpi-row" id="kpi-summary"></div><div class="table-wrap"><table id="tbl-summary"><thead></thead><tbody></tbody></table></div></div>
-  <div id="tab-state" class="section"><div class="ts" id="ts-state"></div><div class="table-wrap"><table id="tbl-state"><thead></thead><tbody></tbody></table></div></div>
-  <div id="tab-detail" class="section"><div class="ts" id="ts-detail"></div><div class="filter-bar"><span class="fl">Market</span><select id="flt-mkt"><option value="">All</option></select><span class="fl">Type</span><select id="flt-type"><option value="">All</option></select><span class="fl">Search</span><input id="flt-search" placeholder="Name..." style="width:140px"><span class="fl">Show</span><select id="flt-show"><option value="all">All</option><option value="zero">Zero Util</option><option value="over">Over 100%</option><option value="under50">Under 50%</option></select></div><div class="table-wrap" style="max-height:70vh;overflow-y:auto"><table id="tbl-detail"><thead></thead><tbody></tbody></table></div></div>
-  <div id="tab-daybreak" class="section"><div class="ts" id="ts-daybreak"></div><div class="filter-bar"><span class="fl">Market</span><select id="flt-day-mkt"><option value="">All</option></select></div><div class="day-grid" id="day-grid"></div></div>
-  <div id="tab-roster" class="section"><div class="ts" id="ts-roster"></div><div class="filter-bar"><span class="fl">Market</span><select id="flt-ros-mkt"><option value="">All</option></select><span class="fl">Day</span><select id="flt-ros-day"><option value="">All</option><option value="0">Sunday</option><option value="1">Monday</option><option value="2">Tuesday</option><option value="3">Wednesday</option><option value="4">Thursday</option><option value="5">Friday</option><option value="6">Saturday</option></select></div><div class="table-wrap" style="max-height:70vh;overflow-y:auto"><table id="tbl-roster"><thead></thead><tbody></tbody></table></div></div>
-  <div id="tab-ts" class="section"><div class="ts" id="ts-ts"></div><div class="kpi-row" id="kpi-ts"></div><div class="table-wrap" style="max-height:70vh;overflow-y:auto"><table id="tbl-ts"><thead></thead><tbody></tbody></table></div></div>
-  <div id="tab-travel" class="section"><div class="ts" id="ts-travel"></div><div class="kpi-row" id="kpi-travel"></div><div class="filter-bar"><span class="fl">Market</span><select id="flt-tt-mkt"><option value="">All</option></select></div><div class="table-wrap" style="max-height:70vh;overflow-y:auto"><table id="tbl-travel"><thead></thead><tbody></tbody></table></div></div>
+  <div id="tab-dash" class="section active"></div>
+  <div id="tab-market" class="section"></div>
+  <div id="tab-state" class="section"></div>
+  <div id="tab-detail" class="section"></div>
+  <div id="tab-daybreak" class="section"></div>
+  <div id="tab-roster" class="section"></div>
+  <div id="tab-ts" class="section"></div>
+  <div id="tab-travel" class="section"></div>
+  <div id="tab-lhon" class="section"></div>
+  <div id="tab-shiftmix" class="section"></div>
+  <div id="tab-newhires" class="section"></div>
+  <div id="tab-validation" class="section"></div>
 </div>
 <script>
 (function(){
 'use strict';
 var API='https://tribute-api-prod-bkc4hfcwf3f2f6bf.centralus-01.azurewebsites.net/api/vivProxy';
-var MKT_ORDER=['Boston','North of Boston','MetroWest Boston','South of Boston','Chicago','Annapolis','Baltimore','Bethesda','Unknown'];
-var ST_ORDER=['Massachusetts','Illinois','Maryland','Unknown'];
-var STATE_MAP={'Boston':'Massachusetts','North of Boston':'Massachusetts','MetroWest Boston':'Massachusetts','South of Boston':'Massachusetts','Chicago':'Illinois','Annapolis':'Maryland','Baltimore':'Maryland','Bethesda':'Maryland'};
-var TYPE_NAMES=['Long Hours','Overnight','Short Hours','Live-In'];
-var DN=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-var DF=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+var MKT_ORDER=['Boston','North of Boston','MetroWest Boston','South of Boston','Chicago','Annapolis','Baltimore','Bethesda'];
+var D;  // full data object from proxy
 
-// ── NOTES PARSING ──
-var DAY_ALIASES={0:['su','sun','sunday'],1:['mo','mon','monday'],2:['tu','tue','tuesday'],3:['we','wed','wednesday'],4:['th','thu','thursday'],5:['fr','fri','friday'],6:['sa','sat','saturday']};
-var _dr={};
-function gdr(d){if(!_dr[d]){_dr[d]=new RegExp('\\b('+DAY_ALIASES[d].join('|')+')\\b','i');}return _dr[d];}
-function nmd(n,d){return gdr(d).test(n);}
-function nmad(n){for(var d=0;d<7;d++)if(nmd(n,d))return true;return false;}
-function parseAvailDays(notes,section){
-  var r={},nl=notes.toLowerCase().replace(/ts\s?40\s/g,'').replace(/ts\s?30\s/g,'');
-  var clean=notes.replace(/ts\s?40\s/gi,'').replace(/ts\s?30\s/gi,'');
-  if(section==='Any'){for(var d=0;d<7;d++)if(nmd(nl,d))r[d]=1.0;return r;}
-  var kwMap={'Long Hours':['long hour days','long hours days'],'Overnight':['overnight days','overnights'],'Short Hours':['short hour days','short hours days']};
-  var kws=kwMap[section]||[],ss=-1;
-  for(var i=0;i<kws.length;i++){var idx=nl.indexOf(kws[i]);if(idx>=0){ss=idx;break;}}
-  if(ss<0)return r;
-  var eq=clean.indexOf('=',ss);if(eq<0)return r;
-  var ns=clean.length;
-  ['long hour','overnight','short hour','live-in','live in'].forEach(function(k){var n=nl.indexOf(k,ss+1);if(n>ss&&n<ns)ns=n;});
-  var seg=clean.substring(eq+1,ns),sl=seg.toLowerCase();
-  var eo=/e\/o\s+(su|sun|sunday|mo|mon|monday|tu|tue|tuesday|we|wed|wednesday|th|thu|thursday|fr|fri|friday|sa|sat|saturday)/gi,m;
-  while((m=eo.exec(seg))!==null){for(var d2=0;d2<7;d2++)if(DAY_ALIASES[d2].indexOf(m[1].toLowerCase())>=0){r[d2]=0.5;break;}}
-  for(var d3=0;d3<7;d3++)if(nmd(sl,d3)&&!(d3 in r))r[d3]=1.0;
-  return r;
+// ── Helpers ──
+function $(s,p){return(p||document).querySelector(s);}
+function $$(s,p){return Array.from((p||document).querySelectorAll(s));}
+function fmt(n,d){return n==null?'—':Number(n).toLocaleString(undefined,{minimumFractionDigits:d||0,maximumFractionDigits:d||0});}
+function fmtPct(n){return n==null?'—':fmt(n,1)+'%';}
+function fmtDol(n){return n==null?'—':'$'+fmt(n,0);}
+function utilClass(p){return p>110?'u-over':p>=80?'u-green':p>=50?'u-yellow':'u-red';}
+function utilBar(p){
+  var cls=utilClass(p);
+  return '<div class="util-bar '+cls+'"><div class="util-track"><div class="util-fill" style="width:'+Math.min(p,100)+'%"></div></div><span class="util-pct">'+fmtPct(p)+'</span></div>';
 }
-function ptFromNotes(n){var l=n.toLowerCase();if(l.indexOf('live-in')>=0||l.indexOf('live in')>=0)return 3;if(l.indexOf('long hour')>=0)return 0;if(l.indexOf('overnight')>=0)return 1;return 2;}
-
-// ── PROCESS CAREGIVERS ──
-function processCaregivers(raw){
-  var rows=[];
-  for(var i=0;i<raw.length;i++){
-    var cg=raw[i],notes=(cg.availNotes||'').trim(),nl=notes.toLowerCase();
-    var market=cg.market||'Unknown',state=cg.state||STATE_MAP[market]||'Unknown';
-    var desiredHrs=cg.desiredHrs||0,scheduledHrs=cg.scheduledHrs||0;
-    // Primary type from API typeHrs or notes
-    var th=cg.typeHrs||[0,0,0,0];
-    var maxH=Math.max.apply(null,th),primType=maxH>0?th.indexOf(maxH):ptFromNotes(notes);
-    var isLI=nl.indexOf('live-in')>=0||nl.indexOf('live in')>=0;
-    var hasHourly=nl.indexOf('long hour')>=0||nl.indexOf('overnight')>=0||nl.indexOf('short hour')>=0;
-    var isMixed=isLI&&hasHourly;
-    if(scheduledHrs===0&&isMixed&&primType===3){if(nl.indexOf('long hour')>=0)primType=0;else if(nl.indexOf('overnight')>=0)primType=1;else primType=2;}
-    var ptName=TYPE_NAMES[primType];
-    var availDays,dailyRate;
-    if(isLI&&primType===3){availDays={};for(var d=0;d<7;d++)availDays[d]=1.0;dailyRate=24;desiredHrs=168;ptName='Live-In';}
-    else if(isLI&&isMixed&&primType!==3){availDays=nl.indexOf('long hour')>=0?parseAvailDays(notes,'Long Hours'):parseAvailDays(notes,'Overnight');dailyRate=12;ptName=nl.indexOf('long hour')>=0?'Live-In / Long Hours':'Live-In / Overnight';}
-    else if(primType===0){availDays=parseAvailDays(notes,'Long Hours');dailyRate=12;}
-    else if(primType===1){availDays=parseAvailDays(notes,'Overnight');dailyRate=12;}
-    else{availDays=parseAvailDays(notes,'Any');dailyRate=0;}
-    var remainW=0;for(var dk in availDays)remainW+=availDays[dk];
-    var adjCap;
-    if(isLI&&!isMixed&&primType!==3)adjCap=scheduledHrs;
-    else if(dailyRate>0){var ma=remainW*dailyRate;adjCap=ma>=desiredHrs?Math.min(ma,desiredHrs):ma;adjCap=Math.max(adjCap,scheduledHrs);}
-    else adjCap=Math.max(desiredHrs,scheduledHrs);
-    adjCap=Math.max(adjCap,0);
-    var util=adjCap>0?scheduledHrs/adjCap:null;
-    // Per-day
-    var dayCap=[0,0,0,0,0,0,0],dayWorked=[0,0,0,0,0,0,0],dayAvail=[0,0,0,0,0,0,0];
-    if(dailyRate>0)for(var dd=0;dd<7;dd++){var wt=availDays[dd]||0;if(wt>0){dayCap[dd]=dailyRate*wt;dayAvail[dd]=wt;}}
-    // Use dayTypeHrs from proxy if available
-    var dth=cg.dayTypeHrs;
-    if(dth){for(var dd2=0;dd2<7;dd2++){dayWorked[dd2]=dth[dd2]?dth[dd2][primType]||0:0;if(dayCap[dd2]===0&&dayWorked[dd2]>0&&dailyRate>0){dayCap[dd2]=dailyRate;dayAvail[dd2]=1.0;}}}
-    else{var schDays=cg.scheduledDays||[];if(schDays.length>0&&scheduledHrs>0){var hpd=scheduledHrs/schDays.length;for(var sd=0;sd<schDays.length;sd++){dayWorked[schDays[sd]]=parseFloat(hpd.toFixed(1));if(dayCap[schDays[sd]]===0&&dailyRate>0){dayCap[schDays[sd]]=dailyRate;dayAvail[schDays[sd]]=1.0;}}}}
-    if(desiredHrs===0&&scheduledHrs===0)continue;
-    rows.push({id:cg.id,name:cg.name||'',firstName:cg.firstName||'',lastName:cg.lastName||'',market:market,state:state,svcType:ptName,primType:primType,desiredHrs:desiredHrs,adjCap:adjCap,worked:scheduledHrs,util:util,isLI:isLI,isPRN:desiredHrs===0&&scheduledHrs>0,dayCap:dayCap,dayWorked:dayWorked,dayAvail:dayAvail,notes:notes,gap:cg.gap||0,scheduledDays:cg.scheduledDays||[],tags:cg.tags||'',tsType:cg.tsType||0,ptoHrs:cg.ptoHrs||0,typeHrs:th,hireDate:cg.hireDate||null,status:cg.status||'',designation:cg.designation||''});
-  }
-  return rows;
+function typeBadge(t){
+  var m={'Long Hours':'type-long','Overnight':'type-overnight','Short Hours':'type-short','Live-In':'type-livein','Hourly':'type-short'};
+  return '<span class="type-badge '+(m[t]||'type-short')+'">'+t+'</span>';
 }
+function gapClass(h){return h>=1.5?'gap-high':h>=0.5?'gap-med':'gap-low';}
+function payoutClass(h){return h>=15?'payout-high':h>=5?'payout-warn':'payout-ok';}
 
-// ── HELPERS ──
-function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
-function pct(v){return v!=null?(v*100).toFixed(1)+'%':'\u2014';}
-function num(v,d){return(v||0).toFixed(d===undefined?1:d);}
-function utilCls(v){if(v==null)return'';if(v>1)return'u-over';if(v>=.85)return'u-green';if(v>=.5)return'u-yellow';return'u-red';}
-function utilBar(v){if(v==null)return'<span style="color:var(--text3)">\u2014</span>';var c=utilCls(v),w=Math.min(v*100,100);return'<div class="util-bar '+c+'"><div class="util-track"><div class="util-fill" style="width:'+w+'%"></div></div><span class="util-pct">'+pct(v)+'</span></div>';}
-function typeBadge(n){var c='type-short',l=(n||'').toLowerCase();if(l.indexOf('long')>=0)c='type-long';else if(l.indexOf('overnight')>=0)c='type-overnight';else if(l.indexOf('live')>=0)c='type-livein';else if(l.indexOf('prn')>=0)c='type-prn';return'<span class="type-badge '+c+'">'+esc(n)+'</span>';}
-function hmColor(v){if(v==null)return'';if(v>=.95)return'background:rgba(239,68,68,.15);color:var(--red)';if(v>=.85)return'background:rgba(234,179,8,.12);color:var(--yellow)';if(v>=.5)return'background:rgba(34,197,94,.1);color:var(--green)';return'background:rgba(59,130,246,.08);color:var(--blue)';}
+// ── Sortable Table Builder ──
+function buildTable(container, columns, rows, opts){
+  opts=opts||{};
+  var sortCol=opts.defaultSort||0, sortAsc=opts.defaultAsc!==undefined?opts.defaultAsc:true;
+  var wrapper=document.createElement('div');
+  wrapper.className='table-wrap';
+  if(opts.maxHeight) wrapper.style.cssText='max-height:'+opts.maxHeight+';overflow-y:auto';
+  var tbl=document.createElement('table');
+  var thead=document.createElement('thead');
+  var tbody=document.createElement('tbody');
+  tbl.appendChild(thead);tbl.appendChild(tbody);wrapper.appendChild(tbl);
+  container.appendChild(wrapper);
 
-// ── SUMMARY ──
-function buildSummary(rows,kf,ol){
-  var gs=[];
-  for(var oi=0;oi<ol.length;oi++){
-    var key=ol[oi],kr=rows.filter(function(r){return r[kf]===key&&!r.isPRN;});
-    if(!kr.length)continue;
-    var tc=kr.length,td=kr.reduce(function(s,r){return s+r.desiredHrs;},0),tca=kr.reduce(function(s,r){return s+r.adjCap;},0),tw=kr.reduce(function(s,r){return s+r.worked;},0);
-    var twc=kr.reduce(function(s,r){return s+(r.worked>r.adjCap&&r.adjCap>0?Math.min(r.worked,r.adjCap):r.worked);},0);
-    var tu=tca>0?twc/tca:null,to=kr.filter(function(r){return r.adjCap>0&&r.worked>r.adjCap;}).length,tz=kr.filter(function(r){return r.adjCap>0&&r.worked===0;}).length;
-    gs.push({key:key,type:'overall',svcType:'Active Caregivers',count:tc,desired:td,adjCap:tca,worked:tw,util:tu,over100:to,zeroUtil:tz,working:tc-tz});
-    for(var ti=0;ti<4;ti++){
-      var tr2=kr.filter(function(r){return r.primType===ti;});if(!tr2.length)continue;
-      var tca2=tr2.reduce(function(s,r){return s+r.adjCap;},0),tw2=tr2.reduce(function(s,r){return s+r.worked;},0);
-      var twc2=tr2.reduce(function(s,r){return s+(r.worked>r.adjCap&&r.adjCap>0?Math.min(r.worked,r.adjCap):r.worked);},0);
-      gs.push({key:'',type:'subtype',svcType:TYPE_NAMES[ti],count:tr2.length,desired:tr2.reduce(function(s,r){return s+r.desiredHrs;},0),adjCap:tca2,worked:tw2,util:tca2>0?twc2/tca2:null,over100:tr2.filter(function(r){return r.adjCap>0&&r.worked>r.adjCap;}).length,zeroUtil:tr2.filter(function(r){return r.adjCap>0&&r.worked===0;}).length,working:tr2.length-tr2.filter(function(r){return r.adjCap>0&&r.worked===0;}).length});
-    }
-    var pr=rows.filter(function(r){return r[kf]===key&&r.isPRN;});
-    gs.push({key:'',type:'prn',svcType:'PRN Worked',count:pr.length,desired:0,adjCap:0,worked:pr.reduce(function(s,r){return s+r.worked;},0),util:null,over100:0,zeroUtil:0,working:pr.length});
-    gs.push({key:key,type:'spacer'});
-  }
-  return gs;
-}
-
-// ── RENDER: Dashboard Heatmap ──
-function renderDashboard(rows){
-  var active=rows.filter(function(r){return!r.isPRN;});
-  var totalCap=active.reduce(function(s,r){return s+r.adjCap;},0);
-  var totalWrk=active.reduce(function(s,r){return s+r.worked;},0);
-  var twc=active.reduce(function(s,r){return s+(r.worked>r.adjCap&&r.adjCap>0?Math.min(r.worked,r.adjCap):r.worked);},0);
-  var ou=totalCap>0?twc/totalCap:0;
-  var zc=active.filter(function(r){return r.adjCap>0&&r.worked===0;}).length;
-  var oc=active.filter(function(r){return r.adjCap>0&&r.util!=null&&r.util>1;}).length;
-  var prnC=rows.filter(function(r){return r.isPRN;}).length;
-  var tsRows=rows.filter(function(r){return r.tsType>0;});
-  var tsPayout=tsRows.reduce(function(s,r){return s+Math.max(0,r.tsType-r.worked-r.ptoHrs);},0);
-  var ucl=ou>=.85?'green':ou>=.5?'yellow':'red';
-  document.getElementById('kpi-dash').innerHTML=
-    '<div class="kpi"><div class="kpi-label">Active Caregivers</div><div class="kpi-value">'+active.length+'</div></div>'+
-    '<div class="kpi"><div class="kpi-label">Overall Utilization</div><div class="kpi-value '+ucl+'">'+pct(ou)+'</div></div>'+
-    '<div class="kpi"><div class="kpi-label">Hours Worked</div><div class="kpi-value">'+num(totalWrk,0)+'</div></div>'+
-    '<div class="kpi"><div class="kpi-label">Adj Capacity</div><div class="kpi-value">'+num(totalCap,0)+'</div></div>'+
-    '<div class="kpi"><div class="kpi-label">Zero Util</div><div class="kpi-value red">'+zc+'</div></div>'+
-    '<div class="kpi"><div class="kpi-label">PRN Worked</div><div class="kpi-value">'+prnC+'</div></div>'+
-    '<div class="kpi"><div class="kpi-label">TS Payout Exposure</div><div class="kpi-value '+(tsPayout>0?'orange':'green')+'">'+num(tsPayout,0)+' hrs</div></div>'+
-    '<div class="kpi"><div class="kpi-label">Over 100%</div><div class="kpi-value yellow">'+oc+'</div></div>';
-  // Heatmap
-  var h='<div class="table-wrap" style="margin-top:16px"><table><thead><tr><th>Market</th><th>Overall</th><th>Long Hours</th><th>Overnight</th><th>Short Hours</th><th>Live-In</th><th>Headcount</th><th>Hrs Worked</th></tr></thead><tbody>';
-  MKT_ORDER.forEach(function(mkt){
-    var mr=active.filter(function(r){return r.market===mkt;});if(!mr.length)return;
-    var mc=mr.reduce(function(s,r){return s+r.adjCap;},0);
-    var mwc=mr.reduce(function(s,r){return s+(r.worked>r.adjCap&&r.adjCap>0?Math.min(r.worked,r.adjCap):r.worked);},0);
-    var mu=mc>0?mwc/mc:null;
-    h+='<tr><td style="font-weight:600">'+esc(mkt)+'</td>';
-    h+='<td><div class="hm-cell" style="'+hmColor(mu)+'">'+pct(mu)+'</div></td>';
-    [0,1,2,3].forEach(function(ti){
-      var tr2=mr.filter(function(r){return r.primType===ti;});
-      var tc2=tr2.reduce(function(s,r){return s+r.adjCap;},0);
-      var twc2=tr2.reduce(function(s,r){return s+(r.worked>r.adjCap&&r.adjCap>0?Math.min(r.worked,r.adjCap):r.worked);},0);
-      var u2=tc2>0?twc2/tc2:null;
-      h+='<td><div class="hm-cell" style="'+(u2!=null?hmColor(u2):'')+'">'+(u2!=null?pct(u2):'\u2014')+'</div></td>';
+  function render(){
+    var sorted=rows.slice().sort(function(a,b){
+      var av=columns[sortCol].val?columns[sortCol].val(a):a[columns[sortCol].key];
+      var bv=columns[sortCol].val?columns[sortCol].val(b):b[columns[sortCol].key];
+      if(av==null)av=sortAsc?Infinity:-Infinity;
+      if(bv==null)bv=sortAsc?Infinity:-Infinity;
+      if(typeof av==='string')av=av.toLowerCase();
+      if(typeof bv==='string')bv=bv.toLowerCase();
+      return sortAsc?(av>bv?1:av<bv?-1:0):(av<bv?1:av>bv?-1:0);
     });
-    h+='<td style="text-align:center">'+mr.length+'</td>';
-    h+='<td style="text-align:center">'+num(mr.reduce(function(s,r){return s+r.worked;},0),0)+'</td>';
-    h+='</tr>';
-  });
-  // State summary row
-  h+='</tbody></table></div>';
-  h+='<div class="table-wrap" style="margin-top:16px"><table><thead><tr><th>State</th><th>Util %</th><th>Headcount</th><th>Hrs Worked</th><th>Adj Capacity</th></tr></thead><tbody>';
-  ST_ORDER.forEach(function(st){
-    var sr=active.filter(function(r){return r.state===st;});if(!sr.length)return;
-    var sc=sr.reduce(function(s,r){return s+r.adjCap;},0);
-    var swc=sr.reduce(function(s,r){return s+(r.worked>r.adjCap&&r.adjCap>0?Math.min(r.worked,r.adjCap):r.worked);},0);
-    var su=sc>0?swc/sc:null;
-    h+='<tr><td style="font-weight:600">'+esc(st)+'</td><td><div class="hm-cell" style="'+hmColor(su)+'">'+pct(su)+'</div></td>';
-    h+='<td style="text-align:center">'+sr.length+'</td><td style="text-align:center">'+num(sr.reduce(function(s,r){return s+r.worked;},0),0)+'</td><td style="text-align:center">'+num(sc,0)+'</td></tr>';
-  });
-  h+='</tbody></table></div>';
-  document.getElementById('heatmap-wrap').innerHTML=h;
-}
-
-// ── RENDER: Summary Table ──
-function renderSummaryTable(tid,data){
-  var t=document.getElementById(tid);
-  t.querySelector('thead').innerHTML='<tr><th>Market / State</th><th>Service Type</th><th>Count</th><th>Desired Hrs</th><th>Adj Capacity</th><th>Hrs Worked</th><th>Utilization</th><th>Over 100%</th><th>Zero Util</th><th># Working</th></tr>';
-  var h='';
-  data.forEach(function(g){
-    if(g.type==='spacer'){h+='<tr class="spacer-row"><td colspan="10"></td></tr>';return;}
-    var c=g.type==='overall'?'overall-row':g.type==='prn'?'prn-row':'type-row';
-    h+='<tr class="'+c+'"><td>'+esc(g.key)+'</td><td>'+(g.type==='subtype'?'&nbsp;&nbsp;':'')+esc(g.svcType)+'</td><td>'+g.count+'</td><td>'+num(g.desired)+'</td><td>'+num(g.adjCap)+'</td><td>'+num(g.worked)+'</td><td>'+utilBar(g.util)+'</td><td>'+g.over100+'</td><td>'+g.zeroUtil+'</td><td>'+g.working+'</td></tr>';
-  });
-  t.querySelector('tbody').innerHTML=h;
-}
-
-// ── RENDER: Detail Table ──
-var allRows=[],dSortCol=7,dSortDir=-1;
-function renderDetail(){
-  var mkt=document.getElementById('flt-mkt').value,type=document.getElementById('flt-type').value;
-  var search=document.getElementById('flt-search').value.toLowerCase(),show=document.getElementById('flt-show').value;
-  var f=allRows.filter(function(r){
-    if(mkt&&r.market!==mkt)return false;if(type&&r.svcType!==type)return false;
-    if(search&&r.name.toLowerCase().indexOf(search)<0)return false;
-    if(show==='zero')return r.adjCap>0&&r.worked===0;if(show==='over')return r.util!=null&&r.util>1;if(show==='under50')return r.util!=null&&r.util<.5;return true;
-  });
-  var cols=['name','market','state','svcType','desiredHrs','adjCap','worked','util','gap'];
-  f.sort(function(a,b){var k=cols[dSortCol]||'name';var va=a[k],vb=b[k];if(va==null)va=-999;if(vb==null)vb=-999;if(typeof va==='string')va=va.toLowerCase();if(typeof vb==='string')vb=vb.toLowerCase();return va<vb?-dSortDir:va>vb?dSortDir:0;});
-  var t=document.getElementById('tbl-detail'),hl=['Name','Market','State','Type','Desired','Adj Cap','Worked','Util %','Gap','Days Scheduled','Day Avail'];
-  var th='<tr>';for(var hi=0;hi<hl.length;hi++){var sc=hi===dSortCol?(dSortDir===1?'asc':'desc'):'';th+='<th class="'+sc+'" data-col="'+hi+'">'+hl[hi]+'</th>';}th+='</tr>';
-  t.querySelector('thead').innerHTML=th;
-  var h='';
-  f.forEach(function(r){
-    h+='<tr class="'+(r.isPRN?'prn-row':'')+'"><td>'+esc(r.name)+'</td><td>'+esc(r.market)+'</td><td>'+esc(r.state)+'</td><td>'+typeBadge(r.svcType)+'</td><td>'+num(r.desiredHrs)+'</td><td>'+num(r.adjCap)+'</td><td>'+num(r.worked)+'</td><td>'+utilBar(r.util)+'</td><td>'+num(r.gap)+'</td>';
-    h+='<td><div class="day-chips">';DN.forEach(function(d,di){h+='<div class="dc '+(r.scheduledDays.indexOf(di)>=0?'g':'')+'">'+d+'</div>';});
-    h+='</div></td><td><div class="day-chips">';DN.forEach(function(d,di){var a=r.dayAvail[di]>0,w=r.dayWorked[di]>0;h+='<div class="dc '+(a&&!w?'g':a&&w?'y':!a&&w?'r':'')+'">'+d+'</div>';});
-    h+='</div></td></tr>';
-  });
-  t.querySelector('tbody').innerHTML=h;
-  t.querySelectorAll('th').forEach(function(th2){th2.addEventListener('click',function(){var c=parseInt(this.getAttribute('data-col'));if(c===dSortCol)dSortDir*=-1;else{dSortCol=c;dSortDir=1;}renderDetail();});});
-}
-
-// ── RENDER: Day Breakdown ──
-function renderDayBreakdown(rows){
-  var mf=document.getElementById('flt-day-mkt').value,grid=document.getElementById('day-grid'),h='';
-  var markets=mf?[mf]:MKT_ORDER,dTypes=[0,1,3];
-  markets.forEach(function(mkt){
-    var mr=rows.filter(function(r){return r.market===mkt&&!r.isPRN;});
-    if(!mr.some(function(r){return dTypes.indexOf(r.primType)>=0;}))return;
-    h+='<div class="dmc"><div class="dmh"><span>'+esc(mkt)+'</span><span>'+mr.length+' caregivers</span></div>';
-    h+='<div class="dr hdr"><div>Type</div><div>Metric</div>';DN.forEach(function(d){h+='<div>'+d+'</div>';});h+='</div>';
-    // Overall
-    var oc=[0,0,0,0,0,0,0],ow=[0,0,0,0,0,0,0],oa=[0,0,0,0,0,0,0];
-    mr.forEach(function(r){if(dTypes.indexOf(r.primType)<0)return;for(var d=0;d<7;d++){oc[d]+=r.dayCap[d];ow[d]+=r.dayWorked[d];if(r.dayCap[d]>0)oa[d]+=r.dayAvail[d];}});
-    h+=dayRow('Overall','Util %',oc,ow,true)+dayAvailRow('# Avail',oa)+dayUnusedRow('# Unused',mr,dTypes,-1);
-    dTypes.forEach(function(ti){
-      var tr2=mr.filter(function(r){return r.primType===ti;});if(!tr2.length)return;
-      var tc=[0,0,0,0,0,0,0],tw=[0,0,0,0,0,0,0],ta=[0,0,0,0,0,0,0];
-      tr2.forEach(function(r){for(var d=0;d<7;d++){tc[d]+=r.dayCap[d];tw[d]+=r.dayWorked[d];if(r.dayCap[d]>0)ta[d]+=r.dayAvail[d];}});
-      h+=dayRow(TYPE_NAMES[ti],'Util %',tc,tw,false)+dayAvailRow('# Avail',ta)+dayUnusedRow('# Unused',mr,[ti],ti);
+    // Header
+    thead.innerHTML='<tr>'+columns.map(function(c,i){
+      var cls=i===sortCol?(sortAsc?'sorted-asc':'sorted-desc'):'';
+      return '<th class="'+cls+'" data-ci="'+i+'">'+c.label+'</th>';
+    }).join('')+'</tr>';
+    // Body
+    tbody.innerHTML=sorted.map(function(row){
+      return '<tr>'+columns.map(function(c){
+        var v=c.render?c.render(row):(row[c.key]!=null?row[c.key]:'—');
+        return '<td>'+v+'</td>';
+      }).join('')+'</tr>';
+    }).join('');
+    // Click handlers
+    $$('th',thead).forEach(function(th){
+      th.onclick=function(){
+        var ci=parseInt(th.dataset.ci);
+        if(ci===sortCol)sortAsc=!sortAsc;
+        else{sortCol=ci;sortAsc=true;}
+        render();
+      };
     });
-    h+='</div>';
-  });
-  grid.innerHTML=h;
-}
-function dayRow(l,m,c,w,ov){
-  var h='<div class="dr'+(ov?' overall-row':'')+'"><div>'+esc(l)+'</div><div>'+m+'</div>';
-  for(var d=0;d<7;d++){if(c[d]>0){var u=Math.min(w[d]/c[d],1);h+='<div class="dcl '+(u>=.95?'hi':u>=.85?'mi':'lo')+'">'+(u*100).toFixed(0)+'%</div>';}else h+='<div class="dcl em">\u2014</div>';}
-  return h+'</div>';
-}
-function dayAvailRow(m,a){var h='<div class="dr"><div></div><div>'+m+'</div>';for(var d=0;d<7;d++)h+='<div class="dcl" style="color:var(--text2)">'+num(a[d],1)+'</div>';return h+'</div>';}
-function dayUnusedRow(m,mr,types,tf){
-  var h='<div class="dr"><div></div><div>'+m+'</div>';
-  for(var d=0;d<7;d++){
-    var unused=0;mr.forEach(function(r){var inScope=tf===-1?types.indexOf(r.primType)>=0:r.primType===tf;if(inScope&&r.dayAvail[d]>0&&r.dayWorked[d]===0)unused+=r.dayAvail[d];});
-    h+='<div class="dcl" style="color:'+(unused>0?'var(--orange)':'var(--text3)')+'">'+(unused>0?num(unused,1):'\u2014')+'</div>';
   }
-  return h+'</div>';
+  render();
+  return {render:render,setRows:function(r){rows=r;render();}};
 }
 
-// ── RENDER: Roster ──
-function renderRoster(rows){
-  var mf=document.getElementById('flt-ros-mkt').value,df=document.getElementById('flt-ros-day').value;
-  var t=document.getElementById('tbl-roster');
-  t.querySelector('thead').innerHTML='<tr><th>Caregiver</th><th>State</th><th>Market</th><th>Day</th><th>Service Type</th><th>Adj Capacity</th><th>Hrs Worked</th><th>Week Util</th></tr>';
-  var rr=[];
-  rows.filter(function(r){return!r.isPRN&&[0,1,3].indexOf(r.primType)>=0;}).forEach(function(r){
-    if(mf&&r.market!==mf)return;
-    for(var d=0;d<7;d++){if(df!==''&&d!==parseInt(df))continue;if(r.dayCap[d]>0&&r.dayWorked[d]===0)rr.push({name:r.name,state:r.state,market:r.market,day:DF[d],svcType:r.svcType,adjCap:r.adjCap,worked:r.worked,util:r.util});}
-  });
-  var h='';rr.forEach(function(r){h+='<tr><td>'+esc(r.name)+'</td><td>'+esc(r.state)+'</td><td>'+esc(r.market)+'</td><td>'+esc(r.day)+'</td><td>'+typeBadge(r.svcType)+'</td><td>'+num(r.adjCap)+'</td><td>'+num(r.worked)+'</td><td>'+utilBar(r.util)+'</td></tr>';});
-  if(!h)h='<tr><td colspan="8" style="text-align:center;color:var(--text3);padding:24px">No unused caregivers found.</td></tr>';
-  t.querySelector('tbody').innerHTML=h;
+// ── KPI Card ──
+function kpi(label,value,cls,sub){
+  return '<div class="kpi"><div class="kpi-label">'+label+'</div><div class="kpi-value '+(cls||'')+'">'+value+'</div>'+(sub?'<div class="kpi-sub">'+sub+'</div>':'')+'</div>';
 }
 
-// ── RENDER: TS Admin Tracker ──
-function renderTS(rows){
-  var tsRows=rows.filter(function(r){return r.tsType>0;});
-  var totalPayout=tsRows.reduce(function(s,r){return s+Math.max(0,r.tsType-r.worked-r.ptoHrs);},0);
-  var ts40=tsRows.filter(function(r){return r.tsType===40;}),ts30=tsRows.filter(function(r){return r.tsType===30;});
-  var payoutCount=tsRows.filter(function(r){return Math.max(0,r.tsType-r.worked-r.ptoHrs)>0;}).length;
-  document.getElementById('kpi-ts').innerHTML=
-    '<div class="kpi"><div class="kpi-label">TS Caregivers</div><div class="kpi-value">'+tsRows.length+'</div></div>'+
-    '<div class="kpi"><div class="kpi-label">TS40</div><div class="kpi-value blue">'+ts40.length+'</div></div>'+
-    '<div class="kpi"><div class="kpi-label">TS30</div><div class="kpi-value blue">'+ts30.length+'</div></div>'+
-    '<div class="kpi"><div class="kpi-label">With Payout</div><div class="kpi-value '+(payoutCount>0?'orange':'green')+'">'+payoutCount+'</div></div>'+
-    '<div class="kpi"><div class="kpi-label">Total Payout Hrs</div><div class="kpi-value '+(totalPayout>0?'orange':'green')+'">'+num(totalPayout,1)+'</div></div>';
-  var t=document.getElementById('tbl-ts');
-  t.querySelector('thead').innerHTML='<tr><th>Caregiver</th><th>Market</th><th>State</th><th>Type</th><th>Threshold</th><th>Avail Days</th><th>Desired Hrs</th><th>Adj Capacity</th><th>Hrs Worked</th><th>PTO Hrs</th><th>Admin Payout</th></tr>';
-  // Sort: highest payout first
-  tsRows.sort(function(a,b){return Math.max(0,b.tsType-b.worked-b.ptoHrs)-Math.max(0,a.tsType-a.worked-a.ptoHrs);});
-  var h='';
-  tsRows.forEach(function(r){
-    var threshold=r.tsType,payout=Math.max(0,threshold-r.worked-r.ptoHrs);
-    var availCount=r.dayAvail.filter(function(a){return a>0;}).length;
-    var minDays=threshold===30?3:4;
-    var pcls=payout===0?'payout-ok':payout>=threshold*.5?'payout-high':'payout-warn';
-    h+='<tr><td>'+esc(r.name)+'</td><td>'+esc(r.market)+'</td><td>'+esc(r.state)+'</td><td>TS'+threshold+'</td><td style="text-align:center">'+threshold+'</td>';
-    h+='<td style="text-align:center">'+availCount+' of '+minDays+'+ req</td>';
-    h+='<td style="text-align:center">'+num(r.desiredHrs)+'</td><td style="text-align:center">'+num(r.adjCap)+'</td><td style="text-align:center">'+num(r.worked)+'</td><td style="text-align:center">'+num(r.ptoHrs)+'</td>';
-    h+='<td style="text-align:center" class="'+pcls+'">'+num(payout)+'</td></tr>';
-  });
-  if(!h)h='<tr><td colspan="11" style="text-align:center;color:var(--text3);padding:24px">No TributeSecure caregivers found.</td></tr>';
-  t.querySelector('tbody').innerHTML=h;
-}
-
-// ── RENDER: Travel Time ──
-function renderTravel(gaps){
-  var mf=document.getElementById('flt-tt-mkt').value;
-  var filtered=mf?gaps.filter(function(g){return g.market===mf;}):gaps;
-  var totalGapHrs=filtered.reduce(function(s,g){return s+g.gapHrs;},0);
-  var over1hr=filtered.filter(function(g){return g.gapHrs>1;}).length;
-  document.getElementById('kpi-travel').innerHTML=
-    '<div class="kpi"><div class="kpi-label">Missing Gaps</div><div class="kpi-value '+(filtered.length>0?'orange':'green')+'">'+filtered.length+'</div></div>'+
-    '<div class="kpi"><div class="kpi-label">Total Gap Hours</div><div class="kpi-value">'+num(totalGapHrs,1)+'</div></div>'+
-    '<div class="kpi"><div class="kpi-label">Gaps > 1 Hour</div><div class="kpi-value '+(over1hr>0?'red':'green')+'">'+over1hr+'</div></div>';
-  var t=document.getElementById('tbl-travel');
-  t.querySelector('thead').innerHTML='<tr><th>Caregiver</th><th>Market</th><th>State</th><th>Day</th><th>Date</th><th>Gap Start</th><th>Gap End</th><th>Gap (hrs)</th><th>Between Clients</th></tr>';
-  var h='';
-  filtered.sort(function(a,b){return b.gapHrs-a.gapHrs;});
-  filtered.forEach(function(g){
-    var gcls=g.gapHrs>1?'gap-high':g.gapHrs>0.5?'gap-med':'gap-low';
-    var gs=g.gapStart?new Date(g.gapStart):null,ge=g.gapEnd?new Date(g.gapEnd):null;
-    var fmtTime=function(d){if(!d)return'';var h2=d.getHours(),m=d.getMinutes(),ap=h2>=12?'PM':'AM';h2=h2%12||12;return h2+':'+(m<10?'0':'')+m+' '+ap;};
-    h+='<tr><td>'+esc(g.cgName)+'</td><td>'+esc(g.market)+'</td><td>'+esc(g.state)+'</td><td>'+esc(g.day)+'</td><td>'+(g.date||'')+'</td>';
-    h+='<td>'+fmtTime(gs)+'</td><td>'+fmtTime(ge)+'</td><td class="'+gcls+'">'+num(g.gapHrs,2)+'</td><td>'+esc(g.pair)+'</td></tr>';
-  });
-  if(!h)h='<tr><td colspan="9" style="text-align:center;color:var(--text3);padding:24px">No missing travel time gaps found this week.</td></tr>';
-  t.querySelector('tbody').innerHTML=h;
-}
-
-// ── FILTERS ──
-function populateFilters(rows,gaps){
-  var mkts={},types={};
-  rows.forEach(function(r){mkts[r.market]=1;types[r.svcType]=1;});
-  gaps.forEach(function(g){if(g.market)mkts[g.market]=1;});
-  var mo='<option value="">All Markets</option>';
-  MKT_ORDER.forEach(function(m){if(mkts[m])mo+='<option>'+esc(m)+'</option>';});
-  ['flt-mkt','flt-day-mkt','flt-ros-mkt','flt-tt-mkt'].forEach(function(id){document.getElementById(id).innerHTML=mo;});
-  var to='<option value="">All Types</option>';
-  Object.keys(types).sort().forEach(function(t){to+='<option>'+esc(t)+'</option>';});
-  document.getElementById('flt-type').innerHTML=to;
-}
-
-// ── TABS ──
-document.querySelectorAll('.tab-btn').forEach(function(btn){
-  btn.addEventListener('click',function(){
-    document.querySelectorAll('.tab-btn').forEach(function(b){b.classList.remove('active');});
-    document.querySelectorAll('.section').forEach(function(s){s.classList.remove('active');});
-    this.classList.add('active');
-    document.getElementById('tab-'+this.getAttribute('data-tab')).classList.add('active');
-  });
+// ── Tab Switching ──
+$$('.tab-btn').forEach(function(btn){
+  btn.onclick=function(){
+    $$('.tab-btn').forEach(function(b){b.classList.remove('active');});
+    btn.classList.add('active');
+    $$('.section').forEach(function(s){s.classList.remove('active');});
+    var t=$('#tab-'+btn.dataset.tab);
+    if(t)t.classList.add('active');
+  };
 });
 
-// ── INIT ──
-var travelGaps=[];
-function init(){
-  fetch(API+'?endpoint=caregiver_supply')
-    .then(function(res){return res.json();})
-    .then(function(data){
-      var raw=data.caregivers||[];
-      allRows=processCaregivers(raw);
-      travelGaps=data.travelGaps||[];
-      var ts='Data as of '+(data.generatedAt?new Date(data.generatedAt).toLocaleString():'now')+' &middot; Week of '+(data.weekOf||'current');
-      document.querySelectorAll('.ts').forEach(function(el){el.innerHTML=ts;});
-      populateFilters(allRows,travelGaps);
-      renderDashboard(allRows);
-      renderSummaryTable('tbl-summary',buildSummary(allRows,'market',MKT_ORDER));
-      renderSummaryTable('tbl-state',buildSummary(allRows,'state',ST_ORDER));
-      // KPIs for market summary
-      var active=allRows.filter(function(r){return!r.isPRN;});
-      var tc=active.reduce(function(s,r){return s+r.adjCap;},0),tw=active.reduce(function(s,r){return s+r.worked;},0);
-      var twc=active.reduce(function(s,r){return s+(r.worked>r.adjCap&&r.adjCap>0?Math.min(r.worked,r.adjCap):r.worked);},0);
-      var ou=tc>0?twc/tc:0,ucl=ou>=.85?'green':ou>=.5?'yellow':'red';
-      var gap=active.reduce(function(s,r){return s+Math.max(0,r.adjCap-r.worked);},0);
-      document.getElementById('kpi-summary').innerHTML=
-        '<div class="kpi"><div class="kpi-label">Active</div><div class="kpi-value">'+active.length+'</div></div>'+
-        '<div class="kpi"><div class="kpi-label">Utilization</div><div class="kpi-value '+ucl+'">'+pct(ou)+'</div></div>'+
-        '<div class="kpi"><div class="kpi-label">Hrs Worked</div><div class="kpi-value">'+num(tw,0)+'</div></div>'+
-        '<div class="kpi"><div class="kpi-label">Capacity</div><div class="kpi-value">'+num(tc,0)+'</div></div>'+
-        '<div class="kpi"><div class="kpi-label">Available Gap</div><div class="kpi-value orange">'+num(gap,0)+' hrs</div></div>';
-      renderDetail();
-      renderDayBreakdown(allRows);
-      renderRoster(allRows);
-      renderTS(allRows);
-      renderTravel(travelGaps);
-      // Bind filters
-      ['flt-mkt','flt-type','flt-show'].forEach(function(id){document.getElementById(id).addEventListener('change',renderDetail);});
-      document.getElementById('flt-search').addEventListener('input',renderDetail);
-      document.getElementById('flt-day-mkt').addEventListener('change',function(){renderDayBreakdown(allRows);});
-      ['flt-ros-mkt','flt-ros-day'].forEach(function(id){document.getElementById(id).addEventListener('change',function(){renderRoster(allRows);});});
-      document.getElementById('flt-tt-mkt').addEventListener('change',function(){renderTravel(travelGaps);});
-      document.getElementById('loading').style.display='none';
-      document.getElementById('app').style.display='block';
-    })
-    .catch(function(err){
-      document.getElementById('loading').innerHTML='<div style="color:var(--red);font-size:14px">Failed to load data</div><div style="color:var(--text3);font-size:12px">'+esc(err.message)+'</div>';
-    });
+// ── Fetch & Render ──
+fetch(API+'?endpoint=utilization_report').then(function(r){return r.json();}).then(function(data){
+  D=data;
+  $('#loading').style.display='none';
+  $('#app').style.display='block';
+  renderDashboard();
+  renderMarketSummary();
+  renderStateSummary();
+  renderCaregiverDetail();
+  renderDayBreakdown();
+  renderRoster();
+  renderTSAdmin();
+  renderTravelTime();
+  renderLHON();
+  renderShiftMix();
+  renderNewHires();
+  renderValidation();
+}).catch(function(e){
+  $('#loading').innerHTML='<div style="color:var(--red)">Error loading data: '+e.message+'</div>';
+});
+
+// ── DASHBOARD ──
+function renderDashboard(){
+  var el=$('#tab-dash');var s=D.summary;
+  el.innerHTML='<div class="ts">Week of '+D.weekOf+' to '+D.weekEnd+' | Generated '+new Date(D.generatedAt).toLocaleString()+'</div>';
+  el.innerHTML+='<div class="kpi-row">'+
+    kpi('Active Caregivers',fmt(s.activeCaregivers)+' / '+fmt(s.totalCaregivers),'','of total')+
+    kpi('Overall Utilization',fmtPct(s.overallUtilPct),s.overallUtilPct>=80?'green':s.overallUtilPct>=50?'yellow':'red')+
+    kpi('Total Scheduled',fmt(s.totalScheduledHrs,1)+' hrs','')+
+    kpi('Total Billed',fmt(s.totalBilledHrs,1)+' hrs','blue')+
+    kpi('Total Payable',fmt(s.totalPayableHrs,1)+' hrs','')+
+    kpi('Revenue',fmtDol(s.totalRevenue),'green')+
+    kpi('Cost',fmtDol(s.totalCost),'red')+
+    kpi('Gross Profit',fmtDol(s.grossProfit),'green',fmt(s.grossMarginPct,1)+'% margin')+
+    kpi('Travel Gaps',fmt(s.travelGapCount),'orange')+
+    kpi('TS Admin Payouts',fmt(s.tsAdminCount),'yellow')+
+    kpi('New Hires (90d)',fmt(s.newHireCount),'blue')+
+    kpi('Validation Flags',fmt(s.validationCount),s.validationCount>0?'orange':'green')+
+  '</div>';
+  // Market heatmap
+  var h='<div class="table-wrap"><table><thead><tr><th>Market</th><th>Fill Rate</th><th>Billed Hrs</th><th>Payable Hrs</th><th>Revenue</th><th>Gross Margin</th></tr></thead><tbody>';
+  D.marketSummary.sort(function(a,b){return MKT_ORDER.indexOf(a.market)-MKT_ORDER.indexOf(b.market);}).forEach(function(m){
+    var gmCls=m.grossMarginPct>=0.4?'green':m.grossMarginPct>=0.3?'yellow':'red';
+    h+='<tr><td><strong>'+m.market+'</strong></td><td>'+fmtPct(m.fillRate*100)+'</td><td>'+fmt(m.billedHrs,1)+'</td><td>'+fmt(m.payableHrs,1)+'</td><td>'+fmtDol(m.revenue)+'</td><td class="'+gmCls+'">'+fmtPct(m.grossMarginPct*100)+'</td></tr>';
+  });
+  h+='</tbody></table></div>';
+  el.innerHTML+=h;
 }
-init();
+
+// ── MARKET SUMMARY ──
+function renderMarketSummary(){
+  var el=$('#tab-market');
+  el.innerHTML='<div class="ts">Week of '+D.weekOf+'</div>';
+  var cols=[
+    {label:'Market',key:'market'},
+    {label:'State',key:'state'},
+    {label:'Visits',key:'totalVisits'},
+    {label:'Filled',key:'filledVisits'},
+    {label:'Open',key:'openVisits'},
+    {label:'Cancelled',key:'cancelledVisits'},
+    {label:'Fill Rate',key:'fillRate',render:function(r){return fmtPct(r.fillRate*100);}},
+    {label:'Scheduled Hrs',key:'scheduledHrs',render:function(r){return fmt(r.scheduledHrs,1);}},
+    {label:'Billed Hrs',key:'billedHrs',render:function(r){return fmt(r.billedHrs,1);}},
+    {label:'Payable Hrs',key:'payableHrs',render:function(r){return fmt(r.payableHrs,1);}},
+    {label:'Revenue',key:'revenue',render:function(r){return fmtDol(r.revenue);}},
+    {label:'Cost',key:'cost',render:function(r){return fmtDol(r.cost);}},
+    {label:'Gross Profit',key:'grossProfit',render:function(r){return fmtDol(r.grossProfit);}},
+    {label:'Margin %',key:'grossMarginPct',render:function(r){return fmtPct(r.grossMarginPct*100);}},
+    {label:'Avg Bill Rate',key:'avgBillRate',render:function(r){return '$'+fmt(r.avgBillRate,2);}},
+    {label:'Avg Pay Rate',key:'avgPayRate',render:function(r){return '$'+fmt(r.avgPayRate,2);}}
+  ];
+  buildTable(el,cols,D.marketSummary,{defaultSort:0});
+}
+
+// ── STATE SUMMARY ──
+function renderStateSummary(){
+  var el=$('#tab-state');
+  el.innerHTML='<div class="ts">Week of '+D.weekOf+'</div>';
+  var cols=[
+    {label:'State',key:'state'},
+    {label:'Visits',key:'totalVisits'},
+    {label:'Filled',key:'filledVisits'},
+    {label:'Open',key:'openVisits'},
+    {label:'Fill Rate',key:'fillRate',render:function(r){return fmtPct(r.fillRate*100);}},
+    {label:'Scheduled Hrs',key:'scheduledHrs',render:function(r){return fmt(r.scheduledHrs,1);}},
+    {label:'Billed Hrs',key:'billedHrs',render:function(r){return fmt(r.billedHrs,1);}},
+    {label:'Payable Hrs',key:'payableHrs',render:function(r){return fmt(r.payableHrs,1);}},
+    {label:'Revenue',key:'revenue',render:function(r){return fmtDol(r.revenue);}},
+    {label:'Cost',key:'cost',render:function(r){return fmtDol(r.cost);}},
+    {label:'Gross Profit',key:'grossProfit',render:function(r){return fmtDol(r.grossProfit);}},
+    {label:'Margin %',key:'grossMarginPct',render:function(r){return fmtPct(r.grossMarginPct*100);}},
+    {label:'Avg Bill Rate',key:'avgBillRate',render:function(r){return '$'+fmt(r.avgBillRate,2);}},
+    {label:'Avg Pay Rate',key:'avgPayRate',render:function(r){return '$'+fmt(r.avgPayRate,2);}}
+  ];
+  buildTable(el,cols,D.stateSummary,{defaultSort:0});
+}
+
+// ── CAREGIVER DETAIL ──
+function renderCaregiverDetail(){
+  var el=$('#tab-detail');
+  el.innerHTML='<div class="ts" id="ts-detail">Week of '+D.weekOf+'</div>'+
+    '<div class="filter-bar"><span class="fl">Market</span><select id="flt-mkt"><option value="">All</option></select>'+
+    '<span class="fl">Type</span><select id="flt-type"><option value="">All</option><option value="Long Hours">Long Hrs</option><option value="Overnight">Overnight</option><option value="Short Hours">Short Hrs</option><option value="Live-In">Live-In</option></select>'+
+    '<span class="fl">Search</span><input id="flt-search" placeholder="Name..." style="width:140px">'+
+    '<span class="fl">Show</span><select id="flt-show"><option value="all">All</option><option value="zero">Zero Util</option><option value="over">Over 100%</option><option value="under50">Under 50%</option></select></div>';
+  // Populate market filter
+  var mkts={};D.caregiverDetail.forEach(function(c){mkts[c.market]=1;});
+  var mktSel=$('#flt-mkt');
+  MKT_ORDER.forEach(function(m){if(mkts[m])mktSel.innerHTML+='<option value="'+m+'">'+m+'</option>';});
+
+  var cols=[
+    {label:'Name',key:'name'},
+    {label:'Market',key:'market'},
+    {label:'Type',key:'cgType',render:function(r){return typeBadge(r.cgType);}},
+    {label:'Desired',key:'desiredHrs',render:function(r){return fmt(r.desiredHrs,1);}},
+    {label:'Scheduled',key:'scheduledHrs',render:function(r){return fmt(r.scheduledHrs,1);}},
+    {label:'Billed',key:'billedHrs',render:function(r){return fmt(r.billedHrs,1);}},
+    {label:'Payable',key:'payableHrs',render:function(r){return fmt(r.payableHrs,1);}},
+    {label:'Util %',key:'utilPct',render:function(r){return utilBar(r.utilPct);}},
+    {label:'Gap',key:'gap',render:function(r){return r.gap>0?'<span style="color:var(--red)">'+fmt(r.gap,1)+'</span>':'—';}},
+    {label:'Capacity',key:'capacityReason'},
+    {label:'Long',key:'typeHrs',val:function(r){return r.typeHrs[0];},render:function(r){return r.typeHrs[0]>0?fmt(r.typeHrs[0],1):'—';}},
+    {label:'ON',val:function(r){return r.typeHrs[1];},render:function(r){return r.typeHrs[1]>0?fmt(r.typeHrs[1],1):'—';}},
+    {label:'Short',val:function(r){return r.typeHrs[2];},render:function(r){return r.typeHrs[2]>0?fmt(r.typeHrs[2],1):'—';}},
+    {label:'Live-In',val:function(r){return r.typeHrs[3];},render:function(r){return r.typeHrs[3]>0?fmt(r.typeHrs[3],1):'—';}},
+    {label:'PTO',key:'ptoHrs',render:function(r){return r.ptoHrs>0?'<span style="color:var(--purple)">'+fmt(r.ptoHrs,1)+'</span>':'—';}},
+    {label:'TS',key:'tsType',render:function(r){return r.tsType>0?'TS'+r.tsType:'—';}},
+    {label:'Designation',key:'designation'}
+  ];
+  var tbl=buildTable(el,cols,D.caregiverDetail,{defaultSort:7,defaultAsc:true,maxHeight:'65vh'});
+
+  function applyFilters(){
+    var mkt=$('#flt-mkt').value;
+    var type=$('#flt-type').value;
+    var search=$('#flt-search').value.toLowerCase();
+    var show=$('#flt-show').value;
+    var filtered=D.caregiverDetail.filter(function(c){
+      if(mkt&&c.market!==mkt)return false;
+      if(type&&c.cgType!==type)return false;
+      if(search&&c.name.toLowerCase().indexOf(search)<0)return false;
+      if(show==='zero'&&c.utilPct>0)return false;
+      if(show==='over'&&c.utilPct<=100)return false;
+      if(show==='under50'&&c.utilPct>=50)return false;
+      return true;
+    });
+    tbl.setRows(filtered);
+  }
+  $('#flt-mkt').onchange=applyFilters;
+  $('#flt-type').onchange=applyFilters;
+  $('#flt-search').oninput=applyFilters;
+  $('#flt-show').onchange=applyFilters;
+}
+
+// ── DAY BREAKDOWN ──
+function renderDayBreakdown(){
+  var el=$('#tab-daybreak');
+  el.innerHTML='<div class="ts">Week of '+D.weekOf+'</div>'+
+    '<div class="filter-bar"><span class="fl">Market</span><select id="flt-day-mkt"><option value="">All</option></select></div>';
+  var mkts={};D.dayBreakdown.forEach(function(r){mkts[r.market]=1;});
+  var sel=$('#flt-day-mkt');
+  MKT_ORDER.forEach(function(m){if(mkts[m])sel.innerHTML+='<option value="'+m+'">'+m+'</option>';});
+
+  var cols=[
+    {label:'Market',key:'market'},
+    {label:'Date',key:'date'},
+    {label:'Day',key:'day'},
+    {label:'Type',key:'type',render:function(r){return typeBadge(r.type);}},
+    {label:'Total Scheduled',key:'totalScheduled',render:function(r){return fmt(r.totalScheduled,1);}},
+    {label:'Visit Count',key:'visitCount'}
+  ];
+  var tbl=buildTable(el,cols,D.dayBreakdown,{defaultSort:1});
+  sel.onchange=function(){
+    var m=sel.value;
+    tbl.setRows(m?D.dayBreakdown.filter(function(r){return r.market===m;}):D.dayBreakdown);
+  };
+}
+
+// ── CAREGIVER ROSTER ──
+function renderRoster(){
+  var el=$('#tab-roster');
+  el.innerHTML='<div class="ts">Week of '+D.weekOf+'</div>'+
+    '<div class="filter-bar"><span class="fl">Market</span><select id="flt-ros-mkt"><option value="">All</option></select></div>';
+  var mkts={};D.roster.forEach(function(r){mkts[r.market]=1;});
+  var sel=$('#flt-ros-mkt');
+  MKT_ORDER.forEach(function(m){if(mkts[m])sel.innerHTML+='<option value="'+m+'">'+m+'</option>';});
+
+  var cols=[
+    {label:'Name',key:'name'},
+    {label:'Market',key:'market'},
+    {label:'State',key:'state'},
+    {label:'Designation',key:'designation'},
+    {label:'Type',key:'cgType',render:function(r){return typeBadge(r.cgType);}},
+    {label:'Desired',key:'desiredHrs',render:function(r){return fmt(r.desiredHrs,1);}},
+    {label:'Scheduled',key:'scheduledHrs',render:function(r){return fmt(r.scheduledHrs,1);}},
+    {label:'Billed',key:'billedHrs',render:function(r){return fmt(r.billedHrs,1);}},
+    {label:'Payable',key:'payableHrs',render:function(r){return fmt(r.payableHrs,1);}},
+    {label:'Overtime',key:'overtimeHrs',render:function(r){return r.overtimeHrs>0?'<span style="color:var(--red);font-weight:600">'+fmt(r.overtimeHrs,1)+'</span>':'—';}},
+    {label:'Hire Date',key:'hireDate',render:function(r){return r.hireDate?new Date(r.hireDate).toLocaleDateString():'—';}}
+  ];
+  var tbl=buildTable(el,cols,D.roster,{defaultSort:6,defaultAsc:false,maxHeight:'65vh'});
+  sel.onchange=function(){
+    var m=sel.value;
+    tbl.setRows(m?D.roster.filter(function(r){return r.market===m;}):D.roster);
+  };
+}
+
+// ── TS ADMIN TRACKER ──
+function renderTSAdmin(){
+  var el=$('#tab-ts');
+  el.innerHTML='<div class="ts">Week of '+D.weekOf+'</div>';
+  var totalPayout=D.tsAdminTracker.reduce(function(s,c){return s+c.adminPayout;},0);
+  var totalCost=D.tsAdminTracker.reduce(function(s,c){return s+c.adminCost;},0);
+  var highCount=D.tsAdminTracker.filter(function(c){return c.adminPayout>=15;}).length;
+  el.innerHTML+='<div class="kpi-row">'+
+    kpi('TS Caregivers',fmt(D.tsAdminTracker.length),'')+
+    kpi('Total Admin Payout',fmt(totalPayout,1)+' hrs','orange')+
+    kpi('Total Admin Cost',fmtDol(totalCost),'red')+
+    kpi('High Payout (15+)',fmt(highCount),highCount>0?'red':'green')+
+  '</div>';
+  var cols=[
+    {label:'Name',key:'name'},
+    {label:'Market',key:'market'},
+    {label:'TS Type',key:'tsType',render:function(r){return 'TS'+r.tsType;}},
+    {label:'Threshold',key:'threshold',render:function(r){return fmt(r.threshold)+' hrs';}},
+    {label:'Worked',key:'workedHrs',render:function(r){return fmt(r.workedHrs,1);}},
+    {label:'PTO',key:'ptoHrs',render:function(r){return r.ptoHrs>0?fmt(r.ptoHrs,1):'—';}},
+    {label:'TS Admin Hrs',key:'tsAdminHrs',render:function(r){return r.tsAdminHrs>0?fmt(r.tsAdminHrs,1):'—';}},
+    {label:'Cancelled Hrs',key:'cancelledHrs',render:function(r){return r.cancelledHrs>0?'<span style="color:var(--red)">'+fmt(r.cancelledHrs,1)+'</span>':'—';}},
+    {label:'Admin Payout',key:'adminPayout',render:function(r){return '<span class="'+payoutClass(r.adminPayout)+'">'+fmt(r.adminPayout,1)+' hrs</span>';}},
+    {label:'Pay Rate',key:'payRate',render:function(r){return r.payRate>0?'$'+fmt(r.payRate,2):'—';}},
+    {label:'Admin Cost',key:'adminCost',render:function(r){return r.adminCost>0?'<span class="'+payoutClass(r.adminPayout)+'">'+fmtDol(r.adminCost)+'</span>':'—';}},
+    {label:'Designation',key:'designation'}
+  ];
+  buildTable(el,cols,D.tsAdminTracker,{defaultSort:8,defaultAsc:false,maxHeight:'65vh'});
+}
+
+// ── TRAVEL TIME ──
+function renderTravelTime(){
+  var el=$('#tab-travel');
+  el.innerHTML='<div class="ts">Week of '+D.weekOf+'</div>'+
+    '<div class="filter-bar"><span class="fl">Market</span><select id="flt-tt-mkt"><option value="">All</option></select></div>';
+  var totalGapHrs=D.travelGaps.reduce(function(s,g){return s+g.gapHrs;},0);
+  var avgGap=D.travelGaps.length>0?totalGapHrs/D.travelGaps.length:0;
+  el.innerHTML='<div class="ts">Week of '+D.weekOf+'</div>'+
+    '<div class="kpi-row">'+
+    kpi('Travel Gaps',fmt(D.travelGaps.length),'orange')+
+    kpi('Total Gap Hours',fmt(totalGapHrs,1)+' hrs','yellow')+
+    kpi('Avg Gap',fmt(avgGap*60,0)+' min','')+
+    '</div>'+
+    '<div class="filter-bar"><span class="fl">Market</span><select id="flt-tt-mkt"><option value="">All</option></select></div>';
+  var mkts={};D.travelGaps.forEach(function(g){mkts[g.market]=1;});
+  var sel=$('#flt-tt-mkt');
+  MKT_ORDER.forEach(function(m){if(mkts[m])sel.innerHTML+='<option value="'+m+'">'+m+'</option>';});
+
+  var cols=[
+    {label:'Caregiver',key:'cgName'},
+    {label:'Market',key:'market'},
+    {label:'Date',key:'date'},
+    {label:'Day',key:'day'},
+    {label:'Gap (hrs)',key:'gapHrs',render:function(r){return '<span class="'+gapClass(r.gapHrs)+'">'+fmt(r.gapHrs,2)+'</span>';}},
+    {label:'Gap (min)',key:'gapMins',render:function(r){return '<span class="'+gapClass(r.gapHrs)+'">'+fmt(r.gapMins,0)+'</span>';}},
+    {label:'Visit Pair',key:'pair'}
+  ];
+  var tbl=buildTable(el,cols,D.travelGaps,{defaultSort:4,defaultAsc:false,maxHeight:'65vh'});
+  sel.onchange=function(){
+    var m=sel.value;
+    tbl.setRows(m?D.travelGaps.filter(function(g){return g.market===m;}):D.travelGaps);
+  };
+}
+
+// ── LONG HOURS & OVERNIGHTS ──
+function renderLHON(){
+  var el=$('#tab-lhon');
+  el.innerHTML='<div class="ts">Week of '+D.weekOf+'</div>'+
+    '<div class="filter-bar"><span class="fl">Market</span><select id="flt-lhon-mkt"><option value="">All</option></select>'+
+    '<span class="fl">Type</span><select id="flt-lhon-type"><option value="">All</option><option value="Long Hours">Long Hrs</option><option value="Overnight">Overnight</option></select></div>';
+  var mkts={};D.longHoursOvernights.forEach(function(r){mkts[r.market]=1;});
+  var sel=$('#flt-lhon-mkt');
+  MKT_ORDER.forEach(function(m){if(mkts[m])sel.innerHTML+='<option value="'+m+'">'+m+'</option>';});
+
+  var totalLH=D.longHoursOvernights.filter(function(r){return r.type==='Long Hours';}).length;
+  var totalON=D.longHoursOvernights.filter(function(r){return r.type==='Overnight';}).length;
+  el.innerHTML='<div class="ts">Week of '+D.weekOf+'</div>'+
+    '<div class="kpi-row">'+
+    kpi('Long Hour Visits',fmt(totalLH),'green')+
+    kpi('Overnight Visits',fmt(totalON),'orange')+
+    kpi('Total LH/ON Visits',fmt(D.longHoursOvernights.length),'')+
+    '</div>'+
+    '<div class="filter-bar"><span class="fl">Market</span><select id="flt-lhon-mkt"><option value="">All</option></select>'+
+    '<span class="fl">Type</span><select id="flt-lhon-type"><option value="">All</option><option value="Long Hours">Long Hrs</option><option value="Overnight">Overnight</option></select></div>';
+  sel=$('#flt-lhon-mkt');
+  MKT_ORDER.forEach(function(m){if(mkts[m])sel.innerHTML+='<option value="'+m+'">'+m+'</option>';});
+
+  var cols=[
+    {label:'Caregiver',key:'cgName'},
+    {label:'Market',key:'market'},
+    {label:'Date',key:'date'},
+    {label:'Day',key:'day'},
+    {label:'Type',key:'type',render:function(r){return typeBadge(r.type);}},
+    {label:'Scheduled',key:'scheduledHrs',render:function(r){return fmt(r.scheduledHrs,2);}},
+    {label:'Billed',key:'billedHrs',render:function(r){return fmt(r.billedHrs,2);}},
+    {label:'Payable',key:'payableHrs',render:function(r){return fmt(r.payableHrs,2);}},
+    {label:'Bill Rate',key:'billRate',render:function(r){return r.billRate>0?'$'+fmt(r.billRate,2):'—';}},
+    {label:'Pay Rate',key:'payRate',render:function(r){return r.payRate>0?'$'+fmt(r.payRate,2):'—';}},
+    {label:'Client',key:'client'},
+    {label:'Start',key:'startTime',render:function(r){return r.startTime?new Date(r.startTime).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):'—';}},
+    {label:'End',key:'endTime',render:function(r){return r.endTime?new Date(r.endTime).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):'—';}}
+  ];
+  var tbl=buildTable(el,cols,D.longHoursOvernights,{defaultSort:2,maxHeight:'65vh'});
+  function filterLHON(){
+    var m=$('#flt-lhon-mkt').value;
+    var t=$('#flt-lhon-type').value;
+    tbl.setRows(D.longHoursOvernights.filter(function(r){
+      if(m&&r.market!==m)return false;
+      if(t&&r.type!==t)return false;
+      return true;
+    }));
+  }
+  $('#flt-lhon-mkt').onchange=filterLHON;
+  $('#flt-lhon-type').onchange=filterLHON;
+}
+
+// ── SHIFT MIX ──
+function renderShiftMix(){
+  var el=$('#tab-shiftmix');
+  var totalCann=D.shiftMix.reduce(function(s,c){return s+c.shortShiftHrs;},0);
+  el.innerHTML='<div class="ts">Week of '+D.weekOf+' — LH/ON caregivers working short shifts (cannibalized hours)</div>'+
+    '<div class="kpi-row">'+
+    kpi('Affected Caregivers',fmt(D.shiftMix.length),'orange')+
+    kpi('Cannibalized Hours',fmt(totalCann,1)+' hrs','red')+
+    kpi('Short Shifts',fmt(D.shiftMix.reduce(function(s,c){return s+c.shortShiftCount;},0)),'')+
+    '</div>';
+  var cols=[
+    {label:'Name',key:'name'},
+    {label:'Market',key:'market'},
+    {label:'Type',key:'cgType',render:function(r){return typeBadge(r.cgType);}},
+    {label:'Long Hrs',key:'longHrs',render:function(r){return fmt(r.longHrs,1);}},
+    {label:'ON Hrs',key:'overnightHrs',render:function(r){return fmt(r.overnightHrs,1);}},
+    {label:'Short Hrs',key:'shortHrs',render:function(r){return '<span style="color:var(--yellow)">'+fmt(r.shortHrs,1)+'</span>';}},
+    {label:'Live-In Hrs',key:'liveInHrs',render:function(r){return fmt(r.liveInHrs,1);}},
+    {label:'Short Shifts',key:'shortShiftCount'},
+    {label:'Cannibalized Hrs',key:'shortShiftHrs',render:function(r){return '<span style="color:var(--red);font-weight:600">'+fmt(r.shortShiftHrs,1)+'</span>';}},
+    {label:'Cannibalized %',key:'cannibalizedPct',render:function(r){return fmtPct(r.cannibalizedPct);}},
+    {label:'Total Scheduled',key:'totalScheduled',render:function(r){return fmt(r.totalScheduled,1);}}
+  ];
+  buildTable(el,cols,D.shiftMix,{defaultSort:8,defaultAsc:false,maxHeight:'65vh'});
+}
+
+// ── NEW HIRES 90 DAYS ──
+function renderNewHires(){
+  var el=$('#tab-newhires');
+  el.innerHTML='<div class="ts">Caregivers hired within the last 90 days</div>'+
+    '<div class="kpi-row">'+
+    kpi('New Hires',fmt(D.newHires.length),'blue')+
+    kpi('With Visits',fmt(D.newHires.filter(function(c){return c.scheduledHrs>0;}).length),'green')+
+    kpi('Zero Utilization',fmt(D.newHires.filter(function(c){return c.scheduledHrs===0;}).length),'red')+
+    '</div>';
+  var cols=[
+    {label:'Name',key:'name'},
+    {label:'Market',key:'market'},
+    {label:'Hire Date',key:'hireDate',render:function(r){return r.hireDate?new Date(r.hireDate).toLocaleDateString():'—';}},
+    {label:'Days Since Hire',key:'daysSinceHire'},
+    {label:'Designation',key:'designation'},
+    {label:'Type',key:'cgType',render:function(r){return typeBadge(r.cgType);}},
+    {label:'Desired Hrs',key:'desiredHrs',render:function(r){return fmt(r.desiredHrs,1);}},
+    {label:'Scheduled Hrs',key:'scheduledHrs',render:function(r){return fmt(r.scheduledHrs,1);}},
+    {label:'Billed Hrs',key:'billedHrs',render:function(r){return fmt(r.billedHrs,1);}},
+    {label:'Util %',key:'utilPct',render:function(r){return utilBar(r.utilPct);}},
+    {label:'Visits',key:'visitCount'},
+    {label:'TS',key:'tsType',render:function(r){return r.tsType>0?'TS'+r.tsType:'—';}}
+  ];
+  buildTable(el,cols,D.newHires,{defaultSort:3,maxHeight:'65vh'});
+}
+
+// ── VALIDATION ──
+function renderValidation(){
+  var el=$('#tab-validation');
+  el.innerHTML='<div class="ts">Data quality checks for week of '+D.weekOf+'</div>'+
+    '<div class="kpi-row">'+
+    kpi('Total Flags',fmt(D.validation.length),D.validation.length>0?'orange':'green')+
+    kpi('Alerts',fmt(D.validation.filter(function(v){return v.severity==='Alert';}).length),'red')+
+    kpi('Warnings',fmt(D.validation.filter(function(v){return v.severity==='Warning';}).length),'yellow')+
+    kpi('Info',fmt(D.validation.filter(function(v){return v.severity==='Info';}).length),'blue')+
+    '</div>';
+  var cols=[
+    {label:'Severity',key:'severity',render:function(r){return '<span class="sev-'+r.severity.toLowerCase()+'">'+r.severity+'</span>';}},
+    {label:'Type',key:'type'},
+    {label:'Name',key:'name'},
+    {label:'Market',key:'market'},
+    {label:'Value',key:'value'},
+    {label:'Detail',key:'detail'}
+  ];
+  buildTable(el,cols,D.validation,{defaultSort:0,maxHeight:'65vh'});
+}
+
 })();
 </script>
 </body>
