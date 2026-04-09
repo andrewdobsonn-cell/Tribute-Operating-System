@@ -715,13 +715,25 @@ function renderOT(){
   // Falls back to static ACTUALS only when otCostData is unavailable
   var useLive=!!(otCostData&&otCostData.totals&&otCostData.byMarket);
   var totalOT=0, totalRegPay=0, totalTS=0, totalInc=0, totalRev=0, totalPayCost=0;
+  // Whether the API response has the new regularPay/otPremium split fields
+  var hasPaySplit=useLive&&(typeof otCostData.totals.regularPay==='number');
   if(useLive){
     totalRev=otCostData.totals.revenue||0;
-    totalRegPay=otCostData.totals.regularPay||0;
-    totalOT=otCostData.totals.otPremium||0;
     totalPayCost=otCostData.totals.payCost||0;
     totalTS=otCostData.totals.tributeSecure||0;
     totalInc=otCostData.totals.incentives||0;
+    if(hasPaySplit){
+      totalRegPay=otCostData.totals.regularPay||0;
+      totalOT=otCostData.totals.otPremium||0;
+    } else {
+      // Old response shape without split — derive from KSF ACTUALS for OT ratio estimate
+      var ksfOT=sumMetric('Hourly OT',latestDate);
+      var ksfReg=sumMetric('Hourly Regular Pay',latestDate);
+      var ksfTotal=ksfReg+ksfOT;
+      var otRatio=ksfTotal>0?ksfOT/ksfTotal:0.3; // fallback: 30% OT is typical
+      totalOT=Math.round(totalPayCost*otRatio);
+      totalRegPay=totalPayCost-totalOT;
+    }
   } else {
     totalOT=sumMetric('Hourly OT',latestDate);
     totalRegPay=sumMetric('Hourly Regular Pay',latestDate);
@@ -732,7 +744,7 @@ function renderOT(){
   }
 
   var otPct=totalRev>0?totalOT/totalRev:0;
-  var dataLabel=useLive?'Live from Viv · '+curStart+' to '+curEnd:'KSF data — most recent entry: '+latestDate;
+  var dataLabel=useLive?'Live from Viv · '+curStart+' to '+curEnd+(hasPaySplit?'':' · <span style="color:var(--amber)">OT split estimated — redeploy proxy for exact split</span>'):'KSF data — most recent entry: '+latestDate;
   var otStale=(otCostData&&otCostData.totals&&otCostData.totals.staleVisits)||0;
   var otSettled=(otCostData&&otCostData.totals&&otCostData.totals.payrollSettled);
   var otTotal=(otCostData&&otCostData.totals&&otCostData.totals.totalVisits)||0;
@@ -767,15 +779,28 @@ function renderOT(){
     (otCostData.byMarket||[]).forEach(function(m){
       var bgt=BUDGET[m.market]||{};
       var budgetOTPctMkt=bgt.otPct||0;
-      var mktOTPct=m.revenue>0?(m.otPremium||0)/m.revenue:0;
+      // Use split fields if available, otherwise estimate from KSF OT ratio
+      var mReg, mOT;
+      if(hasPaySplit){
+        mReg=m.regularPay||0;
+        mOT=m.otPremium||0;
+      } else {
+        var ksfMktOT=(ACTUALS[m.market]&&ACTUALS[m.market]['Hourly OT']&&ACTUALS[m.market]['Hourly OT'][latestDate])||0;
+        var ksfMktReg=(ACTUALS[m.market]&&ACTUALS[m.market]['Hourly Regular Pay']&&ACTUALS[m.market]['Hourly Regular Pay'][latestDate])||0;
+        var mktTotal=ksfMktReg+ksfMktOT;
+        var mktOTRatio=mktTotal>0?ksfMktOT/mktTotal:0.3;
+        mOT=Math.round((m.payCost||0)*mktOTRatio);
+        mReg=(m.payCost||0)-mOT;
+      }
+      var mktOTPct=m.revenue>0?mOT/m.revenue:0;
       var uberMktAmt=(UBER_DATA[nearestUberWk]&&UBER_DATA[nearestUberWk][m.market]&&UBER_DATA[nearestUberWk][m.market].amount)||0;
       var gp=m.revenue-(m.payCost||0)-(m.tributeSecure||0)-(m.incentives||0)-uberMktAmt;
       var gpPct=m.revenue>0?gp/m.revenue:0;
       html+='<tr>';
       html+='<td>'+m.market+'</td>';
       html+='<td>$'+fn(Math.round(m.revenue||0))+'</td>';
-      html+='<td>$'+fn(Math.round(m.regularPay||0))+'</td>';
-      html+='<td>$'+fn(Math.round(m.otPremium||0))+'</td>';
+      html+='<td>$'+fn(Math.round(mReg))+'</td>';
+      html+='<td>$'+fn(Math.round(mOT))+'</td>';
       html+='<td><span class="bdg '+(mktOTPct<=budgetOTPctMkt?'bg':'br')+'">'+fp(mktOTPct)+(budgetOTPctMkt?' / '+fp(budgetOTPctMkt):'')+'</span></td>';
       html+='<td style="color:'+((m.tributeSecure||0)>500?'var(--amber)':'inherit')+'">$'+fn(Math.round(m.tributeSecure||0))+'</td>';
       html+='<td>$'+fn(Math.round(m.incentives||0))+'</td>';
