@@ -714,40 +714,21 @@ function renderOT(){
   // ── PRIMARY DATA SOURCE: live otCostData from Viv API ──
   // Falls back to static ACTUALS only when otCostData is unavailable
   var useLive=!!(otCostData&&otCostData.totals&&otCostData.byMarket);
-  var totalOT=0, totalTS=0, totalInc=0, totalRev=0;
-  var liveMktMap={};
+  var totalOT=0, totalRegPay=0, totalTS=0, totalInc=0, totalRev=0, totalPayCost=0;
   if(useLive){
-    // Build per-market map from live data
-    (otCostData.byMarket||[]).forEach(function(m){
-      liveMktMap[m.market]={
-        ot:Math.max(0,(m.payCost||0)-(m.revenue>0?m.revenue*0:0)),
-        payCost:m.payCost||0,
-        revenue:m.revenue||0,
-        ts:m.tributeSecure||0,
-        incentives:m.incentives||0,
-        liveInRev:m.liveInRevenue||0,
-        liveInPay:m.liveInPayCost||0,
-        payHrs:m.payableHours||0,
-        billHrs:m.billableHours||0,
-        visits:m.visits||0
-      };
-    });
-    // OT premium = payCost - regularPay. Since the API already includes OT premium in payCost,
-    // we need to extract just the OT portion. The API's biweekly calc bakes OT premium into payCost.
-    // Revenue from the live API is the total hourly revenue.
     totalRev=otCostData.totals.revenue||0;
-    totalOT=Math.max(0,(otCostData.totals.payCost||0)-totalRev*0); // OT is embedded in payCost vs baseline
+    totalRegPay=otCostData.totals.regularPay||0;
+    totalOT=otCostData.totals.otPremium||0;
+    totalPayCost=otCostData.totals.payCost||0;
     totalTS=otCostData.totals.tributeSecure||0;
     totalInc=otCostData.totals.incentives||0;
-
-    // Better OT calc: payCost includes regular+OT premium.
-    // For KPI display, use revenue - (payCost+TS+incentives) as gross profit, but show payCost as total pay
-    totalOT=otCostData.totals.payCost||0;
   } else {
     totalOT=sumMetric('Hourly OT',latestDate);
+    totalRegPay=sumMetric('Hourly Regular Pay',latestDate);
     totalTS=sumMetric('TS Admin (Actual)',latestDate);
     totalInc=sumMetric('Incentives (Actual)',latestDate);
     totalRev=sumMetric('Hourly Revenue',latestDate);
+    totalPayCost=totalRegPay+totalOT;
   }
 
   var otPct=totalRev>0?totalOT/totalRev:0;
@@ -763,67 +744,72 @@ function renderOT(){
   var prevGuar=prevDate?sumMetric('4 Week Guaranteed Admin (Actual) ',prevDate):null;
   var prevInc=prevDate?sumMetric('Incentives (Actual)',prevDate):null;
   var totalGuar=useLive?0:sumMetric('4 Week Guaranteed Admin (Actual) ',latestDate);
-  var totalCost=(useLive?totalOT:totalOT)+totalInc+totalUberAmt+totalTS+totalGuar;
+  var otPct=totalRev>0?totalOT/totalRev:0;
+  var totalAllCosts=totalPayCost+totalTS+totalGuar+totalInc+totalUberAmt;
+  var grossProfit=totalRev-totalAllCosts;
+  var grossMargin=totalRev>0?grossProfit/totalRev:0;
 
   // KPIs
   html+='<div class="kg">';
-  html+='<div class="kpi"><div class="kl">'+(useLive?'Total Pay Cost':'Total OT')+'</div><div class="kv '+(otPct<budgetOTPct?'g':'r')+'">$'+fn(Math.round(totalOT))+'</div><div class="ks">'+(useLive?fp(otPct)+' of rev':''+fp(otPct)+' of rev · budget '+fp(budgetOTPct))+'</div></div>';
   html+='<div class="kpi"><div class="kl">Revenue</div><div class="kv g">$'+fn(Math.round(totalRev))+'</div><div class="ks">'+curStart+' to '+curEnd+'</div></div>';
+  html+='<div class="kpi"><div class="kl">Regular Pay</div><div class="kv">$'+fn(Math.round(totalRegPay))+'</div><div class="ks">'+(totalRev>0?fp(totalRegPay/totalRev)+' of rev':'—')+'</div></div>';
+  html+='<div class="kpi"><div class="kl">OT Premium</div><div class="kv '+(otPct<budgetOTPct?'g':'r')+'">$'+fn(Math.round(totalOT))+'</div><div class="ks">'+fp(otPct)+' of rev · budget '+fp(budgetOTPct)+'</div></div>';
   html+='<div class="kpi"><div class="kl">Tribute Secure</div><div class="kv a">$'+fn(Math.round(totalTS+totalGuar))+'</div><div class="ks">TS admin + guaranteed'+(prevTS?' · prev $'+fn(Math.round(prevTS+(prevGuar||0))):'')+'</div></div>';
   html+='<div class="kpi"><div class="kl">Incentives</div><div class="kv b">$'+fn(Math.round(totalInc))+'</div><div class="ks">'+(useLive?curStart+' to '+curEnd:'Latest week')+(prevInc?' · prev $'+fn(Math.round(prevInc)):'')+'</div></div>';
   html+='<div class="kpi"><div class="kl">Ubers</div><div class="kv o">$'+totalUberAmt.toFixed(0)+'</div><div class="ks">Week of '+nearestUberWk+'</div></div>';
-  html+='<div class="kpi"><div class="kl">Gross Profit</div><div class="kv '+(totalRev-totalOT-totalTS-totalInc>0?'g':'r')+'">$'+fn(Math.round(totalRev-totalOT-totalTS-totalInc))+'</div><div class="ks">'+(totalRev>0?fp((totalRev-totalOT-totalTS-totalInc)/totalRev)+' margin':'—')+'</div></div>';
+  html+='<div class="kpi"><div class="kl">Gross Profit</div><div class="kv '+(grossProfit>0?'g':'r')+'">$'+fn(Math.round(grossProfit))+'</div><div class="ks">'+fp(grossMargin)+' margin</div></div>';
   html+='</div>';
 
   // Market table — uses live data when available
   html+='<div class="fc"><div class="ct">Cost detail by market — '+(useLive?curStart+' to '+curEnd:'week of '+latestDate)+'</div>';
-  html+='<table class="tbl"><thead><tr><th>Market</th><th>'+(useLive?'Pay Cost':'OT $')+'</th><th>Revenue</th><th>Pay/Rev %</th><th>Tribute Secure</th><th>Incentives</th><th>Ubers</th><th>Gross Profit</th></tr></thead><tbody>';
+  html+='<table class="tbl"><thead><tr><th>Market</th><th>Revenue</th><th>Reg Pay</th><th>OT $</th><th>OT % Rev</th><th>Tribute Secure</th><th>Incentives</th><th>Ubers</th><th>Gross Profit</th></tr></thead><tbody>';
   if(useLive){
-    // Render from live otCostData
     (otCostData.byMarket||[]).forEach(function(m){
       var bgt=BUDGET[m.market]||{};
-      var payRev=m.revenue>0?m.payCost/m.revenue:0;
+      var budgetOTPctMkt=bgt.otPct||0;
+      var mktOTPct=m.revenue>0?(m.otPremium||0)/m.revenue:0;
       var uberMktAmt=(UBER_DATA[nearestUberWk]&&UBER_DATA[nearestUberWk][m.market]&&UBER_DATA[nearestUberWk][m.market].amount)||0;
       var gp=m.revenue-(m.payCost||0)-(m.tributeSecure||0)-(m.incentives||0)-uberMktAmt;
       var gpPct=m.revenue>0?gp/m.revenue:0;
       html+='<tr>';
       html+='<td>'+m.market+'</td>';
-      html+='<td>$'+fn(Math.round(m.payCost||0))+'</td>';
       html+='<td>$'+fn(Math.round(m.revenue||0))+'</td>';
-      html+='<td><span class="bdg '+(payRev<=0.55?'bg':'br')+'">'+fp(payRev)+'</span></td>';
+      html+='<td>$'+fn(Math.round(m.regularPay||0))+'</td>';
+      html+='<td>$'+fn(Math.round(m.otPremium||0))+'</td>';
+      html+='<td><span class="bdg '+(mktOTPct<=budgetOTPctMkt?'bg':'br')+'">'+fp(mktOTPct)+(budgetOTPctMkt?' / '+fp(budgetOTPctMkt):'')+'</span></td>';
       html+='<td style="color:'+((m.tributeSecure||0)>500?'var(--amber)':'inherit')+'">$'+fn(Math.round(m.tributeSecure||0))+'</td>';
       html+='<td>$'+fn(Math.round(m.incentives||0))+'</td>';
       html+='<td>$'+uberMktAmt.toFixed(0)+'</td>';
       html+='<td><strong class="'+(gp>0?'g':'r')+'">$'+fn(Math.round(gp))+' <span style="font-weight:400;font-size:11px">('+fp(gpPct)+')</span></strong></td>';
       html+='</tr>';
     });
-    // Live-in summary row if any
     var liRev=otCostData.byMarket.reduce(function(s,m){return s+(m.liveInRevenue||0);},0);
     var liPay=otCostData.byMarket.reduce(function(s,m){return s+(m.liveInPayCost||0);},0);
     if(liRev>0||liPay>0){
-      html+='<tr style="font-style:italic;color:var(--text3)"><td>Live-In (all mkts)</td><td>$'+fn(Math.round(liPay))+'</td><td>$'+fn(Math.round(liRev))+'</td><td>—</td><td>—</td><td>—</td><td>—</td><td><strong>$'+fn(Math.round(liRev-liPay))+'</strong></td></tr>';
+      html+='<tr style="font-style:italic;color:var(--text3)"><td>Live-In (all mkts)</td><td>$'+fn(Math.round(liRev))+'</td><td>$'+fn(Math.round(liPay))+'</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td><strong>$'+fn(Math.round(liRev-liPay))+'</strong></td></tr>';
     }
   } else {
-    // Fallback to ACTUALS
     GEOS.forEach(function(geo){
       var bgt=BUDGET[geo]||{};
       var g=function(m){return ACTUALS[geo]&&ACTUALS[geo][m]&&ACTUALS[geo][m][latestDate]||0;};
-      var ot=g('Hourly OT'),inc=g('Incentives (Actual)');
+      var ot=g('Hourly OT'),reg=g('Hourly Regular Pay'),inc=g('Incentives (Actual)');
       var ts=g('TS Admin (Actual)'),guar=g('4 Week Guaranteed Admin (Actual) ');
       var rev=g('Hourly Revenue');
       if(!ot&&!inc&&!ts&&!guar&&!rev)return;
       var otPctMkt=rev>0?ot/rev:0;
       var budgetOTPctMkt=bgt.otPct||0;
       var uberMktAmt=(UBER_DATA[nearestUberWk]&&UBER_DATA[nearestUberWk][geo]&&UBER_DATA[nearestUberWk][geo].amount)||0;
+      var gp=rev-reg-ot-ts-guar-inc-uberMktAmt;
       html+='<tr>';
       html+='<td>'+geo+'</td>';
-      html+='<td>$'+fn(Math.round(ot))+'</td>';
       html+='<td>$'+fn(Math.round(rev))+'</td>';
-      html+='<td><span class="bdg '+(otPctMkt<=budgetOTPctMkt?'bg':'br')+'">'+fp(otPctMkt)+'</span></td>';
+      html+='<td>$'+fn(Math.round(reg))+'</td>';
+      html+='<td>$'+fn(Math.round(ot))+'</td>';
+      html+='<td><span class="bdg '+(otPctMkt<=budgetOTPctMkt?'bg':'br')+'">'+fp(otPctMkt)+(budgetOTPctMkt?' / '+fp(budgetOTPctMkt):'')+'</span></td>';
       html+='<td style="color:'+(ts+guar>500?'var(--amber)':'inherit')+'">$'+fn(Math.round(ts+guar))+'</td>';
       html+='<td>$'+fn(Math.round(inc))+'</td>';
       html+='<td>$'+uberMktAmt.toFixed(0)+'</td>';
-      html+='<td><strong>$'+fn(Math.round(rev-ot-ts-guar-inc-uberMktAmt))+'</strong></td>';
+      html+='<td><strong>$'+fn(Math.round(gp))+'</strong></td>';
       html+='</tr>';
     });
   }
