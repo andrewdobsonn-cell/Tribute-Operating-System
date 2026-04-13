@@ -765,6 +765,16 @@ body {
       <div class="tile-name">Caregiver Supply Map</div>
       <div class="tile-desc">Geographic supply visualization, intake matching and availability by distance</div>
     </div>
+    <div class="dash-tile" onclick="loadDash('caregiver_utilization',this)">
+      <div class="tile-icon">📊</div>
+      <div class="tile-name">Caregiver Utilization</div>
+      <div class="tile-desc">Market and state utilization summaries, day breakdowns, and unused caregiver roster</div>
+    </div>
+    <div class="dash-tile" onclick="loadDash('tribute_audit',this)">
+      <div class="tile-icon">🛡️</div>
+      <div class="tile-name">Weekly Audit</div>
+      <div class="tile-desc">TS admin, travel time, EVV, billing overlaps, visit type mismatches and 24/7 coverage</div>
+    </div>
   </div>
 
   <!-- ACTIVE DASHBOARD FRAME -->
@@ -873,6 +883,8 @@ var DASHES = {
   scheduling_fill:        { title:'Scheduling Fill',          file:'scheduling_fill.html' },
   lead_intelligence:      { title:'Lead Intelligence',        file:'lead_intel_clean.html' },
   caregiver_supply_map:   { title:'Caregiver Supply Map',     file:'caregiver_supply_map.html' },
+  caregiver_utilization:  { title:'Caregiver Utilization',    file:'caregiver_utilization.html' },
+  tribute_audit:          { title:'Weekly Audit',              file:'tribute_audit.html' },
 };
 
 var curDash = 'executive';
