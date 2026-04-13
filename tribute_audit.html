@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tribute Weekly Audit Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#070e1a;--navy:#0d1f3c;--navy2:#152d55;--card:#111e33;--card2:#172543;
+  --bd:#1d2f4a;--bd2:#243858;
+  --t1:#dde6f0;--t2:#8ba3c0;--t3:#4d6888;
+  --blue:#60a5fa;--blue2:#3b82f6;--green:#34d399;--yellow:#fbbf24;--red:#f87171;
+  --mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif;
+  --sw:224px;
+}
+body{font-family:var(--sans);background:var(--bg);color:var(--t1);font-size:13px;min-height:100vh}
+
+/* ── UPLOAD SCREEN → DATE PICKER SCREEN ── */
+#upload-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:40px 20px;gap:32px}
+.upload-logo{font-family:var(--mono);font-size:22px;font-weight:500;color:var(--blue);letter-spacing:.08em}
+.upload-sub{font-size:13px;color:var(--t2);font-family:var(--mono)}
+.date-picker-container{display:flex;flex-direction:column;gap:24px;width:100%;max-width:400px;align-items:center}
+.date-input-group{display:flex;flex-direction:column;gap:8px;width:100%}
+.date-label{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--t3);font-family:var(--mono)}
+input[type=date]{background:var(--card);border:2px solid var(--bd2);color:var(--t1);padding:10px 12px;border-radius:6px;font-size:13px;font-family:var(--mono);outline:none;cursor:pointer;width:100%;box-sizing:border-box}
+input[type=date]:focus{border-color:var(--blue2)}
+input[type=date]::-webkit-calendar-picker-indicator{cursor:pointer;filter:invert(0.8)}
+.date-info{font-size:11px;color:var(--t2);font-family:var(--mono);text-align:center;margin-top:8px}
+.run-btn{background:var(--blue2);color:#fff;border:none;padding:14px 40px;border-radius:6px;font-family:var(--mono);font-size:14px;font-weight:500;cursor:pointer;transition:all .2s;letter-spacing:.05em;opacity:1;pointer-events:all;width:100%;max-width:280px}
+.run-btn:hover{background:#2563eb;transform:translateY(-1px)}
+.run-btn:active{transform:translateY(0)}
+.run-btn:disabled{opacity:.4;pointer-events:none;background:var(--blue2)}
+
+/* ── PROCESSING ── */
+#processing-screen{display:none;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;gap:20px}
+.proc-title{font-family:var(--mono);font-size:16px;color:var(--blue)}
+.proc-log{font-family:var(--mono);font-size:11px;color:var(--t2);max-width:400px;text-align:center;line-height:2}
+
+/* ── DASHBOARD ── */
+#dashboard-screen{display:none;flex-direction:column;height:100vh}
+.topbar{position:sticky;top:0;z-index:200;height:52px;background:var(--navy);border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;padding:0 20px;flex-shrink:0}
+.tb-l{display:flex;align-items:center;gap:12px}
+.tb-logo{font-family:var(--mono);font-size:14px;font-weight:500;color:var(--blue);letter-spacing:.05em}
+.tb-sep{color:var(--bd2)}
+.tb-wk{font-size:11px;color:var(--t2);font-family:var(--mono)}
+.tb-r{display:flex;align-items:center;gap:10px}
+.tb-tot{font-family:var(--mono);font-size:11px;padding:3px 10px;border-radius:99px;background:rgba(248,113,113,.15);color:var(--red);border:1px solid rgba(248,113,113,.25);cursor:pointer}
+.tb-tot:hover{background:rgba(248,113,113,.25)}
+.tb-reset{font-family:var(--mono);font-size:10px;padding:3px 8px;border-radius:4px;background:var(--card2);color:var(--t3);border:1px solid var(--bd);cursor:pointer}
+.tb-reset:hover{color:var(--t1);border-color:var(--bd2)}
+.layout{display:flex;flex:1;overflow:hidden;height:calc(100vh - 52px)}
+.sidebar{width:var(--sw);background:var(--navy);border-right:1px solid var(--bd);display:flex;flex-direction:column;overflow-y:auto;flex-shrink:0}
+.sb-head{padding:14px 14px 8px;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--t3);font-family:var(--mono)}
+ul{list-style:none}
+.ni{display:flex;align-items:center;gap:8px;padding:8px 14px;cursor:pointer;border-left:2px solid transparent;transition:all .15s;color:var(--t2);font-size:12px}
+.ni:hover{background:var(--card2);color:var(--t1)}
+.ni.active{background:var(--card2);color:var(--blue);border-left-color:var(--blue2)}
+.ni.hi{color:var(--t1)}
+.n-ic{font-size:14px;width:18px;text-align:center;flex-shrink:0}
+.n-lb{flex:1;font-size:11.5px}
+.n-bd{font-family:var(--mono);font-size:10px;padding:1px 6px;border-radius:99px;background:rgba(251,191,36,.15);color:var(--yellow);min-width:22px;text-align:center}
+.n-bd.r{background:rgba(248,113,113,.15);color:var(--red)}
+.ndiv{height:1px;background:var(--bd);margin:4px 0}
+.main{flex:1;overflow-y:auto}
+.fb{position:sticky;top:0;z-index:100;background:var(--card);border-bottom:1px solid var(--bd);padding:10px 20px;display:flex;align-items:center;gap:10px}
+.fl{font-size:11px;color:var(--t3);font-family:var(--mono)}
+select{background:var(--navy2);border:1px solid var(--bd);color:var(--t1);padding:4px 10px;border-radius:4px;font-size:11px;font-family:var(--mono);outline:none;cursor:pointer}
+select:focus{border-color:var(--blue2)}
+.section{display:none;padding:20px}
+.section.active{display:block}
+.sh{margin-bottom:16px}
+.st{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.si{font-size:18px}
+.sn{font-size:16px;font-weight:600}
+.sc{font-family:var(--mono);font-size:11px;padding:2px 8px;border-radius:99px}
+.sc.h{background:rgba(251,191,36,.12);color:var(--yellow);border:1px solid rgba(251,191,36,.2)}
+.sc.n{background:rgba(52,211,153,.1);color:var(--green);border:1px solid rgba(52,211,153,.2)}
+.sd{font-size:11.5px;color:var(--t2);line-height:1.5;max-width:680px}
+.tw{overflow-x:auto;border-radius:6px;border:1px solid var(--bd)}
+table{width:100%;border-collapse:collapse;font-size:12px}
+thead{background:var(--navy2)}
+thead th{padding:7px 12px 3px;text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--t2);font-family:var(--mono);white-space:nowrap;border-bottom:1px solid var(--bd);font-weight:500;cursor:pointer;user-select:none;vertical-align:top}
+thead th:hover{background:var(--card2);color:var(--t1)}
+thead th.sort-asc::after{content:' ↑';color:var(--blue);font-size:10px}
+thead th.sort-desc::after{content:' ↓';color:var(--blue);font-size:10px}
+.col-search{width:100%;margin-top:4px;background:rgba(0,0,0,.3);border:1px solid var(--bd2);color:var(--t1);padding:3px 6px;border-radius:3px;font-size:10px;font-family:var(--mono);outline:none;box-sizing:border-box;font-weight:400;text-transform:none;letter-spacing:0}
+.col-search:focus{border-color:var(--blue2)}
+.col-search::placeholder{color:var(--t3)}
+tbody tr{border-bottom:1px solid var(--bd);transition:background .1s}
+tbody tr:last-child{border-bottom:none}
+tbody tr:hover{background:var(--card2)}
+tbody td{padding:8px 12px;color:var(--t1);vertical-align:middle}
+.pill{display:inline-block;padding:3px 9px;border-radius:99px;font-size:10.5px;font-family:var(--mono);white-space:nowrap}
+.pill{display:inline-block;padding:3px 9px;border-radius:99px;font-size:10.5px;font-family:var(--mono);white-space:nowrap}
+.pill.error{color:var(--red);background:rgba(248,113,113,.12);border:1px solid var(--red)}
+.pill.warn{color:var(--yellow);background:rgba(251,191,36,.12);border:1px solid var(--yellow)}
+.stag{font-family:var(--mono);font-size:10.5px;font-weight:500}
+.fc{font-size:11px;color:var(--t2);font-style:italic;max-width:260px}
+.empty{padding:28px;text-align:center;color:var(--green);font-family:var(--mono);font-size:13px;display:flex;align-items:center;justify-content:center;gap:8px;background:var(--card);border-radius:6px;border:1px solid var(--bd)}
+.filter-count{font-family:var(--mono);font-size:10.5px;color:var(--t3);padding:0 0 8px;text-align:right}
+.rate-history-notice{padding:12px 20px;background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.2);border-radius:6px;margin-bottom:20px;color:var(--green);font-family:var(--mono);font-size:11px}
+</style>
+</head>
+<body>
+
+<!-- DATE PICKER SCREEN -->
+<div id="upload-screen">
+  <div style="text-align:center">
+    <div class="upload-logo">TRIBUTE // AUDIT</div>
+    <div class="upload-sub" style="margin-top:6px">Weekly Audit Dashboard</div>
+  </div>
+  <div class="date-picker-container">
+    <div class="date-input-group">
+      <label class="date-label">Week Start Date (Sunday)</label>
+      <input type="date" id="week-start-date">
+      <div class="date-info" id="week-info"></div>
+    </div>
+  </div>
+  <button class="run-btn" id="run-btn" onclick="runDashboard()">Load from Viv →</button>
+</div>
+
+<!-- PROCESSING SCREEN -->
+<div id="processing-screen">
+  <div class="proc-title">Processing...</div>
+  <div class="proc-log" id="proc-log"></div>
+</div>
+
+<!-- DASHBOARD SCREEN -->
+<div id="dashboard-screen">
+  <header class="topbar">
+    <div class="tb-l">
+      <span class="tb-logo">TRIBUTE // AUDIT</span>
+      <span class="tb-sep">|</span>
+      <span class="tb-wk" id="dash-week">—</span>
+    </div>
+    <div class="tb-r">
+      <span class="tb-tot" id="dash-total" title="Click to reset all filters" onclick="resetFilters()">— issues</span>
+      <button class="tb-reset" onclick="startOver()">↩ New Week</button>
+    </div>
+  </header>
+  <div class="layout">
+    <nav class="sidebar">
+      <div class="sb-head">Sections</div>
+      <ul id="nav-list"></ul>
+    </nav>
+    <div class="main">
+      <div class="fb">
+        <span class="fl">FILTER BY MARKET:</span>
+        <select id="geo-filter" onchange="filterGeo(this.value)"><option value="">All Markets</option></select>
+      </div>
+      <div id="sections-container"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── STATE ─────────────────────────────────────────────────────────────────
+let apiData = null;
+
+// ── DATE PICKER INITIALIZATION ─────────────────────────────────────────────
+function initializeDatePicker() {
+  const dateInput = document.getElementById('week-start-date');
+  const weekInfo = document.getElementById('week-info');
+
+  // Default to last Sunday
+  const today = new Date();
+  const dayOfWeek = today.getDay();
+  const daysBack = dayOfWeek === 0 ? 7 : dayOfWeek;
+  const lastSunday = new Date(today);
+  lastSunday.setDate(today.getDate() - daysBack);
+
+  const dateStr = lastSunday.toISOString().split('T')[0];
+  dateInput.value = dateStr;
+  updateWeekInfo();
+
+  dateInput.addEventListener('change', updateWeekInfo);
+}
+
+function updateWeekInfo() {
+  const dateInput = document.getElementById('week-start-date');
+  const weekInfo = document.getElementById('week-info');
+
+  if (!dateInput.value) {
+    weekInfo.textContent = '';
+    return;
+  }
+
+  const startDate = new Date(dateInput.value + 'T00:00:00');
+  const endDate = new Date(startDate);
+  endDate.setDate(endDate.getDate() + 6);
+
+  const fmt = d => d.toLocaleDateString('en-US', {month:'short', day:'numeric'});
+  weekInfo.textContent = `Week: ${fmt(startDate)} – ${fmt(endDate)}`;
+}
+
+// ── HELPERS ────────────────────────────────────────────────────────────────
+function parseTime(s) {
+  if (!s || ['','null','None'].includes(s.trim())) return null;
+  s = s.trim().replace(/\.(\d+)Z$/, 'Z').replace(/Z$/, '+00:00');
+  try { const d = new Date(s); return isNaN(d) ? null : d; } catch(e) { return null; }
+}
+function msToH(v) { const n = parseFloat(v); return isNaN(n) ? 0 : Math.round(n/3600000*10000)/10000; }
+function sf(v, d=0) { const n = parseFloat(v); return isNaN(n) ? d : n; }
+function fmtT(dt) {
+  if (!dt) return '—';
+  return dt.toLocaleTimeString('en-US',{timeZone:'America/New_York',hour:'numeric',minute:'2-digit'});
+}
+function fmtD(dt) {
+  if (!dt) return '—';
+  return dt.toLocaleDateString('en-US',{timeZone:'America/New_York',weekday:'short',month:'2-digit',day:'2-digit'});
+}
+function fmtH(h) {
+  if (h===0) return '0h';
+  const s = h.toFixed(2).replace(/\.?0+$/,'');
+  return s+'h';
+}
+function etDate(dt) {
+  if (!dt) return null;
+  const s = dt.toLocaleDateString('en-US',{timeZone:'America/New_York'});
+  return s;
+}
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── CONSTANTS ──────────────────────────────────────────────────────────────
+const EXCLUDE_VT = new Set(['Time Off','PTO - New','Sick Time','Turn Down','Training','Unpaid Training',
+  'Office Meeting','Orientation','Bonus 1 Year (Ann)','Bonus 2&3 Year (Ann)','Bonus 3 Year (Ann)',
+  'Bonus 4 Year (Ann)','Bonus 5 - 9 Year (Ann)','Bonus 10 - 14 Year (Ann)',
+  'Expense Reimbursement','Travel Time','Shadow Visit','Home Visit','Home Assessment',
+  'Caregiver Partner','Interview','Client Training','RN Med Management',
+  'Leadership Development','TS Admin Time']);
+const ABSENCE_VT = new Set(['Time Off','PTO - New','Sick Time','Turn Down']);
+const BONUS_VT = new Set([...EXCLUDE_VT].filter(v=>v.includes('Bonus')));
+const SHIFT_REQ = new Set([...BONUS_VT,'RFH $500','RFH $700','RFH $200','RFH $300','RFH']);
+const TRAINING_VT = new Set(['Training','Unpaid Training','Office Meeting','Orientation','Client Training']);
+const MKT_TAG = {'boston':'Boston','nob':'North of Boston','north-of-boston':'North of Boston',
+  'mwb':'MetroWest Boston','metrowest-boston':'MetroWest Boston','sob':'South of Boston',
+  'chicago':'Chicago','annapolis':'Annapolis','baltimore':'Baltimore','bethesda':'Bethesda','bel-air':'Bel-Air'};
+const MKT_OFFICE = {'Boston':'Office (Boston)','North of Boston':'Office (North of Boston)',
+  'MetroWest Boston':'Office (MetroWest Boston)','South of Boston':'Office (South of Boston)',
+  'Chicago':'Office (Chicago)','Annapolis':'Office (Annapolis)','Baltimore':'Office (Baltimore)',
+  'Bethesda':'Office (Bethesda)','Bel-Air':'Office (Bel-Air)'};
+const OVERLAP_EXEMPT = new Set(['Francis and Ann Klocke','Elizabeth Treitler']);
+
+// ── ENRICH BOOKINGS ────────────────────────────────────────────────────────
+function enrichBookings(rows) {
+  return rows.map(r => {
+    const b = {...r};
+    b._start    = parseTime(b['Start Time']);
+    b._end      = parseTime(b['End Time']);
+    b._checkin  = parseTime(b['Checkin Time']);
+    b._checkout = parseTime(b['Checkout Time']);
+    b._bill_h   = msToH(b['Billable ms']);
+    b._pay_h    = msToH(b['Payable ms']);
+    b._dur_h    = sf(b['Duration']);
+    b._cg_rate  = sf(b['CG Rate']);
+    b._cl_rate  = sf(b['CL Rate']);
+    b._cancelled= (b['Canceled']||'').toUpperCase()==='TRUE';
+    b._vt       = (b['Booking Type']||'').trim();
+    b._geo      = (b['GEO']||'').trim();
+    b._rtype    = (b['Rate Type']||'').trim();
+    b._status   = (b['AM Approval Status']||'').trim();
+    b._cgid     = (b['CGID']||'').trim();
+    b._cid      = (b['CID']||'').trim();
+    b._bid      = (b['BID']||'').trim();
+    b._cg_name  = `${(b['CG First Name']||'').trim()} ${(b['CG Last Name']||'').trim()}`.trim();
+    b._client_fn= (b['Client First Name']||'').trim();
+    b._client_ln= (b['Client Last Name']||'').trim();
+    b._client   = `${b._client_fn} ${b._client_ln}`.trim();
+    b._is_office= ['Office','Office Training'].includes(b._client_fn);
+    return b;
+  });
+}
+
+// ── LOAD TAGS FROM API ─────────────────────────────────────────────────────
+function loadTags(tagsObj) {
+  const result = {};
+  Object.entries(tagsObj).forEach(([cgid, info]) => {
+    let thresh = 0;
+    const threshStr = (info.threshold || '').toString().toUpperCase();
+    if (threshStr.includes('40')) thresh = 40;
+    else if (threshStr.includes('30')) thresh = 30;
+    else if (threshStr.includes('20')) thresh = 20;
+    result[cgid] = {
+      threshold: thresh,
+      market: info.market || 'Unknown',
+      fn: info.fn || '',
+      ln: info.ln || ''
+    };
+  });
+  return result;
+}
+
+// ── LOAD RATE TABLE ────────────────────────────────────────────────────────
+function loadRateTable(rateHistory) {
+  // Rate history is empty for now from the API
+  return { active: {}, allEver: {} };
+}
+
+// ── WEEK LABEL ─────────────────────────────────────────────────────────────
+function weekLabel(bookings) {
+  const starts = bookings.map(b=>b._start).filter(Boolean);
+  if (!starts.length) return 'Week of —';
+  const mn = new Date(Math.min(...starts));
+  const mx = new Date(Math.max(...starts));
+  const fmt = d => d.toLocaleDateString('en-US',{timeZone:'America/New_York',month:'short',day:'numeric'});
+  return `Week of ${fmt(mn)} – ${fmt(mx)}, ${mx.getFullYear()}`;
+}
+
+// ── DETECTION MODULES ──────────────────────────────────────────────────────
+function detectTS(bookings, tagLookup) {
+  const workedH = {}, ptoH = {}, cancelH = {}, cgGeo = {};
+  bookings.forEach(b => {
+    const cgid = b._cgid;
+    if (b._geo) cgGeo[cgid] = b._geo;
+    const vt = b._vt;
+    if (b._cancelled) {
+      if (b._pay_h > 0 && !EXCLUDE_VT.has(vt) && !b._is_office)
+        cancelH[cgid] = (cancelH[cgid]||0) + b._pay_h;
+      return;
+    }
+    if (ABSENCE_VT.has(vt)) ptoH[cgid] = (ptoH[cgid]||0) + b._pay_h;
+    else if (!EXCLUDE_VT.has(vt) && !b._is_office && b._pay_h > 0)
+      workedH[cgid] = (workedH[cgid]||0) + b._pay_h;
+  });
+  const issues = [];
+  Object.entries(tagLookup).forEach(([cgid, info]) => {
+    if (!info.threshold) return;
+    const name = `${info.fn} ${info.ln}`.trim();
+    const geo = cgGeo[cgid] || info.market;
+    const worked = Math.round((workedH[cgid]||0)*100)/100;
+    const pto    = Math.round((ptoH[cgid]||0)*100)/100;
+    const cancel = Math.round((cancelH[cgid]||0)*100)/100;
+    const payout = Math.round(Math.max(0, info.threshold - worked - pto - cancel)*100)/100;
+    if (payout > 0) {
+      const office = MKT_OFFICE[geo] || `Office (${geo})`;
+      issues.push({ 'Caregiver':name,'Market':geo,'Threshold':`TS${info.threshold}`,
+        'Hrs Worked':worked.toFixed(2),'Cancelled Paid':cancel.toFixed(2),
+        'PTO Hrs':pto.toFixed(2),'Hrs Owed':payout.toFixed(2),
+        'Client':office,'Visit Type':'TS Admin Time',
+        'Action':`Create ${payout.toFixed(2)}h TS Admin Time — ${office}`,
+        severity: payout >= info.threshold*0.5 ? 'error':'warn', geo });
+    }
+  });
+  issues.sort((a,b) => sf(b['Hrs Owed'])-sf(a['Hrs Owed']));
+  return issues;
+}
+
+function detectTravelTime(bookings) {
+  const ttExisting = {};
+  bookings.forEach(b => {
+    if (b._vt==='Travel Time' && !b._cancelled && b._start) {
+      if (!ttExisting[b._cgid]) ttExisting[b._cgid] = [];
+      ttExisting[b._cgid].push({s:b._start, e:b._end});
+    }
+  });
+  const worked = bookings.filter(b =>
+    !b._cancelled && !EXCLUDE_VT.has(b._vt) && !b._is_office && b._start && b._end
+  ).sort((a,b) => a._cgid.localeCompare(b._cgid)||a._start-b._start);
+
+  const issues = [];
+  for (let i=0; i<worked.length-1; i++) {
+    const a = worked[i], b = worked[i+1];
+    if (a._cgid !== b._cgid) continue;
+    if (etDate(a._start) !== etDate(b._start)) continue;
+    const gapMins = (b._start - a._end) / 60000;
+    if (gapMins <= 0 || gapMins > 120) continue;
+    const covered = (ttExisting[a._cgid]||[]).some(tt => tt.s >= a._end && tt.s < b._start);
+    if (covered) continue;
+    const hrs = Math.round(gapMins/60*100)/100;
+    const office = MKT_OFFICE[a._geo] || `Office (${a._geo})`;
+    issues.push({'Caregiver':a._cg_name,'Market':a._geo,'Date':fmtD(a._start),
+      'Gap Start':fmtT(a._end),'Gap End':fmtT(b._start),'Gap Hrs':hrs.toFixed(2),
+      'From → To':`${a._client} → ${b._client}`,'Visit Type':'Travel Time',
+      'Action':`Create ${hrs.toFixed(2)}h Travel Time — ${office}`,
+      severity:'warn', geo:a._geo});
+  }
+  return issues;
+}
+
+function detectApprovalQueue(bookings) {
+  return bookings
+    .filter(b => b._status==='REQUIRES_APPROVAL'||b._status==='REQUIRES_REAPPROVAL')
+    .map(b => ({'Caregiver':b._cg_name,'Client':b._client,'Market':b._geo,
+      'Date':fmtD(b._start),'Time':`${fmtT(b._start)}–${fmtT(b._end)}`,
+      'Visit Type':b._vt,'Billable':fmtH(b._bill_h),'Payable':fmtH(b._pay_h),
+      'CG Rate':`$${b._cg_rate.toFixed(2)}`,'Cancelled':b._cancelled?'Yes':'No',
+      'Status':b._status.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase()),
+      'Action':'Approve in Viv',
+      severity: b._status==='REQUIRES_REAPPROVAL'?'error':'warn', geo:b._geo}));
+}
+
+function detectCancelled(bookings) {
+  const issues = [];
+  bookings.forEach(b => {
+    if (!b._cancelled) return;
+    const flags = [];
+    if (b._bill_h > 0) flags.push(`Billing client ${fmtH(b._bill_h)}`);
+    if (b._pay_h > 0)  flags.push(`Paying CG ${fmtH(b._pay_h)}`);
+    if (b._pay_h===0 && b._cg_rate>0) flags.push('CG not paid — verify intent');
+    if (flags.length) issues.push({'Caregiver':b._cg_name,'Client':b._client,
+      'Market':b._geo,'Date':fmtD(b._start),'Visit Type':b._vt,
+      'Billable':fmtH(b._bill_h),'Payable':fmtH(b._pay_h),'CG Rate':`$${b._cg_rate.toFixed(2)}`,
+      'Flags':flags.join(' | '),'Status':b._status,
+      'Action':'Verify cancelled visit pay/bill settings',
+      severity:b._bill_h>0?'error':'warn', geo:b._geo});
+  });
+  return issues;
+}
+
+function detectDurationMismatches(bookings) {
+  const TOL = 0.02, issues = [];
+  bookings.forEach(b => {
+    if (b._cancelled || ABSENCE_VT.has(b._vt) || b._is_office) return;
+    const {_dur_h:dur, _bill_h:bill, _pay_h:pay} = b;
+    if (!dur) return;
+    const flags = [];
+    if (bill>0 && Math.abs(bill-dur)>TOL) flags.push(`Billable ${fmtH(bill)} ≠ Sched ${fmtH(dur)}`);
+    if (pay >0 && Math.abs(pay -dur)>TOL) flags.push(`Payable ${fmtH(pay)} ≠ Sched ${fmtH(dur)}`);
+    if (bill>0 && pay>0 && Math.abs(bill-pay)>TOL) flags.push(`Bill ${fmtH(bill)} ≠ Pay ${fmtH(pay)}`);
+    if (flags.length) issues.push({'Caregiver':b._cg_name,'Client':b._client,
+      'Market':b._geo,'Date':fmtD(b._start),'Visit Type':b._vt,
+      'Scheduled':fmtH(dur),'Billable':fmtH(bill),'Payable':fmtH(pay),
+      'Flags':flags.join(' | '),'Status':b._status,
+      'Action':'Review and correct hours in Viv', severity:'warn', geo:b._geo});
+  });
+  return issues;
+}
+
+function detectOverlapsCG(bookings) {
+  const byCG = {};
+  bookings.forEach(b => {
+    if (b._cancelled || EXCLUDE_VT.has(b._vt) || ABSENCE_VT.has(b._vt) || b._is_office || !b._start || !b._end) return;
+    if (!byCG[b._cgid]) byCG[b._cgid] = [];
+    byCG[b._cgid].push(b);
+  });
+  const issues = [];
+  Object.values(byCG).forEach(visits => {
+    visits.sort((a,b)=>a._start-b._start);
+    for (let i=0; i<visits.length-1; i++) {
+      const a=visits[i], b=visits[i+1];
+      if (a._end > b._start) {
+        const mins = Math.round((a._end-b._start)/60000);
+        issues.push({'Caregiver':a._cg_name,'Market':a._geo,
+          'Visit 1':`${a._client} ${fmtD(a._start)} ${fmtT(a._start)}–${fmtT(a._end)}`,
+          'Visit 2':`${b._client} ${fmtD(b._start)} ${fmtT(b._start)}–${fmtT(b._end)}`,
+          'Overlap':`${mins} min`,'Action':`Resolve ${mins}-min caregiver overlap`,
+          severity:'error', geo:a._geo});
+      }
+    }
+  });
+  return issues;
+}
+
+function detectOverlapsClient(bookings) {
+  const byCL = {};
+  bookings.forEach(b => {
+    if (b._cancelled || b._is_office || b._bill_h===0 || !b._start || !b._end) return;
+    if (!byCL[b._cid]) byCL[b._cid] = [];
+    byCL[b._cid].push(b);
+  });
+  const issues = [];
+  Object.values(byCL).forEach(visits => {
+    visits.sort((a,b)=>a._start-b._start);
+    for (let i=0; i<visits.length-1; i++) {
+      const a=visits[i], b=visits[i+1];
+      if (a._end <= b._start) continue;
+      if (a._vt==='Live-In'||b._vt==='Live-In') continue;
+      if (a._cgid===b._cgid) continue;
+      if (a._cl_rate===0||a._bill_h===0||b._cl_rate===0||b._bill_h===0) continue;
+      if (OVERLAP_EXEMPT.has(a._client)||OVERLAP_EXEMPT.has(b._client)) continue;
+      const mins = Math.round((a._end-b._start)/60000);
+      issues.push({'Client':a._client,'Market':a._geo,
+        'CG 1':`${a._cg_name} ${fmtD(a._start)} ${fmtT(a._start)}–${fmtT(a._end)}`,
+        'CG 2':`${b._cg_name} ${fmtD(b._start)} ${fmtT(b._start)}–${fmtT(b._end)}`,
+        'Overlap':`${mins} min`,'Action':`Resolve ${mins}-min client billing overlap`,
+        severity:'error', geo:a._geo});
+    }
+  });
+  return issues;
+}
+
+function detectRateType(bookings) {
+  return bookings
+    .filter(b => !b._cancelled && SHIFT_REQ.has(b._vt) && b._rtype==='Hourly')
+    .map(b => ({'Caregiver':b._cg_name,'Market':b._geo,'Date':fmtD(b._start),
+      'Visit Type':b._vt,'Current':'Hourly','Should Be':'Shift',
+      'CG Rate':`$${b._cg_rate.toFixed(2)}`,'Action':'Change Rate Type: Hourly → Shift',
+      severity:'error', geo:b._geo}));
+}
+
+function detectTimeOffRates(bookings) {
+  return bookings
+    .filter(b => ABSENCE_VT.has(b._vt) && !b._is_office && (b._cg_rate>0||b._pay_h>0))
+    .map(b => ({'Caregiver':b._cg_name,'Market':b._geo,'Date':fmtD(b._start),
+      'Visit Type':b._vt,'CG Rate':`$${b._cg_rate.toFixed(2)}`,'Pay Hrs':fmtH(b._pay_h),
+      'Status':b._status,'Action':'Set CG Rate = $0.00 and Payable = 0h',
+      severity:'error', geo:b._geo}));
+}
+
+function detectMissingEVV(bookings) {
+  const issues = [];
+  bookings.forEach(b => {
+    if (b._cancelled || EXCLUDE_VT.has(b._vt) || ABSENCE_VT.has(b._vt) || b._is_office || b._vt==='Live-In') return;
+    const missing = [];
+    if (!b._checkin)  missing.push('Check-In');
+    if (!b._checkout) missing.push('Check-Out');
+    if (missing.length) issues.push({'Caregiver':b._cg_name,'Client':b._client,
+      'Market':b._geo,'Date':fmtD(b._start),'Visit Type':b._vt,
+      'Scheduled':`${fmtT(b._start)} – ${fmtT(b._end)}`,'Missing':missing.join(', '),
+      'Status':b._status,'Action':`Resolve missing EVV: ${missing.join(', ')}`,
+      severity:missing.includes('Check-In')?'error':'warn', geo:b._geo});
+  });
+  return issues;
+}
+
+function detectAssignmentErrors(bookings) {
+  return bookings
+    .filter(b => !b._cancelled && TRAINING_VT.has(b._vt) && b._client_fn==='Office')
+    .map(b => ({'Caregiver':b._cg_name,'Market':b._geo,'Date':fmtD(b._start),
+      'Visit Type':b._vt,'Current Client':b._client,'Should Be':`Office Training (${b._geo})`,
+      'Status':b._status,'Action':`Change client → Office Training (${b._geo})`,
+      severity:'warn', geo:b._geo}));
+}
+
+function detectVTMismatch(bookings) {
+  const VT_RANGES = {
+    'Under 4 Hours':[0,3.99],'Under 4 Hours (Boston)':[0,3.99],'Under 4 Hours (MWB)':[0,3.99],
+    'Under 4 Hours (NB)':[0,3.99],'Under 4 Hours (SB)':[0,3.99],'Under 4 Hours (CHI)':[0,3.99],
+    '1 - 3 Hours':[1,3.99],'1.5 Person':[0,3.99],
+    '4 Hours':[3.75,4.24],
+    '4 + Hours (CHI)':[4,null],'4 + Hours (SB)':[4,null],
+    '5 - 11 Hours':[5,11.99],'5 + Hours':[5,null],
+    '12 - 24 Hours':[12,24],'Live-In':[20,24],
+    '4 - 7 Hours (CHI)':[4,7.99],'8 + Hours (CHI)':[8,null],'4 - 11 Hours':[4,11.99],
+  };
+  const MARKET_VT = {
+    'Boston':new Set(['Under 4 Hours (Boston)','4 Hours','5 + Hours','Live-In','1.5 Person']),
+    'MetroWest Boston':new Set(['Under 4 Hours (MWB)','4 Hours','5 + Hours','Live-In','1.5 Person']),
+    'North of Boston':new Set(['Under 4 Hours (NB)','4 Hours','5 + Hours','Live-In']),
+    'South of Boston':new Set(['Under 4 Hours (SB)','4 Hours','5 + Hours','Live-In','1.5 Person','4 + Hours (SB)']),
+    'Chicago':new Set(['Under 4 Hours (CHI)','1 - 3 Hours','4 + Hours (CHI)','4 - 7 Hours (CHI)','8 + Hours (CHI)','Live-In']),
+    'Baltimore':new Set(['Under 4 Hours','4 Hours','5 - 11 Hours','12 - 24 Hours','Live-In']),
+    'Annapolis':new Set(['Under 4 Hours','4 Hours','5 - 11 Hours','12 - 24 Hours','Live-In']),
+    'Bethesda':new Set(['Under 4 Hours','4 Hours','5 - 11 Hours','12 - 24 Hours','Live-In']),
+    'Bel-Air':new Set(['Under 4 Hours','4 Hours','5 - 11 Hours','12 - 24 Hours','Live-In']),
+  };
+  const TOL = 0.1;
+  const issues = [];
+  bookings.forEach(b => {
+    if (b._cancelled || b._is_office || !VT_RANGES[b._vt] || b._pay_h===0) return;
+    const [mn,mx] = VT_RANGES[b._vt];
+    const flags = [];
+    if (mn!==null && b._pay_h < mn-TOL) flags.push(`Payable ${fmtH(b._pay_h)} below ${fmtH(mn)} min`);
+    if (mx!==null && b._pay_h > mx+TOL) flags.push(`Payable ${fmtH(b._pay_h)} exceeds ${fmtH(mx)} max`);
+    if (!flags.length) return;
+    const validForMarket = MARKET_VT[b._geo] || new Set();
+    let suggestion = '—';
+    for (const candidate of [...validForMarket].sort()) {
+      if (candidate===b._vt || !VT_RANGES[candidate]) continue;
+      const [cmn,cmx] = VT_RANGES[candidate];
+      if ((cmn===null||b._pay_h>=cmn-TOL) && (cmx===null||b._pay_h<=cmx+TOL)) {
+        suggestion = candidate; break;
+      }
+    }
+    issues.push({'Caregiver':b._cg_name,'Client':b._client,'Market':b._geo,
+      'Date':fmtD(b._start),'Visit Type':b._vt,'Payable Hrs':fmtH(b._pay_h),
+      'Expected Range':`${mn!==null?fmtH(mn):'0'} – ${mx!==null?fmtH(mx):'∞'}`,
+      'Suggestion':suggestion,'Status':b._status,
+      'Action':suggestion!=='—'?`Wrong type for ${fmtH(b._pay_h)} — consider '${suggestion}'`:`Review: ${fmtH(b._pay_h)} outside range for ${b._vt}`,
+      severity:'error', geo:b._geo});
+  });
+  return issues;
+}
+
+function detectInvalidRates(bookings, rateTable) {
+  // Rate history is empty from API, so skip this check
+  return [];
+}
+
+// ── RENDER DASHBOARD ───────────────────────────────────────────────────────
+let _sortState = {};
+let _geoFilter = '';
+
+function makeTable(cols, rows, sectionId) {
+  if (!rows.length) return '<div class="empty"><span>✓</span> No issues found this week</div>';
+  const header = cols.map((c,i) =>
+    `<th onclick="sortCol('${sectionId}',${i},this)">${esc(c)}<br>
+     <input class="col-search" type="text" placeholder="filter…"
+       oninput="applyFilters('${sectionId}')" onclick="event.stopPropagation()"
+       data-sec="${sectionId}" data-col="${i}"></th>`
+  ).join('');
+  const bodyRows = rows.map(r => {
+    const sev = r.severity||'info';
+    const geo = esc(r.geo||'');
+    const cells = cols.map(c => {
+      const val = r[c]||'';
+      if (c==='Action') return `<td><span class="pill ${sev}">${esc(val)}</span></td>`;
+      if (c==='Status') return `<td><span class="stag" style="color:var(--${sev==='error'?'red':sev==='warn'?'yellow':'blue'})">${esc(val)}</span></td>`;
+      if (c==='Flags'||c==='Missing') return `<td class="fc">${esc(val)}</td>`;
+      return `<td>${esc(val)}</td>`;
+    }).join('');
+    return `<tr data-geo="${geo}">${cells}</tr>`;
+  }).join('');
+  return `<div class="filter-count" id="fc-${sectionId}"></div>
+<div class="tw"><table id="tbl-${sectionId}">
+<thead><tr>${header}</tr></thead>
+<tbody>${bodyRows}</tbody>
+</table></div>`;
+}
+
+function sortCol(secId, colIdx, th) {
+  const table = document.getElementById('tbl-'+secId);
+  if (!table) return;
+  const key = secId+'-'+colIdx;
+  const dir = _sortState[key]===1 ? -1 : 1;
+  _sortState = {};
+  _sortState[key] = dir;
+  table.querySelectorAll('thead th').forEach(t=>t.classList.remove('sort-asc','sort-desc'));
+  th.classList.add(dir===1?'sort-asc':'sort-desc');
+  const tbody = table.querySelector('tbody');
+  const rows = [...tbody.querySelectorAll('tr')];
+  rows.sort((a,b) => {
+    const av = (a.cells[colIdx]?.innerText||'').trim();
+    const bv = (b.cells[colIdx]?.innerText||'').trim();
+    const an = parseFloat(av.replace(/[^0-9.-]/g,''));
+    const bn = parseFloat(bv.replace(/[^0-9.-]/g,''));
+    if (!isNaN(an)&&!isNaN(bn)) return (an-bn)*dir;
+    return av.localeCompare(bv)*dir;
+  });
+  rows.forEach(r => tbody.appendChild(r));
+  applyFilters(secId);
+}
+
+function applyFilters(secId) {
+  const sec = document.getElementById('s-'+secId);
+  if (!sec) return;
+  const inputs = sec.querySelectorAll('.col-search');
+  const filters = [...inputs].map(i=>i.value.trim().toLowerCase());
+  let vis = 0, tot = 0;
+  sec.querySelectorAll('tbody tr').forEach(tr => {
+    tot++;
+    if (_geoFilter && (tr.getAttribute('data-geo')||'')!==_geoFilter) { tr.style.display='none'; return; }
+    let show = true;
+    filters.forEach((f,i) => {
+      if (!f) return;
+      const cell = tr.cells[i];
+      if (cell && !cell.innerText.toLowerCase().includes(f)) show = false;
+    });
+    tr.style.display = show?'':'none';
+    if (show) vis++;
+  });
+  const fc = document.getElementById('fc-'+secId);
+  if (fc) fc.textContent = vis===tot ? `${tot} rows` : `${vis} of ${tot} rows`;
+}
+
+function filterGeo(v) {
+  _geoFilter = v;
+  const activeSection = document.querySelector('.section.active');
+  if (activeSection) applyFilters(activeSection.id.replace('s-',''));
+}
+
+function resetFilters() {
+  _geoFilter = '';
+  document.getElementById('geo-filter').value = '';
+  document.querySelectorAll('.col-search').forEach(i=>i.value='');
+  const activeSection = document.querySelector('.section.active');
+  if (activeSection) applyFilters(activeSection.id.replace('s-',''));
+}
+
+function showSection(id) {
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.ni').forEach(n=>n.classList.remove('active'));
+  const sec = document.getElementById('s-'+id);
+  if (sec) sec.classList.add('active');
+  const nav = document.querySelector(`[data-id="${id}"]`);
+  if (nav) nav.classList.add('active');
+  applyFilters(id);
+}
+
+function startOver() {
+  document.getElementById('dashboard-screen').style.display='none';
+  document.getElementById('upload-screen').style.display='flex';
+  apiData = null;
+  initializeDatePicker();
+}
+
+// ── MAIN RUNNER ────────────────────────────────────────────────────────────
+async function runDashboard() {
+  const dateInput = document.getElementById('week-start-date');
+  if (!dateInput.value) {
+    alert('Please select a week start date');
+    return;
+  }
+
+  document.getElementById('upload-screen').style.display='none';
+  document.getElementById('processing-screen').style.display='flex';
+  const log = document.getElementById('proc-log');
+  const logLine = t => { log.innerHTML += t+'<br>'; };
+
+  try {
+    // Parse dates
+    const startDate = new Date(dateInput.value + 'T00:00:00');
+    const endDate = new Date(startDate);
+    endDate.setDate(endDate.getDate() + 6);
+
+    const formatDate = d => d.toISOString().split('T')[0];
+    const startStr = formatDate(startDate);
+    const endStr = formatDate(endDate);
+
+    logLine(`Fetching data for week ${startStr} to ${endStr}...`);
+
+    // Fetch from API
+    const apiUrl = `https://tribute-api-prod-bkc4hfcwf3f2f6bf.centralus-01.azurewebsites.net/api/vivProxy?endpoint=weekly_audit&startDate=${startStr}&endDate=${endStr}`;
+    const response = await fetch(apiUrl);
+
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
+    }
+
+    apiData = await response.json();
+    logLine('Data received, enriching bookings...');
+
+    // Process data through the same detection pipeline
+    const bookings = enrichBookings(apiData.bookings || []);
+    logLine(`Loaded ${bookings.length} bookings`);
+
+    const tagLookup = loadTags(apiData.tags || {});
+    logLine(`Loaded tags: ${Object.keys(tagLookup).length} caregivers`);
+
+    const tsCount = Object.values(tagLookup).filter(t=>t.threshold>0).length;
+    logLine(`${tsCount} caregivers with TS threshold`);
+
+    const rateTable = loadRateTable(apiData.rateHistory || []);
+    const wk = weekLabel(bookings);
+    const geos = [...new Set(bookings.map(b=>b._geo).filter(Boolean))].sort();
+
+    logLine('Running detection modules...');
+    const sections = [
+      {id:'ts',       name:'TS Admin Time',          icon:'🛡️', red:true,
+       desc:'Caregivers below their guaranteed hours threshold. Create a TS Admin Time visit for each.',
+       data:detectTS(bookings,tagLookup),
+       cols:['Caregiver','Market','Threshold','Hrs Worked','Cancelled Paid','PTO Hrs','Hrs Owed','Client','Action']},
+      {id:'tt',       name:'Missing Travel Time',     icon:'🚗',
+       desc:'Caregivers with back-to-back visits ≤ 2 hours apart with no Travel Time visit entered.',
+       data:detectTravelTime(bookings),
+       cols:['Caregiver','Market','Date','Gap Start','Gap End','Gap Hrs','From → To','Action']},
+      {id:'appr',     name:'Approval Queue',          icon:'✅', red:true,
+       desc:'All visits flagged as Requires Approval or Requires Re-Approval in Viv.',
+       data:detectApprovalQueue(bookings),
+       cols:['Caregiver','Client','Market','Date','Time','Visit Type','Billable','Payable','CG Rate','Cancelled','Status','Action']},
+      {id:'cancelled',name:'Cancelled Visit Issues',  icon:'🚫',
+       desc:'Cancelled visits with unexpected billing, pay, or missing pay settings.',
+       data:detectCancelled(bookings),
+       cols:['Caregiver','Client','Market','Date','Visit Type','Billable','Payable','CG Rate','Flags','Status','Action']},
+      {id:'dur',      name:'Duration Mismatches',     icon:'⏱️',
+       desc:'Visits where billable or payable hours differ from the scheduled duration.',
+       data:detectDurationMismatches(bookings),
+       cols:['Caregiver','Client','Market','Date','Visit Type','Scheduled','Billable','Payable','Flags','Status','Action']},
+      {id:'cg_ovlp',  name:'Caregiver Overlaps',      icon:'⚡', red:true,
+       desc:'Caregiver scheduled for two overlapping visits simultaneously.',
+       data:detectOverlapsCG(bookings),
+       cols:['Caregiver','Market','Visit 1','Visit 2','Overlap','Action']},
+      {id:'cl_ovlp',  name:'Client Billing Overlaps', icon:'💳', red:true,
+       desc:'Client being billed for two caregiver visits at the same time.',
+       data:detectOverlapsClient(bookings),
+       cols:['Client','Market','CG 1','CG 2','Overlap','Action']},
+      {id:'rate',     name:'Rate Type Errors',        icon:'💰',
+       desc:'Bonus or RFH visits incorrectly set to Hourly instead of Shift.',
+       data:detectRateType(bookings),
+       cols:['Caregiver','Market','Date','Visit Type','Current','Should Be','CG Rate','Action']},
+      {id:'toff',     name:'Time Off Rate Errors',    icon:'🏖️',
+       desc:'Time Off, PTO, or Sick visits paying a non-zero caregiver rate.',
+       data:detectTimeOffRates(bookings),
+       cols:['Caregiver','Market','Date','Visit Type','CG Rate','Pay Hrs','Status','Action']},
+      {id:'evv',      name:'Missing EVV',             icon:'📍',
+       desc:'Worked client visits missing electronic check-in or check-out.',
+       data:detectMissingEVV(bookings),
+       cols:['Caregiver','Client','Market','Date','Visit Type','Scheduled','Missing','Status','Action']},
+      {id:'assign',   name:'Assignment Errors',       icon:'🏷️',
+       desc:'Training or office meetings assigned to Office instead of Office Training.',
+       data:detectAssignmentErrors(bookings),
+       cols:['Caregiver','Market','Date','Visit Type','Current Client','Should Be','Status','Action']},
+      {id:'vtmatch',  name:'Visit Type Mismatches',   icon:'⚠️', red:true,
+       desc:'Visits where payable hours fall outside the range implied by the visit type.',
+       data:detectVTMismatch(bookings),
+       cols:['Caregiver','Client','Market','Date','Visit Type','Payable Hrs','Expected Range','Suggestion','Status','Action']},
+      {id:'irates',   name:'Invalid Rates',           icon:'🔍',
+       desc:'Client rates that have never appeared in the full rate history for that market.',
+       data:detectInvalidRates(bookings,rateTable),
+       cols:['Market','Visit Type','Invalid Rate','Current Rate','Visits','Clients','Action']},
+    ];
+
+    const total = sections.reduce((s,sec)=>s+sec.data.length,0);
+    logLine(`Found ${total} total issues across ${sections.length} categories.`);
+    logLine('Building dashboard...');
+
+    // Populate geo filter
+    const geoSel = document.getElementById('geo-filter');
+    geoSel.innerHTML = '<option value="">All Markets</option>';
+    geos.forEach(g => { const o=document.createElement('option'); o.value=g; o.textContent=g; geoSel.appendChild(o); });
+
+    // Build nav
+    const navList = document.getElementById('nav-list');
+    navList.innerHTML = '';
+    const dividers = new Set([1,3]);
+    sections.forEach((s,i) => {
+      const cnt = s.data.length;
+      const li = document.createElement('li');
+      li.className = `ni${cnt>0?' hi':''}`;
+      li.setAttribute('data-id', s.id);
+      li.onclick = () => showSection(s.id);
+      li.innerHTML = `<span class="n-ic">${s.icon}</span><span class="n-lb">${esc(s.name)}</span>
+        ${cnt>0?`<span class="n-bd${s.red?' r':''}">${cnt}</span>`:''}`;
+      navList.appendChild(li);
+      if (dividers.has(i)) { const div=document.createElement('div'); div.className='ndiv'; navList.appendChild(div); }
+    });
+
+    // Build sections
+    const container = document.getElementById('sections-container');
+    container.innerHTML = '';
+    sections.forEach(s => {
+      const cnt = s.data.length;
+      const div = document.createElement('div');
+      div.className = 'section';
+      div.id = 's-'+s.id;
+      const rateHistoryNote = s.id === 'irates' ? '<div class="rate-history-notice">Rate history not yet available via API</div>' : '';
+      div.innerHTML = `<div class="sh">
+        <div class="st"><span class="si">${s.icon}</span><span class="sn">${esc(s.name)}</span>
+          <span class="sc ${cnt>0?'h':'n'}">${cnt} issue${cnt!==1?'s':''}</span></div>
+        ${s.desc?`<div class="sd">${esc(s.desc)}</div>`:''}
+      </div>${rateHistoryNote}${makeTable(s.cols, s.data, s.id)}`;
+      container.appendChild(div);
+    });
+
+    document.getElementById('dash-week').textContent = wk;
+    document.getElementById('dash-total').textContent = `${total} total issues`;
+
+    document.getElementById('processing-screen').style.display='none';
+    document.getElementById('dashboard-screen').style.display='flex';
+    // Show first section
+    if (sections.length) showSection(sections[0].id);
+
+  } catch (error) {
+    logLine(`ERROR: ${error.message}`);
+    logLine('Check the API endpoint and date range');
+    console.error(error);
+  }
+}
+
+// Initialize on page load
+window.addEventListener('DOMContentLoaded', initializeDatePicker);
+</script>
+</body>
+</html>
