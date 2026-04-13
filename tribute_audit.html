@@ -253,6 +253,8 @@ function enrichBookings(rows) {
     b._end      = parseTime(b['End Time']);
     b._checkin  = parseTime(b['Checkin Time']);
     b._checkout = parseTime(b['Checkout Time']);
+    b._hasEVVIn = (b['Has EVV In']||'').toUpperCase()==='TRUE';
+    b._hasEVVOut= (b['Has EVV Out']||'').toUpperCase()==='TRUE';
     b._bill_h   = msToH(b['Billable ms']);
     b._pay_h    = msToH(b['Payable ms']);
     b._dur_h    = sf(b['Duration']);
@@ -506,8 +508,8 @@ function detectMissingEVV(bookings) {
   bookings.forEach(b => {
     if (b._cancelled || EXCLUDE_VT.has(b._vt) || ABSENCE_VT.has(b._vt) || b._is_office || b._vt==='Live-In') return;
     const missing = [];
-    if (!b._checkin)  missing.push('Check-In');
-    if (!b._checkout) missing.push('Check-Out');
+    if (!b._hasEVVIn && !b._checkin)  missing.push('Check-In');
+    if (!b._hasEVVOut && !b._checkout) missing.push('Check-Out');
     if (missing.length) issues.push({'Caregiver':b._cg_name,'Client':b._client,
       'Market':b._geo,'Date':fmtD(b._start),'Visit Type':b._vt,
       'Scheduled':`${fmtT(b._start)} – ${fmtT(b._end)}`,'Missing':missing.join(', '),
