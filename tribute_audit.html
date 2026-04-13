@@ -260,7 +260,7 @@ function enrichBookings(rows) {
     b._dur_h    = sf(b['Duration']);
     b._cg_rate  = sf(b['CG Rate']);
     b._cl_rate  = sf(b['CL Rate']);
-    b._cancelled= (b['Canceled']||'').toUpperCase()==='TRUE';
+    b._cancelled= (b['Canceled']||'').toUpperCase()==='TRUE' || (b['AM Approval Status']||'').toUpperCase()==='CANCELLED';
     b._vt       = (b['Booking Type']||'').trim();
     b._geo      = (b['GEO']||'').trim();
     b._rtype    = (b['Rate Type']||'').trim();
@@ -324,7 +324,9 @@ function detectTS(bookings, tagLookup) {
         cancelH[cgid] = (cancelH[cgid]||0) + b._pay_h;
       return;
     }
-    if (ABSENCE_VT.has(vt)) ptoH[cgid] = (ptoH[cgid]||0) + b._pay_h;
+    if (ABSENCE_VT.has(vt)) ptoH[cgid] = (ptoH[cgid]||0) + Math.min(b._pay_h, 10);
+    else if (vt === 'TS Admin Time' && b._pay_h > 0)
+      workedH[cgid] = (workedH[cgid]||0) + b._pay_h;
     else if (!EXCLUDE_VT.has(vt) && !b._is_office && b._pay_h > 0)
       workedH[cgid] = (workedH[cgid]||0) + b._pay_h;
   });
@@ -460,7 +462,7 @@ function detectOverlapsCG(bookings) {
 function detectOverlapsClient(bookings) {
   const byCL = {};
   bookings.forEach(b => {
-    if (b._cancelled || b._is_office || b._bill_h===0 || !b._start || !b._end) return;
+    if (b._cancelled || b._is_office || b._vt==='RN Med Management' || b._bill_h===0 || !b._start || !b._end) return;
     if (!byCL[b._cid]) byCL[b._cid] = [];
     byCL[b._cid].push(b);
   });
@@ -532,11 +534,11 @@ function detectVTMismatch(bookings) {
   const VT_RANGES = {
     'Under 4 Hours':[0,3.99],'Under 4 Hours (Boston)':[0,3.99],'Under 4 Hours (MWB)':[0,3.99],
     'Under 4 Hours (NB)':[0,3.99],'Under 4 Hours (SB)':[0,3.99],'Under 4 Hours (CHI)':[0,3.99],
-    '1 - 3 Hours':[1,3.99],'1.5 Person':[0,3.99],
+    '1 - 3 Hours':[1,3.99],'1.5 Person':[0,null],
     '4 Hours':[3.75,4.24],
     '4 + Hours (CHI)':[4,null],'4 + Hours (SB)':[4,null],
-    '5 - 11 Hours':[5,11.99],'5 + Hours':[5,null],
-    '12 - 24 Hours':[12,24],'Live-In':[20,24],
+    '5 - 11 Hours':[5,11.5],'5 + Hours':[5,null],
+    '12 - 24 Hours':[11.5,24],
     '4 - 7 Hours (CHI)':[4,7.99],'8 + Hours (CHI)':[8,null],'4 - 11 Hours':[4,11.99],
   };
   const MARKET_VT = {
@@ -551,9 +553,29 @@ function detectVTMismatch(bookings) {
     'Bel-Air':new Set(['Under 4 Hours','4 Hours','5 - 11 Hours','12 - 24 Hours','Live-In']),
   };
   const TOL = 0.1;
+  // Detect 24/7 clients: clients with back-to-back visits (gap ≤ 30 min) on the same day
+  const byCID = {};
+  bookings.forEach(b => {
+    if (b._cancelled || !b._start || !b._end || b._is_office) return;
+    if (!byCID[b._cid]) byCID[b._cid] = [];
+    byCID[b._cid].push(b);
+  });
+  const is247Client = new Set();
+  Object.entries(byCID).forEach(([cid, visits]) => {
+    visits.sort((a,b) => a._start - b._start);
+    for (let i = 0; i < visits.length - 1; i++) {
+      const gap = Math.abs(visits[i+1]._start - visits[i]._end) / 60000; // minutes
+      if (gap <= 30 && visits[i]._cgid !== visits[i+1]._cgid) {
+        is247Client.add(cid);
+        break;
+      }
+    }
+  });
   const issues = [];
   bookings.forEach(b => {
     if (b._cancelled || b._is_office || !VT_RANGES[b._vt] || b._pay_h===0) return;
+    // Skip 24/7 clients — back-to-back shifts (e.g. 7a-7p, 7p-7a) are expected
+    if (is247Client.has(b._cid)) return;
     const [mn,mx] = VT_RANGES[b._vt];
     const flags = [];
     if (mn!==null && b._pay_h < mn-TOL) flags.push(`Payable ${fmtH(b._pay_h)} below ${fmtH(mn)} min`);
@@ -562,7 +584,7 @@ function detectVTMismatch(bookings) {
     const validForMarket = MARKET_VT[b._geo] || new Set();
     let suggestion = '—';
     for (const candidate of [...validForMarket].sort()) {
-      if (candidate===b._vt || !VT_RANGES[candidate]) continue;
+      if (candidate===b._vt || candidate==='Live-In' || !VT_RANGES[candidate]) continue;
       const [cmn,cmx] = VT_RANGES[candidate];
       if ((cmn===null||b._pay_h>=cmn-TOL) && (cmx===null||b._pay_h<=cmx+TOL)) {
         suggestion = candidate; break;
@@ -575,6 +597,131 @@ function detectVTMismatch(bookings) {
       'Action':suggestion!=='—'?`Wrong type for ${fmtH(b._pay_h)} — consider '${suggestion}'`:`Review: ${fmtH(b._pay_h)} outside range for ${b._vt}`,
       severity:'error', geo:b._geo});
   });
+  return issues;
+}
+
+function detect247Gaps(bookings) {
+  // Identify 24/7 clients: clients with back-to-back visits (≤30 min gap), different CGs
+  const byCID = {};
+  bookings.forEach(b => {
+    if (b._cancelled || !b._start || !b._end || b._is_office || b._vt==='Travel Time') return;
+    if (EXCLUDE_VT.has(b._vt) || ABSENCE_VT.has(b._vt)) return;
+    if (!byCID[b._cid]) byCID[b._cid] = {name:'', geo:'', visits:[]};
+    byCID[b._cid].name = b._client;
+    byCID[b._cid].geo = b._geo;
+    byCID[b._cid].visits.push(b);
+  });
+  // Detect which clients are 24/7
+  const clients247 = {};
+  Object.entries(byCID).forEach(([cid, info]) => {
+    const visits = info.visits.sort((a,b) => a._start - b._start);
+    let backToBackCount = 0;
+    for (let i = 0; i < visits.length - 1; i++) {
+      const gap = Math.abs(visits[i+1]._start - visits[i]._end) / 60000;
+      if (gap <= 30 && visits[i]._cgid !== visits[i+1]._cgid) backToBackCount++;
+    }
+    // Need at least 2 back-to-back handoffs to qualify as 24/7
+    if (backToBackCount >= 2) clients247[cid] = info;
+  });
+  const issues = [];
+  Object.entries(clients247).forEach(([cid, info]) => {
+    // Group visits by calendar date (ET)
+    const byDate = {};
+    info.visits.forEach(v => {
+      const d = etDate(v._start);
+      if (!byDate[d]) byDate[d] = [];
+      byDate[d].push(v);
+    });
+    Object.entries(byDate).forEach(([date, dayVisits]) => {
+      dayVisits.sort((a,b) => a._start - b._start);
+      // Only check days with multiple CGs (actual handoff days)
+      const uniqueCGs = new Set(dayVisits.map(v => v._cgid));
+      if (uniqueCGs.size < 2) return;
+      const totalH = dayVisits.reduce((s,v) => s + v._pay_h, 0);
+      // Find gaps between consecutive visits
+      for (let i = 0; i < dayVisits.length - 1; i++) {
+        const gapMs = dayVisits[i+1]._start - dayVisits[i]._end;
+        const gapMins = Math.round(gapMs / 60000);
+        if (gapMins > 30) {
+          issues.push({'Client':info.name,'Market':info.geo,'Date':date,
+            'Gap Start':fmtT(dayVisits[i]._end),'Gap End':fmtT(dayVisits[i+1]._start),
+            'Gap Hrs':(gapMins/60).toFixed(1),
+            'CG Before':`${dayVisits[i]._cg_name} (${fmtT(dayVisits[i]._start)}–${fmtT(dayVisits[i]._end)})`,
+            'CG After':`${dayVisits[i+1]._cg_name} (${fmtT(dayVisits[i+1]._start)}–${fmtT(dayVisits[i+1]._end)})`,
+            'Day Coverage':fmtH(totalH)+'h',
+            'Action':`${(gapMins/60).toFixed(1)}h gap in 24/7 coverage — verify CG handoff`,
+            severity: gapMins >= 120 ? 'error' : 'warn', geo:info.geo});
+        }
+      }
+    });
+  });
+  issues.sort((a,b) => sf(b['Gap Hrs'])-sf(a['Gap Hrs']));
+  return issues;
+}
+
+function detectLiveInHourly(bookings, liveInContext, auditStart, auditEnd) {
+  // If a CG works 48h or less/week on Live-In visits for a client,
+  // they should be paid hourly (up to 16h/day) instead of flat Live-In rate
+  // liveInContext = adjacent-week Live-In visits for cross-week rally detection
+  // auditStart/auditEnd = the selected audit week boundaries
+
+  // Build audit week window (midnight-to-midnight ET, using the selected dates)
+  const awStart = new Date(auditStart); awStart.setHours(0,0,0,0);
+  const awEnd = new Date(auditEnd); awEnd.setHours(23,59,59,999);
+
+  const liveIns = bookings.filter(b => b._vt==='Live-In' && !b._cancelled && b._pay_h > 0);
+  const contextLiveIns = (liveInContext || []).filter(b => b._vt==='Live-In' && !b._cancelled && b._pay_h > 0);
+
+  // Group ALL Live-In visits (current + context) by CG + Client pair
+  const pairs = {};
+  liveIns.forEach(b => {
+    const key = b._cgid + '|' + b._cid;
+    if (!pairs[key]) pairs[key] = {cg:b._cg_name, client:b._client, geo:b._geo, cgid:b._cgid, cid:b._cid, visits:[], allVisits:[]};
+    pairs[key].visits.push(b);
+    pairs[key].allVisits.push(b);
+  });
+
+  // Add context visits to existing pairs (don't create new pairs — we only flag current week)
+  contextLiveIns.forEach(b => {
+    const key = b._cgid + '|' + b._cid;
+    if (pairs[key]) {
+      pairs[key].allVisits.push(b);
+    }
+  });
+
+  const issues = [];
+  Object.values(pairs).forEach(p => {
+    // Weekly total = all Live-In visits for this CG+Client that TOUCH the audit week
+    // A visit "touches" the audit week if it starts within it, or if it ends during/after it starts
+    // (i.e., a visit starting April 5 with end on April 6 straddles into the audit week)
+    const auditVisits = p.allVisits.filter(v => {
+      const s = v._start ? new Date(v._start) : null;
+      const e = v._end ? new Date(v._end) : null;
+      if (!s) return false;
+      // Starts within audit week
+      if (s >= awStart && s <= awEnd) return true;
+      // Starts before but ends during/after audit week start (straddling visit)
+      if (s < awStart && e && e > awStart) return true;
+      return false;
+    });
+
+    const weekTotal = auditVisits.reduce((s,v) => s + v._pay_h, 0);
+    const daysInWeek = auditVisits.length;
+
+    // Only flag current-week visits that are under 24h
+    p.visits.forEach(v => {
+      if (v._pay_h >= 24) return;
+
+      issues.push({'Caregiver':p.cg,'Client':p.client,'Market':p.geo,
+        'Date':fmtD(v._start),'Payable Hrs':fmtH(v._pay_h),
+        'Weekly Total':fmtH(weekTotal),'Days':daysInWeek,
+        'Action': weekTotal <= 48
+          ? `Live-In under 24h (${fmtH(v._pay_h)}h) — CG has ≤48h/wk (${fmtH(weekTotal)}h), pay hourly up to 16h/day`
+          : `Live-In under 24h (${fmtH(v._pay_h)}h) — CG has ${fmtH(weekTotal)}h/wk, review pay structure`,
+        severity: weekTotal <= 48 ? 'error' : 'warn', geo:p.geo});
+    });
+  });
+  issues.sort((a,b) => sf(a['Weekly Total'])-sf(b['Weekly Total']));
   return issues;
 }
 
@@ -736,6 +883,10 @@ async function runDashboard() {
     const tsCount = Object.values(tagLookup).filter(t=>t.threshold>0).length;
     logLine(`${tsCount} caregivers with TS threshold`);
 
+    // Enrich adjacent-week Live-In context for cross-week weekly totals
+    const liveInContext = enrichBookings(apiData.liveInContext || []);
+    logLine(`Live-In context: ${liveInContext.length} adjacent-week visits`);
+
     const rateTable = loadRateTable(apiData.rateHistory || []);
     const wk = weekLabel(bookings);
     const geos = [...new Set(bookings.map(b=>b._geo).filter(Boolean))].sort();
@@ -794,6 +945,14 @@ async function runDashboard() {
        desc:'Client rates that have never appeared in the full rate history for that market.',
        data:detectInvalidRates(bookings,rateTable),
        cols:['Market','Visit Type','Invalid Rate','Current Rate','Visits','Clients','Action']},
+      {id:'livein',   name:'Live-In Hourly Review',   icon:'🏠', red:true,
+       desc:'Live-In visits under 24h — if CG works ≤48h/wk on Live-In, pay hourly up to 16h/day.',
+       data:detectLiveInHourly(bookings, liveInContext, startDate, endDate),
+       cols:['Caregiver','Client','Market','Date','Payable Hrs','Weekly Total','Days','Action']},
+      {id:'247gaps',  name:'24/7 Coverage Gaps',       icon:'🔄', red:true,
+       desc:'Gaps in coverage for 24/7 clients who should have continuous back-to-back shifts.',
+       data:detect247Gaps(bookings),
+       cols:['Client','Market','Date','Gap Start','Gap End','Gap Hrs','CG Before','CG After','Day Coverage','Action']},
     ];
 
     const total = sections.reduce((s,sec)=>s+sec.data.length,0);
