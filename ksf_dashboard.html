@@ -129,6 +129,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <script>
 var API='https://tribute-api-prod-bkc4hfcwf3f2f6bf.centralus-01.azurewebsites.net/api/vivProxy';
 var curTab='overview', curStart=null, curEnd=null;
+var curUberView='rollup';
+var uberRidesFilter={payer:'all',market:'all',booker:'',search:'',weeks:'12'};
 var visitsData=null, cgData=null, callData=null, uberData=null, otCostData=null;
 
 // ── HISTORICAL ACTUALS (from KSF Excel — last 20 weeks per market) ──
@@ -213,6 +215,8 @@ async function fetchData(){
       var uResp=await ur.json();
       if(uResp&&Array.isArray(uResp.rows)&&uResp.rows.length>0){
         uberData=uResp.rows;
+        // Preserve full v6 response for sub-tab views (Rides / Bookers)
+        window._uberFull=uResp;
         window._uberMeta={fileName:uResp.fileName,fileModified:uResp.fileModified,fetchedAt:uResp.fetchedAt,totalRows:uResp.totalRows,tributeRows:uResp.tributeRows};
       }
     }
@@ -578,10 +582,15 @@ function renderUber(){
     var y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0');
     return y+'-'+m+'-'+day;
   }
+  // Source rows: prefer the full v6 response when present (has split Tribute/Client/Caregiver),
+  // else use the raw array (CSV upload or legacy shape). Filter to Tribute-only for the rollup.
   var _tributeRows=[];
-  if(uberData){
-    if(Array.isArray(uberData)) _tributeRows=uberData;
-    else if(Array.isArray(uberData.rows)) _tributeRows=uberData.rows;
+  if(window._uberFull && Array.isArray(window._uberFull.rows)){
+    _tributeRows=window._uberFull.rows;
+  } else if(Array.isArray(uberData)){
+    _tributeRows=uberData.filter(function(r){
+      return /tribute/i.test(r['Expense Code']||'');
+    });
   }
   if(_tributeRows.length>0){
     // First pass: determine which weeks the API covers, then wipe them so API data fully replaces hardcoded.
@@ -606,6 +615,19 @@ function renderUber(){
     });
     weeks=Object.keys(UBER_DATA).sort();
   }
+
+  // Sub-tab dispatch
+  var html2='';
+  html2+='<div style="display:flex;gap:6px;margin-bottom:14px;border-bottom:.5px solid var(--gray200)">';
+  var _views=[['rollup','Market Rollup'],['rides','Rides'],['bookers','Bookers']];
+  _views.forEach(function(v){
+    var active=curUberView===v[0];
+    html2+='<button onclick="curUberView=\''+v[0]+'\';render()" style="background:none;border:none;padding:8px 14px;font-size:13px;font-weight:'+(active?'600':'500')+';color:'+(active?'var(--orange)':'var(--text2)')+';border-bottom:2px solid '+(active?'var(--orange)':'transparent')+';cursor:pointer;margin-bottom:-1px">'+v[1]+'</button>';
+  });
+  html2+='</div>';
+  if(curUberView==='rides'){ document.getElementById('ct').innerHTML=html2+renderUberRides(); return; }
+  if(curUberView==='bookers'){ document.getElementById('ct').innerHTML=html2+renderUberBookers(); return; }
+  html='<div id="uberSubNav">'+html2+'</div>'+html;
 
   // Match curStart to nearest week in UBER_DATA
   function nearestUberWeek(targetDate){
@@ -716,6 +738,162 @@ function renderUber(){
   html+='</div>';
 
   document.getElementById('ct').innerHTML=html;
+}
+
+// === Uber sub-views: Rides & Bookers ===
+function _getAllUberRows(){
+  // Return a unified array with _payer tag. Prefer v6 full response; fall back to raw array.
+  var out=[];
+  if(window._uberFull){
+    var f=window._uberFull;
+    (f.rows||[]).forEach(function(r){ r._payer='Tribute'; out.push(r); });
+    (f.clientRows||[]).forEach(function(r){ r._payer='Client'; out.push(r); });
+    (f.caregiverRows||[]).forEach(function(r){ r._payer='Caregiver'; out.push(r); });
+  } else if(Array.isArray(uberData)){
+    uberData.forEach(function(r){
+      var code=(r['Expense Code']||'').toLowerCase();
+      r._payer = /tribute/.test(code)?'Tribute' : /client/.test(code)?'Client' : /caregiver/.test(code)?'Caregiver' : 'Other';
+      out.push(r);
+    });
+  }
+  return out;
+}
+function _rideFields(r){
+  var date=r['Request Date (Local)']||r['Request Date (UTC)']||'';
+  var caregiver=(r['Guest First Name']||'').trim();
+  var client=(r['Guest Last Name']||'').trim();
+  var booker=(r['Requestor Name']||r['Requester Name']||r['Requester']||r['Requestor']||'').trim();
+  var bookerEmail=(r['Requestor Email']||r['Requester Email']||'').trim();
+  var amt=parseFloat(String(r['Transaction Amount in USD (incl. Taxes)']||r['Transaction Amount USD']||r['Total Fare USD']||'0').replace(/[^0-9.\-]/g,''))||0;
+  var market=r._market||getUberMarket((r['Expense Code']||'').toUpperCase().replace(/-\s*(TRIBUTE|CLIENT|CAREGIVER)\s*$/i,''))||'';
+  var status=r['Transaction Type']||r['Status']||'';
+  return {date:date,caregiver:caregiver||'(none)',client:client||'(none)',booker:booker||'(unknown)',bookerEmail:bookerEmail,amount:amt,market:market,payer:r._payer||'',pickup:r['Pickup Address']||'',dropoff:r['Drop-off Address']||'',status:status};
+}
+function renderUberRides(){
+  var all=_getAllUberRows().map(_rideFields);
+  var f=uberRidesFilter;
+  // Apply filters
+  var weeksBack=parseInt(f.weeks,10)||12;
+  var cutoff=null;
+  if(weeksBack>0){
+    var d=new Date(); d.setDate(d.getDate()-weeksBack*7);
+    cutoff=d;
+  }
+  function parseUS(d){ var p=(d||'').split('/'); if(p.length!==3)return null; return new Date(+p[2],+p[0]-1,+p[1]); }
+  var filtered=all.filter(function(r){
+    if(f.payer!=='all' && r.payer!==f.payer)return false;
+    if(f.market!=='all' && r.market!==f.market)return false;
+    if(f.booker && !r.booker.toLowerCase().includes(f.booker.toLowerCase()))return false;
+    if(f.search){
+      var s=f.search.toLowerCase();
+      if(!(r.caregiver.toLowerCase().includes(s) || r.client.toLowerCase().includes(s) || r.pickup.toLowerCase().includes(s) || r.dropoff.toLowerCase().includes(s)))return false;
+    }
+    if(cutoff){
+      var pd=parseUS(r.date);
+      if(!pd||pd<cutoff)return false;
+    }
+    return true;
+  });
+  // Sort desc by date
+  filtered.sort(function(a,b){ var da=parseUS(a.date), db=parseUS(b.date); return (db?db.getTime():0)-(da?da.getTime():0); });
+
+  // Build market options from data
+  var allMarkets=[...new Set(all.map(function(r){return r.market;}).filter(Boolean))].sort();
+  var totalAmt=filtered.reduce(function(s,r){return s+r.amount;},0);
+
+  var html='';
+  // KPI strip
+  html+='<div class="kg4">';
+  html+='<div class="kpi"><div class="kl">Rides Shown</div><div class="kv b">'+fn(filtered.length)+'</div><div class="ks">of '+fn(all.length)+' total in data</div></div>';
+  html+='<div class="kpi"><div class="kl">Total Spend</div><div class="kv r">$'+totalAmt.toFixed(2)+'</div><div class="ks">Across filtered rides</div></div>';
+  html+='<div class="kpi"><div class="kl">Avg / Ride</div><div class="kv a">$'+(filtered.length>0?(totalAmt/filtered.length).toFixed(2):'—')+'</div><div class="ks">Filtered average</div></div>';
+  html+='<div class="kpi"><div class="kl">Unique Bookers</div><div class="kv">'+new Set(filtered.map(function(r){return r.booker;})).size+'</div><div class="ks">In filtered set</div></div>';
+  html+='</div>';
+
+  // Filter bar
+  html+='<div class="fc" style="padding:12px 14px"><div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;font-size:12px">';
+  html+='<label>Payer: <select onchange="uberRidesFilter.payer=this.value;render()"><option value="all"'+(f.payer==='all'?' selected':'')+'>All</option><option value="Tribute"'+(f.payer==='Tribute'?' selected':'')+'>Tribute</option><option value="Client"'+(f.payer==='Client'?' selected':'')+'>Client</option><option value="Caregiver"'+(f.payer==='Caregiver'?' selected':'')+'>Caregiver</option></select></label>';
+  html+='<label>Market: <select onchange="uberRidesFilter.market=this.value;render()"><option value="all"'+(f.market==='all'?' selected':'')+'>All</option>'+allMarkets.map(function(m){return '<option value="'+m+'"'+(f.market===m?' selected':'')+'>'+m+'</option>';}).join('')+'</select></label>';
+  html+='<label>Weeks back: <select onchange="uberRidesFilter.weeks=this.value;render()"><option value="4"'+(f.weeks==='4'?' selected':'')+'>4</option><option value="12"'+(f.weeks==='12'?' selected':'')+'>12</option><option value="26"'+(f.weeks==='26'?' selected':'')+'>26</option><option value="0"'+(f.weeks==='0'?' selected':'')+'>All</option></select></label>';
+  html+='<label>Booker: <input type="text" value="'+(f.booker||'').replace(/"/g,'&quot;')+'" placeholder="name contains…" oninput="uberRidesFilter.booker=this.value" onchange="render()" style="padding:4px 8px;font-size:12px;width:150px"></label>';
+  html+='<label>Search: <input type="text" value="'+(f.search||'').replace(/"/g,'&quot;')+'" placeholder="caregiver / client / address" oninput="uberRidesFilter.search=this.value" onchange="render()" style="padding:4px 8px;font-size:12px;width:220px"></label>';
+  html+='<button onclick="uberRidesFilter={payer:\'all\',market:\'all\',booker:\'\',search:\'\',weeks:\'12\'};render()" style="padding:4px 10px;font-size:12px;background:var(--gray100);border:.5px solid var(--gray200);border-radius:4px;cursor:pointer">Reset</button>';
+  html+='</div></div>';
+
+  // Table
+  html+='<div class="fc"><div class="ct">Ride-level detail — '+fn(filtered.length)+' rides</div>';
+  html+='<div style="max-height:640px;overflow:auto"><table class="tbl"><thead><tr><th>Date</th><th>Market</th><th>Payer</th><th>Caregiver</th><th>Client</th><th>Booker</th><th>Pickup → Drop-off</th><th>Amount</th></tr></thead><tbody>';
+  if(filtered.length===0){
+    html+='<tr><td colspan="8" style="text-align:center;color:var(--text3);padding:40px">No rides match your filters.</td></tr>';
+  } else {
+    filtered.slice(0,500).forEach(function(r){
+      var payerBdg = r.payer==='Tribute'?'bg':r.payer==='Client'?'ba':r.payer==='Caregiver'?'br':'';
+      html+='<tr>';
+      html+='<td>'+(r.date||'—')+'</td>';
+      html+='<td>'+(r.market||'—')+'</td>';
+      html+='<td><span class="bdg '+payerBdg+'">'+(r.payer||'—')+'</span></td>';
+      html+='<td>'+r.caregiver+'</td>';
+      html+='<td>'+r.client+'</td>';
+      html+='<td title="'+r.bookerEmail+'">'+r.booker+'</td>';
+      html+='<td style="font-size:11px;color:var(--text2);max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+(r.pickup+' → '+r.dropoff).replace(/"/g,'&quot;')+'">'+r.pickup+' → '+r.dropoff+'</td>';
+      html+='<td>$'+r.amount.toFixed(2)+'</td>';
+      html+='</tr>';
+    });
+    if(filtered.length>500)html+='<tr><td colspan="8" style="text-align:center;color:var(--text3);padding:12px">Showing first 500 of '+fn(filtered.length)+' — tighten filters to see more.</td></tr>';
+  }
+  html+='</tbody></table></div></div>';
+  return html;
+}
+function renderUberBookers(){
+  var all=_getAllUberRows().map(_rideFields);
+  // Group by booker
+  var byBooker={};
+  all.forEach(function(r){
+    var k=r.booker;
+    if(!byBooker[k])byBooker[k]={booker:k,email:r.bookerEmail,rides:0,amount:0,tribute:0,client:0,caregiver:0,caregivers:{},clients:{},markets:{}};
+    var b=byBooker[k];
+    b.rides++;
+    b.amount+=r.amount;
+    if(r.payer==='Tribute')b.tribute++;
+    else if(r.payer==='Client')b.client++;
+    else if(r.payer==='Caregiver')b.caregiver++;
+    if(r.caregiver&&r.caregiver!=='(none)')b.caregivers[r.caregiver]=(b.caregivers[r.caregiver]||0)+1;
+    if(r.client&&r.client!=='(none)')b.clients[r.client]=(b.clients[r.client]||0)+1;
+    if(r.market)b.markets[r.market]=(b.markets[r.market]||0)+1;
+  });
+  var leaderboard=Object.values(byBooker).sort(function(a,b){return b.rides-a.rides;});
+  function topN(obj,n){
+    return Object.entries(obj).sort(function(a,b){return b[1]-a[1];}).slice(0,n).map(function(e){return e[0]+' ('+e[1]+')';}).join(', ');
+  }
+
+  var html='';
+  var totalRides=all.length, totalAmt=all.reduce(function(s,r){return s+r.amount;},0);
+  html+='<div class="kg4">';
+  html+='<div class="kpi"><div class="kl">Unique Bookers</div><div class="kv b">'+fn(leaderboard.length)+'</div><div class="ks">Across all history</div></div>';
+  html+='<div class="kpi"><div class="kl">Total Rides</div><div class="kv">'+fn(totalRides)+'</div><div class="ks">All payers</div></div>';
+  html+='<div class="kpi"><div class="kl">Total Spend</div><div class="kv r">$'+totalAmt.toFixed(2)+'</div><div class="ks">All payers</div></div>';
+  var top=leaderboard[0];
+  html+='<div class="kpi"><div class="kl">Top Booker</div><div class="kv a" style="font-size:16px">'+(top?top.booker:'—')+'</div><div class="ks">'+(top?fn(top.rides)+' rides · $'+top.amount.toFixed(0):'')+'</div></div>';
+  html+='</div>';
+
+  html+='<div class="fc"><div class="ct">Booker leaderboard — all-time</div>';
+  html+='<table class="tbl"><thead><tr><th>Booker</th><th>Rides</th><th>Tribute</th><th>Client</th><th>CG-paid</th><th>Total $</th><th>Avg $</th><th>Top Caregivers</th><th>Top Clients</th><th>Markets</th></tr></thead><tbody>';
+  leaderboard.forEach(function(b){
+    html+='<tr>';
+    html+='<td title="'+b.email+'">'+b.booker+'</td>';
+    html+='<td>'+fn(b.rides)+'</td>';
+    html+='<td>'+fn(b.tribute)+'</td>';
+    html+='<td>'+fn(b.client)+'</td>';
+    html+='<td>'+fn(b.caregiver)+'</td>';
+    html+='<td>$'+b.amount.toFixed(2)+'</td>';
+    html+='<td>$'+(b.rides>0?(b.amount/b.rides).toFixed(2):'—')+'</td>';
+    html+='<td style="font-size:11px;color:var(--text2);max-width:220px">'+(topN(b.caregivers,3)||'—')+'</td>';
+    html+='<td style="font-size:11px;color:var(--text2);max-width:220px">'+(topN(b.clients,3)||'—')+'</td>';
+    html+='<td style="font-size:11px;color:var(--text2)">'+(topN(b.markets,3)||'—')+'</td>';
+    html+='</tr>';
+  });
+  html+='</tbody></table></div>';
+  return html;
 }
 
 function getUberMarket(code){
