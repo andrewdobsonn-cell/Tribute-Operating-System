@@ -873,6 +873,14 @@ async function runDashboard() {
     apiData = await response.json();
     logLine('Data received, enriching bookings...');
 
+    // Fetch Uber client-paid rides (non-blocking — audit still works if Uber fetch fails)
+    let uberData = null;
+    try {
+      const uberRes = await fetch('https://tribute-api-prod-bkc4hfcwf3f2f6bf.centralus-01.azurewebsites.net/api/vivProxy?endpoint=uber_trips');
+      if (uberRes.ok) uberData = await uberRes.json();
+      logLine(`Uber data: ${uberData && uberData.clientRows ? uberData.clientRows.length : 0} client-paid rides across all time`);
+    } catch(e) { logLine('Uber fetch failed (non-fatal): '+e.message); }
+
     // Process data through the same detection pipeline
     const bookings = enrichBookings(apiData.bookings || []);
     logLine(`Loaded ${bookings.length} bookings`);
@@ -890,6 +898,42 @@ async function runDashboard() {
     const rateTable = loadRateTable(apiData.rateHistory || []);
     const wk = weekLabel(bookings);
     const geos = [...new Set(bookings.map(b=>b._geo).filter(Boolean))].sort();
+
+    // Build Client-Paid Uber rows for the week from uber_trips.clientRows
+    const uberClientRows = [];
+    if (uberData && Array.isArray(uberData.clientRows)) {
+      const inRange = d => {
+        if (!d) return false;
+        const parts = d.split('/');
+        if (parts.length !== 3) return false;
+        const iso = `${parts[2]}-${parts[0].padStart(2,'0')}-${parts[1].padStart(2,'0')}`;
+        return iso >= startStr && iso <= endStr;
+      };
+      uberData.clientRows.forEach(r => {
+        const d = r['Request Date (Local)'] || r['Request Date (UTC)'] || '';
+        if (!inRange(d)) return;
+        const amt = parseFloat(String(
+          r['Transaction Amount in USD (incl. Taxes)'] ||
+          r['Transaction Amount USD'] ||
+          r['Total Fare USD'] || '0'
+        ).replace(/[^0-9.\-]/g,'')) || 0;
+        const rider = (`${r['First Name']||''} ${r['Last Name']||''}`.trim()) ||
+                      (r['Guest First Name']||'') ||
+                      '(unknown)';
+        uberClientRows.push({
+          'Date': d,
+          'Market': r._market || '',
+          'Rider': rider,
+          'Pickup': r['Pickup Address']||'',
+          'Drop-off': r['Drop-off Address']||'',
+          'Amount': `$${amt.toFixed(2)}`,
+          'Action': 'Bill to client',
+          severity: 'warn',
+          geo: r._market || ''
+        });
+      });
+    }
+    logLine(`Uber client-paid rides this week: ${uberClientRows.length}`);
 
     logLine('Running detection modules...');
     const sections = [
@@ -921,6 +965,10 @@ async function runDashboard() {
        desc:'Client being billed for two caregiver visits at the same time.',
        data:detectOverlapsClient(bookings),
        cols:['Client','Market','CG 1','CG 2','Overlap','Action']},
+      {id:'uber_client', name:'Client-Paid Uber Rides', icon:'🚕',
+       desc:'Uber rides expensed to clients (expense code pattern "{Market}- Client"). Confirm these are billed on the next client invoice.',
+       data:uberClientRows,
+       cols:['Date','Market','Rider','Pickup','Drop-off','Amount','Action']},
       {id:'rate',     name:'Rate Type Errors',        icon:'💰',
        desc:'Bonus or RFH visits incorrectly set to Hourly instead of Shift.',
        data:detectRateType(bookings),
