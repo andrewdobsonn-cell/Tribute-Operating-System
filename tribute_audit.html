@@ -917,13 +917,14 @@ async function runDashboard() {
           r['Transaction Amount USD'] ||
           r['Total Fare USD'] || '0'
         ).replace(/[^0-9.\-]/g,'')) || 0;
-        const rider = (`${r['First Name']||''} ${r['Last Name']||''}`.trim()) ||
-                      (r['Guest First Name']||'') ||
-                      '(unknown)';
+        // Tribute convention: Guest First Name = caregiver, Guest Last Name = client.
+        const caregiver = (r['Guest First Name']||'').trim() || '(unknown)';
+        const client    = (r['Guest Last Name'] ||'').trim() || '(unknown)';
         uberClientRows.push({
           'Date': d,
           'Market': r._market || '',
-          'Rider': rider,
+          'Caregiver': caregiver,
+          'Client': client,
           'Pickup': r['Pickup Address']||'',
           'Drop-off': r['Drop-off Address']||'',
           'Amount': `$${amt.toFixed(2)}`,
@@ -968,7 +969,7 @@ async function runDashboard() {
       {id:'uber_client', name:'Client-Paid Uber Rides', icon:'🚕',
        desc:'Uber rides expensed to clients (expense code pattern "{Market}- Client"). Confirm these are billed on the next client invoice.',
        data:uberClientRows,
-       cols:['Date','Market','Rider','Pickup','Drop-off','Amount','Action']},
+       cols:['Date','Market','Caregiver','Client','Pickup','Drop-off','Amount','Action']},
       {id:'rate',     name:'Rate Type Errors',        icon:'💰',
        desc:'Bonus or RFH visits incorrectly set to Hourly instead of Shift.',
        data:detectRateType(bookings),
