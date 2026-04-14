@@ -199,14 +199,23 @@ function setTab(t,el){
 async function fetchData(){
   document.getElementById('ct').innerHTML='<div class="loading"><div class="spin"></div>Loading data for '+curStart+' to '+curEnd+'...</div>';
   try{
-    var [vr,cr,otr]=await Promise.all([
+    var [vr,cr,otr,ur]=await Promise.all([
       fetch(API+'?endpoint=visits&startDate='+curStart+'&endDate='+curEnd),
       fetch(API+'?endpoint=caregivers&fast=true'),
-      fetch(API+'?endpoint=ot_costs&startDate='+curStart+'&endDate='+curEnd)
+      fetch(API+'?endpoint=ot_costs&startDate='+curStart+'&endDate='+curEnd),
+      fetch(API+'?endpoint=uber_trips').catch(function(){return null;})
     ]);
     visitsData=vr.ok?await vr.json():null;
     cgData=cr.ok?await cr.json():null;
     otCostData=otr.ok?await otr.json():null;
+    // Auto-load Uber data from SFTP via proxy — falls back gracefully if unavailable
+    if(ur&&ur.ok){
+      var uResp=await ur.json();
+      if(uResp&&Array.isArray(uResp.rows)&&uResp.rows.length>0){
+        uberData=uResp.rows;
+        window._uberMeta={fileName:uResp.fileName,fileModified:uResp.fileModified,fetchedAt:uResp.fetchedAt,totalRows:uResp.totalRows,tributeRows:uResp.tributeRows};
+      }
+    }
     document.getElementById('updated').textContent='Updated '+new Date().toLocaleTimeString();
     render();
   }catch(e){
@@ -552,16 +561,45 @@ function renderUber(){
   var weeks = Object.keys(UBER_DATA).sort();
   var MKTS=['Boston','MetroWest Boston','North of Boston','South of Boston','Baltimore','Annapolis','Bethesda','Chicago','Northern Virginia'];
 
-  // Merge any CSV-uploaded data into UBER_DATA
-  if(uberData && uberData.length>0){
-    uberData.forEach(function(r){
-      var week=r['Week']||r['week']||r['Request Date (Local)']||'';
+  // Merge any API-returned data into UBER_DATA.
+  // v6 backend returns an object: { rows:[...Tribute rows], clientRows:[...], marketRollup:{...}, ... }
+  // Fallback: if uberData is itself an array (older shape), use it directly.
+  function _sundayOfWeek(mmddyyyy){
+    if(!mmddyyyy)return null;
+    var p=String(mmddyyyy).split(/[\/\-]/);
+    if(p.length!==3)return null;
+    var d;
+    if(p[0].length===4){ d=new Date(+p[0], +p[1]-1, +p[2]); }
+    else { d=new Date(+p[2], +p[0]-1, +p[1]); }
+    if(isNaN(d))return null;
+    // Sunday start
+    var dow=d.getDay();
+    d.setDate(d.getDate()-dow);
+    var y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0');
+    return y+'-'+m+'-'+day;
+  }
+  var _tributeRows=[];
+  if(uberData){
+    if(Array.isArray(uberData)) _tributeRows=uberData;
+    else if(Array.isArray(uberData.rows)) _tributeRows=uberData.rows;
+  }
+  if(_tributeRows.length>0){
+    // First pass: determine which weeks the API covers, then wipe them so API data fully replaces hardcoded.
+    var _weeksTouched={};
+    _tributeRows.forEach(function(r){
+      var week=_sundayOfWeek(r['Request Date (Local)']||r['Week']||r['week']||r['Transaction Timestamp (UTC)']||'');
+      if(week)_weeksTouched[week]=true;
+    });
+    Object.keys(_weeksTouched).forEach(function(w){ UBER_DATA[w]={}; });
+    // Second pass: sum into UBER_DATA.
+    _tributeRows.forEach(function(r){
       var code=(r['Expense Code']||r['expense_code']||'').toUpperCase();
       if(!code.includes('TRIBUTE'))return;
       var mkt=getUberMarket(code);
-      var amt=parseFloat(r['Transaction Amount in USD (incl. Taxes)']||r['amount']||0);
-      if(!week||!mkt)return;
-      if(!UBER_DATA[week])UBER_DATA[week]={};
+      if(!mkt)return;
+      var week=_sundayOfWeek(r['Request Date (Local)']||r['Week']||r['week']||r['Transaction Timestamp (UTC)']||'');
+      if(!week)return;
+      var amt=parseFloat(String(r['Transaction Amount in USD (incl. Taxes)']||r['Transaction Amount USD']||r['amount']||0).replace(/[^0-9.\-]/g,''))||0;
       if(!UBER_DATA[week][mkt])UBER_DATA[week][mkt]={trips:0,amount:0,cancelled:0};
       UBER_DATA[week][mkt].trips++;
       UBER_DATA[week][mkt].amount=Math.round((UBER_DATA[week][mkt].amount+amt)*100)/100;
@@ -662,7 +700,12 @@ function renderUber(){
   // Upload zone for new CSVs
   html+='<div class="fc" style="background:var(--orange-50);border-color:var(--orange)">';
   html+='<div class="ct" style="color:var(--orange)">Upload New Ubers CSV</div>';
-  html+='<p style="font-size:12px;color:var(--text2);margin-bottom:12px">Drop the latest Uber for Business export. Only rows with <strong>- TRIBUTE</strong> in the expense code will be included. Caregiver and Client rows are automatically excluded.</p>';
+  // Auto-fetch status banner
+  if(window._uberMeta){
+    var m=window._uberMeta;
+    html+='<div style="background:#e8f5e9;border-left:3px solid #2e7d32;border-radius:var(--r);padding:10px 14px;margin-bottom:12px;font-size:12px;color:#1b5e20">✓ Auto-loaded from Uber SFTP — <strong>'+(m.fileName||'latest file')+'</strong>'+(m.fileModified?' (modified '+new Date(m.fileModified).toLocaleDateString()+')':'')+' · '+(m.tributeRows||0)+' Tribute trips parsed from '+(m.totalRows||0)+' total rows</div>';
+  }
+  html+='<p style="font-size:12px;color:var(--text2);margin-bottom:12px">Uber data is auto-pulled from the SFTP server hourly. You can also manually upload a CSV below to override. Only rows with <strong>- TRIBUTE</strong> in the expense code will be included.</p>';
   html+='<div class="upload-zone" id="uberZone" onclick="document.getElementById(\'uberFile\').click()" ondragover="event.preventDefault();this.classList.add(\'drag\')" ondragleave="this.classList.remove(\'drag\')" ondrop="handleDrop(event,\'uber\')">'; 
   html+='<div class="upload-zone-icon">🚗</div>';
   html+='<div class="upload-zone-title">Drop Uber for Business CSV here</div>';
