@@ -337,21 +337,42 @@ function _marketWeek(market, week, isCurrent){
   var ts=val('TS Admin (Actual)');
   var inc=val('Incentives (Actual)');
   var uber=(UBER_DATA[week]&&UBER_DATA[week][market]&&UBER_DATA[week][market].amount)||0;
-  // Current-week live overrides
+  // Current-week live overrides. Prefer otCostData (authoritative with biweekly OT
+  // split and incentives breakdown), but fall back to visitsData.markets' total cost
+  // when otCostData is unavailable/incomplete — without this fallback, a failed or
+  // slow ot_costs fetch leaves cost=0 which renders GM=100%.
+  var fallbackCost=null; // Total cost from visitsData (regPay+ot+ts+inc), used if otCostData absent
   if(isCurrent){
     var vm=(visitsData.markets||[]).find(function(m){return m.market===market;});
-    if(vm&&vm.revenue)rev=vm.revenue;
+    if(vm){
+      if(vm.revenue)rev=vm.revenue;
+      if(typeof vm.cost==='number' && vm.cost>0) fallbackCost=vm.cost;
+    }
+    var gotOtData=false;
     if(otCostData&&Array.isArray(otCostData.byMarket)){
       var om=otCostData.byMarket.find(function(m){return m.market===market;});
       if(om){
         if(om.revenue)rev=om.revenue;
-        if(typeof om.regularPay==='number'){regPay=om.regularPay;ot=om.totalOT||om.otPremium||ot;}
+        if(typeof om.regularPay==='number'){regPay=om.regularPay;ot=om.totalOT||om.otPremium||ot;gotOtData=true;}
         if(typeof om.incentives==='number')inc=om.incentives;
         if(typeof om.tributeSecure==='number')ts=om.tributeSecure;
       }
     }
+    // If otCostData didn't populate, back-fill with visitsData's total cost.
+    if(!gotOtData && fallbackCost!==null){
+      // visitsData.cost already includes pay+incentives+TS; treat it as labor+inc+TS combined.
+      regPay = fallbackCost * 0.85; // approximate — OT usually ~15% of labor
+      ot = fallbackCost * 0.15;
+      // inc and ts stay 0 (they're already inside fallbackCost)
+    }
   }
-  var cost=regPay+ot+ts+inc+uber;
+  var cost;
+  if(isCurrent && fallbackCost!==null && regPay+ot<=0.01 && inc<=0.01 && ts<=0.01){
+    // Pure fallback path (no otCostData, no ACTUALS)
+    cost = fallbackCost + uber;
+  } else {
+    cost = regPay+ot+ts+inc+uber;
+  }
   // Biweekly-blended OT% — since OT is calculated over a 2-week pay period,
   // a raw weekly OT/Rev ratio is skewed (Week 2 gets most of the period's OT).
   // Pair this week with its pay-period partner and average the OT rate.
