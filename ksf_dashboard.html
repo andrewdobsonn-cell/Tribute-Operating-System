@@ -142,6 +142,14 @@ var API='https://tribute-api-prod-bkc4hfcwf3f2f6bf.centralus-01.azurewebsites.ne
 var curTab='overview', curStart=null, curEnd=null;
 var curUberView='rollup';
 var uberRidesFilter={payer:'all',market:'all',booker:'',search:'',weeks:'12'};
+var curScorecardView='market'; // 'market' or 'state'
+// State for each market (keep in sync with visitsData.markets[].state)
+var STATE_BY_MARKET={
+  'Boston':'Massachusetts','MetroWest Boston':'Massachusetts','North of Boston':'Massachusetts','South of Boston':'Massachusetts',
+  'Baltimore':'Maryland','Annapolis':'Maryland','Bethesda':'Maryland',
+  'Chicago':'Illinois',
+  'Northern Virginia':'Virginia'
+};
 var visitsData=null, cgData=null, callData=null, uberData=null, otCostData=null;
 
 // ── HISTORICAL ACTUALS (from KSF Excel — last 20 weeks per market) ──
@@ -345,13 +353,68 @@ function _wowRev(cur, prev){
   var arrow=d>2?'▲':d<-2?'▼':'~';
   return '<span style="font-size:10px;color:var(--text2);margin-left:4px">'+arrow+' '+Math.abs(d).toFixed(1)+'%</span>';
 }
+// Aggregate a list of per-market snapshot arrays into a single trailing-4 array.
+// Each element = { rev, cost, ot, uber, hasData, gmPct, otPct, uberPct } summed across markets; pct = cost-weighted.
+function _aggregateHist(markets){
+  var out=[];
+  for(var i=0;i<4;i++){
+    var agg={rev:0,cost:0,ot:0,uber:0,regPay:0,ts:0,inc:0,hasData:false,week:null};
+    markets.forEach(function(mkt){
+      var snap=_marketWeek(mkt, _weekMinus(curStart,i), i===0);
+      if(!snap.hasData)return;
+      agg.hasData=true; agg.week=snap.week;
+      agg.rev+=snap.rev; agg.cost+=snap.cost; agg.ot+=snap.ot; agg.uber+=snap.uber;
+      agg.regPay+=snap.regPay; agg.ts+=snap.ts; agg.inc+=snap.inc;
+    });
+    agg.gmPct = agg.rev>0?(agg.rev-agg.cost)/agg.rev:null;
+    agg.otPct = agg.rev>0?agg.ot/agg.rev:null;
+    agg.uberPct = agg.rev>0?agg.uber/agg.rev:null;
+    out.push(agg);
+  }
+  return out;
+}
+// Roll up BUDGET entries for a set of markets into a single combined target.
+function _aggregateBudget(markets){
+  var totRev=0, wSumGM=0, wSumOT=0, wSumUb=0;
+  markets.forEach(function(mkt){
+    var b=BUDGET[mkt]; if(!b)return;
+    totRev += b.revenueWeekly;
+    wSumGM += (b.revenueWeekly)*(b.grossMarginPct||0);
+    wSumOT += (b.revenueWeekly)*(b.otPct||0);
+    wSumUb += (b.revenueWeekly)*(b.lyftPct||0);
+  });
+  return {
+    revenueWeekly: totRev,
+    grossMarginPct: totRev>0?wSumGM/totRev:0,
+    otPct: totRev>0?wSumOT/totRev:0,
+    lyftPct: totRev>0?wSumUb/totRev:0
+  };
+}
 function renderScorecard(){
-  // Markets in order — include any with a budget entry AND some data.
-  var MKTS=Object.keys(BUDGET);
-  var rows=MKTS.map(function(mkt){
-    var hist=_marketTrailing4(mkt);
+  // Build groups based on curScorecardView.
+  var groups=[]; // [{label, markets:[...]}, ...]
+  if(curScorecardView==='company'){
+    groups.push({label:'Tribute Home Care', markets:Object.keys(BUDGET)});
+  } else if(curScorecardView==='state'){
+    var byState={};
+    Object.keys(BUDGET).forEach(function(mkt){
+      var st=STATE_BY_MARKET[mkt]||'Other';
+      if(!byState[st])byState[st]=[];
+      byState[st].push(mkt);
+    });
+    // Preferred display order
+    ['Massachusetts','Maryland','Illinois','Virginia','Other'].forEach(function(st){
+      if(byState[st])groups.push({label:st, markets:byState[st]});
+    });
+  } else {
+    Object.keys(BUDGET).forEach(function(mkt){
+      groups.push({label:mkt, markets:[mkt]});
+    });
+  }
+  var rows=groups.map(function(g){
+    var hist=_aggregateHist(g.markets);
     var cur=hist[0], prev=hist[1];
-    if(!cur.hasData && !hist.some(function(h){return h.hasData;}))return null;
+    if(!hist.some(function(h){return h.hasData;}))return null;
     var withData=hist.filter(function(h){return h.hasData;});
     var avg = function(key){
       if(withData.length===0)return null;
@@ -359,9 +422,9 @@ function renderScorecard(){
       if(vs.length===0)return null;
       return vs.reduce(function(s,v){return s+v;},0)/vs.length;
     };
-    var b=BUDGET[mkt];
+    var b=_aggregateBudget(g.markets);
     var r={
-      market:mkt,
+      market:g.label,
       curRev:cur.rev, prevRev:prev.rev, avgRev:avg('rev'),
       curGM:cur.gmPct, prevGM:prev.gmPct, avgGM:avg('gmPct'),
       curOT:cur.otPct, prevOT:prev.otPct, avgOT:avg('otPct'),
@@ -382,13 +445,20 @@ function renderScorecard(){
 
   var html='';
   html+='<div class="scorecard-wrap">';
-  html+='<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px">';
+  html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:10px;flex-wrap:wrap">';
   html+='<div><span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--orange)">CEO Weekly Scorecard</span> <span style="font-size:11px;color:var(--text3);margin-left:8px">Week of '+curStart+' · current vs 4-week trailing vs target</span></div>';
-  html+='<button onclick="window.print()" class="no-print" style="padding:5px 12px;font-size:11px;background:var(--orange);color:#fff;border:none;border-radius:4px;cursor:pointer;font-weight:600">🖨 Print for leadership</button>';
+  html+='<div style="display:flex;align-items:center;gap:8px" class="no-print">';
+  html+='<div style="display:inline-flex;border:.5px solid var(--gray200);border-radius:6px;overflow:hidden;font-size:11px">';
+  ['market','state','company'].forEach(function(v){
+    var active=curScorecardView===v;
+    html+='<button onclick="curScorecardView=\''+v+'\';render()" style="padding:5px 12px;background:'+(active?'var(--orange)':'#fff')+';color:'+(active?'#fff':'var(--text2)')+';border:none;cursor:pointer;font-weight:'+(active?'600':'500')+';text-transform:capitalize">By '+v+'</button>';
+  });
   html+='</div>';
+  html+='<button onclick="window.print()" style="padding:5px 12px;font-size:11px;background:var(--orange);color:#fff;border:none;border-radius:4px;cursor:pointer;font-weight:600">🖨 Print for leadership</button>';
+  html+='</div></div>';
   html+='<div class="fc" style="padding:0;overflow:hidden">';
   html+='<table class="tbl scorecard"><thead><tr>';
-  html+='<th style="text-align:left">Market</th>';
+  html+='<th style="text-align:left">'+(curScorecardView==='state'?'State':curScorecardView==='company'?'Company':'Market')+'</th>';
   html+='<th>Revenue<br><span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text3)">wk · WoW · 4wk</span></th>';
   html+='<th>Gross Margin<br><span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text3)">wk · WoW · 4wk</span></th>';
   html+='<th>OT %<br><span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text3)">wk · WoW · 4wk</span></th>';
@@ -408,15 +478,17 @@ function renderScorecard(){
     html+='<td><span class="'+r.overall+'">'+r.overallLabel+'</span></td>';
     html+='</tr>';
   });
-  // Company totals row (sums)
-  var tRev=rows.reduce(function(s,r){return s+(r.curRev||0);},0);
-  var tRevTgt=rows.reduce(function(s,r){return s+(r.targetRev||0);},0);
-  var tPrevRev=rows.reduce(function(s,r){return s+(r.prevRev||0);},0);
-  html+='<tr style="background:var(--gray100);font-weight:600">';
-  html+='<td style="text-align:left">All Markets</td>';
-  html+='<td style="text-align:right">$'+fn(Math.round(tRev))+_wowRev(tRev,tPrevRev)+' <span style="font-size:10px;color:var(--text3)">/ $'+fn(Math.round(tRevTgt))+'</span></td>';
-  html+='<td colspan="4" style="text-align:right;color:var(--text3);font-weight:400;font-size:11px">4-week averages drive the chip color · single-week values show direction of travel</td>';
-  html+='</tr>';
+  // Company totals row (sums) — skip in Company view since the single row already IS the company.
+  if(curScorecardView!=='company'){
+    var tRev=rows.reduce(function(s,r){return s+(r.curRev||0);},0);
+    var tRevTgt=rows.reduce(function(s,r){return s+(r.targetRev||0);},0);
+    var tPrevRev=rows.reduce(function(s,r){return s+(r.prevRev||0);},0);
+    html+='<tr style="background:var(--gray100);font-weight:600">';
+    html+='<td style="text-align:left">All '+(curScorecardView==='state'?'States':'Markets')+'</td>';
+    html+='<td style="text-align:right">$'+fn(Math.round(tRev))+_wowRev(tRev,tPrevRev)+' <span style="font-size:10px;color:var(--text3)">/ $'+fn(Math.round(tRevTgt))+'</span></td>';
+    html+='<td colspan="4" style="text-align:right;color:var(--text3);font-weight:400;font-size:11px">4-week averages drive the chip color · single-week values show direction of travel</td>';
+    html+='</tr>';
+  }
   html+='</tbody></table></div>';
   html+='</div>';
   return html;
