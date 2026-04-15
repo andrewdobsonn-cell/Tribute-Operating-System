@@ -107,8 +107,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 <div class="period-bar">
   <span style="font-size:11px;color:var(--text4);margin-right:4px">Week:</span>
-  <div class="pbtn on" onclick="setWeek(0,this)">This week</div>
-  <div class="pbtn" onclick="setWeek(-1,this)">Last week</div>
+  <div class="pbtn" onclick="setWeek(0,this)">This week</div>
+  <div class="pbtn on" onclick="setWeek(-1,this)">Last week</div>
   <div class="pbtn" onclick="setWeek(-2,this)">2 weeks ago</div>
   <div class="pbtn" onclick="setWeek(-3,this)">3 weeks ago</div>
   <div class="pbtn" onclick="setWeek(-4,this)">4 weeks ago</div>
@@ -1778,8 +1778,10 @@ function updateClock(){
 }
 
 // ── INIT ───────────────────────────────────────────────────────────
+// Default to the last fully-completed week — the current week is still in progress
+// and its numbers won't be meaningful for leadership review until it closes.
 updateClock();setInterval(updateClock,60000);
-var s=getSunday(0),e=new Date(s);e.setDate(s.getDate()+6);
+var s=getSunday(1),e=new Date(s);e.setDate(s.getDate()+6);
 curStart=fmtD(s);curEnd=fmtD(e);
 document.getElementById('cs').value=curStart;
 document.getElementById('ce').value=curEnd;
