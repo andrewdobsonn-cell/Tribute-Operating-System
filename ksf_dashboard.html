@@ -129,6 +129,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <div class="ntab" onclick="setTab('ot',this)">OT & Incentives</div>
   <div class="ntab" onclick="setTab('gm',this)">Gross Margin</div>
   <div class="ntab" onclick="setTab('mf',this)">Match Failures</div>
+  <div class="ntab" onclick="setTab('quarterly',this)">Quarterly</div>
 </div>
 
 <div class="main">
@@ -302,6 +303,7 @@ function render(){
   else if(curTab==='ot')renderOT();
   else if(curTab==='gm')renderGM();
   else if(curTab==='mf')renderMatchFailures();
+  else if(curTab==='quarterly')renderQuarterly();
   // Prepend the in-flight week banner (if any) to whatever the tab rendered.
   if(_inflightBanner){
     var _ct=document.getElementById('ct');
@@ -1536,6 +1538,8 @@ function renderGM(){
   var curMkts=GEOS.map(currentGM).filter(Boolean).filter(function(m){return m.rev>0;});
   var curTotRev=curMkts.reduce(function(s,m){return s+m.rev;},0);
   var curTotPayCost=curMkts.reduce(function(s,m){return s+m.totalPayCost;},0);
+  var curTotRegPay=curMkts.reduce(function(s,m){return s+(m.ksfReg||0);},0);
+  var curTotOT    =curMkts.reduce(function(s,m){return s+(m.ksfOT ||0);},0);
   var curTotTS=curMkts.reduce(function(s,m){return s+m.ts;},0);
   var curTotGuar=curMkts.reduce(function(s,m){return s+m.guar;},0);
   var curTotInc=curMkts.reduce(function(s,m){return s+m.inc;},0);
@@ -1649,15 +1653,18 @@ function renderGM(){
   html+='<div class="fc"><div class="ct">Cost breakdown — current week</div>';
   var items=[
     {label:'Revenue',amt:curTotRev,color:'var(--green)',isRev:true},
-    {label:'Pay Cost (Reg + OT)',amt:curTotPayCost,color:'var(--red)',pct:curTotRev>0?curTotPayCost/curTotRev:0},
+    {label:'Regular Pay',amt:curTotRegPay,color:'var(--red)',pct:curTotRev>0?curTotRegPay/curTotRev:0},
+    {label:'Overtime',amt:curTotOT,color:'var(--red)',pct:curTotRev>0?curTotOT/curTotRev:0},
     {label:'Tribute Secure',amt:curTotTS+curTotGuar,color:'var(--amber)',pct:curTotRev>0?(curTotTS+curTotGuar)/curTotRev:0},
-    {label:'4-Wk Guaranteed',amt:curTotGuar,color:'var(--amber)',pct:curTotRev>0?curTotGuar/curTotRev:0},
     {label:'Incentives',amt:curTotInc,color:'var(--orange)',pct:curTotRev>0?curTotInc/curTotRev:0},
     {label:'Ubers',amt:curTotUber,color:'var(--orange)',pct:curTotRev>0?curTotUber/curTotRev:0},
     {label:'Scheduling GM',amt:curTotGM,color:curTotGMPct>=0.40?'var(--green)':'var(--red)',isGM:true},
   ];
   items.forEach(function(item){
-    var barW=Math.round(Math.abs(item.amt)/curTotRev*100);
+    var rawPct=curTotRev>0?Math.abs(item.amt)/curTotRev*100:0;
+    // Ensure small non-zero items (Uber/Incentives/TS at ~0.1–0.2% of rev) are
+    // still visible — enforce a minimum bar width of 1.5% so they render as a sliver.
+    var barW = (item.amt>0 && rawPct>0 && rawPct<1.5) ? 1.5 : rawPct;
     html+='<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:.5px solid var(--gray100)">';
     html+='<div style="font-size:12px;'+(item.isRev||item.isGM?'font-weight:600':'font-weight:normal;color:var(--text2)')+';width:160px;flex-shrink:0">'+item.label+'</div>';
     html+='<div style="flex:1;height:16px;background:var(--gray100);border-radius:3px;overflow:hidden">';
@@ -1953,6 +1960,181 @@ function renderMatchFailures(){
 
     document.getElementById('ct').innerHTML=html;
   }
+}
+
+// ============================================================
+// QUARTERLY VIEW — aggregates weekly ACTUALS + live data into Q1–Q4
+// ============================================================
+var curQuarterlyYear = null; // default to current year on first render
+var curQuarterlyView = 'market'; // 'market' | 'state' | 'company'
+
+// Return "YYYY-Qn" quarter key for a Sunday-of-week date string (YYYY-MM-DD).
+function _quarterOf(week){
+  if(!week)return null;
+  var p=week.split('-'); var y=+p[0], m=+p[1];
+  return y+'-Q'+(Math.floor((m-1)/3)+1);
+}
+
+// All ACTUALS weeks (any metric, any market) — used to discover which quarters have data.
+function _allActualsWeeks(){
+  var set={};
+  Object.keys(ACTUALS).forEach(function(mkt){
+    var A=ACTUALS[mkt]||{};
+    Object.keys(A).forEach(function(metric){
+      Object.keys(A[metric]||{}).forEach(function(wk){ set[wk]=1; });
+    });
+  });
+  // Include live/current week so the in-progress quarter is represented.
+  if(curStart)set[curStart]=1;
+  return Object.keys(set).sort();
+}
+
+// Aggregate a set of markets over all weeks in a given quarter (e.g. "2026-Q2").
+// Uses ACTUALS for finalized weeks + live otCostData/visitsData for the current week.
+function _marketQuarter(market, quarter){
+  var weeks=_allActualsWeeks().filter(function(wk){ return _quarterOf(wk)===quarter; });
+  var sum={rev:0, regPay:0, ot:0, ts:0, inc:0, uber:0};
+  weeks.forEach(function(wk){
+    var snap=_marketWeek(market, wk, wk===curStart);
+    if(!snap.hasData)return;
+    sum.rev+=snap.rev; sum.regPay+=snap.regPay; sum.ot+=snap.ot;
+    sum.ts+=snap.ts; sum.inc+=snap.inc; sum.uber+=snap.uber;
+  });
+  var cost=sum.regPay+sum.ot+sum.ts+sum.inc+sum.uber;
+  return {
+    quarter:quarter, weekCount:weeks.length,
+    rev:sum.rev, cost:cost, ot:sum.ot, uber:sum.uber, inc:sum.inc,
+    gmPct: sum.rev>0?(sum.rev-cost)/sum.rev:null,
+    otPct: sum.rev>0?sum.ot/sum.rev:null,
+    uberPct: sum.rev>0?sum.uber/sum.rev:null,
+    incPct: sum.rev>0?sum.inc/sum.rev:null,
+    hasData: sum.rev>0
+  };
+}
+
+function _groupQuarter(markets, quarter){
+  var agg={rev:0,cost:0,ot:0,uber:0,inc:0,hasData:false};
+  markets.forEach(function(mkt){
+    var q=_marketQuarter(mkt, quarter);
+    if(!q.hasData)return;
+    agg.hasData=true;
+    agg.rev+=q.rev; agg.cost+=q.cost; agg.ot+=q.ot; agg.uber+=q.uber; agg.inc+=q.inc;
+  });
+  agg.gmPct=agg.rev>0?(agg.rev-agg.cost)/agg.rev:null;
+  agg.otPct=agg.rev>0?agg.ot/agg.rev:null;
+  agg.uberPct=agg.rev>0?agg.uber/agg.rev:null;
+  agg.incPct=agg.rev>0?agg.inc/agg.rev:null;
+  return agg;
+}
+
+function renderQuarterly(){
+  // Determine available years from ACTUALS weeks.
+  var weeks=_allActualsWeeks();
+  var yearsSet={};
+  weeks.forEach(function(wk){ yearsSet[wk.split('-')[0]]=1; });
+  var years=Object.keys(yearsSet).sort();
+  if(!curQuarterlyYear){
+    // Default to the most-recent year with data
+    curQuarterlyYear = years.length ? years[years.length-1] : String(new Date().getFullYear());
+  }
+
+  // Build groups (market/state/company) — reuse scorecard grouping logic.
+  var groups=[];
+  if(curQuarterlyView==='company'){
+    groups.push({label:'Tribute Home Care', markets:Object.keys(BUDGET)});
+  } else if(curQuarterlyView==='state'){
+    var byState={};
+    Object.keys(BUDGET).forEach(function(mkt){
+      var st=STATE_BY_MARKET[mkt]||'Other';
+      (byState[st]=byState[st]||[]).push(mkt);
+    });
+    ['Massachusetts','Maryland','Illinois','Virginia','Other'].forEach(function(st){
+      if(byState[st])groups.push({label:st, markets:byState[st]});
+    });
+  } else {
+    Object.keys(BUDGET).forEach(function(mkt){ groups.push({label:mkt, markets:[mkt]}); });
+  }
+
+  var quarters=['Q1','Q2','Q3','Q4'].map(function(q){ return curQuarterlyYear+'-'+q; });
+
+  // Figure out which quarter is "in progress" (contains curStart)
+  var liveQ = curStart ? _quarterOf(curStart) : null;
+
+  var html='';
+  html+='<div class="scorecard-wrap">';
+  html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:10px;flex-wrap:wrap">';
+  html+='<div><span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--orange)">Quarterly View</span> <span style="font-size:11px;color:var(--text3);margin-left:8px">'+curQuarterlyYear+' · Q1–Q4 totals from weekly ACTUALS</span></div>';
+  html+='<div style="display:flex;align-items:center;gap:8px" class="no-print">';
+  // Year picker
+  html+='<div style="display:inline-flex;border:.5px solid var(--gray200);border-radius:6px;overflow:hidden;font-size:11px">';
+  years.forEach(function(y){
+    var active=(y===curQuarterlyYear);
+    html+='<button onclick="curQuarterlyYear=\''+y+'\';render()" style="padding:5px 10px;background:'+(active?'var(--orange)':'#fff')+';color:'+(active?'#fff':'var(--text2)')+';border:none;cursor:pointer;font-weight:'+(active?'600':'500')+'">'+y+'</button>';
+  });
+  html+='</div>';
+  // View picker (market/state/company)
+  html+='<div style="display:inline-flex;border:.5px solid var(--gray200);border-radius:6px;overflow:hidden;font-size:11px">';
+  ['market','state','company'].forEach(function(v){
+    var active=curQuarterlyView===v;
+    html+='<button onclick="curQuarterlyView=\''+v+'\';render()" style="padding:5px 12px;background:'+(active?'var(--orange)':'#fff')+';color:'+(active?'#fff':'var(--text2)')+';border:none;cursor:pointer;font-weight:'+(active?'600':'500')+';text-transform:capitalize">By '+v+'</button>';
+  });
+  html+='</div>';
+  html+='<button onclick="window.print()" style="padding:5px 12px;font-size:11px;background:var(--orange);color:#fff;border:none;border-radius:4px;cursor:pointer;font-weight:600">🖨 Print</button>';
+  html+='</div></div>';
+
+  html+='<div class="fc" style="padding:0;overflow:hidden">';
+  html+='<table class="tbl scorecard"><thead><tr>';
+  html+='<th style="text-align:left">'+(curQuarterlyView==='state'?'State':curQuarterlyView==='company'?'Company':'Market')+'</th>';
+  html+='<th>Metric</th>';
+  quarters.forEach(function(q){
+    var qLabel=q.split('-')[1];
+    var isLive=(q===liveQ);
+    html+='<th>'+qLabel+(isLive?' <span style="font-size:9px;font-weight:500;color:var(--amber-text);background:var(--amber-bg);padding:1px 5px;border-radius:3px;margin-left:2px">live</span>':'')+'</th>';
+  });
+  html+='<th>FY '+curQuarterlyYear+'</th>';
+  html+='</tr></thead><tbody>';
+
+  groups.forEach(function(g){
+    // Compute all quarterly aggregates + full-year
+    var qData=quarters.map(function(q){ return _groupQuarter(g.markets, q); });
+    var fy={rev:0,cost:0,ot:0,uber:0,inc:0};
+    qData.forEach(function(q){ if(q.hasData){fy.rev+=q.rev;fy.cost+=q.cost;fy.ot+=q.ot;fy.uber+=q.uber;fy.inc+=q.inc;} });
+    fy.gmPct=fy.rev>0?(fy.rev-fy.cost)/fy.rev:null;
+    fy.otPct=fy.rev>0?fy.ot/fy.rev:null;
+    fy.uberPct=fy.rev>0?fy.uber/fy.rev:null;
+    fy.incPct=fy.rev>0?fy.inc/fy.rev:null;
+    fy.hasData=fy.rev>0;
+
+    // Skip rows with zero data all year
+    if(!fy.hasData)return;
+
+    var metrics=[
+      {label:'Revenue',  fmt:function(v){return v>0?'$'+fn(Math.round(v)):'—';}, key:'rev'},
+      {label:'GM %',     fmt:function(v){return v===null||isNaN(v)?'—':fp(v);},  key:'gmPct'},
+      {label:'OT %',     fmt:function(v){return v===null||isNaN(v)?'—':fp(v);},  key:'otPct'},
+      {label:'Uber %',   fmt:function(v){return v===null||isNaN(v)?'—':fp(v);},  key:'uberPct'},
+      {label:'Incentives $', fmt:function(v){return v>0?'$'+fn(Math.round(v)):'—';}, key:'inc'}
+    ];
+    metrics.forEach(function(m,idx){
+      html+='<tr>';
+      if(idx===0){
+        html+='<td rowspan="'+metrics.length+'" style="text-align:left;font-weight:600;vertical-align:top">'+g.label+'</td>';
+      }
+      html+='<td style="text-align:left;color:var(--text2);font-size:11px">'+m.label+'</td>';
+      qData.forEach(function(q){
+        var val = q.hasData ? q[m.key] : null;
+        html+='<td>'+(val===null||val===undefined?'—':m.fmt(val))+'</td>';
+      });
+      html+='<td style="font-weight:600;background:var(--gray100)">'+(fy[m.key]===null||fy[m.key]===undefined?'—':m.fmt(fy[m.key]))+'</td>';
+      html+='</tr>';
+    });
+  });
+
+  html+='</tbody></table></div>';
+  html+='<div style="font-size:11px;color:var(--text3);margin-top:8px;line-height:1.5">Quarterly totals sum all weeks whose Sunday-of-week falls in that quarter. GM% and OT% are computed on summed $ (not averaged). The quarter containing the currently-selected week is marked <span style="font-size:9px;font-weight:500;color:var(--amber-text);background:var(--amber-bg);padding:1px 5px;border-radius:3px">live</span> — its totals include fresh otCostData for the current week and may still be settling.</div>';
+  html+='</div>';
+
+  document.getElementById('ct').innerHTML=html;
 }
 </script>
 </body>
