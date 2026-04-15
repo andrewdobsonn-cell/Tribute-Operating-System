@@ -236,6 +236,8 @@ async function fetchData(){
         // Preserve full v6 response for sub-tab views (Rides / Bookers)
         window._uberFull=uResp;
         window._uberMeta={fileName:uResp.fileName,fileModified:uResp.fileModified,fetchedAt:uResp.fetchedAt,totalRows:uResp.totalRows,tributeRows:uResp.tributeRows};
+        // Merge live Uber rows into UBER_DATA up-front so ALL tabs see fresh numbers.
+        if(typeof _mergeUberData==='function') _mergeUberData();
       }
     }
     document.getElementById('updated').textContent='Updated '+new Date().toLocaleTimeString();
@@ -937,14 +939,9 @@ function renderCallMetrics(){
   document.getElementById('ct').innerHTML=html;
 }
 
-function renderUber(){
-  var html='';
-  var weeks = Object.keys(UBER_DATA).sort();
-  var MKTS=['Boston','MetroWest Boston','North of Boston','South of Boston','Baltimore','Annapolis','Bethesda','Chicago','Northern Virginia'];
-
-  // Merge any API-returned data into UBER_DATA.
-  // v6 backend returns an object: { rows:[...Tribute rows], clientRows:[...], marketRollup:{...}, ... }
-  // Fallback: if uberData is itself an array (older shape), use it directly.
+// Merge live Uber API data into UBER_DATA so ALL tabs (scorecard, OT, GM, etc.)
+// see fresh numbers, not just the Ubers tab. Idempotent — safe to call repeatedly.
+function _mergeUberData(){
   function _sundayOfWeek(mmddyyyy){
     if(!mmddyyyy)return null;
     var p=String(mmddyyyy).split(/[\/\-]/);
@@ -953,45 +950,42 @@ function renderUber(){
     if(p[0].length===4){ d=new Date(+p[0], +p[1]-1, +p[2]); }
     else { d=new Date(+p[2], +p[0]-1, +p[1]); }
     if(isNaN(d))return null;
-    // Sunday start
     var dow=d.getDay();
     d.setDate(d.getDate()-dow);
     var y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0');
     return y+'-'+m+'-'+day;
   }
-  // Source rows: prefer the full v6 response when present (has split Tribute/Client/Caregiver),
-  // else use the raw array (CSV upload or legacy shape). Filter to Tribute-only for the rollup.
   var _tributeRows=[];
   if(window._uberFull && Array.isArray(window._uberFull.rows)){
     _tributeRows=window._uberFull.rows;
   } else if(Array.isArray(uberData)){
-    _tributeRows=uberData.filter(function(r){
-      return /tribute/i.test(r['Expense Code']||'');
-    });
+    _tributeRows=uberData.filter(function(r){ return /tribute/i.test(r['Expense Code']||''); });
   }
-  if(_tributeRows.length>0){
-    // First pass: determine which weeks the API covers, then wipe them so API data fully replaces hardcoded.
-    var _weeksTouched={};
-    _tributeRows.forEach(function(r){
-      var week=_sundayOfWeek(r['Request Date (Local)']||r['Week']||r['week']||r['Transaction Timestamp (UTC)']||'');
-      if(week)_weeksTouched[week]=true;
-    });
-    Object.keys(_weeksTouched).forEach(function(w){ UBER_DATA[w]={}; });
-    // Second pass: sum into UBER_DATA.
-    _tributeRows.forEach(function(r){
-      var code=(r['Expense Code']||r['expense_code']||'').toUpperCase();
-      if(!code.includes('TRIBUTE'))return;
-      var mkt=getUberMarket(code);
-      if(!mkt)return;
-      var week=_sundayOfWeek(r['Request Date (Local)']||r['Week']||r['week']||r['Transaction Timestamp (UTC)']||'');
-      if(!week)return;
-      var amt=parseFloat(String(r['Transaction Amount in USD (incl. Taxes)']||r['Transaction Amount USD']||r['amount']||0).replace(/[^0-9.\-]/g,''))||0;
-      if(!UBER_DATA[week][mkt])UBER_DATA[week][mkt]={trips:0,amount:0,cancelled:0};
-      UBER_DATA[week][mkt].trips++;
-      UBER_DATA[week][mkt].amount=Math.round((UBER_DATA[week][mkt].amount+amt)*100)/100;
-    });
-    weeks=Object.keys(UBER_DATA).sort();
-  }
+  if(_tributeRows.length===0)return;
+  var _weeksTouched={};
+  _tributeRows.forEach(function(r){
+    var week=_sundayOfWeek(r['Request Date (Local)']||r['Week']||r['week']||r['Transaction Timestamp (UTC)']||'');
+    if(week)_weeksTouched[week]=true;
+  });
+  Object.keys(_weeksTouched).forEach(function(w){ UBER_DATA[w]={}; });
+  _tributeRows.forEach(function(r){
+    var code=(r['Expense Code']||r['expense_code']||'').toUpperCase();
+    if(!code.includes('TRIBUTE'))return;
+    var mkt=getUberMarket(code);
+    if(!mkt)return;
+    var week=_sundayOfWeek(r['Request Date (Local)']||r['Week']||r['week']||r['Transaction Timestamp (UTC)']||'');
+    if(!week)return;
+    var amt=parseFloat(String(r['Transaction Amount in USD (incl. Taxes)']||r['Transaction Amount USD']||r['amount']||0).replace(/[^0-9.\-]/g,''))||0;
+    if(!UBER_DATA[week][mkt])UBER_DATA[week][mkt]={trips:0,amount:0,cancelled:0};
+    UBER_DATA[week][mkt].trips++;
+    UBER_DATA[week][mkt].amount=Math.round((UBER_DATA[week][mkt].amount+amt)*100)/100;
+  });
+}
+function renderUber(){
+  var html='';
+  _mergeUberData();
+  var weeks = Object.keys(UBER_DATA).sort();
+  var MKTS=['Boston','MetroWest Boston','North of Boston','South of Boston','Baltimore','Annapolis','Bethesda','Chicago','Northern Virginia'];
 
   // Sub-tab dispatch
   var html2='';
