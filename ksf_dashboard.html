@@ -370,6 +370,32 @@ function renderOpenVisits(){
   document.getElementById('ct').innerHTML=html;
 }
 
+// Fetch match-failure incident count for scorecard KPI (non-blocking, cached).
+function fetchMatchFailureSummary(startDate, endDate){
+  if(window._mfFetchInFlight)return;
+  window._mfFetchInFlight=true;
+  var MF_TYPES=[
+    'Client Complaint: Connection: Match Failure',
+    'Client Complaint: Connection: First Match Failure',
+    'Client Complaint: Care Skill: Match Failure',
+    'Client Complaint: Care Skill: First Match Failure'
+  ];
+  var all=[], pending=MF_TYPES.length;
+  MF_TYPES.forEach(function(type){
+    fetch(API+'?endpoint=match_failures&startDate='+startDate+'&endDate='+endDate+'&type='+encodeURIComponent(type))
+      .then(function(r){return r.json();})
+      .then(function(data){ if(data&&data.incidents) all=all.concat(data.incidents); pending--; if(pending===0)done(); })
+      .catch(function(){ pending--; if(pending===0)done(); });
+  });
+  function done(){
+    var totalClients=(visitsData&&visitsData.totals&&visitsData.totals.activeClients)||
+                     (visitsData&&visitsData.totals&&visitsData.totals.totalClients)||219;
+    window._mfCache={count:all.length, totalClients:totalClients, rate:totalClients>0?all.length/totalClients:0, startDate:startDate, endDate:endDate};
+    window._mfFetchInFlight=false;
+    if(curTab==='budget') render();
+  }
+}
+
 function renderBudget(){
   var mkts=(visitsData.markets||[]).filter(function(m){return m.totalVisits>0;});
   var t=visitsData.totals;
@@ -469,15 +495,29 @@ function renderBudget(){
   html+='<div class="kv" style="color:'+(gmOk?'var(--green)':'var(--red)')+'">'+fp(actualGM)+'</div>';
   html+='<div class="ks">Goal: '+fp(gmt)+' &middot; '+(gmOk?'On target':'Below target')+'</div></div>';
 
-  // OT % (from OT tab if loaded)
-  html+='<div class="kpi" style="border-top:3px solid var(--text3)"><div class="kl">OT %</div>';
-  html+='<div class="kv" style="color:var(--text2)">See OT tab</div>';
-  html+='<div class="ks">Goal: &le; '+fp(ott)+'</div></div>';
+  // OT % — compute live from otCostData
+  var scOTRev = (otCostData && otCostData.totals && otCostData.totals.revenue) || 0;
+  var scOTCost = (otCostData && otCostData.totals && (otCostData.totals.totalOT || otCostData.totals.otPremium)) || 0;
+  var scOTPct = scOTRev>0 ? scOTCost/scOTRev : null;
+  var otOk = scOTPct!==null && scOTPct<=ott;
+  var otBorder = scOTPct===null ? 'var(--text3)' : (otOk ? 'var(--green)' : 'var(--red)');
+  var otColor  = scOTPct===null ? 'var(--text2)' : (otOk ? 'var(--green)' : 'var(--red)');
+  html+='<div class="kpi" style="border-top:3px solid '+otBorder+'"><div class="kl">OT %</div>';
+  html+='<div class="kv" style="color:'+otColor+'">'+(scOTPct===null?'—':fp(scOTPct))+'</div>';
+  html+='<div class="ks">Goal: &le; '+fp(ott)+(scOTPct===null?'':' &middot; '+(otOk?'On target':'Over target'))+'</div></div>';
 
-  // Match Failures
-  html+='<div class="kpi" style="border-top:3px solid var(--text3)"><div class="kl">Match Failure Rate</div>';
-  html+='<div class="kv" style="color:var(--text2)">See MF tab</div>';
-  html+='<div class="ks">Goal: &le; 1.00%</div></div>';
+  // Match Failure Rate — use cached value if available, else trigger fetch and re-render
+  var mfCache = window._mfCache;
+  // Only trust cache if it was computed for the current week.
+  if(mfCache && (mfCache.startDate!==curStart || mfCache.endDate!==curEnd)) mfCache=null;
+  var mfRate  = (mfCache && typeof mfCache.rate==='number') ? mfCache.rate : null;
+  var mfOk    = mfRate!==null && mfRate<=0.01;
+  var mfBorder= mfRate===null ? 'var(--text3)' : (mfOk ? 'var(--green)' : 'var(--red)');
+  var mfColor = mfRate===null ? 'var(--text2)' : (mfOk ? 'var(--green)' : 'var(--red)');
+  html+='<div class="kpi" style="border-top:3px solid '+mfBorder+'"><div class="kl">Match Failure Rate</div>';
+  html+='<div class="kv" style="color:'+mfColor+'">'+(mfRate===null?'Loading…':fp(mfRate))+'</div>';
+  html+='<div class="ks">Goal: &le; 1.00%'+(mfRate===null?'':' &middot; '+(mfOk?'On target':'Over target'))+(mfCache&&mfCache.count!==undefined?' &middot; '+mfCache.count+' incidents':'')+'</div></div>';
+  if(mfRate===null) fetchMatchFailureSummary(curStart, curEnd);
 
   html+='</div>';
 
