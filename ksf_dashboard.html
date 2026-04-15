@@ -328,6 +328,7 @@ function _marketWeek(market, week, isCurrent){
     gmPct: rev>0?(rev-cost)/rev:null,
     otPct: rev>0?ot/rev:null,
     uberPct: rev>0?uber/rev:null,
+    incPct: rev>0?inc/rev:null,
     hasData: rev>0
   };
 }
@@ -386,6 +387,7 @@ function _aggregateHist(markets){
     agg.gmPct = agg.rev>0?(agg.rev-agg.cost)/agg.rev:null;
     agg.otPct = agg.rev>0?agg.ot/agg.rev:null;
     agg.uberPct = agg.rev>0?agg.uber/agg.rev:null;
+    agg.incPct = agg.rev>0?agg.inc/agg.rev:null;
     out.push(agg);
   }
   return out;
@@ -446,6 +448,8 @@ function renderScorecard(){
       curGM:cur.gmPct, prevGM:prev.gmPct, avgGM:avg('gmPct'),
       curOT:cur.otPct, prevOT:prev.otPct, avgOT:avg('otPct'),
       curUb:cur.uberPct, prevUb:prev.uberPct, avgUb:avg('uberPct'),
+      curInc$:cur.inc, prevInc$:prev.inc, avgInc$:(function(){var vs=withData.map(function(h){return h.inc;});return vs.length?vs.reduce(function(s,v){return s+v;},0)/vs.length:0;})(),
+      curIncPct:cur.incPct, prevIncPct:prev.incPct, avgIncPct:avg('incPct'),
       targetRev:b.revenueWeekly, targetGM:b.grossMarginPct, targetOT:b.otPct, targetUb:b.lyftPct
     };
     // Chips use 4-week averages (smooths out weekly noise)
@@ -480,6 +484,7 @@ function renderScorecard(){
   html+='<th>Gross Margin<br><span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text3)">wk · WoW · 4wk</span></th>';
   html+='<th>OT %<br><span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text3)">wk · WoW · 4wk</span></th>';
   html+='<th>Uber %<br><span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text3)">wk · WoW · 4wk</span></th>';
+  html+='<th>Incentives<br><span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text3)">$ · % rev · 4wk avg</span></th>';
   html+='<th>Health</th></tr></thead><tbody>';
   rows.forEach(function(r){
     html+='<tr>';
@@ -492,6 +497,8 @@ function renderScorecard(){
     html+='<td><div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px"><div>'+(r.curOT===null?'—':fp(r.curOT))+_wowPct(r.curOT,r.prevOT)+'</div><div><span class="'+r.cOT.cls+'">'+r.cOT.label+' avg</span> <span style="font-size:10px;color:var(--text3)">/ '+fp(r.targetOT)+'</span></div></div></td>';
     // Uber
     html+='<td><div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px"><div>'+(r.curUb===null?'—':fp(r.curUb))+_wowPct(r.curUb,r.prevUb)+'</div><div><span class="'+r.cUb.cls+'">'+r.cUb.label+' avg</span> <span style="font-size:10px;color:var(--text3)">/ '+fp(r.targetUb)+'</span></div></div></td>';
+    // Incentives ($ + % of revenue; no target — shown as context for GM)
+    html+='<td><div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px"><div>$'+fn(Math.round(r.curInc$||0))+' <span style="font-size:10px;color:var(--text3)">'+(r.curIncPct===null?'':fp(r.curIncPct)+' rev')+'</span></div><div><span style="font-size:10px;color:var(--text3)">$'+fn(Math.round(r.avgInc$||0))+' avg · '+(r.avgIncPct===null?'—':fp(r.avgIncPct))+'</span></div></div></td>';
     html+='<td><span class="'+r.overall+'">'+r.overallLabel+'</span></td>';
     html+='</tr>';
   });
@@ -503,7 +510,7 @@ function renderScorecard(){
     html+='<tr style="background:var(--gray100);font-weight:600">';
     html+='<td style="text-align:left">All '+(curScorecardView==='state'?'States':'Markets')+'</td>';
     html+='<td style="text-align:right">$'+fn(Math.round(tRev))+_wowRev(tRev,tPrevRev)+' <span style="font-size:10px;color:var(--text3)">/ $'+fn(Math.round(tRevTgt))+'</span></td>';
-    html+='<td colspan="4" style="text-align:right;color:var(--text3);font-weight:400;font-size:11px">4-week averages drive the chip color · single-week values show direction of travel</td>';
+    html+='<td colspan="5" style="text-align:right;color:var(--text3);font-weight:400;font-size:11px">4-week averages drive the chip color · single-week values show direction of travel</td>';
     html+='</tr>';
   }
   html+='</tbody></table></div>';
