@@ -249,17 +249,34 @@ async function fetchData(){
 function render(){
   if(!visitsData)return;
 
-  // Override t.grossMarginPct with KSF ACTUALS everywhere — single source of truth
+  // Override t.grossMarginPct so the Overview GM matches the GM tab & CEO scorecard.
+  // Priority: live otCostData (current/recent week) → KSF ACTUALS fallback.
+  // Always includes Regular Pay + OT + Incentives + Tribute Secure + Uber.
   var _t=visitsData.totals;
-  var _GEOS=['Baltimore','Annapolis','Bethesda','Boston','MetroWest Boston','North of Boston','South of Boston','Chicago'];
-  var _r=0,_c=0;
+  var _GEOS=['Baltimore','Annapolis','Bethesda','Boston','MetroWest Boston','North of Boston','South of Boston','Chicago','Northern Virginia'];
+  var _uberTotal=0;
   _GEOS.forEach(function(geo){
-    function _g(m){return(ACTUALS[geo]&&ACTUALS[geo][m]&&ACTUALS[geo][m][curStart])||0;}
-    var rev=_g('Hourly Revenue'); if(!rev)return;
-    var uber=(UBER_DATA[curStart]&&UBER_DATA[curStart][geo]&&UBER_DATA[curStart][geo].amount)||0;
-    _r+=rev; _c+=_g('Hourly Regular Pay')+_g('Hourly OT')+_g('Incentives (Actual)')+_g('TS Admin (Actual)')+uber;
+    _uberTotal+=(UBER_DATA[curStart]&&UBER_DATA[curStart][geo]&&UBER_DATA[curStart][geo].amount)||0;
   });
-  if(_r>0){_t.grossMarginPct=(_r-_c)/_r; _t.grossProfit=_r-_c;}
+  var _r=0,_c=0,_src=null;
+  if(otCostData&&otCostData.totals&&otCostData.totals.revenue){
+    var _ot=otCostData.totals;
+    _r=_ot.revenue||0;
+    var _labor=(typeof _ot.payCost==='number')?_ot.payCost:((_ot.regularPay||0)+(_ot.totalOT||_ot.otPremium||0));
+    _c=_labor+(_ot.incentives||0)+(_ot.tributeSecure||0)+_uberTotal;
+    _src='otCostData';
+  }
+  if(!_r){
+    _r=0;_c=0;
+    _GEOS.forEach(function(geo){
+      function _g(m){return(ACTUALS[geo]&&ACTUALS[geo][m]&&ACTUALS[geo][m][curStart])||0;}
+      var rev=_g('Hourly Revenue'); if(!rev)return;
+      var uber=(UBER_DATA[curStart]&&UBER_DATA[curStart][geo]&&UBER_DATA[curStart][geo].amount)||0;
+      _r+=rev; _c+=_g('Hourly Regular Pay')+_g('Hourly OT')+_g('Incentives (Actual)')+_g('TS Admin (Actual)')+uber;
+    });
+    if(_r)_src='ACTUALS';
+  }
+  if(_r>0){_t.grossMarginPct=(_r-_c)/_r; _t.grossProfit=_r-_c; _t.grossMarginSource=_src;}
 
   if(curTab==='overview')renderOverview();
   else if(curTab==='markets')renderMarkets();
