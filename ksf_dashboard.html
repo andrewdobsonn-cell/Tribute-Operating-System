@@ -219,15 +219,30 @@ function setTab(t,el){
 async function fetchData(){
   document.getElementById('ct').innerHTML='<div class="loading"><div class="spin"></div>Loading data for '+curStart+' to '+curEnd+'...</div>';
   try{
-    var [vr,cr,otr,ur]=await Promise.all([
+    // Compute partner-week range so we can fetch biweekly pay-period OT.
+    // Needed because live ot_costs returns WEEK-of-selection OT only; Week 2
+    // of a pay period concentrates all OT, inflating the ratio. We pair with
+    // the partner week to compute a correct pay-period-blended OT%.
+    var _partnerStart = (typeof _ppPartner==='function') ? _ppPartner(curStart) : null;
+    var _partnerEnd = null;
+    if(_partnerStart){
+      var _p=_partnerStart.split('-'); var _pd=new Date(+_p[0],+_p[1]-1,+_p[2]);
+      _pd.setDate(_pd.getDate()+6);
+      _partnerEnd=_pd.getFullYear()+'-'+String(_pd.getMonth()+1).padStart(2,'0')+'-'+String(_pd.getDate()).padStart(2,'0');
+    }
+    var [vr,cr,otr,ur,por]=await Promise.all([
       fetch(API+'?endpoint=visits&startDate='+curStart+'&endDate='+curEnd),
       fetch(API+'?endpoint=caregivers&fast=true'),
       fetch(API+'?endpoint=ot_costs&startDate='+curStart+'&endDate='+curEnd),
-      fetch(API+'?endpoint=uber_trips').catch(function(){return null;})
+      fetch(API+'?endpoint=uber_trips').catch(function(){return null;}),
+      _partnerStart ? fetch(API+'?endpoint=ot_costs&startDate='+_partnerStart+'&endDate='+_partnerEnd).catch(function(){return null;}) : Promise.resolve(null)
     ]);
     visitsData=vr.ok?await vr.json():null;
     cgData=cr.ok?await cr.json():null;
     otCostData=otr.ok?await otr.json():null;
+    // Partner-week ot_costs for biweekly OT% blend. Stored on window for _marketWeek to pick up.
+    window._partnerOtCostData = (por&&por.ok) ? await por.json() : null;
+    window._partnerWeekStart = _partnerStart;
     // Auto-load Uber data from SFTP via proxy — falls back gracefully if unavailable
     if(ur&&ur.ok){
       var uResp=await ur.json();
@@ -380,17 +395,30 @@ function _marketWeek(market, week, isCurrent){
   var ppRev=rev, ppOT=ot;
   var partner=_ppPartner(week);
   if(partner){
-    var partnerA=(ACTUALS[market]||{});
-    var pRev=(partnerA['Hourly Revenue']&&partnerA['Hourly Revenue'][partner])||0;
-    var pOT =(partnerA['Hourly OT']     &&partnerA['Hourly OT'][partner])||0;
-    // If the partner week is the current live week, prefer otCostData for it.
-    if(partner===curStart && otCostData&&Array.isArray(otCostData.byMarket)){
+    var pRev=0, pOT=0, pGotLive=false;
+    // Priority 1: live partner ot_costs (fetched for the selected week's pay-period partner)
+    if(window._partnerWeekStart===partner && window._partnerOtCostData && Array.isArray(window._partnerOtCostData.byMarket)){
+      var plm=window._partnerOtCostData.byMarket.find(function(m){return m.market===market;});
+      if(plm){
+        pRev=plm.revenue||0;
+        pOT=plm.totalOT||plm.otPremium||0;
+        pGotLive=true;
+      }
+    }
+    // Priority 2: if the partner is the current live week (rare — only when user selects Week 1 of PP)
+    if(!pGotLive && partner===curStart && otCostData&&Array.isArray(otCostData.byMarket)){
       var pom=otCostData.byMarket.find(function(m){return m.market===market;});
       if(pom){
-        if(pom.revenue)pRev=pom.revenue;
-        var pmOT=pom.totalOT||pom.otPremium;
-        if(typeof pmOT==='number')pOT=pmOT;
+        pRev=pom.revenue||0;
+        pOT=pom.totalOT||pom.otPremium||0;
+        pGotLive=true;
       }
+    }
+    // Priority 3: ACTUALS (finalized payroll). Used when partner week is older than the live fetch.
+    if(!pGotLive){
+      var partnerA=(ACTUALS[market]||{});
+      pRev=(partnerA['Hourly Revenue']&&partnerA['Hourly Revenue'][partner])||0;
+      pOT =(partnerA['Hourly OT']     &&partnerA['Hourly OT'][partner])||0;
     }
     if(pRev>0){ ppRev+=pRev; ppOT+=pOT; }
   }
