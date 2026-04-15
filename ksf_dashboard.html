@@ -358,13 +358,12 @@ function _marketWeek(market, week, isCurrent){
         if(typeof om.tributeSecure==='number')ts=om.tributeSecure;
       }
     }
-    // If otCostData didn't populate, back-fill with visitsData's total cost.
-    if(!gotOtData && fallbackCost!==null){
-      // visitsData.cost already includes pay+incentives+TS; treat it as labor+inc+TS combined.
-      regPay = fallbackCost * 0.85; // approximate — OT usually ~15% of labor
-      ot = fallbackCost * 0.15;
-      // inc and ts stay 0 (they're already inside fallbackCost)
-    }
+    // If otCostData didn't populate, fall back to ACTUALS-based OT (accurate,
+    // biweekly-attributed) but use visitsData.cost for GM% denominator so GM
+    // doesn't render as 100%. Do NOT fabricate OT from a % of cost — that
+    // produces misleading 15%+ OT figures when the real split is unknown.
+    // regPay/ot keep their ACTUALS values (if the week is loaded); if ACTUALS
+    // is also missing we leave ot=0 and rely on visitsData.cost for GM only.
   }
   var cost;
   if(isCurrent && fallbackCost!==null && regPay+ot<=0.01 && inc<=0.01 && ts<=0.01){
