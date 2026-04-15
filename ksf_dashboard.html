@@ -475,16 +475,41 @@ function _wowRev(cur, prev){
 function _aggregateHist(markets){
   var out=[];
   for(var i=0;i<4;i++){
-    var agg={rev:0,cost:0,ot:0,uber:0,regPay:0,ts:0,inc:0,hasData:false,week:null};
+    var wk=_weekMinus(curStart,i);
+    var agg={rev:0,cost:0,ot:0,uber:0,regPay:0,ts:0,inc:0,hasData:false,week:null,
+             ppRev:0,ppOT:0}; // pay-period aggregates for blended OT%
     markets.forEach(function(mkt){
-      var snap=_marketWeek(mkt, _weekMinus(curStart,i), i===0);
+      var snap=_marketWeek(mkt, wk, i===0);
       if(!snap.hasData)return;
       agg.hasData=true; agg.week=snap.week;
       agg.rev+=snap.rev; agg.cost+=snap.cost; agg.ot+=snap.ot; agg.uber+=snap.uber;
       agg.regPay+=snap.regPay; agg.ts+=snap.ts; agg.inc+=snap.inc;
+      // Aggregate the biweekly-blended numerator/denominator that _marketWeek
+      // already computed, so the company/state OT% is also pay-period-correct.
+      if(typeof snap.otPct==='number' && snap.rev>0){
+        // Reconstruct pp-level numbers: otPct = ppOT/ppRev. We have snap.otPct
+        // and the raw rev/ot; back-solve to preserve the blend weighting.
+        // Simpler: re-call _marketWeek and add the pair's rev+ot directly.
+        var partner=_ppPartner(wk);
+        var pRev=0, pOT=0;
+        if(partner){
+          // Replicate partner-lookup priority from _marketWeek
+          if(window._partnerWeekStart===partner && window._partnerOtCostData && Array.isArray(window._partnerOtCostData.byMarket)){
+            var plm=window._partnerOtCostData.byMarket.find(function(m){return m.market===mkt;});
+            if(plm){ pRev=plm.revenue||0; pOT=plm.totalOT||plm.otPremium||0; }
+          }
+          if(!pRev){
+            var pA=(ACTUALS[mkt]||{});
+            pRev=(pA['Hourly Revenue']&&pA['Hourly Revenue'][partner])||0;
+            pOT =(pA['Hourly OT']     &&pA['Hourly OT'][partner])||0;
+          }
+        }
+        agg.ppRev += snap.rev + pRev;
+        agg.ppOT  += snap.ot  + pOT;
+      }
     });
     agg.gmPct = agg.rev>0?(agg.rev-agg.cost)/agg.rev:null;
-    agg.otPct = agg.rev>0?agg.ot/agg.rev:null;
+    agg.otPct = agg.ppRev>0?agg.ppOT/agg.ppRev:(agg.rev>0?agg.ot/agg.rev:null);
     agg.uberPct = agg.rev>0?agg.uber/agg.rev:null;
     agg.incPct = agg.rev>0?agg.inc/agg.rev:null;
     out.push(agg);
