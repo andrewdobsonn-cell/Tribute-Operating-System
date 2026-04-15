@@ -108,8 +108,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <div class="period-bar">
   <span style="font-size:11px;color:var(--text4);margin-right:4px">Week:</span>
   <div class="pbtn" onclick="setWeek(0,this)">This week</div>
-  <div class="pbtn on" onclick="setWeek(-1,this)">Last week</div>
-  <div class="pbtn" onclick="setWeek(-2,this)">2 weeks ago</div>
+  <div class="pbtn" onclick="setWeek(-1,this)">Last week</div>
+  <div class="pbtn on" onclick="setWeek(-2,this)">2 weeks ago</div>
   <div class="pbtn" onclick="setWeek(-3,this)">3 weeks ago</div>
   <div class="pbtn" onclick="setWeek(-4,this)">4 weeks ago</div>
   <div style="display:flex;gap:6px;align-items:center;margin-left:8px">
@@ -248,6 +248,20 @@ async function fetchData(){
 function render(){
   if(!visitsData)return;
 
+  // In-flight week banner — injected into whatever tab is rendered.
+  // T-0 (this week) and T-1 (last week) are still settling: visits get re-billed,
+  // rates corrected, cancels flipped. Numbers will drift until the week fully closes.
+  var _inflightBanner='';
+  (function(){
+    var _t0=fmtD(getSunday(0)), _t1=fmtD(getSunday(1));
+    var _which=null;
+    if(curStart===_t0) _which='current';
+    else if(curStart===_t1) _which='last';
+    if(_which){
+      _inflightBanner='<div style="background:var(--amber-bg);border-left:3px solid var(--amber);border-radius:var(--r);padding:10px 14px;margin-bottom:12px;font-size:12px;color:var(--amber-text)"><strong>Data still settling — '+(_which==='current'?'this week':'last week')+'.</strong> Visits get re-billed, rates corrected, and cancels adjusted for up to ~2 weeks after a week ends. Numbers here will drift until the week closes. Use <strong>2 weeks ago</strong> or older for finalized reporting.</div>';
+    }
+  })();
+
   // Override t.grossMarginPct so the Overview GM matches the GM tab & CEO scorecard.
   // Priority: live otCostData (current/recent week) → KSF ACTUALS fallback.
   // Always includes Regular Pay + OT + Incentives + Tribute Secure + Uber.
@@ -286,6 +300,11 @@ function render(){
   else if(curTab==='ot')renderOT();
   else if(curTab==='gm')renderGM();
   else if(curTab==='mf')renderMatchFailures();
+  // Prepend the in-flight week banner (if any) to whatever the tab rendered.
+  if(_inflightBanner){
+    var _ct=document.getElementById('ct');
+    if(_ct) _ct.innerHTML = _inflightBanner + _ct.innerHTML;
+  }
 }
 
 // ── CEO Scorecard helpers ──
@@ -1801,10 +1820,12 @@ function updateClock(){
 }
 
 // ── INIT ───────────────────────────────────────────────────────────
-// Default to the last fully-completed week — the current week is still in progress
-// and its numbers won't be meaningful for leadership review until it closes.
+// Default to T-2 (two weeks ago) — the current week and the week just completed
+// are still in flux (visits get re-billed, rates corrected, cancels flipped after
+// they first sync). Data typically fully settles by T-2, so that's the earliest
+// week leadership can treat as final.
 updateClock();setInterval(updateClock,60000);
-var s=getSunday(1),e=new Date(s);e.setDate(s.getDate()+6);
+var s=getSunday(2),e=new Date(s);e.setDate(s.getDate()+6);
 curStart=fmtD(s);curEnd=fmtD(e);
 document.getElementById('cs').value=curStart;
 document.getElementById('ce').value=curEnd;
