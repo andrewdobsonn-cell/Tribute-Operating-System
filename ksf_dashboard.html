@@ -315,6 +315,17 @@ function _weekMinus(anchor, n){
   d.setDate(d.getDate()-7*n);
   return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 }
+// Biweekly pay period anchor — must match vivProxy_stable.js getPayPeriodStart().
+// Given a Sunday-of-week string, returns the Sunday string of its biweekly partner week.
+// (If given week is pay-period Week 1, partner is +7d Week 2; if Week 2, partner is -7d Week 1.)
+var _PP_ANCHOR_MS = Date.UTC(2026, 2, 8); // 2026-03-08 UTC
+function _ppPartner(week){
+  if(!week)return null;
+  var p=week.split('-'); var d=Date.UTC(+p[0], +p[1]-1, +p[2]);
+  var delta=Math.floor((d-_PP_ANCHOR_MS)/(7*24*3600*1000)); // weeks since anchor
+  var isWeek1=(delta%2===0);
+  return _weekMinus(week, isWeek1?-1:1); // partner is +1wk if Wk1, -1wk if Wk2
+}
 // Per-market per-week snapshot: revenue + total cost breakdown + GM% + OT% + Uber%.
 // For the current week, blends live visits/otCostData; for prior weeks, reads ACTUALS + UBER_DATA.
 function _marketWeek(market, week, isCurrent){
@@ -341,10 +352,30 @@ function _marketWeek(market, week, isCurrent){
     }
   }
   var cost=regPay+ot+ts+inc+uber;
+  // Biweekly-blended OT% — since OT is calculated over a 2-week pay period,
+  // a raw weekly OT/Rev ratio is skewed (Week 2 gets most of the period's OT).
+  // Pair this week with its pay-period partner and average the OT rate.
+  var ppRev=rev, ppOT=ot;
+  var partner=_ppPartner(week);
+  if(partner){
+    var partnerA=(ACTUALS[market]||{});
+    var pRev=(partnerA['Hourly Revenue']&&partnerA['Hourly Revenue'][partner])||0;
+    var pOT =(partnerA['Hourly OT']     &&partnerA['Hourly OT'][partner])||0;
+    // If the partner week is the current live week, prefer otCostData for it.
+    if(partner===curStart && otCostData&&Array.isArray(otCostData.byMarket)){
+      var pom=otCostData.byMarket.find(function(m){return m.market===market;});
+      if(pom){
+        if(pom.revenue)pRev=pom.revenue;
+        var pmOT=pom.totalOT||pom.otPremium;
+        if(typeof pmOT==='number')pOT=pmOT;
+      }
+    }
+    if(pRev>0){ ppRev+=pRev; ppOT+=pOT; }
+  }
   return {
     week:week, rev:rev, cost:cost, ot:ot, uber:uber, regPay:regPay, ts:ts, inc:inc,
     gmPct: rev>0?(rev-cost)/rev:null,
-    otPct: rev>0?ot/rev:null,
+    otPct: ppRev>0?ppOT/ppRev:null, // biweekly-blended
     uberPct: rev>0?uber/rev:null,
     incPct: rev>0?inc/rev:null,
     hasData: rev>0
@@ -500,7 +531,7 @@ function renderScorecard(){
   html+='<th style="text-align:left">'+(curScorecardView==='state'?'State':curScorecardView==='company'?'Company':'Market')+'</th>';
   html+='<th>Revenue<br><span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text3)">wk · WoW · 4wk</span></th>';
   html+='<th>Gross Margin<br><span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text3)">wk · WoW · 4wk</span></th>';
-  html+='<th>OT %<br><span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text3)">wk · WoW · 4wk</span></th>';
+  html+='<th title="OT% is biweekly-blended: OT and revenue summed across the pay period (2 weeks) before dividing, since OT is calculated over the biweekly pay period rather than weekly.">OT %<br><span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text3)">biweekly · WoW · 4wk</span></th>';
   html+='<th>Uber %<br><span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text3)">wk · WoW · 4wk</span></th>';
   html+='<th>Incentives<br><span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text3)">$ · % rev · 4wk avg</span></th>';
   html+='<th>Health</th></tr></thead><tbody>';
