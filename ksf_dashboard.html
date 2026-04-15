@@ -493,6 +493,8 @@ function renderScorecard(){
       curUb:cur.uberPct, prevUb:prev.uberPct, avgUb:avg('uberPct'),
       curInc$:cur.inc, prevInc$:prev.inc, avgInc$:(function(){var vs=withData.map(function(h){return h.inc;});return vs.length?vs.reduce(function(s,v){return s+v;},0)/vs.length:0;})(),
       curIncPct:cur.incPct, prevIncPct:prev.incPct, avgIncPct:avg('incPct'),
+      curTS$:cur.ts, prevTS$:prev.ts, avgTS$:(function(){var vs=withData.map(function(h){return h.ts;});return vs.length?vs.reduce(function(s,v){return s+v;},0)/vs.length:0;})(),
+      curTSPct:cur.rev>0?cur.ts/cur.rev:null, avgTSPct:(function(){var vs=withData.map(function(h){return h.rev>0?h.ts/h.rev:null;}).filter(function(v){return v!==null;});return vs.length?vs.reduce(function(s,v){return s+v;},0)/vs.length:null;})(),
       targetRev:b.revenueWeekly, targetGM:b.grossMarginPct, targetOT:b.otPct, targetUb:b.lyftPct
     };
     // Chips use 4-week averages (smooths out weekly noise)
@@ -528,6 +530,7 @@ function renderScorecard(){
   html+='<th>OT %<br><span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text3)">WoW · 4wk</span></th>';
   html+='<th>Uber %<br><span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text3)">wk · WoW · 4wk</span></th>';
   html+='<th>Incentives<br><span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text3)">$ · % rev · 4wk avg</span></th>';
+  html+='<th>TS Admin<br><span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text3)">$ · % rev · 4wk avg</span></th>';
   html+='<th>Health</th></tr></thead><tbody>';
   rows.forEach(function(r){
     html+='<tr>';
@@ -542,6 +545,8 @@ function renderScorecard(){
     html+='<td><div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px"><div>'+(r.curUb===null?'—':fp(r.curUb))+_wowPct(r.curUb,r.prevUb)+'</div><div><span class="'+r.cUb.cls+'">'+r.cUb.label+' avg</span> <span style="font-size:10px;color:var(--text3)">/ '+fp(r.targetUb)+'</span></div></div></td>';
     // Incentives ($ + % of revenue; no target — shown as context for GM)
     html+='<td><div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px"><div>$'+fn(Math.round(r.curInc$||0))+' <span style="font-size:10px;color:var(--text3)">'+(r.curIncPct===null?'':fp(r.curIncPct)+' rev')+'</span></div><div><span style="font-size:10px;color:var(--text3)">$'+fn(Math.round(r.avgInc$||0))+' avg · '+(r.avgIncPct===null?'—':fp(r.avgIncPct))+'</span></div></div></td>';
+    // TS Admin ($ + % of revenue; no target — included in GM cost)
+    html+='<td><div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px"><div>$'+fn(Math.round(r.curTS$||0))+' <span style="font-size:10px;color:var(--text3)">'+(r.curTSPct===null?'':fp(r.curTSPct)+' rev')+'</span></div><div><span style="font-size:10px;color:var(--text3)">$'+fn(Math.round(r.avgTS$||0))+' avg · '+(r.avgTSPct===null?'—':fp(r.avgTSPct))+'</span></div></div></td>';
     html+='<td><span class="'+r.overall+'">'+r.overallLabel+'</span></td>';
     html+='</tr>';
   });
@@ -553,10 +558,23 @@ function renderScorecard(){
     html+='<tr style="background:var(--gray100);font-weight:600">';
     html+='<td style="text-align:left">All '+(curScorecardView==='state'?'States':'Markets')+'</td>';
     html+='<td style="text-align:right">$'+fn(Math.round(tRev))+_wowRev(tRev,tPrevRev)+' <span style="font-size:10px;color:var(--text3)">/ $'+fn(Math.round(tRevTgt))+'</span></td>';
-    html+='<td colspan="5" style="text-align:right;color:var(--text3);font-weight:400;font-size:11px">4-week averages drive the chip color · single-week values show direction of travel</td>';
+    html+='<td colspan="6" style="text-align:right;color:var(--text3);font-weight:400;font-size:11px">4-week averages drive the chip color · single-week values show direction of travel</td>';
     html+='</tr>';
   }
   html+='</tbody></table></div>';
+  // Data-source note for the selected week — makes it clear when live Viv is the source
+  (function(){
+    var hasActuals=Object.keys(ACTUALS).some(function(mkt){
+      return ACTUALS[mkt]&&ACTUALS[mkt]['Hourly Regular Pay']&&ACTUALS[mkt]['Hourly Regular Pay'][curStart];
+    });
+    var note;
+    if(hasActuals){
+      note='<strong>Source:</strong> iSolved payroll actuals (finalized). Regular Pay, OT, TS Admin, and Incentives come straight from the weekly Scheduling KSF export.';
+    } else {
+      note='<strong>Source:</strong> Viv live data (payroll not yet finalized for this week). Regular Pay is visit-derived — it typically runs 3–5% below the iSolved finalized number because iSolved also captures non-visit paid hours (training, orientation, clock-in overhead). GM% here may read a bit high until the week finalizes; TS Admin and Incentives are also live and may move. OT % is backend-computed weekly (matches iSolved).';
+    }
+    html+='<div style="font-size:11px;color:var(--text3);margin-top:8px;line-height:1.5;padding:0 2px">'+note+' GM cost = Regular Pay + OT + TS Admin + Incentives + Uber.</div>';
+  })();
   html+='</div>';
   return html;
 }
