@@ -79,6 +79,17 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .two-col{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
 @media(max-width:800px){.two-col{grid-template-columns:1fr}}
 .ftr{border-top:1px solid var(--gray200);padding:14px 32px;display:flex;justify-content:space-between;font-size:10px;color:var(--text4);background:var(--white);margin-top:16px}
+.scorecard-wrap{margin-bottom:18px}
+.tbl.scorecard td{padding:10px;vertical-align:top}
+.tbl.scorecard th{padding:10px;line-height:1.3}
+@media print {
+  body{background:#fff;font-size:11px}
+  .no-print, header button, .ntabs, .weeks, .fc > .ct + .upload-zone, #uberFile, .upload-zone, .upload-status { display:none !important; }
+  .kg, .kg4, .kpi, .ct, .tbl, .tbl thead, .tbl tbody, .tbl tr { page-break-inside:avoid; }
+  .scorecard-wrap { page-break-after:always; }
+  .fc { box-shadow:none !important; border:1px solid #ccc !important; }
+  @page { size:letter landscape; margin:0.4in; }
+}
 </style>
 </head>
 <body>
@@ -253,9 +264,170 @@ function render(){
   else if(curTab==='mf')renderMatchFailures();
 }
 
+// ── CEO Scorecard helpers ──
+// Return the Sunday-of-week string (YYYY-MM-DD) N weeks before `anchor` (also YYYY-MM-DD).
+function _weekMinus(anchor, n){
+  if(!anchor)return null;
+  var p=anchor.split('-'); var d=new Date(+p[0], +p[1]-1, +p[2]);
+  d.setDate(d.getDate()-7*n);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+// Per-market per-week snapshot: revenue + total cost breakdown + GM% + OT% + Uber%.
+// For the current week, blends live visits/otCostData; for prior weeks, reads ACTUALS + UBER_DATA.
+function _marketWeek(market, week, isCurrent){
+  var A=ACTUALS[market]||{};
+  function val(metric){ return (A[metric]&&A[metric][week])||0; }
+  var rev=val('Hourly Revenue');
+  var regPay=val('Hourly Regular Pay');
+  var ot=val('Hourly OT');
+  var ts=val('TS Admin (Actual)');
+  var inc=val('Incentives (Actual)');
+  var uber=(UBER_DATA[week]&&UBER_DATA[week][market]&&UBER_DATA[week][market].amount)||0;
+  // Current-week live overrides
+  if(isCurrent){
+    var vm=(visitsData.markets||[]).find(function(m){return m.market===market;});
+    if(vm&&vm.revenue)rev=vm.revenue;
+    if(otCostData&&Array.isArray(otCostData.byMarket)){
+      var om=otCostData.byMarket.find(function(m){return m.market===market;});
+      if(om){
+        if(om.revenue)rev=om.revenue;
+        if(typeof om.regularPay==='number'){regPay=om.regularPay;ot=om.totalOT||om.otPremium||ot;}
+        if(typeof om.incentives==='number')inc=om.incentives;
+        if(typeof om.tributeSecure==='number')ts=om.tributeSecure;
+      }
+    }
+  }
+  var cost=regPay+ot+ts+inc+uber;
+  return {
+    week:week, rev:rev, cost:cost, ot:ot, uber:uber, regPay:regPay, ts:ts, inc:inc,
+    gmPct: rev>0?(rev-cost)/rev:null,
+    otPct: rev>0?ot/rev:null,
+    uberPct: rev>0?uber/rev:null,
+    hasData: rev>0
+  };
+}
+// Get last 4 snapshots ending at curStart for a market.
+function _marketTrailing4(market){
+  var out=[];
+  for(var i=0;i<4;i++){
+    var wk=_weekMinus(curStart,i);
+    out.push(_marketWeek(market, wk, i===0));
+  }
+  return out;
+}
+// Color-chip for a metric vs target. "lower" means lower is better (OT, Uber).
+function _chip(actual, target, lower, amberPad){
+  if(actual===null||target===null||isNaN(actual))return {cls:'bdg',label:'—'};
+  amberPad = amberPad || 0.02;
+  var ok, amber;
+  if(lower){ ok=actual<=target; amber=actual<=target+amberPad; }
+  else     { ok=actual>=target; amber=actual>=target-amberPad; }
+  var cls = ok?'bdg bg': amber?'bdg ba':'bdg br';
+  return {cls:cls, label:fp(actual)};
+}
+function _chipRev(actualAvg, target){
+  if(!target)return {cls:'bdg',label:'$'+fn(Math.round(actualAvg))};
+  var ratio=actualAvg/target;
+  var cls = ratio>=0.95?'bdg bg': ratio>=0.85?'bdg ba':'bdg br';
+  return {cls:cls, label:'$'+fn(Math.round(actualAvg))};
+}
+// Format WoW delta as pp (for %s) or $K (for revenue).
+function _wowPct(cur, prev){
+  if(cur===null||prev===null||isNaN(cur)||isNaN(prev))return '';
+  var d=(cur-prev)*100;
+  var arrow=d>0.05?'▲':d<-0.05?'▼':'~';
+  var color=d>0.05?'var(--text2)':d<-0.05?'var(--text2)':'var(--text3)';
+  return '<span style="font-size:10px;color:'+color+';margin-left:4px">'+arrow+' '+Math.abs(d).toFixed(1)+'pp</span>';
+}
+function _wowRev(cur, prev){
+  if(!prev)return '';
+  var d=(cur-prev)/prev*100;
+  var arrow=d>2?'▲':d<-2?'▼':'~';
+  return '<span style="font-size:10px;color:var(--text2);margin-left:4px">'+arrow+' '+Math.abs(d).toFixed(1)+'%</span>';
+}
+function renderScorecard(){
+  // Markets in order — include any with a budget entry AND some data.
+  var MKTS=Object.keys(BUDGET);
+  var rows=MKTS.map(function(mkt){
+    var hist=_marketTrailing4(mkt);
+    var cur=hist[0], prev=hist[1];
+    if(!cur.hasData && !hist.some(function(h){return h.hasData;}))return null;
+    var withData=hist.filter(function(h){return h.hasData;});
+    var avg = function(key){
+      if(withData.length===0)return null;
+      var vs=withData.map(function(h){return h[key];}).filter(function(v){return v!==null&&!isNaN(v);});
+      if(vs.length===0)return null;
+      return vs.reduce(function(s,v){return s+v;},0)/vs.length;
+    };
+    var b=BUDGET[mkt];
+    var r={
+      market:mkt,
+      curRev:cur.rev, prevRev:prev.rev, avgRev:avg('rev'),
+      curGM:cur.gmPct, prevGM:prev.gmPct, avgGM:avg('gmPct'),
+      curOT:cur.otPct, prevOT:prev.otPct, avgOT:avg('otPct'),
+      curUb:cur.uberPct, prevUb:prev.uberPct, avgUb:avg('uberPct'),
+      targetRev:b.revenueWeekly, targetGM:b.grossMarginPct, targetOT:b.otPct, targetUb:b.lyftPct
+    };
+    // Chips use 4-week averages (smooths out weekly noise)
+    r.cRev=_chipRev(r.avgRev||0, r.targetRev);
+    r.cGM=_chip(r.avgGM, r.targetGM, false, 0.02);
+    r.cOT=_chip(r.avgOT, r.targetOT, true, 0.02);
+    r.cUb=_chip(r.avgUb, r.targetUb, true, 0.005);
+    // Overall health = worst chip
+    var cls=[r.cRev.cls,r.cGM.cls,r.cOT.cls,r.cUb.cls].join(' ');
+    r.overall = /br/.test(cls)?'bdg br':/ba/.test(cls)?'bdg ba':'bdg bg';
+    r.overallLabel = /br/.test(cls)?'At risk':/ba/.test(cls)?'Watch':'On track';
+    return r;
+  }).filter(Boolean);
+
+  var html='';
+  html+='<div class="scorecard-wrap">';
+  html+='<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px">';
+  html+='<div><span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--orange)">CEO Weekly Scorecard</span> <span style="font-size:11px;color:var(--text3);margin-left:8px">Week of '+curStart+' · current vs 4-week trailing vs target</span></div>';
+  html+='<button onclick="window.print()" class="no-print" style="padding:5px 12px;font-size:11px;background:var(--orange);color:#fff;border:none;border-radius:4px;cursor:pointer;font-weight:600">🖨 Print for leadership</button>';
+  html+='</div>';
+  html+='<div class="fc" style="padding:0;overflow:hidden">';
+  html+='<table class="tbl scorecard"><thead><tr>';
+  html+='<th style="text-align:left">Market</th>';
+  html+='<th>Revenue<br><span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text3)">wk · WoW · 4wk</span></th>';
+  html+='<th>Gross Margin<br><span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text3)">wk · WoW · 4wk</span></th>';
+  html+='<th>OT %<br><span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text3)">wk · WoW · 4wk</span></th>';
+  html+='<th>Uber %<br><span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text3)">wk · WoW · 4wk</span></th>';
+  html+='<th>Health</th></tr></thead><tbody>';
+  rows.forEach(function(r){
+    html+='<tr>';
+    html+='<td style="text-align:left;font-weight:600">'+r.market+'</td>';
+    // Revenue
+    html+='<td><div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px"><div>$'+fn(Math.round(r.curRev))+_wowRev(r.curRev,r.prevRev)+'</div><div><span class="'+r.cRev.cls+'">'+r.cRev.label+' avg</span> <span style="font-size:10px;color:var(--text3)">/ $'+fn(Math.round(r.targetRev||0))+'</span></div></div></td>';
+    // GM
+    html+='<td><div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px"><div>'+(r.curGM===null?'—':fp(r.curGM))+_wowPct(r.curGM,r.prevGM)+'</div><div><span class="'+r.cGM.cls+'">'+r.cGM.label+' avg</span> <span style="font-size:10px;color:var(--text3)">/ '+fp(r.targetGM)+'</span></div></div></td>';
+    // OT
+    html+='<td><div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px"><div>'+(r.curOT===null?'—':fp(r.curOT))+_wowPct(r.curOT,r.prevOT)+'</div><div><span class="'+r.cOT.cls+'">'+r.cOT.label+' avg</span> <span style="font-size:10px;color:var(--text3)">/ '+fp(r.targetOT)+'</span></div></div></td>';
+    // Uber
+    html+='<td><div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px"><div>'+(r.curUb===null?'—':fp(r.curUb))+_wowPct(r.curUb,r.prevUb)+'</div><div><span class="'+r.cUb.cls+'">'+r.cUb.label+' avg</span> <span style="font-size:10px;color:var(--text3)">/ '+fp(r.targetUb)+'</span></div></div></td>';
+    html+='<td><span class="'+r.overall+'">'+r.overallLabel+'</span></td>';
+    html+='</tr>';
+  });
+  // Company totals row (sums)
+  var tRev=rows.reduce(function(s,r){return s+(r.curRev||0);},0);
+  var tRevTgt=rows.reduce(function(s,r){return s+(r.targetRev||0);},0);
+  var tPrevRev=rows.reduce(function(s,r){return s+(r.prevRev||0);},0);
+  html+='<tr style="background:var(--gray100);font-weight:600">';
+  html+='<td style="text-align:left">All Markets</td>';
+  html+='<td style="text-align:right">$'+fn(Math.round(tRev))+_wowRev(tRev,tPrevRev)+' <span style="font-size:10px;color:var(--text3)">/ $'+fn(Math.round(tRevTgt))+'</span></td>';
+  html+='<td colspan="4" style="text-align:right;color:var(--text3);font-weight:400;font-size:11px">4-week averages drive the chip color · single-week values show direction of travel</td>';
+  html+='</tr>';
+  html+='</tbody></table></div>';
+  html+='</div>';
+  return html;
+}
+
 function renderOverview(){
   var t=visitsData.totals, mkts=visitsData.markets||[];
   var html='';
+
+  // CEO scorecard (always first)
+  html+=renderScorecard();
 
   // Top KPIs
   html+='<div class="kg">';
