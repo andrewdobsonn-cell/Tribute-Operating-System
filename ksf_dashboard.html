@@ -762,8 +762,13 @@ function _rideFields(r){
   var date=r['Request Date (Local)']||r['Request Date (UTC)']||'';
   var caregiver=(r['Guest First Name']||'').trim();
   var client=(r['Guest Last Name']||'').trim();
-  var booker=(r['Requestor Name']||r['Requester Name']||r['Requester']||r['Requestor']||'').trim();
-  var bookerEmail=(r['Requestor Email']||r['Requester Email']||'').trim();
+  // Booker = Requester's First Name + Last Name (columns Q & R in the Uber export).
+  // Fall back to "Requestor Name" style fields if Uber ever renames the columns.
+  var bookerFirst=(r['First Name']||'').trim();
+  var bookerLast =(r['Last Name'] ||'').trim();
+  var booker=(bookerFirst+' '+bookerLast).trim()
+           || (r['Requestor Name']||r['Requester Name']||r['Requester']||r['Requestor']||'').trim();
+  var bookerEmail=(r['Email']||r['Requestor Email']||r['Requester Email']||'').trim();
   var amt=parseFloat(String(r['Transaction Amount in USD (incl. Taxes)']||r['Transaction Amount USD']||r['Total Fare USD']||'0').replace(/[^0-9.\-]/g,''))||0;
   var market=r._market||getUberMarket((r['Expense Code']||'').toUpperCase().replace(/-\s*(TRIBUTE|CLIENT|CAREGIVER)\s*$/i,''))||'';
   var status=r['Transaction Type']||r['Status']||'';
