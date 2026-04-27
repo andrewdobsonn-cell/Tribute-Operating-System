@@ -127,6 +127,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <div class="vtab" onclick="setView('heatmap',this)">Heatmap</div>
   <div class="vtab" onclick="setView('mce',this)">By MCE</div>
   <div class="vtab" onclick="setView('newhires',this)">First 90 Days</div>
+  <div class="vtab" onclick="setView('tributesecure',this)">Tribute Secure</div>
+  <div class="vtab" onclick="setView('barriers',this)">Performance Barriers</div>
+  <div class="vtab" onclick="setView('dhtrend',this)">DH Over Time</div>
   <div class="vtab" onclick="setView('list',this)">All Caregivers</div>
 </div>
 
@@ -248,6 +251,9 @@ function render(){
   else if(curView==='heatmap')renderHeatmap();
   else if(curView==='mce')renderMCE();
   else if(curView==='newhires')renderNewHires();
+  else if(curView==='tributesecure')renderTributeSecure();
+  else if(curView==='barriers')renderBarriers();
+  else if(curView==='dhtrend')renderDHTrend();
   else renderList();
 }
 
@@ -667,6 +673,91 @@ function sortTable(tableId,col,type){
 }
 
 
+function renderTributeSecure(){
+  var allCgs=getFiltered();
+  var tsCgs=allCgs.filter(function(c){return c.tsThreshold>0;});
+  var agg=aggregateGroup(tsCgs);
+  var ts40=tsCgs.filter(function(c){return c.tsThreshold===40;});
+  var ts30=tsCgs.filter(function(c){return c.tsThreshold===30;});
+  var ts20=tsCgs.filter(function(c){return c.tsThreshold===20;});
+
+  // Caregivers below threshold (owed hours)
+  var belowThreshold=tsCgs.filter(function(c){
+    var totalAccounted=c.scheduledHrs+c.ptoHrs;
+    return totalAccounted<c.tsThreshold;
+  });
+  var totalOwed=belowThreshold.reduce(function(s,c){return s+Math.max(0,c.tsThreshold-(c.scheduledHrs+c.ptoHrs));},0);
+
+  var html='';
+  html+='<div class="banner"><div class="bl">Tribute Secure &mdash; '+navLabel()+' &mdash; '+curStart+' to '+curEnd+'</div>';
+  html+=fn(tsCgs.length)+' caregivers enrolled in Tribute Secure. ';
+  html+=belowThreshold.length+' currently below their guaranteed threshold ('+fn(Math.round(totalOwed))+'h owed).</div>';
+
+  html+='<div class="kg">';
+  html+='<div class="kpi"><div class="kl">TS Caregivers</div><div class="kv p">'+fn(tsCgs.length)+'</div><div class="ks">of '+fn(allCgs.length)+' total</div></div>';
+  html+='<div class="kpi"><div class="kl">TS40</div><div class="kv p">'+fn(ts40.length)+'</div><div class="ks">40h guarantee</div></div>';
+  html+='<div class="kpi"><div class="kl">TS30</div><div class="kv p">'+fn(ts30.length)+'</div><div class="ks">30h guarantee</div></div>';
+  html+='<div class="kpi"><div class="kl">Below Threshold</div><div class="kv '+(belowThreshold.length>0?'r':'g')+'">'+fn(belowThreshold.length)+'</div><div class="ks">'+fn(Math.round(totalOwed))+'h owed</div></div>';
+  html+='<div class="kpi"><div class="kl">At 75%+ Desired</div><div class="kv '+(agg.goal75>=0.9?'g':agg.goal75>=0.7?'a':'r')+'">'+fp(agg.goal75)+'</div><div class="ks">of TS caregivers</div></div>';
+  html+='</div>';
+
+  // Happiness distribution
+  html+='<div class="fc"><div class="ct">Happiness Distribution &mdash; Tribute Secure</div>';
+  html+=stackBar(agg.b0,agg.b25,agg.b50,agg.b75,agg.total,16);
+  html+='<div style="display:flex;gap:16px;margin-top:8px;font-size:11px">';
+  html+='<span style="color:var(--red)">0-25%: '+agg.b0+'</span>';
+  html+='<span style="color:var(--red)">25-50%: '+agg.b25+'</span>';
+  html+='<span style="color:var(--amber)">50-75%: '+agg.b50+'</span>';
+  html+='<span style="color:var(--green)">75%+: '+agg.b75+'</span>';
+  html+='</div></div>';
+
+  // Below-threshold table
+  if(belowThreshold.length>0){
+    belowThreshold.sort(function(a,b){
+      var aOwed=a.tsThreshold-(a.scheduledHrs+a.ptoHrs);
+      var bOwed=b.tsThreshold-(b.scheduledHrs+b.ptoHrs);
+      return bOwed-aOwed;
+    });
+    html+='<div class="fc"><div class="ct">Below Threshold &mdash; TS Admin Time Needed</div>';
+    html+='<table class="tbl"><thead><tr><th style="text-align:left">Caregiver</th><th style="text-align:left">Market</th><th style="text-align:left">MCE</th><th>Threshold</th><th>Scheduled</th><th>PTO</th><th>Hrs Owed</th></tr></thead><tbody>';
+    belowThreshold.forEach(function(c){
+      var owed=Math.max(0,c.tsThreshold-(c.scheduledHrs+c.ptoHrs));
+      html+='<tr>';
+      html+='<td>'+c.name+'</td>';
+      html+='<td style="font-weight:normal;color:var(--text2)">'+c.market+'</td>';
+      html+='<td style="font-weight:normal;color:var(--text2)">'+c.assignee+'</td>';
+      html+='<td style="color:var(--purple)">TS'+c.tsThreshold+'</td>';
+      html+='<td>'+fh(c.scheduledHrs)+'</td>';
+      html+='<td style="color:'+(c.ptoHrs>0?'var(--amber)':'var(--text3)')+'">'+( c.ptoHrs>0?fh(c.ptoHrs):'—')+'</td>';
+      html+='<td style="color:var(--red);font-weight:500">'+fh(owed)+'</td>';
+      html+='</tr>';
+    });
+    html+='</tbody></table></div>';
+  }
+
+  // Full TS roster
+  html+='<div class="fc"><div class="ct">All Tribute Secure Caregivers ('+tsCgs.length+')</div>';
+  tsCgs.sort(function(a,b){return a.name.localeCompare(b.name);});
+  html+='<table class="tbl"><thead><tr><th style="text-align:left">Caregiver</th><th style="text-align:left">Market</th><th style="text-align:left">MCE</th><th style="text-align:left">Type</th><th>Threshold</th><th>Happiness</th><th>Scheduled</th><th>Desired</th><th>Gap</th></tr></thead><tbody>';
+  tsCgs.forEach(function(c){
+    var pct=Math.round(c.happiness*100);
+    html+='<tr>';
+    html+='<td>'+c.name+'</td>';
+    html+='<td style="font-weight:normal;color:var(--text2)">'+c.market+'</td>';
+    html+='<td style="font-weight:normal;color:var(--text2)">'+c.assignee+'</td>';
+    html+='<td style="font-weight:normal">'+TYPE_ICONS[c.cgType]+' '+c.cgType+'</td>';
+    html+='<td style="color:var(--purple)">TS'+c.tsThreshold+'</td>';
+    html+='<td><span class="bdg '+hapBdg(c.happiness)+'">'+pct+'%</span></td>';
+    html+='<td>'+fh(c.scheduledHrs)+'</td>';
+    html+='<td>'+fh(c.desiredHrs)+'</td>';
+    html+='<td style="color:'+(c.differential>=0?'var(--green)':'var(--red)')+'">'+(c.differential>=0?'+':'')+fh(c.differential)+'</td>';
+    html+='</tr>';
+  });
+  html+='</tbody></table></div>';
+
+  document.getElementById('ct').innerHTML=html;
+}
+
 function renderList(){
   var html='';
   html+='<div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">';
@@ -674,6 +765,13 @@ function renderList(){
   html+='<select onchange="filterByType(this.value)" style="font-size:11px;padding:7px 10px;border:.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text);cursor:pointer">';
   html+='<option value="">All types</option>';
   ['Live-In','Overnight','Long Hour','Short Hour'].forEach(function(t){html+='<option>'+t+'</option>';});
+  html+='</select>';
+  html+='<select onchange="filterByTS(this.value)" style="font-size:11px;padding:7px 10px;border:.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text);cursor:pointer">';
+  html+='<option value="">All TS</option>';
+  html+='<option value="any">Tribute Secure only</option>';
+  html+='<option value="40">TS40</option>';
+  html+='<option value="30">TS30</option>';
+  html+='<option value="20">TS20</option>';
   html+='</select>';
   html+='<select onchange="filterByBucket(this.value)" style="font-size:11px;padding:7px 10px;border:.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text);cursor:pointer">';
   html+='<option value="">All happiness</option>';
@@ -690,9 +788,11 @@ function renderList(){
 
 var listTypeFilter='';
 var listBucketFilter='';
+var listTSFilter='';
 
 function filterByType(v){listTypeFilter=v;renderListTable();}
 function filterByBucket(v){listBucketFilter=v;renderListTable();}
+function filterByTS(v){listTSFilter=v;renderListTable();}
 
 function renderListTable(){
   var cgs=getFiltered();
@@ -700,6 +800,8 @@ function renderListTable(){
   if(lq)cgs=cgs.filter(function(c){return c.name.toLowerCase().includes(lq)||c.market.toLowerCase().includes(lq)||c.assignee.toLowerCase().includes(lq)||c.cgType.toLowerCase().includes(lq);});
   if(listTypeFilter)cgs=cgs.filter(function(c){return c.cgType===listTypeFilter;});
   if(listBucketFilter)cgs=cgs.filter(function(c){return c.bucket===listBucketFilter;});
+  if(listTSFilter==='any')cgs=cgs.filter(function(c){return c.tsThreshold>0;});
+  else if(listTSFilter)cgs=cgs.filter(function(c){return c.tsThreshold===parseInt(listTSFilter);});
 
   var col=listSort.col,dir=listSort.dir;
   cgs=cgs.slice().sort(function(a,b){
@@ -721,6 +823,8 @@ function renderListTable(){
   html+=thSort('Market','market');
   html+=thSort('Type','cgType');
   html+=thSort('MCE','assignee');
+  html+=thSort('Hire Date','hireDate');
+  html+=thSort('TS','tsThreshold');
   html+=thSort('Happiness','happiness');
   html+=thSort('Scheduled','scheduledHrs');
   html+=thSort('Desired','desiredHrs');
@@ -730,11 +834,16 @@ function renderListTable(){
 
   cgs.slice(0,500).forEach(function(c){
     var pct=Math.round(c.happiness*100);
+    var hd=c.hireDate?new Date(c.hireDate+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'2-digit'}):'—';
+    var tsLabel=c.tsThreshold?'TS'+c.tsThreshold:'—';
+    var tsColor=c.tsThreshold?'var(--purple)':'var(--text3)';
     html+='<tr>';
     html+='<td>'+c.name+'</td>';
     html+='<td style="font-weight:normal;color:var(--text2)">'+c.market+'</td>';
     html+='<td style="font-weight:normal">'+TYPE_ICONS[c.cgType]+' '+c.cgType+'</td>';
     html+='<td style="font-weight:normal;color:var(--text2)">'+c.assignee+'</td>';
+    html+='<td style="font-weight:normal;font-size:11px;color:var(--text2)">'+hd+'</td>';
+    html+='<td style="font-weight:normal;color:'+tsColor+'">'+tsLabel+'</td>';
     html+='<td><span class="bdg '+hapBdg(c.happiness)+'">'+pct+'%</span></td>';
     html+='<td>'+fh(c.scheduledHrs)+'</td>';
     html+='<td>'+fh(c.desiredHrs)+'</td>';
@@ -836,6 +945,253 @@ function toggleMCE(id){
   var el=document.getElementById(id),arr=document.getElementById(id+'-arr');
   if(el.style.display==='none'||!el.style.display){el.style.display='block';arr.innerHTML='&#9660;';}
   else{el.style.display='none';arr.innerHTML='&#9654;';}
+}
+
+// ── PERFORMANCE BARRIERS ──────────────────────────────────────────────
+var barriersData=null;
+var barriersLoading=false;
+
+function renderBarriers(){
+  if(barriersData&&barriersData._period===curStart){
+    renderBarriersUI(barriersData);
+    return;
+  }
+  if(barriersLoading)return;
+  barriersLoading=true;
+  document.getElementById('ct').innerHTML='<div class="loading"><div class="spin"></div>Loading performance barriers (90-day lookback)...<br><span style="font-size:11px;color:var(--text3);margin-top:8px;display:block">Fetching incident reports and turndown data.</span></div>';
+  fetch(API+'?endpoint=performance_barriers&startDate='+curStart+'&endDate='+curEnd+'&lookback=90')
+    .then(function(r){return r.json();})
+    .then(function(d){
+      d._period=curStart;
+      barriersData=d;
+      barriersLoading=false;
+      renderBarriersUI(d);
+    })
+    .catch(function(e){
+      barriersLoading=false;
+      document.getElementById('ct').innerHTML='<div class="err">Error loading barriers: '+e.message+'</div>';
+    });
+}
+
+function renderBarriersUI(d){
+  var html='';
+  html+='<div class="banner"><div class="bl">Performance Barriers &mdash; '+curStart+' to '+curEnd+' (90-day lookback)</div>';
+  html+=fn(d.totalCaregivers)+' caregivers with barrier-related incidents. '+fn(d.totalIncidents)+' total incidents across '+d.typeSummary.length+' categories.';
+  if(d.turndownVisits>0)html+=' '+fn(d.turndownVisits)+' turndown visits this week.';
+  html+='</div>';
+
+  // KPIs
+  html+='<div class="kg">';
+  html+='<div class="kpi"><div class="kl">Caregivers Affected</div><div class="kv r">'+fn(d.totalCaregivers)+'</div><div class="ks">with barrier incidents</div></div>';
+  html+='<div class="kpi"><div class="kl">Total Incidents</div><div class="kv a">'+fn(d.totalIncidents)+'</div><div class="ks">last 90 days</div></div>';
+  html+='<div class="kpi"><div class="kl">Turndown Visits</div><div class="kv a">'+fn(d.turndownVisits)+'</div><div class="ks">this week</div></div>';
+  html+='</div>';
+
+  // Type summary
+  var BARRIER_COLORS={'Turndowns':'var(--red)','Communication: Not Responding':'var(--amber)',
+    'Reliability: Short Notice Avail Change':'var(--red)','Reliability: Didn\'t Follow Availability':'var(--red)',
+    'Flexibility: Won\'t Travel':'var(--amber)','Flexibility: Won\'t See Client in Skill Level':'var(--amber)',
+    'Flexibility: Weekend Commitment Not Met':'var(--amber)'};
+  var BARRIER_ICONS={'Turndowns':'🚫','Communication: Not Responding':'📵',
+    'Reliability: Short Notice Avail Change':'⏰','Reliability: Didn\'t Follow Availability':'📋',
+    'Flexibility: Won\'t Travel':'🚗','Flexibility: Won\'t See Client in Skill Level':'🎯',
+    'Flexibility: Weekend Commitment Not Met':'📅'};
+
+  html+='<div class="fc"><div class="ct">Incidents by Category</div>';
+  if(d.typeSummary.length>0){
+    var maxInc=d.typeSummary[0].incidents;
+    d.typeSummary.forEach(function(t){
+      var pct=maxInc>0?t.incidents/maxInc*100:0;
+      var color=BARRIER_COLORS[t.type]||'var(--text2)';
+      var icon=BARRIER_ICONS[t.type]||'⚠️';
+      html+='<div class="mbr">';
+      html+='<div class="mbl">'+icon+' '+t.type+'</div>';
+      html+='<div class="mbt"><div class="mbf" style="width:'+pct+'%;background:'+color+'"></div></div>';
+      html+='<div class="mbv">'+t.incidents+' <span style="font-size:10px;color:var(--text3)">('+t.caregivers+' CGs)</span></div>';
+      html+='</div>';
+    });
+  } else {
+    html+='<div style="padding:20px;text-align:center;color:var(--text3)">No barrier incidents found in the lookback period.</div>';
+  }
+  html+='</div>';
+
+  // Caregiver detail table
+  if(d.caregivers.length>0){
+    html+='<div class="fc"><div class="ct">Caregivers with Barriers ('+fn(d.caregivers.length)+')</div>';
+    html+='<div style="font-size:11px;color:var(--text3);margin-bottom:8px">Sorted by total incidents. Showing up to 200.</div>';
+    html+='<table class="tbl"><thead><tr><th style="text-align:left">Caregiver</th><th>Total</th>';
+    // Dynamic columns for each barrier type
+    var colTypes=d.typeSummary.map(function(t){return t.type;});
+    colTypes.forEach(function(t){
+      var icon=BARRIER_ICONS[t]||'⚠️';
+      html+='<th title="'+t+'">'+icon+'</th>';
+    });
+    html+='</tr></thead><tbody>';
+    d.caregivers.slice(0,200).forEach(function(cg){
+      html+='<tr>';
+      html+='<td>'+cg.name+'</td>';
+      html+='<td style="font-weight:500;color:var(--red)">'+cg.total+'</td>';
+      colTypes.forEach(function(t){
+        var v=cg.barriers[t]||0;
+        html+='<td style="color:'+(v>0?'var(--text)':'var(--text3)')+'">'+( v>0?v:'—')+'</td>';
+      });
+      html+='</tr>';
+    });
+    html+='</tbody></table></div>';
+  }
+
+  document.getElementById('ct').innerHTML=html;
+}
+
+// ── DH OVER TIME ──────────────────────────────────────────────────────
+var dhTrendData=null;
+var dhTrendLoading=false;
+var dhWeeksBack=12;
+
+function renderDHTrend(){
+  document.getElementById('ct').innerHTML='<div class="loading"><div class="spin"></div>Loading desired hours trend ('+dhWeeksBack+' weeks)...<br><span style="font-size:11px;color:var(--text3);margin-top:8px;display:block">Fetching weekly snapshots. This may take a while.</span></div>';
+  // Fetch multiple weeks of caregiver_hours data
+  var weeks=[];
+  var endDate=new Date(curEnd);
+  for(var i=0;i<dhWeeksBack;i++){
+    var wEnd=new Date(endDate);wEnd.setDate(endDate.getDate()-(i*7));
+    var wStart=new Date(wEnd);wStart.setDate(wEnd.getDate()-6);
+    weeks.push({start:fmtDate(wStart),end:fmtDate(wEnd)});
+  }
+  weeks.reverse();
+
+  var completed=0;
+  var weekData=[];
+  var errors=0;
+
+  weeks.forEach(function(w,idx){
+    // Stagger requests slightly to avoid overloading
+    setTimeout(function(){
+      fetch(API+'?endpoint=caregiver_hours&startDate='+w.start+'&endDate='+w.end)
+        .then(function(r){return r.json();})
+        .then(function(d){
+          weekData[idx]={week:w.start,data:d};
+          completed++;
+          if(completed===weeks.length)renderDHTrendUI(weekData.filter(Boolean));
+        })
+        .catch(function(){
+          errors++;completed++;
+          if(completed===weeks.length)renderDHTrendUI(weekData.filter(Boolean));
+        });
+    },idx*200);
+  });
+}
+
+function renderDHTrendUI(weekData){
+  if(!weekData.length){
+    document.getElementById('ct').innerHTML='<div class="err">No trend data available.</div>';
+    return;
+  }
+
+  // Build time series: for each week, count caregivers in each bucket
+  var series=weekData.map(function(wd){
+    var cgs=wd.data.caregivers||[];
+    // Apply same nav filter
+    if(curNav==='ma')cgs=cgs.filter(function(c){return c.state==='Massachusetts';});
+    else if(curNav==='il')cgs=cgs.filter(function(c){return c.state==='Illinois';});
+    else if(curNav==='md')cgs=cgs.filter(function(c){return c.state==='Maryland';});
+    // Filter out Standard type (same as getFiltered)
+    cgs=cgs.filter(function(c){return c.cgType&&c.cgType!=='Standard';});
+    var total=cgs.length;
+    var b0=cgs.filter(function(c){return c.bucket==='0-25';}).length;
+    var b25=cgs.filter(function(c){return c.bucket==='25-50';}).length;
+    var b50=cgs.filter(function(c){return c.bucket==='50-75';}).length;
+    var b75=cgs.filter(function(c){return c.bucket==='75-100';}).length;
+    var avgH=total>0?cgs.reduce(function(s,c){return s+c.happiness;},0)/total:0;
+    return{week:wd.week,total:total,b0:b0,b25:b25,b50:b50,b75:b75,
+      p0:total>0?b0/total:0,p25:total>0?b25/total:0,p50:total>0?b50/total:0,p75:total>0?b75/total:0,
+      avgH:avgH,goal75:total>0?b75/total:0};
+  });
+
+  var html='';
+  html+='<div class="banner"><div class="bl">Desired Hours Over Time &mdash; '+navLabel()+' &mdash; '+series.length+' weeks</div>';
+  html+='Tracking how caregivers move between desired hours satisfaction buckets over time.</div>';
+
+  // Period selector
+  html+='<div class="period-bar" style="margin-bottom:16px">';
+  html+='<span class="period-label">Weeks:</span>';
+  [8,12,16,24].forEach(function(w){
+    html+='<div class="pbtn '+(dhWeeksBack===w?'on':'')+'" onclick="dhWeeksBack='+w+';renderDHTrend()">'+w+'w</div>';
+  });
+  html+='</div>';
+
+  // SVG line chart
+  var W=900,H=320,PAD={t:30,r:30,b:50,l:50};
+  var cW=W-PAD.l-PAD.r,cH=H-PAD.t-PAD.b;
+  var n=series.length;
+
+  html+='<div class="fc"><div class="ct">% of Caregivers by Happiness Bucket</div>';
+  html+='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto;max-height:360px" xmlns="http://www.w3.org/2000/svg">';
+
+  // Grid lines
+  for(var g=0;g<=4;g++){
+    var gy=PAD.t+cH-(g/4)*cH;
+    html+='<line x1="'+PAD.l+'" y1="'+gy+'" x2="'+(W-PAD.r)+'" y2="'+gy+'" stroke="var(--border)" stroke-width="0.5"/>';
+    html+='<text x="'+(PAD.l-8)+'" y="'+(gy+4)+'" text-anchor="end" fill="var(--text3)" font-size="10">'+(g*25)+'%</text>';
+  }
+
+  // X axis labels
+  series.forEach(function(s,i){
+    var x=PAD.l+(i/(n-1||1))*cW;
+    var label=new Date(s.week+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'});
+    if(n>16&&i%2!==0)return;
+    html+='<text x="'+x+'" y="'+(H-PAD.b+20)+'" text-anchor="middle" fill="var(--text3)" font-size="10">'+label+'</text>';
+  });
+
+  // Draw lines for each bucket
+  var lines=[
+    {key:'p75',color:'var(--green)',label:'75-100% (Happy)'},
+    {key:'p50',color:'var(--amber)',label:'50-75% (Mid)'},
+    {key:'p25',color:'var(--red)',label:'25-50% (Low)'},
+    {key:'p0', color:'var(--red)',label:'0-25% (Critical)',dash:'4,4'}
+  ];
+
+  lines.forEach(function(line){
+    var pts=series.map(function(s,i){
+      var x=PAD.l+(i/(n-1||1))*cW;
+      var y=PAD.t+cH-s[line.key]*cH;
+      return x+','+y;
+    }).join(' ');
+    html+='<polyline points="'+pts+'" fill="none" stroke="'+line.color+'" stroke-width="2" '+(line.dash?'stroke-dasharray="'+line.dash+'"':'')+'/>';
+    // Dots
+    series.forEach(function(s,i){
+      var x=PAD.l+(i/(n-1||1))*cW;
+      var y=PAD.t+cH-s[line.key]*cH;
+      html+='<circle cx="'+x+'" cy="'+y+'" r="3" fill="'+line.color+'"><title>'+line.label+': '+fp(s[line.key])+' ('+s.week+')</title></circle>';
+    });
+  });
+  html+='</svg>';
+
+  // Legend
+  html+='<div style="display:flex;gap:16px;margin-top:8px;font-size:11px;flex-wrap:wrap">';
+  lines.forEach(function(l){
+    html+='<span style="color:'+l.color+'">● '+l.label+'</span>';
+  });
+  html+='</div></div>';
+
+  // Summary table
+  html+='<div class="fc"><div class="ct">Weekly Breakdown</div>';
+  html+='<table class="tbl"><thead><tr><th style="text-align:left">Week</th><th>Total</th><th>75%+ (Happy)</th><th>50-75%</th><th>25-50%</th><th>0-25%</th><th>Goal (75%+)</th></tr></thead><tbody>';
+  series.slice().reverse().forEach(function(s){
+    var wLabel=new Date(s.week+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'});
+    html+='<tr>';
+    html+='<td>'+wLabel+'</td>';
+    html+='<td>'+fn(s.total)+'</td>';
+    html+='<td style="color:var(--green)">'+s.b75+' ('+fp(s.p75)+')</td>';
+    html+='<td style="color:var(--amber)">'+s.b50+' ('+fp(s.p50)+')</td>';
+    html+='<td style="color:var(--red)">'+s.b25+' ('+fp(s.p25)+')</td>';
+    html+='<td style="color:var(--red)">'+s.b0+' ('+fp(s.p0)+')</td>';
+    html+='<td><span class="bdg '+(s.goal75>=0.9?'bg':s.goal75>=0.7?'ba':'br')+'">'+fp(s.goal75)+'</span></td>';
+    html+='</tr>';
+  });
+  html+='</tbody></table></div>';
+
+  document.getElementById('ct').innerHTML=html;
 }
 
 // Auto-load this week
