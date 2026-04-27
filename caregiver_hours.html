@@ -973,7 +973,42 @@ function renderBarriers(){
     });
 }
 
+var barrierSearch='';
+var barrierTypeFilter='';
+
 function renderBarriersUI(d){
+  // Merge Desired Hours barriers from caregiver_hours data
+  if(data&&data.caregivers){
+    var cgs=data.caregivers.filter(function(c){return c.cgType&&c.cgType!=='Standard';});
+    if(curNav==='ma')cgs=cgs.filter(function(c){return c.state==='Massachusetts';});
+    else if(curNav==='il')cgs=cgs.filter(function(c){return c.state==='Illinois';});
+    else if(curNav==='md')cgs=cgs.filter(function(c){return c.state==='Maryland';});
+    var dhBarrier=cgs.filter(function(c){return c.happiness<0.5&&c.baseDesiredHrs>0;});
+    if(dhBarrier.length>0){
+      // Add "Desired Hours" to type summary if not present
+      var hasDH=d.typeSummary.some(function(t){return t.type==='Desired Hours';});
+      if(!hasDH)d.typeSummary.push({type:'Desired Hours',incidents:dhBarrier.length,caregivers:dhBarrier.length});
+      // Add to caregiver list
+      dhBarrier.forEach(function(c){
+        var existing=d.caregivers.find(function(cg){return cg.name===c.name;});
+        if(existing){
+          if(!existing.barriers['Desired Hours'])existing.barriers['Desired Hours']=0;
+          existing.barriers['Desired Hours']=1;
+          existing.total++;
+          if(!existing.incidents)existing.incidents=[];
+          existing.incidents.push({date:curStart,type:'Desired Hours',fullType:'Below 50% desired hours',description:'Getting '+fh(c.scheduledHrs)+' of '+fh(c.desiredHrs)+' desired ('+Math.round(c.happiness*100)+'%)',resolution:'',client:''});
+        } else {
+          d.caregivers.push({cgid:c.id||'',name:c.name,barriers:{'Desired Hours':1},total:1,
+            incidents:[{date:curStart,type:'Desired Hours',fullType:'Below 50% desired hours',description:'Getting '+fh(c.scheduledHrs)+' of '+fh(c.desiredHrs)+' desired ('+Math.round(c.happiness*100)+'%)',resolution:'',client:''}]
+          });
+        }
+      });
+      d.caregivers.sort(function(a,b){return b.total-a.total;});
+      d.totalCaregivers=d.caregivers.length;
+      d.totalIncidents=d.caregivers.reduce(function(s,c){return s+c.total;},0);
+    }
+  }
+
   var html='';
   html+='<div class="banner"><div class="bl">Performance Barriers &mdash; '+curStart+' to '+curEnd+' (90-day lookback)</div>';
   html+=fn(d.totalCaregivers)+' caregivers with barrier-related incidents. '+fn(d.totalIncidents)+' total incidents across '+d.typeSummary.length+' categories.';
@@ -991,53 +1026,85 @@ function renderBarriersUI(d){
   var BARRIER_COLORS={'Turndowns':'var(--red)','Communication: Not Responding':'var(--amber)',
     'Reliability: Short Notice Avail Change':'var(--red)','Reliability: Didn\'t Follow Availability':'var(--red)',
     'Flexibility: Won\'t Travel':'var(--amber)','Flexibility: Won\'t See Client in Skill Level':'var(--amber)',
-    'Flexibility: Weekend Commitment Not Met':'var(--amber)'};
+    'Flexibility: Weekend Commitment Not Met':'var(--amber)','Desired Hours':'var(--purple)'};
   var BARRIER_ICONS={'Turndowns':'🚫','Communication: Not Responding':'📵',
     'Reliability: Short Notice Avail Change':'⏰','Reliability: Didn\'t Follow Availability':'📋',
     'Flexibility: Won\'t Travel':'🚗','Flexibility: Won\'t See Client in Skill Level':'🎯',
-    'Flexibility: Weekend Commitment Not Met':'📅'};
+    'Flexibility: Weekend Commitment Not Met':'📅','Desired Hours':'📉'};
 
   html+='<div class="fc"><div class="ct">Incidents by Category</div>';
   if(d.typeSummary.length>0){
-    var maxInc=d.typeSummary[0].incidents;
+    var maxInc=Math.max.apply(null,d.typeSummary.map(function(t){return t.incidents;}));
     d.typeSummary.forEach(function(t){
       var pct=maxInc>0?t.incidents/maxInc*100:0;
       var color=BARRIER_COLORS[t.type]||'var(--text2)';
       var icon=BARRIER_ICONS[t.type]||'⚠️';
-      html+='<div class="mbr">';
-      html+='<div class="mbl">'+icon+' '+t.type+'</div>';
+      html+='<div class="mbr" style="cursor:pointer" onclick="barrierTypeFilter=barrierTypeFilter===\''+t.type+'\'?\'\':\''+t.type+'\';renderBarriersUI(barriersData)">';
+      html+='<div class="mbl"'+(barrierTypeFilter===t.type?' style="font-weight:700"':'')+'>'+icon+' '+t.type+'</div>';
       html+='<div class="mbt"><div class="mbf" style="width:'+pct+'%;background:'+color+'"></div></div>';
       html+='<div class="mbv">'+t.incidents+' <span style="font-size:10px;color:var(--text3)">('+t.caregivers+' CGs)</span></div>';
       html+='</div>';
     });
+    if(barrierTypeFilter)html+='<div style="font-size:11px;color:var(--text3);margin-top:4px;cursor:pointer" onclick="barrierTypeFilter=\'\';renderBarriersUI(barriersData)">Filtering by: <strong>'+barrierTypeFilter+'</strong> — click to clear</div>';
   } else {
     html+='<div style="padding:20px;text-align:center;color:var(--text3)">No barrier incidents found in the lookback period.</div>';
   }
   html+='</div>';
 
-  // Caregiver detail table
+  // Search + caregiver table
   if(d.caregivers.length>0){
-    html+='<div class="fc"><div class="ct">Caregivers with Barriers ('+fn(d.caregivers.length)+')</div>';
-    html+='<div style="font-size:11px;color:var(--text3);margin-bottom:8px">Sorted by total incidents. Showing up to 200.</div>';
-    html+='<table class="tbl"><thead><tr><th style="text-align:left">Caregiver</th><th>Total</th>';
-    // Dynamic columns for each barrier type
+    html+='<div class="fc"><div class="ct">Caregivers with Barriers</div>';
+    html+='<input class="srch" type="text" placeholder="Search caregiver name..." value="'+(barrierSearch||'')+'" oninput="barrierSearch=this.value;renderBarriersUI(barriersData)" style="margin-bottom:10px">';
+
+    var filtered=d.caregivers;
+    if(barrierSearch){
+      var q=barrierSearch.toLowerCase();
+      filtered=filtered.filter(function(cg){return cg.name.toLowerCase().includes(q);});
+    }
+    if(barrierTypeFilter){
+      filtered=filtered.filter(function(cg){return(cg.barriers[barrierTypeFilter]||0)>0;});
+    }
+
+    html+='<div style="font-size:11px;color:var(--text3);margin-bottom:8px">'+fn(filtered.length)+' caregivers. Click a row to see incident details.</div>';
     var colTypes=d.typeSummary.map(function(t){return t.type;});
-    colTypes.forEach(function(t){
-      var icon=BARRIER_ICONS[t]||'⚠️';
-      html+='<th title="'+t+'">'+icon+'</th>';
-    });
-    html+='</tr></thead><tbody>';
-    d.caregivers.slice(0,200).forEach(function(cg){
-      html+='<tr>';
-      html+='<td>'+cg.name+'</td>';
-      html+='<td style="font-weight:500;color:var(--red)">'+cg.total+'</td>';
+
+    filtered.slice(0,200).forEach(function(cg,idx){
+      var rowId='barrier-row-'+idx;
+      html+='<div class="mce-block">';
+      html+='<div class="mce-hdr" onclick="toggleMCE(\''+rowId+'\')">';
+      html+='<div style="display:flex;align-items:center;gap:10px">';
+      html+='<div id="'+rowId+'-arr" style="font-size:10px;color:var(--text3)">&#9654;</div>';
+      html+='<div><div style="font-size:13px;font-weight:500">'+cg.name+'</div>';
+      html+='<div style="font-size:11px;color:var(--text3);margin-top:1px">';
+      var badges=[];
       colTypes.forEach(function(t){
         var v=cg.barriers[t]||0;
-        html+='<td style="color:'+(v>0?'var(--text)':'var(--text3)')+'">'+( v>0?v:'—')+'</td>';
+        if(v>0)badges.push((BARRIER_ICONS[t]||'')+' '+t+': '+v);
       });
-      html+='</tr>';
+      html+=badges.join(' · ')+'</div></div></div>';
+      html+='<span class="bdg br" style="flex-shrink:0">'+cg.total+' total</span>';
+      html+='</div>';
+      // Expandable detail
+      html+='<div class="mce-body" id="'+rowId+'" style="display:none">';
+      if(cg.incidents&&cg.incidents.length>0){
+        html+='<table class="tbl" style="font-size:11px"><thead><tr><th style="text-align:left">Date</th><th style="text-align:left">Type</th><th style="text-align:left">Description</th><th style="text-align:left">Client</th></tr></thead><tbody>';
+        cg.incidents.forEach(function(inc){
+          var dateLabel=inc.date?new Date(inc.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'2-digit'}):'—';
+          var icon=BARRIER_ICONS[inc.type]||'⚠️';
+          html+='<tr>';
+          html+='<td style="white-space:nowrap">'+dateLabel+'</td>';
+          html+='<td style="white-space:nowrap">'+icon+' '+inc.type+'</td>';
+          html+='<td style="font-weight:normal;color:var(--text2);max-width:400px;overflow:hidden;text-overflow:ellipsis">'+inc.description+'</td>';
+          html+='<td style="font-weight:normal;color:var(--text2)">'+( inc.client||'—')+'</td>';
+          html+='</tr>';
+        });
+        html+='</tbody></table>';
+      } else {
+        html+='<div style="font-size:11px;color:var(--text3);padding:8px 0">No incident details available.</div>';
+      }
+      html+='</div></div>';
     });
-    html+='</tbody></table></div>';
+    html+='</div>';
   }
 
   document.getElementById('ct').innerHTML=html;
