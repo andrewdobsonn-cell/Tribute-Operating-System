@@ -977,48 +977,84 @@ var barrierSearch='';
 var barrierTypeFilter='';
 
 function renderBarriersUI(d){
-  // Merge Desired Hours barriers from caregiver_hours data
+  // Build a lookup from caregiver_hours data for state/market/MCE
+  var cgLookup={};
   if(data&&data.caregivers){
-    var cgs=data.caregivers.filter(function(c){return c.cgType&&c.cgType!=='Standard';});
-    if(curNav==='ma')cgs=cgs.filter(function(c){return c.state==='Massachusetts';});
-    else if(curNav==='il')cgs=cgs.filter(function(c){return c.state==='Illinois';});
-    else if(curNav==='md')cgs=cgs.filter(function(c){return c.state==='Maryland';});
-    var dhBarrier=cgs.filter(function(c){return c.happiness<0.5&&c.baseDesiredHrs>0;});
-    if(dhBarrier.length>0){
-      // Add "Desired Hours" to type summary if not present
-      var hasDH=d.typeSummary.some(function(t){return t.type==='Desired Hours';});
-      if(!hasDH)d.typeSummary.push({type:'Desired Hours',incidents:dhBarrier.length,caregivers:dhBarrier.length});
-      // Add to caregiver list
-      dhBarrier.forEach(function(c){
-        var existing=d.caregivers.find(function(cg){return cg.name===c.name;});
-        if(existing){
-          if(!existing.barriers['Desired Hours'])existing.barriers['Desired Hours']=0;
-          existing.barriers['Desired Hours']=1;
-          existing.total++;
-          if(!existing.incidents)existing.incidents=[];
-          existing.incidents.push({date:curStart,type:'Desired Hours',fullType:'Below 50% desired hours',description:'Getting '+fh(c.scheduledHrs)+' of '+fh(c.desiredHrs)+' desired ('+Math.round(c.happiness*100)+'%)',resolution:'',client:''});
-        } else {
-          d.caregivers.push({cgid:c.id||'',name:c.name,barriers:{'Desired Hours':1},total:1,
-            incidents:[{date:curStart,type:'Desired Hours',fullType:'Below 50% desired hours',description:'Getting '+fh(c.scheduledHrs)+' of '+fh(c.desiredHrs)+' desired ('+Math.round(c.happiness*100)+'%)',resolution:'',client:''}]
-          });
-        }
-      });
-      d.caregivers.sort(function(a,b){return b.total-a.total;});
-      d.totalCaregivers=d.caregivers.length;
-      d.totalIncidents=d.caregivers.reduce(function(s,c){return s+c.total;},0);
-    }
+    data.caregivers.forEach(function(c){
+      if(c.id)cgLookup[c.id]={state:c.state||'',market:c.market||'',adminName:c.adminName||'',name:c.name};
+      // Also index by name for fallback matching
+      if(c.name)cgLookup['name:'+c.name.toLowerCase()]={state:c.state||'',market:c.market||'',adminName:c.adminName||'',name:c.name};
+    });
   }
 
+  // Deep-clone barrier caregivers so we don't mutate cached data
+  var allBarrierCGs=d.caregivers.map(function(cg){
+    var copy={cgid:cg.cgid,name:cg.name,barriers:{},incidents:(cg.incidents||[]).slice(),total:cg.total};
+    for(var k in cg.barriers)copy.barriers[k]=cg.barriers[k];
+    // Enrich with state/market/MCE from hours data
+    var match=cgLookup[cg.cgid]||cgLookup['name:'+cg.name.toLowerCase()]||{};
+    copy.state=match.state||'';
+    copy.market=match.market||'';
+    copy.adminName=match.adminName||'';
+    return copy;
+  });
+
+  // Merge Desired Hours barriers from caregiver_hours data
+  if(data&&data.caregivers){
+    var hoursCGs=data.caregivers.filter(function(c){return c.cgType&&c.cgType!=='Standard';});
+    // Filter hours CGs by current state nav for Desired Hours
+    if(curNav==='ma')hoursCGs=hoursCGs.filter(function(c){return c.state==='Massachusetts';});
+    else if(curNav==='il')hoursCGs=hoursCGs.filter(function(c){return c.state==='Illinois';});
+    else if(curNav==='md')hoursCGs=hoursCGs.filter(function(c){return c.state==='Maryland';});
+    var dhBarrier=hoursCGs.filter(function(c){return c.happiness<0.5&&c.baseDesiredHrs>0;});
+    dhBarrier.forEach(function(c){
+      var existing=allBarrierCGs.find(function(cg){return cg.name===c.name||cg.cgid===c.id;});
+      if(existing){
+        if(!existing.barriers['Desired Hours'])existing.barriers['Desired Hours']=0;
+        existing.barriers['Desired Hours']=1;
+        existing.total++;
+        existing.incidents.push({date:curStart,type:'Desired Hours',fullType:'Below 50% desired hours',description:'Getting '+fh(c.scheduledHrs)+' of '+fh(c.desiredHrs)+' desired ('+Math.round(c.happiness*100)+'%)',resolution:'',client:''});
+      } else {
+        allBarrierCGs.push({cgid:c.id||'',name:c.name,barriers:{'Desired Hours':1},total:1,
+          state:c.state||'',market:c.market||'',adminName:c.adminName||'',
+          incidents:[{date:curStart,type:'Desired Hours',fullType:'Below 50% desired hours',description:'Getting '+fh(c.scheduledHrs)+' of '+fh(c.desiredHrs)+' desired ('+Math.round(c.happiness*100)+'%)',resolution:'',client:''}]
+        });
+      }
+    });
+  }
+
+  // Filter by state nav
+  var filtered=allBarrierCGs;
+  if(curNav==='ma')filtered=filtered.filter(function(c){return c.state==='Massachusetts';});
+  else if(curNav==='il')filtered=filtered.filter(function(c){return c.state==='Illinois';});
+  else if(curNav==='md')filtered=filtered.filter(function(c){return c.state==='Maryland';});
+
+  filtered.sort(function(a,b){return b.total-a.total;});
+
+  // Recompute type summary from filtered set
+  var typeSummaryMap={};
+  for(var fi=0;fi<filtered.length;fi++){
+    var fcg=filtered[fi];
+    for(var bt in fcg.barriers){
+      if(!typeSummaryMap[bt])typeSummaryMap[bt]={type:bt,incidents:0,caregivers:0};
+      typeSummaryMap[bt].incidents+=fcg.barriers[bt];
+      typeSummaryMap[bt].caregivers++;
+    }
+  }
+  var filteredTypeSummary=Object.values(typeSummaryMap).sort(function(a,b){return b.incidents-a.incidents;});
+  var filteredTotal=filtered.reduce(function(s,c){return s+c.total;},0);
+
+  var navLabel=curNav==='company'?'Company':curNav==='ma'?'Massachusetts':curNav==='il'?'Illinois':curNav==='md'?'Maryland':'Company';
   var html='';
-  html+='<div class="banner"><div class="bl">Performance Barriers &mdash; '+curStart+' to '+curEnd+' (90-day lookback)</div>';
-  html+=fn(d.totalCaregivers)+' caregivers with barrier-related incidents. '+fn(d.totalIncidents)+' total incidents across '+d.typeSummary.length+' categories.';
+  html+='<div class="banner"><div class="bl">Performance Barriers &mdash; '+navLabel+' &mdash; '+curStart+' to '+curEnd+' (90-day lookback)</div>';
+  html+=fn(filtered.length)+' caregivers with barrier-related incidents. '+fn(filteredTotal)+' total incidents across '+filteredTypeSummary.length+' categories.';
   if(d.turndownVisits>0)html+=' '+fn(d.turndownVisits)+' turndown visits this week.';
   html+='</div>';
 
   // KPIs
   html+='<div class="kg">';
-  html+='<div class="kpi"><div class="kl">Caregivers Affected</div><div class="kv r">'+fn(d.totalCaregivers)+'</div><div class="ks">with barrier incidents</div></div>';
-  html+='<div class="kpi"><div class="kl">Total Incidents</div><div class="kv a">'+fn(d.totalIncidents)+'</div><div class="ks">last 90 days</div></div>';
+  html+='<div class="kpi"><div class="kl">Caregivers Affected</div><div class="kv r">'+fn(filtered.length)+'</div><div class="ks">with barrier incidents</div></div>';
+  html+='<div class="kpi"><div class="kl">Total Incidents</div><div class="kv a">'+fn(filteredTotal)+'</div><div class="ks">last 90 days</div></div>';
   html+='<div class="kpi"><div class="kl">Turndown Visits</div><div class="kv a">'+fn(d.turndownVisits)+'</div><div class="ks">this week</div></div>';
   html+='</div>';
 
@@ -1033,9 +1069,9 @@ function renderBarriersUI(d){
     'Flexibility: Weekend Commitment Not Met':'📅','Desired Hours':'📉'};
 
   html+='<div class="fc"><div class="ct">Incidents by Category</div>';
-  if(d.typeSummary.length>0){
-    var maxInc=Math.max.apply(null,d.typeSummary.map(function(t){return t.incidents;}));
-    d.typeSummary.forEach(function(t){
+  if(filteredTypeSummary.length>0){
+    var maxInc=Math.max.apply(null,filteredTypeSummary.map(function(t){return t.incidents;}));
+    filteredTypeSummary.forEach(function(t){
       var pct=maxInc>0?t.incidents/maxInc*100:0;
       var color=BARRIER_COLORS[t.type]||'var(--text2)';
       var icon=BARRIER_ICONS[t.type]||'⚠️';
@@ -1052,30 +1088,35 @@ function renderBarriersUI(d){
   html+='</div>';
 
   // Search + caregiver table
-  if(d.caregivers.length>0){
+  if(filtered.length>0){
     html+='<div class="fc"><div class="ct">Caregivers with Barriers</div>';
     html+='<input class="srch" type="text" placeholder="Search caregiver name..." value="'+(barrierSearch||'')+'" oninput="barrierSearch=this.value;renderBarriersUI(barriersData)" style="margin-bottom:10px">';
 
-    var filtered=d.caregivers;
+    var shown=filtered;
     if(barrierSearch){
       var q=barrierSearch.toLowerCase();
-      filtered=filtered.filter(function(cg){return cg.name.toLowerCase().includes(q);});
+      shown=shown.filter(function(cg){return cg.name.toLowerCase().includes(q);});
     }
     if(barrierTypeFilter){
-      filtered=filtered.filter(function(cg){return(cg.barriers[barrierTypeFilter]||0)>0;});
+      shown=shown.filter(function(cg){return(cg.barriers[barrierTypeFilter]||0)>0;});
     }
 
-    html+='<div style="font-size:11px;color:var(--text3);margin-bottom:8px">'+fn(filtered.length)+' caregivers. Click a row to see incident details.</div>';
-    var colTypes=d.typeSummary.map(function(t){return t.type;});
+    html+='<div style="font-size:11px;color:var(--text3);margin-bottom:8px">'+fn(shown.length)+' caregivers. Click a row to see incident details.</div>';
+    var colTypes=filteredTypeSummary.map(function(t){return t.type;});
 
-    filtered.slice(0,200).forEach(function(cg,idx){
+    shown.slice(0,200).forEach(function(cg,idx){
       var rowId='barrier-row-'+idx;
       html+='<div class="mce-block">';
       html+='<div class="mce-hdr" onclick="toggleMCE(\''+rowId+'\')">';
       html+='<div style="display:flex;align-items:center;gap:10px">';
       html+='<div id="'+rowId+'-arr" style="font-size:10px;color:var(--text3)">&#9654;</div>';
       html+='<div><div style="font-size:13px;font-weight:500">'+cg.name+'</div>';
+      var metaLine=[];
+      if(cg.adminName)metaLine.push(cg.adminName);
+      if(cg.market)metaLine.push(cg.market);
+      if(cg.state)metaLine.push(cg.state);
       html+='<div style="font-size:11px;color:var(--text3);margin-top:1px">';
+      if(metaLine.length>0)html+='<span style="margin-right:8px">'+metaLine.join(' · ')+'</span>';
       var badges=[];
       colTypes.forEach(function(t){
         var v=cg.barriers[t]||0;
