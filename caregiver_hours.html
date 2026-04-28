@@ -982,9 +982,10 @@ function renderBarriersUI(d){
   var cgLookup={};
   if(data&&data.caregivers){
     data.caregivers.forEach(function(c){
-      if(c.id)cgLookup[c.id]={state:c.state||'',market:c.market||'',adminName:c.adminName||'',name:c.name};
+      var mceName=c.adminName||c.assignee||'';
+      if(c.id)cgLookup[c.id]={state:c.state||'',market:c.market||'',adminName:mceName,name:c.name};
       // Also index by name for fallback matching
-      if(c.name)cgLookup['name:'+c.name.toLowerCase()]={state:c.state||'',market:c.market||'',adminName:c.adminName||'',name:c.name};
+      if(c.name)cgLookup['name:'+c.name.toLowerCase()]={state:c.state||'',market:c.market||'',adminName:mceName,name:c.name};
     });
   }
 
