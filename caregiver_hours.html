@@ -978,29 +978,14 @@ var barrierTypeFilter='';
 var barrierMCEFilter='';
 
 function renderBarriersUI(d){
-  // Build a lookup from caregiver_hours data for state/market/MCE
-  var cgLookup={};
-  if(data&&data.caregivers){
-    data.caregivers.forEach(function(c){
-      var mceName=c.adminName||c.assignee||'';
-      if(c.id)cgLookup[c.id]={state:c.state||'',market:c.market||'',adminName:mceName,name:c.name};
-      // Also index by name for fallback matching
-      if(c.name)cgLookup['name:'+c.name.toLowerCase()]={state:c.state||'',market:c.market||'',adminName:mceName,name:c.name};
-    });
-  }
-
   // Deep-clone barrier caregivers so we don't mutate cached data
+  // Backend now provides state/market/assignee directly
   var allBarrierCGs=d.caregivers.map(function(cg){
-    var copy={cgid:cg.cgid,name:cg.name,barriers:{},incidents:(cg.incidents||[]).slice(),total:cg.total};
+    var copy={cgid:cg.cgid,name:cg.name,barriers:{},incidents:(cg.incidents||[]).slice(),total:cg.total,
+      state:cg.state||'',market:cg.market||'',adminName:cg.assignee||''};
     for(var k in cg.barriers)copy.barriers[k]=cg.barriers[k];
-    // Enrich with state/market/MCE from hours data
-    var match=cgLookup[cg.cgid]||cgLookup['name:'+cg.name.toLowerCase()]||{};
-    copy.state=match.state||'';
-    copy.market=match.market||'';
-    copy.adminName=match.adminName||'';
-    copy._active=!!match.name;// true if found in active caregiver_hours data
     return copy;
-  }).filter(function(cg){return cg._active;});// only active/hired caregivers
+  });
 
   // Merge Desired Hours barriers from caregiver_hours data
   if(data&&data.caregivers){
@@ -1019,7 +1004,7 @@ function renderBarriersUI(d){
         existing.incidents.push({date:curStart,type:'Desired Hours',fullType:'Below 50% desired hours',description:'Getting '+fh(c.scheduledHrs)+' of '+fh(c.desiredHrs)+' desired ('+Math.round(c.happiness*100)+'%)',resolution:'',client:''});
       } else {
         allBarrierCGs.push({cgid:c.id||'',name:c.name,barriers:{'Desired Hours':1},total:1,
-          state:c.state||'',market:c.market||'',adminName:c.adminName||'',
+          state:c.state||'',market:c.market||'',adminName:c.assignee||c.adminName||'',
           incidents:[{date:curStart,type:'Desired Hours',fullType:'Below 50% desired hours',description:'Getting '+fh(c.scheduledHrs)+' of '+fh(c.desiredHrs)+' desired ('+Math.round(c.happiness*100)+'%)',resolution:'',client:''}]
         });
       }
@@ -1094,7 +1079,9 @@ function renderBarriersUI(d){
   if(filtered.length>0){
     // Build MCE list from filtered caregivers
     var mceNames={};
-    filtered.forEach(function(cg){if(cg.adminName)mceNames[cg.adminName]=true;});
+    filtered.forEach(function(cg){
+      if(cg.adminName)mceNames[cg.adminName]=true;
+    });
     var mceList=Object.keys(mceNames).sort();
 
     html+='<div class="fc"><div class="ct">Caregivers with Barriers</div>';
