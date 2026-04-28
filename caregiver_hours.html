@@ -111,11 +111,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 </div>
 
 <!-- Nav: Company / State / Market -->
-<div class="nav-tabs" id="navTabs">
+<div class="nav-tabs" id="navTabs" style="display:flex;align-items:center;gap:0">
   <div class="ntab on" onclick="setNav('company',this)">Company</div>
   <div class="ntab" onclick="setNav('ma',this)">Massachusetts</div>
   <div class="ntab" onclick="setNav('il',this)">Illinois</div>
   <div class="ntab" onclick="setNav('md',this)">Maryland</div>
+  <div style="margin-left:auto;padding-right:4px"><select id="mceGlobalFilter" style="padding:5px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:12px" onchange="globalMCE=this.value;if(data)render()"><option value="">All MCEs</option></select></div>
 </div>
 
 <!-- View tabs -->
@@ -139,6 +140,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <script>
 var API='https://tribute-api-prod-bkc4hfcwf3f2f6bf.centralus-01.azurewebsites.net/api/vivProxy';
 var data=null,curNav='company',curView='overview',curStart=null,curEnd=null;
+var globalMCE='';
 
 var STATE_MARKETS={ma:['Boston','MetroWest Boston','North of Boston','South of Boston'],il:['Chicago'],md:['Baltimore','Annapolis','Bethesda']};
 var NAV_STATES={ma:'Massachusetts',il:'Illinois',md:'Maryland'};
@@ -200,6 +202,7 @@ async function fetchData(){
     document.getElementById('sl').innerHTML='<span class="dot"></span>Live &middot; Viv Technologies &middot; '+new Date().toLocaleTimeString();
     document.getElementById('hr').innerHTML=fn(t.total)+' caregivers &middot; '+fp(t.goal75pct)+' at 75%+<br><span style="color:var(--text3)">'+curStart+' to '+curEnd+'</span>';
     document.getElementById('ga').textContent='Week: '+curStart+' \u2014 '+curEnd;
+    populateMCEDropdown();
     render();
   }catch(e){
     document.getElementById('ct').innerHTML='<div class="err">Error: '+e.message+'</div>';
@@ -214,7 +217,25 @@ function getFiltered(){
   if(curNav==='ma')cgs=cgs.filter(function(c){return c.state==='Massachusetts'});
   else if(curNav==='il')cgs=cgs.filter(function(c){return c.state==='Illinois'});
   else if(curNav==='md')cgs=cgs.filter(function(c){return c.state==='Maryland'});
+  if(globalMCE)cgs=cgs.filter(function(c){return(c.assignee||c.adminName||'')===globalMCE;});
   return cgs;
+}
+
+function populateMCEDropdown(){
+  if(!data)return;
+  var names={};
+  data.caregivers.forEach(function(c){
+    var m=c.assignee||c.adminName||'';
+    if(m)names[m]=true;
+  });
+  var list=Object.keys(names).sort();
+  var sel=document.getElementById('mceGlobalFilter');
+  if(!sel)return;
+  var html='<option value="">All MCEs</option>';
+  list.forEach(function(m){
+    html+='<option value="'+m+'"'+(globalMCE===m?' selected':'')+'>'+m+'</option>';
+  });
+  sel.innerHTML=html;
 }
 
 function aggregateGroup(cgs){
@@ -1011,11 +1032,12 @@ function renderBarriersUI(d){
     });
   }
 
-  // Filter by state nav
+  // Filter by state nav and global MCE
   var filtered=allBarrierCGs;
   if(curNav==='ma')filtered=filtered.filter(function(c){return c.state==='Massachusetts';});
   else if(curNav==='il')filtered=filtered.filter(function(c){return c.state==='Illinois';});
   else if(curNav==='md')filtered=filtered.filter(function(c){return c.state==='Maryland';});
+  if(globalMCE)filtered=filtered.filter(function(c){return c.adminName===globalMCE;});
 
   filtered.sort(function(a,b){return b.total-a.total;});
 
@@ -1211,6 +1233,7 @@ function renderDHTrendUI(weekData){
     else if(curNav==='md')cgs=cgs.filter(function(c){return c.state==='Maryland';});
     // Filter out Standard type (same as getFiltered)
     cgs=cgs.filter(function(c){return c.cgType&&c.cgType!=='Standard';});
+    if(globalMCE)cgs=cgs.filter(function(c){return(c.assignee||c.adminName||'')===globalMCE;});
     var total=cgs.length;
     var b0=cgs.filter(function(c){return c.bucket==='0-25';}).length;
     var b25=cgs.filter(function(c){return c.bucket==='25-50';}).length;
