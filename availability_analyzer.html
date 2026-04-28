@@ -36,6 +36,13 @@ body{font-family:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;backgroun
 
 .main{padding:28px 48px;max-width:1600px;margin:0 auto}
 
+/* MODE TABS */
+.mode-tabs{display:flex;gap:4px;margin-bottom:20px}
+.mode-tab{background:var(--white);border:1px solid var(--gray-200);border-radius:8px;padding:12px 24px;font-size:13px;font-weight:600;color:var(--gray-text);cursor:pointer;transition:all .15s}
+.mode-tab:hover{border-color:var(--orange-light);color:var(--charcoal)}
+.mode-tab.active{background:var(--orange-50);border-color:var(--orange);color:var(--orange)}
+
+/* BROWSE MODE */
 .filter-bar{background:var(--white);border:1px solid var(--gray-200);border-radius:var(--rl);padding:16px 20px;margin-bottom:20px;box-shadow:var(--shadow-sm);display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end}
 .filter-group{display:flex;flex-direction:column;gap:4px;min-width:120px}
 .filter-group label{font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--gray-light)}
@@ -58,11 +65,11 @@ body{font-family:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;backgroun
 .type-section{margin-bottom:24px}
 .type-header{display:flex;align-items:center;gap:10px;margin-bottom:10px;padding-bottom:8px;border-bottom:2px solid var(--gray-200)}
 .type-badge{display:inline-flex;align-items:center;gap:5px;padding:5px 14px;border-radius:6px;font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase}
-.type-badge.overnight{background:var(--purple-light);color:var(--purple);border-bottom-color:var(--purple)}
+.type-badge.overnight{background:var(--purple-light);color:var(--purple)}
 .type-badge.long-hours{background:var(--amber-light);color:var(--amber)}
 .type-badge.short-hours{background:var(--blue-light);color:var(--blue)}
 .type-badge.live-in{background:var(--cyan-light);color:var(--cyan)}
-.type-header .type-badge~.type-count{font-size:12px;color:var(--gray-light)}
+.type-count{font-size:12px;color:var(--gray-light)}
 
 .cg-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px}
 .cg-card{background:var(--white);border:1px solid var(--gray-200);border-radius:var(--r);padding:11px 14px;transition:all .12s;cursor:default;position:relative}
@@ -82,7 +89,58 @@ body{font-family:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;backgroun
 .pref-dot.no{background:var(--red-light)}
 .pref-dot.unknown{background:var(--gray-100)}
 
-.empty-type{font-size:12px;color:var(--gray-light);font-style:italic;padding:8px 0}
+/* FIND CARE TEAM MODE */
+.finder-panel{background:var(--white);border:1px solid var(--gray-200);border-radius:var(--rl);padding:24px 28px;margin-bottom:24px;box-shadow:var(--shadow-sm)}
+.finder-title{font-family:'DM Serif Display',Georgia,serif;font-size:20px;color:var(--charcoal);margin-bottom:4px}
+.finder-sub{font-size:12px;color:var(--gray-light);margin-bottom:16px}
+.finder-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+@media(max-width:900px){.finder-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:600px){.finder-grid{grid-template-columns:1fr}}
+.finder-field{display:flex;flex-direction:column;gap:4px}
+.finder-field label{font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--gray-light)}
+.finder-field input,.finder-field select{background:var(--gray-100);border:1px solid var(--gray-200);border-radius:6px;padding:9px 12px;font-family:inherit;font-size:13px;color:var(--charcoal);outline:none;transition:border-color .15s}
+.finder-field input:focus,.finder-field select:focus{border-color:var(--orange)}
+
+.finder-days{grid-column:1/-1;display:flex;flex-direction:column;gap:6px}
+.finder-days label{font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--gray-light)}
+.finder-days-grid{display:flex;gap:6px;flex-wrap:wrap}
+.finder-day-btn{padding:8px 16px;border:1px solid var(--gray-200);border-radius:6px;font-size:12px;font-weight:600;color:var(--gray-text);cursor:pointer;transition:all .12s;background:var(--white)}
+.finder-day-btn:hover{border-color:var(--orange-light)}
+.finder-day-btn.selected{background:var(--orange);border-color:var(--orange);color:var(--white)}
+
+.finder-prefs{grid-column:1/-1;display:flex;gap:12px;flex-wrap:wrap;padding-top:8px;border-top:1px solid var(--gray-100);margin-top:4px}
+.finder-pref{display:flex;align-items:center;gap:6px;cursor:pointer}
+.finder-pref input[type=checkbox]{width:16px;height:16px;accent-color:var(--orange)}
+.finder-pref-label{font-size:12px;font-weight:500;color:var(--charcoal)}
+
+.finder-actions{grid-column:1/-1;display:flex;gap:10px;padding-top:12px}
+.finder-btn{background:var(--orange);color:var(--white);border:none;border-radius:8px;padding:12px 28px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s}
+.finder-btn:hover{background:var(--orange-dark);transform:translateY(-1px);box-shadow:var(--shadow-md)}
+.finder-btn-clear{background:var(--white);color:var(--gray-text);border:1px solid var(--gray-200);border-radius:8px;padding:12px 20px;font-family:inherit;font-size:13px;font-weight:500;cursor:pointer;transition:all .15s}
+.finder-btn-clear:hover{border-color:var(--red);color:var(--red)}
+
+/* RESULTS */
+.results-header{display:flex;align-items:baseline;gap:12px;margin-bottom:16px}
+.results-title{font-family:'DM Serif Display',Georgia,serif;font-size:22px;color:var(--charcoal)}
+.results-count{font-size:13px;color:var(--gray-light)}
+
+.result-card{background:var(--white);border:1px solid var(--gray-200);border-radius:var(--rl);padding:16px 20px;margin-bottom:8px;transition:all .12s;display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center}
+.result-card:hover{border-color:var(--orange-light);box-shadow:var(--shadow-sm)}
+.result-left{display:flex;flex-direction:column;gap:4px}
+.result-name{font-size:15px;font-weight:600;color:var(--charcoal)}
+.result-meta{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.result-market{font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--gray-text)}
+.result-type-badge{font-size:9px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:3px 8px;border-radius:4px}
+.result-type-badge.overnight{background:var(--purple-light);color:var(--purple)}
+.result-type-badge.long-hours{background:var(--amber-light);color:var(--amber)}
+.result-type-badge.short-hours{background:var(--blue-light);color:var(--blue)}
+.result-type-badge.live-in{background:var(--cyan-light);color:var(--cyan)}
+.result-days{font-size:11px;color:var(--green);font-weight:600}
+.result-match{font-size:10px;color:var(--gray-light)}
+.result-prefs{display:flex;gap:4px}
+.result-right{display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+.result-score{font-size:22px;font-weight:700;color:var(--orange)}
+.result-score-label{font-size:9px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--gray-light)}
 
 .loading-screen{display:flex;align-items:center;justify-content:center;min-height:400px;flex-direction:column;gap:16px}
 .spinner{width:28px;height:28px;border:3px solid var(--gray-200);border-top-color:var(--orange);border-radius:50%;animation:spin .7s linear infinite}
@@ -106,7 +164,7 @@ body{font-family:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;backgroun
 <div class="hero">
   <div class="hero-eyebrow">Care Team Staffing</div>
   <h1 class="hero-title">Who can join a <span>care team</span>?</h1>
-  <p class="hero-sub">Caregivers with stated availability who are not currently attached to ongoing visits on those days. Pick a day, find your caregiver by type.</p>
+  <p class="hero-sub">Browse available caregivers by day and type, or enter a new client's needs to get ranked care team recommendations.</p>
 </div>
 
 <div class="stats-strip">
@@ -125,61 +183,104 @@ body{font-family:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;backgroun
   <div id="errorBox" class="error-msg" style="display:none"></div>
 
   <div id="appContent" style="display:none">
-    <div class="filter-bar">
-      <div class="filter-group">
-        <label>State</label>
-        <select id="filterState"><option value="All">All</option></select>
-      </div>
-      <div class="filter-group">
-        <label>Market</label>
-        <select id="filterMarket"><option value="All">All</option></select>
-      </div>
-      <div class="filter-group">
-        <label>Type</label>
-        <select id="filterType"><option value="All">All Types</option><option value="Overnight">Overnight</option><option value="Long Hours">Long Hours</option><option value="Short Hours">Short Hours</option><option value="Live-In">Live-In</option></select>
-      </div>
-      <div class="filter-group">
-        <label>Notes Search</label>
-        <input type="text" id="filterNotes" placeholder="Search notes...">
-      </div>
-      <div class="filter-sep"></div>
-      <div class="pref-filters">
-        <div class="pref-chip"><span class="pref-chip-icon">🚗</span><select id="filterDrives"><option value="All">All</option><option value="Yes">Drives</option><option value="No">No</option></select></div>
-        <div class="pref-chip"><span class="pref-chip-icon">🐕</span><select id="filterDogs"><option value="All">All</option><option value="Yes">OK</option><option value="No">No</option></select></div>
-        <div class="pref-chip"><span class="pref-chip-icon">🐈</span><select id="filterCats"><option value="All">All</option><option value="Yes">OK</option><option value="No">No</option></select></div>
-        <div class="pref-chip"><span class="pref-chip-icon">🚬</span><select id="filterSmoke"><option value="All">All</option><option value="Yes">OK</option><option value="No">No</option></select></div>
-      </div>
+    <!-- MODE TABS -->
+    <div class="mode-tabs">
+      <div class="mode-tab active" onclick="setMode('browse',this)">Browse Availability</div>
+      <div class="mode-tab" onclick="setMode('finder',this)">Find Care Team</div>
     </div>
 
-    <div class="day-tabs" id="dayTabs"></div>
-    <div id="dayContent"></div>
+    <!-- ====== BROWSE MODE ====== -->
+    <div id="browseMode">
+      <div class="filter-bar">
+        <div class="filter-group"><label>State</label><select id="filterState"><option value="All">All</option></select></div>
+        <div class="filter-group"><label>Market</label><select id="filterMarket"><option value="All">All</option></select></div>
+        <div class="filter-group"><label>Type</label><select id="filterType"><option value="All">All Types</option><option value="Overnight">Overnight</option><option value="Long Hours">Long Hours</option><option value="Short Hours">Short Hours</option><option value="Live-In">Live-In</option></select></div>
+        <div class="filter-group"><label>Notes Search</label><input type="text" id="filterNotes" placeholder="Search notes..."></div>
+        <div class="filter-sep"></div>
+        <div class="pref-filters">
+          <div class="pref-chip"><span class="pref-chip-icon">🚗</span><select id="filterDrives"><option value="All">All</option><option value="Yes">Drives</option><option value="No">No</option></select></div>
+          <div class="pref-chip"><span class="pref-chip-icon">🐕</span><select id="filterDogs"><option value="All">All</option><option value="Yes">OK</option><option value="No">No</option></select></div>
+          <div class="pref-chip"><span class="pref-chip-icon">🐈</span><select id="filterCats"><option value="All">All</option><option value="Yes">OK</option><option value="No">No</option></select></div>
+          <div class="pref-chip"><span class="pref-chip-icon">🚬</span><select id="filterSmoke"><option value="All">All</option><option value="Yes">OK</option><option value="No">No</option></select></div>
+        </div>
+      </div>
+      <div class="day-tabs" id="dayTabs"></div>
+      <div id="dayContent"></div>
+    </div>
+
+    <!-- ====== FIND CARE TEAM MODE ====== -->
+    <div id="finderMode" style="display:none">
+      <div class="finder-panel">
+        <div class="finder-title">New Client Details</div>
+        <div class="finder-sub">Enter the client's needs and we'll rank available caregivers by best match</div>
+        <div class="finder-grid">
+          <div class="finder-field">
+            <label>Client Address / City</label>
+            <input type="text" id="finderAddress" placeholder="e.g. 123 Main St, Boston MA">
+          </div>
+          <div class="finder-field">
+            <label>Market</label>
+            <select id="finderMarket"><option value="">Select market...</option></select>
+          </div>
+          <div class="finder-field">
+            <label>Service Type</label>
+            <select id="finderServiceType">
+              <option value="All">Any Type</option>
+              <option value="Overnight">Overnight</option>
+              <option value="Long Hours">Long Hours</option>
+              <option value="Short Hours">Short Hours</option>
+              <option value="Live-In">Live-In</option>
+            </select>
+          </div>
+
+          <div class="finder-days">
+            <label>Requested Schedule (select days needed)</label>
+            <div class="finder-days-grid">
+              <div class="finder-day-btn" onclick="toggleFinderDay(0,this)">Sun</div>
+              <div class="finder-day-btn" onclick="toggleFinderDay(1,this)">Mon</div>
+              <div class="finder-day-btn" onclick="toggleFinderDay(2,this)">Tue</div>
+              <div class="finder-day-btn" onclick="toggleFinderDay(3,this)">Wed</div>
+              <div class="finder-day-btn" onclick="toggleFinderDay(4,this)">Thu</div>
+              <div class="finder-day-btn" onclick="toggleFinderDay(5,this)">Fri</div>
+              <div class="finder-day-btn" onclick="toggleFinderDay(6,this)">Sat</div>
+            </div>
+          </div>
+
+          <div class="finder-prefs">
+            <label class="finder-pref"><input type="checkbox" id="finderMale"><span class="finder-pref-label">Requesting Male Caregiver</span></label>
+            <label class="finder-pref"><input type="checkbox" id="finderDogs"><span class="finder-pref-label">Client Has Dogs</span></label>
+            <label class="finder-pref"><input type="checkbox" id="finderCats"><span class="finder-pref-label">Client Has Cats</span></label>
+            <label class="finder-pref"><input type="checkbox" id="finderParking"><span class="finder-pref-label">Parking Available</span></label>
+            <label class="finder-pref"><input type="checkbox" id="finderNeedsDriver"><span class="finder-pref-label">Client Requires Driver</span></label>
+          </div>
+
+          <div class="finder-actions">
+            <button class="finder-btn" onclick="runFinder()">Find Care Team</button>
+            <button class="finder-btn-clear" onclick="clearFinder()">Clear</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="finderResults"></div>
+    </div>
   </div>
 </div>
 
 <script>
 var API='https://tribute-api-prod-bkc4hfcwf3f2f6bf.centralus-01.azurewebsites.net/api/vivProxy';
-var allEntries=[]; // each entry = {name, market, state, type, openDays[], prefs, notes, desiredHrs}
+var allEntries=[];
+var genderMap={};  // name -> gender
 var selectedDay=null;
+var finderDays=new Set();
+var currentMode='browse';
 var DAYS=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 var TYPES=['Overnight','Long Hours','Short Hours','Live-In'];
 var TYPE_CSS={'Overnight':'overnight','Long Hours':'long-hours','Short Hours':'short-hours','Live-In':'live-in'};
 
-// Parse day abbreviations from a string like "Su, M, T, W, Th, F, Sa"
-var DAY_MAP={
-  'su':0,'sun':0,'sunday':0,
-  'm':1,'mo':1,'mon':1,'monday':1,
-  't':2,'tu':2,'tue':2,'tues':2,'tuesday':2,
-  'w':3,'we':3,'wed':3,'wednesday':3,
-  'th':4,'thu':4,'thur':4,'thurs':4,'thursday':4,'fr':4,
-  'f':5,'fri':5,'friday':5,
-  'sa':6,'sat':6,'saturday':6
-};
-// Fix: 'fr' should be Friday=5, 'th' should be Thursday=4
-DAY_MAP['fr']=5;DAY_MAP['fri']=5;
+var DAY_MAP={'su':0,'sun':0,'sunday':0,'m':1,'mo':1,'mon':1,'monday':1,'t':2,'tu':2,'tue':2,'tues':2,'tuesday':2,'w':3,'we':3,'wed':3,'wednesday':3,'th':4,'thu':4,'thur':4,'thurs':4,'thursday':4,'f':5,'fr':5,'fri':5,'friday':5,'sa':6,'sat':6,'saturday':6};
 
 function parseDays(str){
   var days=new Set();
-  // Split on commas, spaces, semicolons
   var tokens=str.replace(/e\/o\s*/gi,'').split(/[,;\s]+/);
   tokens.forEach(function(t){
     var tl=t.toLowerCase().replace(/[^a-z]/g,'');
@@ -188,17 +289,10 @@ function parseDays(str){
   return Array.from(days);
 }
 
-// Parse availNotes into type+days entries
-// e.g. "TS40 Overnights = Su, M, T, W, Th" -> [{type:'Overnight', days:[0,1,2,3,4]}]
-// e.g. "Long Hour Days = M, T; Short Hours = F, Sa" -> [{type:'Long Hours', days:[1,2]}, {type:'Short Hours', days:[5,6]}]
 function parseAvailNotes(notes){
   if(!notes)return [];
   var entries=[];
-
-  // Normalize separators between multiple type blocks
-  // Split on patterns like "Type = days" using regex
-  var typePattern=/((?:TS\d+\s+)?(?:Overnight|Long\s*Hour(?:\s*Day)?|Short\s*Hour(?:\s*Day)?|Live[\s-]?[Ii]n)s?)[\s:=]+([^;]*?)(?=(?:(?:TS\d+\s+)?(?:Overnight|Long\s*Hour|Short\s*Hour|Live[\s-]?[Ii]n))|$)/gi;
-
+  var typePattern=/((?:TS\d+\s+)?(?:Overnight|Long\s*[Hh]our(?:\s*[Dd]ay)?|Short\s*[Hh]our(?:\s*[Dd]ay)?|Live[\s-]?[Ii]n)s?)[\s:=]+([^;]*?)(?=(?:(?:TS\d+\s+)?(?:Overnight|Long\s*[Hh]our|Short\s*[Hh]our|Live[\s-]?[Ii]n))|$)/gi;
   var match;
   while((match=typePattern.exec(notes))!==null){
     var rawType=match[1].trim();
@@ -209,40 +303,45 @@ function parseAvailNotes(notes){
     else if(rtl.includes('long'))type='Long Hours';
     else if(rtl.includes('short'))type='Short Hours';
     else if(rtl.includes('live'))type='Live-In';
-
     var days=parseDays(rawDays);
     if(days.length>0)entries.push({type:type,days:days});
   }
-
-  // Fallback: if notes is just "Live-In" or "Live-in" with no days, treat as all 7 days
   if(entries.length===0){
     var nl=notes.toLowerCase().trim();
     if(nl==='live-in'||nl==='live in'){
       entries.push({type:'Live-In',days:[0,1,2,3,4,5,6]});
-    } else if(nl==='prn'){
-      // PRN = as needed, skip
     }
   }
-
   return entries;
 }
 
 async function loadData(){
   try{
-    var res=await fetch(API+'?endpoint=caregiver_supply');
-    if(!res.ok)throw new Error('API returned '+res.status);
-    var data=await res.json();
-    var raw=data.caregivers||[];
+    // Fetch both endpoints in parallel
+    var [supplyRes, cgRes]=await Promise.all([
+      fetch(API+'?endpoint=caregiver_supply'),
+      fetch(API+'?endpoint=caregivers')
+    ]);
+    if(!supplyRes.ok)throw new Error('Supply API returned '+supplyRes.status);
+    var supplyData=await supplyRes.json();
+    var raw=supplyData.caregivers||[];
+
+    // Build gender map from caregivers endpoint
+    if(cgRes.ok){
+      var cgData=await cgRes.json();
+      (cgData.caregivers||[]).forEach(function(c){
+        var name=((c.fn||'')+' '+(c.ln||'')).trim();
+        if(name&&c.gender)genderMap[name.toLowerCase()]=c.gender.toLowerCase();
+      });
+    }
 
     allEntries=[];
-
     raw.filter(function(cg){return cg.status==='hired';}).forEach(function(cg){
       var busyDOW=new Set(cg.scheduledDays||[]);
       var notes=cg.availNotes||'';
       var parsed=parseAvailNotes(notes);
       if(parsed.length===0)return;
 
-      // Preferences from environment (nested structure)
       var env=cg.environment||{};
       var pets=env.pets||{};
       var smoking=env.smoking||{};
@@ -250,12 +349,11 @@ async function loadData(){
       var worksDogs=pets.dogs?normBool(pets.dogs.ok):normBool(pets.ok);
       var worksCats=pets.cats?normBool(pets.cats.ok):normBool(pets.ok);
       var smokingOk=normBool(smoking.ok);
+      var gender=genderMap[(cg.name||'').toLowerCase()]||'';
 
-      // Create one entry per type block for this caregiver
       parsed.forEach(function(block){
         var openDays=block.days.filter(function(d){return !busyDOW.has(d);});
-        if(openDays.length===0)return; // fully booked on these days
-
+        if(openDays.length===0)return;
         allEntries.push({
           name:cg.name||'',
           market:cg.market||'Unknown',
@@ -268,12 +366,12 @@ async function loadData(){
           drivesClients:drivesClients,
           worksDogs:worksDogs,
           worksCats:worksCats,
-          smokingOk:smokingOk
+          smokingOk:smokingOk,
+          gender:gender
         });
       });
     });
 
-    // Sort by name
     allEntries.sort(function(a,b){return a.name.localeCompare(b.name);});
 
     // Populate filters
@@ -282,10 +380,12 @@ async function loadData(){
     populateSelect('filterState',states);
     populateSelect('filterMarket',markets);
 
-    // Unique caregivers
-    var uniqueNames=new Set(allEntries.map(function(e){return e.name;}));
+    // Populate finder market
+    var finderMarketEl=document.getElementById('finderMarket');
+    finderMarketEl.innerHTML='<option value="">Select market...</option>'+markets.filter(function(m){return m!=='All';}).map(function(m){return '<option value="'+m+'">'+m+'</option>';}).join('');
 
     // Stats
+    var uniqueNames=new Set(allEntries.map(function(e){return e.name;}));
     document.getElementById('statAvailable').textContent=uniqueNames.size;
     document.getElementById('statOvernight').textContent=new Set(allEntries.filter(function(e){return e.type==='Overnight';}).map(function(e){return e.name;})).size;
     document.getElementById('statLong').textContent=new Set(allEntries.filter(function(e){return e.type==='Long Hours';}).map(function(e){return e.name;})).size;
@@ -310,18 +410,26 @@ function normPref(val){
   if(v==='pending')return 'pending';
   return '';
 }
-
 function normBool(val){
   if(val===true)return 'yes';
   if(val===false)return 'no';
   return '';
 }
-
 function populateSelect(id,options){
   var el=document.getElementById(id);
   el.innerHTML=options.map(function(o){return '<option value="'+o+'">'+o+'</option>';}).join('');
 }
 
+// ====== MODE SWITCHING ======
+function setMode(mode,el){
+  currentMode=mode;
+  document.querySelectorAll('.mode-tab').forEach(function(t){t.classList.remove('active');});
+  if(el)el.classList.add('active');
+  document.getElementById('browseMode').style.display=mode==='browse'?'block':'none';
+  document.getElementById('finderMode').style.display=mode==='finder'?'block':'none';
+}
+
+// ====== BROWSE MODE ======
 function getFiltered(){
   var state=document.getElementById('filterState').value;
   var market=document.getElementById('filterMarket').value;
@@ -331,7 +439,6 @@ function getFiltered(){
   var dogs=document.getElementById('filterDogs').value;
   var cats=document.getElementById('filterCats').value;
   var smoke=document.getElementById('filterSmoke').value;
-
   return allEntries.filter(function(e){
     if(state!=='All'&&e.state!==state)return false;
     if(market!=='All'&&e.market!==market)return false;
@@ -352,15 +459,11 @@ function getFiltered(){
 function render(){
   var filtered=getFiltered();
   renderDayTabs(filtered);
-
   var html='';
-  var showing;
-
   if(selectedDay!==null){
-    showing=filtered.filter(function(e){return e.openDays.indexOf(selectedDay)>=0;});
+    var showing=filtered.filter(function(e){return e.openDays.indexOf(selectedDay)>=0;});
     html+=renderTypeGroups(showing);
   } else {
-    // Show all 7 days
     for(var d=0;d<7;d++){
       var dayEntries=filtered.filter(function(e){return e.openDays.indexOf(d)>=0;});
       if(dayEntries.length>0){
@@ -371,23 +474,15 @@ function render(){
       }
     }
   }
-
   if(!html)html='<div style="text-align:center;padding:40px;color:var(--gray-light)">No caregivers match your filters</div>';
   document.getElementById('dayContent').innerHTML=html;
 }
 
 function renderDayTabs(filtered){
-  var html='<div class="day-tab'+(selectedDay===null?' active':'')+'" onclick="selectDay(null)">';
-  html+='<div class="day-tab-name">All Days</div>';
-  var uniqueAll=new Set(filtered.map(function(e){return e.name;}));
-  html+='<div class="day-tab-count">'+uniqueAll.size+' caregivers</div></div>';
-
+  var html='<div class="day-tab'+(selectedDay===null?' active':'')+'" onclick="selectDay(null)"><div class="day-tab-name">All Days</div><div class="day-tab-count">'+new Set(filtered.map(function(e){return e.name;})).size+' caregivers</div></div>';
   for(var d=0;d<7;d++){
     var dayEntries=filtered.filter(function(e){return e.openDays.indexOf(d)>=0;});
-    var uniqueDay=new Set(dayEntries.map(function(e){return e.name;}));
-    html+='<div class="day-tab'+(selectedDay===d?' active':'')+'" onclick="selectDay('+d+')">';
-    html+='<div class="day-tab-name">'+DAYS[d]+'</div>';
-    html+='<div class="day-tab-count">'+uniqueDay.size+' available</div></div>';
+    html+='<div class="day-tab'+(selectedDay===d?' active':'')+'" onclick="selectDay('+d+')"><div class="day-tab-name">'+DAYS[d]+'</div><div class="day-tab-count">'+new Set(dayEntries.map(function(e){return e.name;})).size+' avail</div></div>';
   }
   document.getElementById('dayTabs').innerHTML=html;
 }
@@ -398,25 +493,14 @@ function renderTypeGroups(entries){
     var typeEntries=entries.filter(function(e){return e.type===type;});
     if(typeEntries.length===0)return;
     var css=TYPE_CSS[type];
-    html+='<div class="type-section">';
-    html+='<div class="type-header"><div class="type-badge '+css+'">'+type+'</div><span class="type-count">'+typeEntries.length+'</span></div>';
+    html+='<div class="type-section"><div class="type-header"><div class="type-badge '+css+'">'+type+'</div><span class="type-count">'+typeEntries.length+'</span></div>';
     html+='<div class="cg-grid">';
     typeEntries.forEach(function(e){
       var openDayNames=e.openDays.map(function(d){return DAYS[d].slice(0,3);}).join(', ');
-      html+='<div class="cg-card '+css+'">';
-      html+='<div class="cg-card-name">'+esc(e.name)+'</div>';
-      html+='<div class="cg-card-row">';
-      html+='<span class="cg-card-market">'+esc(e.market)+'</span>';
-      html+='<span class="cg-card-hrs">'+e.desiredHrs+'h desired</span>';
-      html+='</div>';
+      html+='<div class="cg-card '+css+'"><div class="cg-card-name">'+esc(e.name)+'</div>';
+      html+='<div class="cg-card-row"><span class="cg-card-market">'+esc(e.market)+'</span><span class="cg-card-hrs">'+e.desiredHrs+'h desired</span></div>';
       html+='<div class="cg-card-row"><span class="cg-card-days">Open: '+openDayNames+'</span></div>';
-      // Prefs
-      html+='<div class="cg-card-prefs">';
-      html+=prefDot('🚗',e.drivesClients,'Drives clients');
-      html+=prefDot('🐕',e.worksDogs,'Dogs');
-      html+=prefDot('🐈',e.worksCats,'Cats');
-      html+=prefDot('🚬',e.smokingOk,'Smoking');
-      html+='</div>';
+      html+='<div class="cg-card-prefs">'+prefDot('🚗',e.drivesClients,'Drives')+prefDot('🐕',e.worksDogs,'Dogs')+prefDot('🐈',e.worksCats,'Cats')+prefDot('🚬',e.smokingOk,'Smoking')+'</div>';
       html+='</div>';
     });
     html+='</div></div>';
@@ -424,22 +508,137 @@ function renderTypeGroups(entries){
   return html;
 }
 
+function selectDay(day){selectedDay=day;render();}
+
+// ====== FIND CARE TEAM MODE ======
+function toggleFinderDay(day,el){
+  if(finderDays.has(day)){finderDays.delete(day);el.classList.remove('selected');}
+  else{finderDays.add(day);el.classList.add('selected');}
+}
+
+function clearFinder(){
+  document.getElementById('finderAddress').value='';
+  document.getElementById('finderMarket').value='';
+  document.getElementById('finderServiceType').value='All';
+  document.getElementById('finderMale').checked=false;
+  document.getElementById('finderDogs').checked=false;
+  document.getElementById('finderCats').checked=false;
+  document.getElementById('finderParking').checked=false;
+  document.getElementById('finderNeedsDriver').checked=false;
+  finderDays.clear();
+  document.querySelectorAll('.finder-day-btn').forEach(function(b){b.classList.remove('selected');});
+  document.getElementById('finderResults').innerHTML='';
+}
+
+function runFinder(){
+  var market=document.getElementById('finderMarket').value;
+  var serviceType=document.getElementById('finderServiceType').value;
+  var needMale=document.getElementById('finderMale').checked;
+  var hasDogs=document.getElementById('finderDogs').checked;
+  var hasCats=document.getElementById('finderCats').checked;
+  var hasParking=document.getElementById('finderParking').checked;
+  var needsDriver=document.getElementById('finderNeedsDriver').checked;
+  var requestedDays=Array.from(finderDays);
+
+  // Filter candidates
+  var candidates=allEntries.filter(function(e){
+    // Service type filter
+    if(serviceType!=='All'&&e.type!==serviceType)return false;
+    // Gender filter
+    if(needMale&&e.gender!=='male')return false;
+    // Dogs - must be OK with dogs
+    if(hasDogs&&e.worksDogs==='no')return false;
+    // Cats - must be OK with cats
+    if(hasCats&&e.worksCats==='no')return false;
+    // Needs driver - must drive clients
+    if(needsDriver&&e.drivesClients!=='yes')return false;
+    // Must have at least one requested day open
+    if(requestedDays.length>0){
+      var hasOverlap=requestedDays.some(function(d){return e.openDays.indexOf(d)>=0;});
+      if(!hasOverlap)return false;
+    }
+    return true;
+  });
+
+  // Score each candidate
+  candidates.forEach(function(e){
+    var score=0;
+
+    // Schedule overlap (most important): how many requested days can they cover?
+    if(requestedDays.length>0){
+      var overlap=requestedDays.filter(function(d){return e.openDays.indexOf(d)>=0;}).length;
+      score+=overlap*30; // 30 pts per matching day
+      // Bonus for covering ALL requested days
+      if(overlap===requestedDays.length)score+=20;
+    } else {
+      // No days specified, score by total open days
+      score+=e.openDays.length*10;
+    }
+
+    // Market match (proximity proxy)
+    if(market&&e.market===market)score+=25;
+    // Same state but different market
+    else if(market){
+      var MARKET_STATE={'Boston':'Massachusetts','MetroWest Boston':'Massachusetts','North of Boston':'Massachusetts','South of Boston':'Massachusetts','Chicago':'Illinois','Baltimore':'Maryland','Annapolis':'Maryland','Bethesda':'Maryland'};
+      var targetState=MARKET_STATE[market]||'';
+      var cgState=MARKET_STATE[e.market]||e.state;
+      if(targetState&&cgState===targetState)score+=10;
+    }
+
+    // Preference bonuses
+    if(hasDogs&&e.worksDogs==='yes')score+=5;
+    if(hasCats&&e.worksCats==='yes')score+=5;
+    if(needsDriver&&e.drivesClients==='yes')score+=10;
+    if(!hasParking&&e.drivesClients!=='yes')score+=3; // doesn't need parking if no car
+    if(needMale&&e.gender==='male')score+=10;
+
+    e._score=score;
+    e._overlap=requestedDays.length>0?requestedDays.filter(function(d){return e.openDays.indexOf(d)>=0;}).length:e.openDays.length;
+  });
+
+  // Sort: highest score first
+  candidates.sort(function(a,b){return b._score-a._score;});
+
+  // Render results
+  var html='';
+  if(candidates.length===0){
+    html='<div style="text-align:center;padding:40px;color:var(--gray-light)">No caregivers match these criteria. Try relaxing some filters.</div>';
+  } else {
+    html+='<div class="results-header"><div class="results-title">Care Team Recommendations</div><div class="results-count">'+candidates.length+' matches</div></div>';
+    candidates.forEach(function(e){
+      var css=TYPE_CSS[e.type];
+      var matchDays=requestedDays.length>0?requestedDays.filter(function(d){return e.openDays.indexOf(d)>=0;}).map(function(d){return DAYS[d].slice(0,3);}).join(', '):e.openDays.map(function(d){return DAYS[d].slice(0,3);}).join(', ');
+      var coverageText=requestedDays.length>0?(e._overlap+'/'+requestedDays.length+' days covered'):(e.openDays.length+' open days');
+
+      html+='<div class="result-card"><div class="result-left">';
+      html+='<div class="result-name">'+esc(e.name)+'</div>';
+      html+='<div class="result-meta">';
+      html+='<span class="result-market">'+esc(e.market)+'</span>';
+      html+='<span class="result-type-badge '+css+'">'+e.type+'</span>';
+      if(e.gender)html+='<span style="font-size:10px;color:var(--gray-light)">'+e.gender+'</span>';
+      html+='</div>';
+      html+='<div class="result-meta"><span class="result-days">Available: '+matchDays+'</span><span class="result-match">'+coverageText+'</span></div>';
+      html+='<div class="result-prefs">'+prefDot('🚗',e.drivesClients,'Drives')+prefDot('🐕',e.worksDogs,'Dogs')+prefDot('🐈',e.worksCats,'Cats')+prefDot('🚬',e.smokingOk,'Smoking')+'</div>';
+      html+='</div>';
+      html+='<div class="result-right"><div class="result-score">'+e._score+'</div><div class="result-score-label">Match</div></div>';
+      html+='</div>';
+    });
+  }
+  document.getElementById('finderResults').innerHTML=html;
+}
+
+// ====== HELPERS ======
 function prefDot(icon,val,label){
   if(val==='yes')return '<span class="pref-dot yes" title="'+label+': Yes">'+icon+'</span>';
   if(val==='no')return '<span class="pref-dot no" title="'+label+': No">'+icon+'</span>';
   return '<span class="pref-dot unknown" title="'+label+': Unknown">'+icon+'</span>';
 }
-
-function selectDay(day){
-  selectedDay=day;
-  render();
-}
-
 function esc(s){
   if(!s)return '';
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+// Wire browse filters
 ['filterState','filterMarket','filterType','filterDrives','filterDogs','filterCats','filterSmoke'].forEach(function(id){
   document.getElementById(id).addEventListener('change',function(){
     if(id==='filterState'){
