@@ -1181,6 +1181,8 @@ function renderBarriersUI(d){
 
 // ── DH OVER TIME ──────────────────────────────────────────────────────
 var dhTrendData=null;
+var dhSearch='';
+var dhWeekDataCache=null;
 var dhTrendLoading=false;
 var dhWeeksBack=12;
 
@@ -1219,6 +1221,7 @@ function renderDHTrend(){
 }
 
 function renderDHTrendUI(weekData){
+  dhWeekDataCache=weekData;
   if(!weekData.length){
     document.getElementById('ct').innerHTML='<div class="err">No trend data available.</div>';
     return;
@@ -1327,6 +1330,97 @@ function renderDHTrendUI(weekData){
     html+='</tr>';
   });
   html+='</tbody></table></div>';
+
+  // Individual caregiver trend table
+  // Build per-caregiver data across all weeks
+  var cgTrends={};
+  weekData.forEach(function(wd,wi){
+    var cgs=wd.data.caregivers||[];
+    if(curNav==='ma')cgs=cgs.filter(function(c){return c.state==='Massachusetts';});
+    else if(curNav==='il')cgs=cgs.filter(function(c){return c.state==='Illinois';});
+    else if(curNav==='md')cgs=cgs.filter(function(c){return c.state==='Maryland';});
+    cgs=cgs.filter(function(c){return c.cgType&&c.cgType!=='Standard';});
+    if(globalMCE)cgs=cgs.filter(function(c){return(c.assignee||c.adminName||'')===globalMCE;});
+    cgs.forEach(function(c){
+      var key=c.id||c.name;
+      if(!cgTrends[key])cgTrends[key]={name:c.name,assignee:c.assignee||c.adminName||'',market:c.market||'',state:c.state||'',weeks:[]};
+      cgTrends[key].weeks.push({week:wd.week,happiness:c.happiness,scheduled:c.scheduledHrs,desired:c.desiredHrs,bucket:c.bucket});
+    });
+  });
+
+  // Compute trend for each caregiver
+  var cgList=Object.values(cgTrends).map(function(cg){
+    cg.weeks.sort(function(a,b){return a.week.localeCompare(b.week);});
+    var latest=cg.weeks[cg.weeks.length-1];
+    cg.currentHappiness=latest.happiness;
+    cg.currentScheduled=latest.scheduled;
+    cg.currentDesired=latest.desired;
+    cg.currentBucket=latest.bucket;
+    // Trend: compare avg of last 3 weeks vs first 3 weeks
+    if(cg.weeks.length>=4){
+      var first3=cg.weeks.slice(0,3);
+      var last3=cg.weeks.slice(-3);
+      var avgFirst=first3.reduce(function(s,w){return s+w.happiness;},0)/first3.length;
+      var avgLast=last3.reduce(function(s,w){return s+w.happiness;},0)/last3.length;
+      var diff=avgLast-avgFirst;
+      cg.trend=diff>0.05?'up':diff<-0.05?'down':'flat';
+      cg.trendDiff=diff;
+    } else {
+      cg.trend='flat';
+      cg.trendDiff=0;
+    }
+    return cg;
+  });
+
+  // Sort: most critical first (lowest happiness, then declining trend)
+  cgList.sort(function(a,b){return a.currentHappiness-b.currentHappiness||a.trendDiff-b.trendDiff;});
+
+  var trendIcon=function(t){return t==='up'?'📈':t==='down'?'📉':'➡️';};
+  var trendColor=function(t){return t==='up'?'var(--green)':t==='down'?'var(--red)':'var(--text3)';};
+
+  html+='<div class="fc"><div class="ct">Individual Caregiver Trends</div>';
+  html+='<input class="srch" type="text" placeholder="Search caregiver name..." value="'+(dhSearch||'')+'" oninput="dhSearch=this.value;renderDHTrendUI(dhWeekDataCache)" style="margin-bottom:10px">';
+  var dhShown=cgList;
+  if(dhSearch){
+    var dq=dhSearch.toLowerCase();
+    dhShown=dhShown.filter(function(c){return c.name.toLowerCase().includes(dq);});
+  }
+  html+='<div style="font-size:11px;color:var(--text3);margin-bottom:8px">'+fn(dhShown.length)+' caregivers. Click a row for weekly detail.</div>';
+
+  dhShown.slice(0,200).forEach(function(cg,idx){
+    var rid='dh-cg-'+idx;
+    html+='<div class="mce-block">';
+    html+='<div class="mce-hdr" onclick="toggleMCE(\''+rid+'\')">';
+    html+='<div style="display:flex;align-items:center;gap:10px">';
+    html+='<div id="'+rid+'-arr" style="font-size:10px;color:var(--text3)">&#9654;</div>';
+    html+='<div><div style="font-size:13px;font-weight:500">'+cg.name+'</div>';
+    var meta=[];
+    if(cg.assignee)meta.push(cg.assignee);
+    if(cg.market)meta.push(cg.market);
+    html+='<div style="font-size:11px;color:var(--text3);margin-top:1px">';
+    if(meta.length>0)html+=meta.join(' · ')+' · ';
+    html+=fh(cg.currentScheduled)+' / '+fh(cg.currentDesired)+' desired';
+    html+='</div></div></div>';
+    html+='<div style="display:flex;align-items:center;gap:8px">';
+    html+='<span style="font-size:14px;color:'+trendColor(cg.trend)+'">'+trendIcon(cg.trend)+'</span>';
+    html+='<span class="bdg '+hapBdg(cg.currentHappiness)+'">'+Math.round(cg.currentHappiness*100)+'%</span>';
+    html+='</div></div>';
+    // Expandable week-by-week detail
+    html+='<div class="mce-body" id="'+rid+'" style="display:none">';
+    html+='<table class="tbl" style="font-size:11px"><thead><tr><th style="text-align:left">Week</th><th>Scheduled</th><th>Desired</th><th>Happiness</th><th>Bucket</th></tr></thead><tbody>';
+    cg.weeks.slice().reverse().forEach(function(w){
+      var wLabel=new Date(w.week+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'});
+      html+='<tr>';
+      html+='<td>'+wLabel+'</td>';
+      html+='<td>'+fh(w.scheduled)+'</td>';
+      html+='<td>'+fh(w.desired)+'</td>';
+      html+='<td><span class="bdg '+hapBdg(w.happiness)+'">'+Math.round(w.happiness*100)+'%</span></td>';
+      html+='<td>'+w.bucket+'</td>';
+      html+='</tr>';
+    });
+    html+='</tbody></table></div></div>';
+  });
+  html+='</div>';
 
   document.getElementById('ct').innerHTML=html;
 }
