@@ -997,8 +997,9 @@ function renderBarriersUI(d){
     copy.state=match.state||'';
     copy.market=match.market||'';
     copy.adminName=match.adminName||'';
+    copy._active=!!match.name;// true if found in active caregiver_hours data
     return copy;
-  });
+  }).filter(function(cg){return cg._active;});// only active/hired caregivers
 
   // Merge Desired Hours barriers from caregiver_hours data
   if(data&&data.caregivers){
