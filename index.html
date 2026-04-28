@@ -775,6 +775,11 @@ body {
       <div class="tile-name">Weekly Audit</div>
       <div class="tile-desc">TS admin, travel time, EVV, billing overlaps, visit type mismatches and 24/7 coverage</div>
     </div>
+    <div class="dash-tile" onclick="loadDash('availability_analyzer',this)">
+      <div class="tile-icon">📋</div>
+      <div class="tile-name">Availability Analyzer</div>
+      <div class="tile-desc">Caregiver day-of-week availability, preferences, and workforce capacity by market</div>
+    </div>
   </div>
 
   <!-- ACTIVE DASHBOARD FRAME -->
@@ -885,6 +890,7 @@ var DASHES = {
   caregiver_supply_map:   { title:'Caregiver Supply Map',     file:'caregiver_supply_map.html' },
   caregiver_utilization:  { title:'Caregiver Utilization',    file:'caregiver_utilization.html' },
   tribute_audit:          { title:'Weekly Audit',              file:'tribute_audit.html' },
+  availability_analyzer:  { title:'Availability Analyzer',     file:'availability_analyzer.html' },
 };
 
 var curDash = 'executive';
