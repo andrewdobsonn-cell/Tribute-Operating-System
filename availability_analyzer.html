@@ -214,23 +214,27 @@ body{font-family:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;backgroun
         <div class="finder-title">New Client Details</div>
         <div class="finder-sub">Enter the client's needs and we'll rank available caregivers by best match</div>
         <div class="finder-grid">
-          <div class="finder-field">
-            <label>Client Address / City</label>
-            <input type="text" id="finderAddress" placeholder="e.g. 123 Main St, Boston MA">
+          <div class="finder-field" style="grid-column:1/-1">
+            <label>Client Address</label>
+            <input type="text" id="finderAddress" placeholder="e.g. 123 Main St, Boston MA 02101">
           </div>
           <div class="finder-field">
-            <label>Market</label>
-            <select id="finderMarket"><option value="">Select market...</option></select>
-          </div>
-          <div class="finder-field">
-            <label>Service Type</label>
-            <select id="finderServiceType">
-              <option value="All">Any Type</option>
-              <option value="Overnight">Overnight</option>
-              <option value="Long Hours">Long Hours</option>
-              <option value="Short Hours">Short Hours</option>
-              <option value="Live-In">Live-In</option>
+            <label>State</label>
+            <select id="finderState">
+              <option value="">Select state...</option>
+              <option value="Massachusetts">Massachusetts</option>
+              <option value="Maryland">Maryland</option>
+              <option value="Illinois">Illinois</option>
             </select>
+          </div>
+          <div class="finder-field" style="grid-column:span 2">
+            <label>Service Types Needed (select all that apply)</label>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:2px">
+              <label class="finder-pref"><input type="checkbox" id="finderTypeOvernight"><span class="finder-pref-label">Overnight</span></label>
+              <label class="finder-pref"><input type="checkbox" id="finderTypeLong"><span class="finder-pref-label">Long Hours</span></label>
+              <label class="finder-pref"><input type="checkbox" id="finderTypeShort"><span class="finder-pref-label">Short Hours</span></label>
+              <label class="finder-pref"><input type="checkbox" id="finderTypeLiveIn"><span class="finder-pref-label">Live-In</span></label>
+            </div>
           </div>
 
           <div class="finder-days">
@@ -380,9 +384,10 @@ async function loadData(){
     populateSelect('filterState',states);
     populateSelect('filterMarket',markets);
 
-    // Populate finder market
-    var finderMarketEl=document.getElementById('finderMarket');
-    finderMarketEl.innerHTML='<option value="">Select market...</option>'+markets.filter(function(m){return m!=='All';}).map(function(m){return '<option value="'+m+'">'+m+'</option>';}).join('');
+    // Populate finder state from available data
+    var finderStates=new Set(allEntries.map(function(e){return e.state;}).filter(Boolean));
+    var finderStateEl=document.getElementById('finderState');
+    finderStateEl.innerHTML='<option value="">Select state...</option>'+Array.from(finderStates).sort().map(function(s){return '<option value="'+s+'">'+s+'</option>';}).join('');
 
     // Stats
     var uniqueNames=new Set(allEntries.map(function(e){return e.name;}));
@@ -518,8 +523,11 @@ function toggleFinderDay(day,el){
 
 function clearFinder(){
   document.getElementById('finderAddress').value='';
-  document.getElementById('finderMarket').value='';
-  document.getElementById('finderServiceType').value='All';
+  document.getElementById('finderState').value='';
+  document.getElementById('finderTypeOvernight').checked=false;
+  document.getElementById('finderTypeLong').checked=false;
+  document.getElementById('finderTypeShort').checked=false;
+  document.getElementById('finderTypeLiveIn').checked=false;
   document.getElementById('finderMale').checked=false;
   document.getElementById('finderDogs').checked=false;
   document.getElementById('finderCats').checked=false;
@@ -530,9 +538,45 @@ function clearFinder(){
   document.getElementById('finderResults').innerHTML='';
 }
 
-function runFinder(){
-  var market=document.getElementById('finderMarket').value;
-  var serviceType=document.getElementById('finderServiceType').value;
+// Geocode an address using OpenStreetMap Nominatim
+async function geocodeAddress(addr){
+  if(!addr)return null;
+  try{
+    var res=await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q='+encodeURIComponent(addr));
+    var data=await res.json();
+    if(data&&data.length>0)return{lat:parseFloat(data[0].lat),lng:parseFloat(data[0].lon)};
+  }catch(e){}
+  return null;
+}
+
+// Haversine distance in miles
+function distanceMiles(lat1,lng1,lat2,lng2){
+  var R=3959;
+  var dLat=(lat2-lat1)*Math.PI/180;
+  var dLng=(lng2-lng1)*Math.PI/180;
+  var a=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)*Math.sin(dLng/2);
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+
+// Known market center coordinates for distance estimation
+var MARKET_COORDS={
+  'Boston':{lat:42.3601,lng:-71.0589},
+  'MetroWest Boston':{lat:42.2793,lng:-71.4162},
+  'North of Boston':{lat:42.5279,lng:-70.9286},
+  'South of Boston':{lat:42.2043,lng:-71.0018},
+  'Chicago':{lat:41.8781,lng:-87.6298},
+  'Baltimore':{lat:39.2904,lng:-76.6122},
+  'Annapolis':{lat:38.9784,lng:-76.4922},
+  'Bethesda':{lat:38.9847,lng:-77.0947}
+};
+
+async function runFinder(){
+  var address=document.getElementById('finderAddress').value.trim();
+  var state=document.getElementById('finderState').value;
+  var needOvernight=document.getElementById('finderTypeOvernight').checked;
+  var needLong=document.getElementById('finderTypeLong').checked;
+  var needShort=document.getElementById('finderTypeShort').checked;
+  var needLiveIn=document.getElementById('finderTypeLiveIn').checked;
   var needMale=document.getElementById('finderMale').checked;
   var hasDogs=document.getElementById('finderDogs').checked;
   var hasCats=document.getElementById('finderCats').checked;
@@ -540,10 +584,40 @@ function runFinder(){
   var needsDriver=document.getElementById('finderNeedsDriver').checked;
   var requestedDays=Array.from(finderDays);
 
-  // Filter candidates
+  // Build list of acceptable types
+  var acceptedTypes=[];
+  if(needOvernight)acceptedTypes.push('Overnight');
+  if(needLong)acceptedTypes.push('Long Hours');
+  if(needShort)acceptedTypes.push('Short Hours');
+  if(needLiveIn)acceptedTypes.push('Live-In');
+  // If none selected, accept all
+  var filterByType=acceptedTypes.length>0;
+
+  // Auto-detect state from address if not manually selected
+  if(!state&&address){
+    var addrLower=address.toLowerCase();
+    if(addrLower.includes('massachusetts')||addrLower.includes(', ma')||addrLower.includes(' ma '))state='Massachusetts';
+    else if(addrLower.includes('maryland')||addrLower.includes(', md')||addrLower.includes(' md '))state='Maryland';
+    else if(addrLower.includes('illinois')||addrLower.includes(', il')||addrLower.includes(' il '))state='Illinois';
+    else if(addrLower.includes('virginia')||addrLower.includes(', va')||addrLower.includes(' va '))state='Virginia';
+    if(state)document.getElementById('finderState').value=state;
+  }
+
+  // Show loading state
+  document.getElementById('finderResults').innerHTML='<div style="text-align:center;padding:30px;color:var(--gray-light)"><div class="spinner" style="margin:0 auto 10px"></div>Searching'+(address?' and calculating distances...':'...')+'</div>';
+
+  // Geocode client address for distance calculation
+  var clientCoords=null;
+  if(address){
+    clientCoords=await geocodeAddress(address);
+  }
+
+  // Filter candidates — STRICT state filtering
   var candidates=allEntries.filter(function(e){
+    // State filter is REQUIRED — only show caregivers in same state
+    if(state&&e.state!==state)return false;
     // Service type filter
-    if(serviceType!=='All'&&e.type!==serviceType)return false;
+    if(filterByType&&acceptedTypes.indexOf(e.type)===-1)return false;
     // Gender filter
     if(needMale&&e.gender!=='male')return false;
     // Dogs - must be OK with dogs
@@ -560,6 +634,18 @@ function runFinder(){
     return true;
   });
 
+  // Calculate distance for each candidate
+  candidates.forEach(function(e){
+    e._distance=null;
+    if(clientCoords){
+      // Use market center as caregiver location estimate
+      var cgCoords=MARKET_COORDS[e.market];
+      if(cgCoords){
+        e._distance=Math.round(distanceMiles(clientCoords.lat,clientCoords.lng,cgCoords.lat,cgCoords.lng));
+      }
+    }
+  });
+
   // Score each candidate
   candidates.forEach(function(e){
     var score=0;
@@ -567,44 +653,45 @@ function runFinder(){
     // Schedule overlap (most important): how many requested days can they cover?
     if(requestedDays.length>0){
       var overlap=requestedDays.filter(function(d){return e.openDays.indexOf(d)>=0;}).length;
-      score+=overlap*30; // 30 pts per matching day
-      // Bonus for covering ALL requested days
+      score+=overlap*30;
       if(overlap===requestedDays.length)score+=20;
     } else {
-      // No days specified, score by total open days
       score+=e.openDays.length*10;
     }
 
-    // Market match (proximity proxy)
-    if(market&&e.market===market)score+=25;
-    // Same state but different market
-    else if(market){
-      var MARKET_STATE={'Boston':'Massachusetts','MetroWest Boston':'Massachusetts','North of Boston':'Massachusetts','South of Boston':'Massachusetts','Chicago':'Illinois','Baltimore':'Maryland','Annapolis':'Maryland','Bethesda':'Maryland'};
-      var targetState=MARKET_STATE[market]||'';
-      var cgState=MARKET_STATE[e.market]||e.state;
-      if(targetState&&cgState===targetState)score+=10;
+    // Distance score — closer is better
+    if(e._distance!==null){
+      if(e._distance<=10)score+=30;
+      else if(e._distance<=20)score+=20;
+      else if(e._distance<=30)score+=10;
+      else if(e._distance<=50)score+=5;
+      // Penalty for far away
+      if(e._distance>50)score-=10;
     }
 
     // Preference bonuses
     if(hasDogs&&e.worksDogs==='yes')score+=5;
     if(hasCats&&e.worksCats==='yes')score+=5;
     if(needsDriver&&e.drivesClients==='yes')score+=10;
-    if(!hasParking&&e.drivesClients!=='yes')score+=3; // doesn't need parking if no car
     if(needMale&&e.gender==='male')score+=10;
 
     e._score=score;
     e._overlap=requestedDays.length>0?requestedDays.filter(function(d){return e.openDays.indexOf(d)>=0;}).length:e.openDays.length;
   });
 
-  // Sort: highest score first
-  candidates.sort(function(a,b){return b._score-a._score;});
+  // Sort: highest score first, then by distance
+  candidates.sort(function(a,b){
+    if(b._score!==a._score)return b._score-a._score;
+    if(a._distance!==null&&b._distance!==null)return a._distance-b._distance;
+    return 0;
+  });
 
   // Render results
   var html='';
   if(candidates.length===0){
-    html='<div style="text-align:center;padding:40px;color:var(--gray-light)">No caregivers match these criteria. Try relaxing some filters.</div>';
+    html='<div style="text-align:center;padding:40px;color:var(--gray-light)">No caregivers match these criteria'+(state?' in '+state:'')+'. Try relaxing some filters.</div>';
   } else {
-    html+='<div class="results-header"><div class="results-title">Care Team Recommendations</div><div class="results-count">'+candidates.length+' matches</div></div>';
+    html+='<div class="results-header"><div class="results-title">Care Team Recommendations</div><div class="results-count">'+candidates.length+' matches'+(state?' in '+state:'')+'</div></div>';
     candidates.forEach(function(e){
       var css=TYPE_CSS[e.type];
       var matchDays=requestedDays.length>0?requestedDays.filter(function(d){return e.openDays.indexOf(d)>=0;}).map(function(d){return DAYS[d].slice(0,3);}).join(', '):e.openDays.map(function(d){return DAYS[d].slice(0,3);}).join(', ');
@@ -616,6 +703,7 @@ function runFinder(){
       html+='<span class="result-market">'+esc(e.market)+'</span>';
       html+='<span class="result-type-badge '+css+'">'+e.type+'</span>';
       if(e.gender)html+='<span style="font-size:10px;color:var(--gray-light)">'+e.gender+'</span>';
+      if(e._distance!==null)html+='<span style="font-size:10px;font-weight:600;color:'+(e._distance<=15?'var(--green)':e._distance<=30?'var(--amber)':'var(--red)')+'">~'+e._distance+' mi</span>';
       html+='</div>';
       html+='<div class="result-meta"><span class="result-days">Available: '+matchDays+'</span><span class="result-match">'+coverageText+'</span></div>';
       html+='<div class="result-prefs">'+prefDot('🚗',e.drivesClients,'Drives')+prefDot('🐕',e.worksDogs,'Dogs')+prefDot('🐈',e.worksCats,'Cats')+prefDot('🚬',e.smokingOk,'Smoking')+'</div>';
