@@ -9,7 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&family=DM+Serif+Display&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{--orange:#E8541A;--orange-dark:#C4441A;--orange-light:#F47A4A;--orange-pale:#FDF2ED;--orange-50:#FEF8F5;--charcoal:#2C2C2C;--charcoal-mid:#4A4A4A;--gray-text:#6B6B6B;--gray-light:#9B9B9B;--gray-100:#F5F5F5;--gray-200:#EBEBEB;--gray-300:#D8D8D8;--white:#FFFFFF;--cream:#FAFAF8;--green:#3DAA7A;--green-light:#dcfce7;--red:#E05252;--red-light:#fee2e2;--shadow-sm:0 1px 4px rgba(44,44,44,0.06),0 1px 2px rgba(44,44,44,0.04);--shadow-md:0 4px 20px rgba(44,44,44,0.09),0 2px 6px rgba(44,44,44,0.05);--r:10px;--rl:14px}
+:root{--orange:#E8541A;--orange-dark:#C4441A;--orange-light:#F47A4A;--orange-pale:#FDF2ED;--orange-50:#FEF8F5;--charcoal:#2C2C2C;--charcoal-mid:#4A4A4A;--gray-text:#6B6B6B;--gray-light:#9B9B9B;--gray-100:#F5F5F5;--gray-200:#EBEBEB;--gray-300:#D8D8D8;--white:#FFFFFF;--cream:#FAFAF8;--green:#3DAA7A;--green-light:#dcfce7;--red:#E05252;--red-light:#fee2e2;--purple:#7c3aed;--purple-light:#ede9fe;--cyan:#0891b2;--cyan-light:#cffafe;--amber:#d97706;--amber-light:#fef3c7;--shadow-sm:0 1px 4px rgba(44,44,44,0.06),0 1px 2px rgba(44,44,44,0.04);--shadow-md:0 4px 20px rgba(44,44,44,0.09),0 2px 6px rgba(44,44,44,0.05);--r:10px;--rl:14px}
 html{scroll-behavior:smooth}
 body{font-family:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;background:var(--cream);color:var(--charcoal);min-height:100vh;font-size:14px;line-height:1.6;-webkit-font-smoothing:antialiased}
 
@@ -27,7 +27,7 @@ body{font-family:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;backgroun
 .hero-eyebrow{font-size:10px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--orange);margin-bottom:8px;padding-left:20px}
 .hero-title{font-family:'DM Serif Display',Georgia,serif;font-size:34px;color:var(--charcoal);line-height:1.1;letter-spacing:-.025em;margin-bottom:8px;padding-left:20px}
 .hero-title span{color:var(--orange);font-style:italic}
-.hero-sub{font-size:14px;font-weight:300;color:var(--gray-text);padding-left:20px;max-width:650px}
+.hero-sub{font-size:14px;font-weight:300;color:var(--gray-text);padding-left:20px;max-width:700px}
 
 .stats-strip{background:var(--orange);padding:12px 48px;display:flex;gap:36px;flex-wrap:wrap}
 .stat-item{display:flex;flex-direction:column;gap:2px}
@@ -47,66 +47,48 @@ body{font-family:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;backgroun
 .pref-chip-icon{font-size:16px}
 .pref-chip select{background:transparent;border:none;font-family:inherit;font-size:11px;font-weight:600;color:var(--charcoal);outline:none;cursor:pointer}
 
-.week-toggle{display:flex;gap:4px;margin-bottom:16px}
-.week-btn{background:var(--white);border:1px solid var(--gray-200);border-radius:8px;padding:8px 16px;font-size:11px;font-weight:600;letter-spacing:.05em;color:var(--gray-text);cursor:pointer;transition:all .15s}
-.week-btn:hover{border-color:var(--orange-light);color:var(--charcoal)}
-.week-btn.active{background:var(--orange-50);border-color:var(--orange);color:var(--orange)}
+/* DAY SECTIONS */
+.day-section{margin-bottom:28px}
+.day-header{display:flex;align-items:baseline;gap:12px;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid var(--orange)}
+.day-header-name{font-family:'DM Serif Display',Georgia,serif;font-size:26px;color:var(--charcoal)}
+.day-header-count{font-size:13px;color:var(--gray-light)}
 
-.results-info{font-size:12px;color:var(--gray-text);margin-bottom:12px}
-.results-info strong{color:var(--charcoal)}
+.type-section{margin-bottom:16px;margin-left:8px}
+.type-header{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.type-badge{display:inline-flex;align-items:center;gap:5px;padding:4px 12px;border-radius:6px;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase}
+.type-badge.overnight{background:var(--purple-light);color:var(--purple)}
+.type-badge.long-hours{background:var(--amber-light);color:var(--amber)}
+.type-badge.short-hours{background:var(--green-light);color:var(--green)}
+.type-badge.live-in{background:var(--cyan-light);color:var(--cyan)}
+.type-count{font-size:11px;color:var(--gray-light)}
 
-.day-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:24px}
-@media(max-width:1100px){.day-grid{grid-template-columns:repeat(4,1fr)}}
-@media(max-width:700px){.day-grid{grid-template-columns:1fr 1fr}}
-.day-col{background:var(--white);border:1px solid var(--gray-200);border-radius:var(--rl);overflow:hidden;box-shadow:var(--shadow-sm)}
-.day-col-header{padding:10px 14px;border-bottom:1px solid var(--gray-200);background:var(--gray-100)}
-.day-col-date{font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--orange)}
-.day-col-dayname{font-size:18px;font-weight:600;color:var(--charcoal);line-height:1.2}
-.day-col-count{font-size:11px;color:var(--gray-light);margin-top:2px}
-.day-col-body{padding:6px;display:flex;flex-direction:column;gap:3px;max-height:450px;overflow-y:auto}
-.cg-card{padding:8px 10px;border-radius:8px;border-left:3px solid var(--green);background:var(--gray-100);transition:all .12s}
-.cg-card:hover{background:var(--orange-50);border-left-color:var(--orange)}
-.cg-card-name{font-size:12px;font-weight:600;color:var(--charcoal);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.cg-card-meta{font-size:10px;color:var(--gray-text);display:flex;gap:6px;margin-top:2px;flex-wrap:wrap}
-.cg-card-tag{background:var(--white);border:1px solid var(--gray-200);border-radius:4px;padding:1px 5px;font-size:9px;font-weight:600;letter-spacing:.05em;text-transform:uppercase}
-.cg-card-tag.overnight{color:#7c3aed;border-color:#ddd6fe}
-.cg-card-tag.livein{color:#0891b2;border-color:#cffafe}
-.cg-card-tag.hourly{color:var(--gray-text);border-color:var(--gray-200)}
+.cg-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:8px}
+.cg-card{background:var(--white);border:1px solid var(--gray-200);border-radius:var(--r);padding:10px 14px;transition:all .12s;cursor:default}
+.cg-card:hover{border-color:var(--orange-light);box-shadow:var(--shadow-sm);transform:translateY(-1px)}
+.cg-card-name{font-size:13px;font-weight:600;color:var(--charcoal)}
+.cg-card-row{display:flex;align-items:center;gap:8px;margin-top:4px;flex-wrap:wrap}
+.cg-card-market{font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--gray-text)}
+.cg-card-hrs{font-size:10px;color:var(--gray-light)}
+.cg-card-prefs{display:flex;gap:4px;margin-top:4px}
+.pref-dot{width:18px;height:18px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:10px}
+.pref-dot.yes{background:var(--green-light)}
+.pref-dot.no{background:var(--red-light)}
 
-.table-wrap{background:var(--white);border:1px solid var(--gray-200);border-radius:var(--rl);overflow:hidden;box-shadow:var(--shadow-sm)}
-.data-table{width:100%;border-collapse:collapse;font-size:12px}
-.data-table thead tr{background:var(--gray-100);border-bottom:1px solid var(--gray-200)}
-.data-table th{padding:10px 12px;font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--gray-light);text-align:left;white-space:nowrap}
-.data-table th.center{text-align:center}
-.data-table tbody tr{border-bottom:1px solid var(--gray-100);transition:background .1s}
-.data-table tbody tr:hover{background:var(--orange-50)}
-.data-table td{padding:8px 12px}
-.td-name{font-weight:600;color:var(--charcoal);white-space:nowrap}
-.td-market{font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--gray-text)}
-.td-type{font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase}
-.td-type.overnight{color:#7c3aed}
-.td-type.livein{color:#0891b2}
-.td-type.hourly{color:var(--gray-text)}
-.td-day{text-align:center;font-size:13px}
-.td-day.open{color:var(--green);font-weight:700}
-.td-day.busy{color:var(--gray-300)}
-.td-day.unavail{color:transparent}
-.td-hrs{font-variant-numeric:tabular-nums;font-weight:500;text-align:center}
-.td-notes{font-size:11px;color:var(--gray-text);max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.badge-yes{display:inline-block;padding:2px 6px;border-radius:4px;font-size:9px;font-weight:700;background:var(--green-light);color:#16a34a}
-.badge-no{display:inline-block;padding:2px 6px;border-radius:4px;font-size:9px;font-weight:700;background:var(--red-light);color:#dc2626}
-.badge-na{color:#ccc;font-size:10px}
-
-.view-tabs{display:flex;gap:4px;margin-bottom:16px}
-.view-tab{background:var(--white);border:1px solid var(--gray-200);border-radius:8px;padding:8px 16px;font-size:11px;font-weight:600;letter-spacing:.05em;color:var(--gray-text);cursor:pointer;transition:all .15s}
-.view-tab:hover{border-color:var(--orange-light);color:var(--charcoal)}
-.view-tab.active{background:var(--orange-50);border-color:var(--orange);color:var(--orange)}
+.empty-type{font-size:12px;color:var(--gray-light);font-style:italic;padding:8px 0}
 
 .loading-screen{display:flex;align-items:center;justify-content:center;min-height:400px;flex-direction:column;gap:16px}
 .spinner{width:28px;height:28px;border:3px solid var(--gray-200);border-top-color:var(--orange);border-radius:50%;animation:spin .7s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 .loading-text{font-size:13px;color:var(--gray-light)}
 .error-msg{background:var(--red-light);border:1px solid #fca5a5;border-radius:var(--r);padding:16px 20px;color:#991b1b;font-size:13px}
+
+.day-tabs{display:flex;gap:4px;margin-bottom:20px;flex-wrap:wrap}
+.day-tab{background:var(--white);border:1px solid var(--gray-200);border-radius:8px;padding:10px 18px;cursor:pointer;transition:all .15s;text-align:center;min-width:80px}
+.day-tab:hover{border-color:var(--orange-light)}
+.day-tab.active{background:var(--orange-50);border-color:var(--orange)}
+.day-tab-name{font-size:12px;font-weight:700;color:var(--charcoal)}
+.day-tab-count{font-size:10px;color:var(--gray-light);margin-top:2px}
+.day-tab.active .day-tab-name{color:var(--orange)}
 </style>
 </head>
 <body>
@@ -122,18 +104,17 @@ body{font-family:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;backgroun
 </div>
 
 <div class="hero">
-  <div class="hero-eyebrow">Workforce Intelligence</div>
-  <h1 class="hero-title">Who's <span>available</span> for ongoing work?</h1>
-  <p class="hero-sub">2-week forward look — caregivers with stated availability who are NOT attached to ongoing visits on those days. These are your open caregivers ready for new clients.</p>
+  <div class="hero-eyebrow">Care Team Staffing</div>
+  <h1 class="hero-title">Who can join a <span>care team</span>?</h1>
+  <p class="hero-sub">Caregivers with open availability not currently attached to ongoing visits — organized by day and service type so Scheduling Partners can quickly staff care teams.</p>
 </div>
 
 <div class="stats-strip">
-  <div class="stat-item"><div class="stat-label">Active Caregivers</div><div class="stat-value" id="statTotal">—</div></div>
-  <div class="stat-item"><div class="stat-label">Available for Work</div><div class="stat-value" id="statAvailable">—</div></div>
-  <div class="stat-item"><div class="stat-label">Open Days (2wk)</div><div class="stat-value" id="statOpenDays">—</div></div>
-  <div class="stat-item"><div class="stat-label">Overnight Avail</div><div class="stat-value" id="statOvernight">—</div></div>
-  <div class="stat-item"><div class="stat-label">Live-In Avail</div><div class="stat-value" id="statLiveIn">—</div></div>
-  <div class="stat-item"><div class="stat-label">Hourly Avail</div><div class="stat-value" id="statHourly">—</div></div>
+  <div class="stat-item"><div class="stat-label">Available Caregivers</div><div class="stat-value" id="statAvailable">—</div></div>
+  <div class="stat-item"><div class="stat-label">Overnight</div><div class="stat-value" id="statOvernight">—</div></div>
+  <div class="stat-item"><div class="stat-label">Long Hours</div><div class="stat-value" id="statLong">—</div></div>
+  <div class="stat-item"><div class="stat-label">Short Hours</div><div class="stat-value" id="statShort">—</div></div>
+  <div class="stat-item"><div class="stat-label">Live-In</div><div class="stat-value" id="statLiveIn">—</div></div>
 </div>
 
 <div class="main">
@@ -155,11 +136,7 @@ body{font-family:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;backgroun
       </div>
       <div class="filter-group">
         <label>Type</label>
-        <select id="filterType"><option value="All">All</option><option value="Overnight">Overnight</option><option value="Live-In">Live-In</option><option value="Hourly">Hourly</option></select>
-      </div>
-      <div class="filter-group">
-        <label>Min Open Days</label>
-        <select id="filterMinDays"><option value="1">1+</option><option value="2">2+</option><option value="3">3+</option><option value="4">4+</option><option value="5">5+</option></select>
+        <select id="filterType"><option value="All">All Types</option><option value="Overnight">Overnight</option><option value="Long Hours">Long Hours</option><option value="Short Hours">Short Hours</option><option value="Live-In">Live-In</option></select>
       </div>
       <div class="filter-group">
         <label>Notes Search</label>
@@ -169,68 +146,38 @@ body{font-family:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;backgroun
       <div class="pref-filters">
         <div class="pref-chip">
           <span class="pref-chip-icon">🚗</span>
-          <select id="filterDrives"><option value="All">All</option><option value="Yes">Yes</option><option value="No">No</option></select>
+          <select id="filterDrives"><option value="All">All</option><option value="Yes">Drives</option><option value="No">No Drive</option></select>
         </div>
         <div class="pref-chip">
           <span class="pref-chip-icon">🐕</span>
-          <select id="filterDogs"><option value="All">All</option><option value="Yes">Yes</option><option value="No">No</option></select>
+          <select id="filterDogs"><option value="All">All</option><option value="Yes">OK</option><option value="No">No</option></select>
         </div>
         <div class="pref-chip">
           <span class="pref-chip-icon">🐈</span>
-          <select id="filterCats"><option value="All">All</option><option value="Yes">Yes</option><option value="No">No</option></select>
+          <select id="filterCats"><option value="All">All</option><option value="Yes">OK</option><option value="No">No</option></select>
         </div>
         <div class="pref-chip">
           <span class="pref-chip-icon">🚬</span>
-          <select id="filterSmoke"><option value="All">All</option><option value="Yes">Yes</option><option value="No">No</option></select>
+          <select id="filterSmoke"><option value="All">All</option><option value="Yes">OK</option><option value="No">No</option></select>
         </div>
       </div>
     </div>
 
-    <div class="view-tabs">
-      <div class="view-tab active" onclick="setView('calendar',this)">Calendar View</div>
-      <div class="view-tab" onclick="setView('table',this)">Table View</div>
-    </div>
-
-    <div class="week-toggle" id="weekToggle">
-      <div class="week-btn active" onclick="setWeek(0,this)">This Week</div>
-      <div class="week-btn" onclick="setWeek(1,this)">Next Week</div>
-      <div class="week-btn" onclick="setWeek(2,this)">Both Weeks</div>
-    </div>
-
-    <div class="results-info" id="resultsInfo"></div>
-    <div id="viewCalendar"></div>
-    <div id="viewTable" style="display:none"></div>
+    <div class="day-tabs" id="dayTabs"></div>
+    <div id="dayContent"></div>
   </div>
 </div>
 
 <script>
 var API='https://tribute-api-prod-bkc4hfcwf3f2f6bf.centralus-01.azurewebsites.net/api/vivProxy';
 var caregivers=[];
-var currentView='calendar';
-var currentWeek=0; // 0=this week, 1=next week, 2=both
-var DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-
-// Build the next 14 days starting from today
-function getNext14Days(){
-  var days=[];
-  var today=new Date();today.setHours(0,0,0,0);
-  // Start from next Sunday (beginning of this scheduling week)
-  var sun=new Date(today);sun.setDate(today.getDate()-today.getDay());
-  for(var i=0;i<14;i++){
-    var d=new Date(sun);d.setDate(sun.getDate()+i);
-    days.push({date:d,dow:d.getDay(),label:DAYS[d.getDay()],dateStr:fmtDate(d),short:fmtShort(d)});
-  }
-  return days;
-}
-
-function fmtDate(d){return d.toISOString().split('T')[0];}
-function fmtShort(d){return (d.getMonth()+1)+'/'+d.getDate();}
-
-var allDays=getNext14Days();
+var selectedDay=null; // null = all days, or 0-6
+var DAYS=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+var TYPES=['Overnight','Long Hours','Short Hours','Live-In'];
+var TYPE_CLASSES={'Overnight':'overnight','Long Hours':'long-hours','Short Hours':'short-hours','Live-In':'live-in'};
 
 async function loadData(){
   try{
-    // Fetch caregiver supply data (has availWindows + scheduledDays for current week)
     var res=await fetch(API+'?endpoint=caregiver_supply');
     if(!res.ok)throw new Error('API returned '+res.status);
     var data=await res.json();
@@ -246,24 +193,36 @@ async function loadData(){
         });
       }
 
-      // Days they're already scheduled (from current week visit data)
+      // Days already attached to ongoing visits
       var busyDOW=new Set(cg.scheduledDays||[]);
 
-      // For each of the 14 days, determine: available, busy, or not their day
-      var dayStatus=allDays.map(function(day){
-        if(!availDOW[day.dow])return 'unavail'; // not a day they work
-        if(busyDOW.has(day.dow))return 'busy';  // already on ongoing visits
-        return 'open'; // available for new work
-      });
+      // Open days = available minus busy
+      var openDays=[];
+      for(var i=0;i<7;i++){
+        if(availDOW[i]&&!busyDOW.has(i))openDays.push(i);
+      }
 
-      var openDayCount=dayStatus.filter(function(s){return s==='open';}).length;
+      // Determine caregiver type based on typeHrs [long, overnight, short, liveIn]
+      // and availability notes
+      var notes=(cg.availNotes||'');
+      var notesLower=notes.toLowerCase();
+      var cgType='Short Hours'; // default
 
-      // Detect work type
-      var notes=(cg.availNotes||'').toLowerCase();
-      var cgType='Hourly';
-      if(notes.includes('live-in')||notes.includes('live in'))cgType='Live-In';
-      else if(notes.includes('overnight'))cgType='Overnight';
-      // Also check from cgType field if present
+      // Check typeHrs for what they primarily do
+      var typeHrs=cg.typeHrs||[0,0,0,0]; // [long, overnight, short, liveIn]
+      var maxTypeHrs=Math.max.apply(null,typeHrs);
+
+      if(notesLower.includes('live-in')||notesLower.includes('live in')||typeHrs[3]>0){
+        cgType='Live-In';
+      } else if(notesLower.includes('overnight')||typeHrs[1]>0){
+        cgType='Overnight';
+      } else if(typeHrs[0]>=typeHrs[2]&&typeHrs[0]>0){
+        cgType='Long Hours';
+      } else if(cg.desiredHrs>=30){
+        cgType='Long Hours';
+      }
+
+      // Also use cgType field from supply endpoint
       if(cg.cgType==='Live-In')cgType='Live-In';
       else if(cg.cgType==='Overnight')cgType='Overnight';
 
@@ -280,24 +239,21 @@ async function loadData(){
         state:cg.state||'Unknown',
         desiredHrs:cg.desiredHrs||0,
         scheduledHrs:cg.scheduledHrs||0,
-        gap:cg.gap||0,
-        notes:cg.availNotes||'',
+        notes:notes,
         cgType:cgType,
-        availDOW:availDOW,
-        dayStatus:dayStatus,
-        openDayCount:openDayCount,
+        openDays:openDays,
         drivesClients:drivesClients,
         worksDogs:worksDogs,
         worksCats:worksCats,
         smokingOk:smokingOk
       };
     }).filter(function(cg){
-      // Only show caregivers who have at least some stated availability
-      return cg.availDOW.some(function(d){return d;});
+      // Only caregivers with at least one open day
+      return cg.openDays.length>0;
     });
 
-    // Sort by most open days first
-    caregivers.sort(function(a,b){return b.openDayCount-a.openDayCount;});
+    // Sort alphabetically within groups
+    caregivers.sort(function(a,b){return a.name.localeCompare(b.name);});
 
     // Populate filters
     var states=['All',...new Set(caregivers.map(function(c){return c.state;}).filter(Boolean))].sort();
@@ -306,21 +262,15 @@ async function loadData(){
     populateSelect('filterMarket',markets);
 
     // Stats
-    var withOpen=caregivers.filter(function(c){return c.openDayCount>0;}).length;
-    var totalOpen=caregivers.reduce(function(s,c){return s+c.openDayCount;},0);
-    var overnightAvail=caregivers.filter(function(c){return c.cgType==='Overnight'&&c.openDayCount>0;}).length;
-    var liveInAvail=caregivers.filter(function(c){return c.cgType==='Live-In'&&c.openDayCount>0;}).length;
-    var hourlyAvail=caregivers.filter(function(c){return c.cgType==='Hourly'&&c.openDayCount>0;}).length;
-
-    document.getElementById('statTotal').textContent=caregivers.length;
-    document.getElementById('statAvailable').textContent=withOpen;
-    document.getElementById('statOpenDays').textContent=totalOpen;
-    document.getElementById('statOvernight').textContent=overnightAvail;
-    document.getElementById('statLiveIn').textContent=liveInAvail;
-    document.getElementById('statHourly').textContent=hourlyAvail;
+    document.getElementById('statAvailable').textContent=caregivers.length;
+    document.getElementById('statOvernight').textContent=caregivers.filter(function(c){return c.cgType==='Overnight';}).length;
+    document.getElementById('statLong').textContent=caregivers.filter(function(c){return c.cgType==='Long Hours';}).length;
+    document.getElementById('statShort').textContent=caregivers.filter(function(c){return c.cgType==='Short Hours';}).length;
+    document.getElementById('statLiveIn').textContent=caregivers.filter(function(c){return c.cgType==='Live-In';}).length;
 
     document.getElementById('loadingScreen').style.display='none';
     document.getElementById('appContent').style.display='block';
+    renderDayTabs();
     render();
   }catch(err){
     document.getElementById('loadingScreen').style.display='none';
@@ -346,7 +296,6 @@ function getFiltered(){
   var state=document.getElementById('filterState').value;
   var market=document.getElementById('filterMarket').value;
   var type=document.getElementById('filterType').value;
-  var minDays=parseInt(document.getElementById('filterMinDays').value)||1;
   var notes=document.getElementById('filterNotes').value.toLowerCase();
   var drives=document.getElementById('filterDrives').value;
   var dogs=document.getElementById('filterDogs').value;
@@ -354,11 +303,9 @@ function getFiltered(){
   var smoke=document.getElementById('filterSmoke').value;
 
   return caregivers.filter(function(cg){
-    if(cg.openDayCount<1)return false; // only show those with open days
     if(state!=='All'&&cg.state!==state)return false;
     if(market!=='All'&&cg.market!==market)return false;
     if(type!=='All'&&cg.cgType!==type)return false;
-    if(cg.openDayCount<minDays)return false;
     if(notes&&cg.notes.toLowerCase().indexOf(notes)===-1)return false;
     if(drives==='Yes'&&cg.drivesClients!=='yes')return false;
     if(drives==='No'&&cg.drivesClients!=='no')return false;
@@ -372,97 +319,95 @@ function getFiltered(){
   });
 }
 
-function getVisibleDays(){
-  if(currentWeek===0)return allDays.slice(0,7);
-  if(currentWeek===1)return allDays.slice(7,14);
-  return allDays;
+function renderDayTabs(){
+  var filtered=getFiltered();
+  var html='<div class="day-tab'+(selectedDay===null?' active':'')+'" onclick="selectDay(null,this)">';
+  html+='<div class="day-tab-name">All Days</div>';
+  html+='<div class="day-tab-count">'+filtered.length+' total</div></div>';
+
+  for(var d=0;d<7;d++){
+    var count=filtered.filter(function(cg){return cg.openDays.indexOf(d)>=0;}).length;
+    html+='<div class="day-tab'+(selectedDay===d?' active':'')+'" onclick="selectDay('+d+',this)">';
+    html+='<div class="day-tab-name">'+DAYS[d]+'</div>';
+    html+='<div class="day-tab-count">'+count+' available</div></div>';
+  }
+  document.getElementById('dayTabs').innerHTML=html;
 }
 
 function render(){
   var filtered=getFiltered();
-  document.getElementById('resultsInfo').innerHTML='<strong>'+filtered.length+'</strong> caregivers available for ongoing work';
-  if(currentView==='calendar')renderCalendar(filtered);
-  else renderTable(filtered);
+  renderDayTabs();
+
+  var html='';
+
+  if(selectedDay!==null){
+    // Show single day grouped by type
+    var dayFiltered=filtered.filter(function(cg){return cg.openDays.indexOf(selectedDay)>=0;});
+    html+=renderDaySection(DAYS[selectedDay],dayFiltered);
+  } else {
+    // Show all days
+    for(var d=0;d<7;d++){
+      var dayFiltered=filtered.filter(function(cg){return cg.openDays.indexOf(d)>=0;});
+      if(dayFiltered.length>0){
+        html+=renderDaySection(DAYS[d],dayFiltered);
+      }
+    }
+  }
+
+  if(!html)html='<div style="text-align:center;padding:40px;color:var(--gray-light)">No caregivers match your filters</div>';
+  document.getElementById('dayContent').innerHTML=html;
 }
 
-function renderCalendar(data){
-  var days=getVisibleDays();
-  var html='<div class="day-grid">';
-  days.forEach(function(day,idx){
-    // Find caregivers open on this specific day
-    var dayIdx=allDays.indexOf(day);
-    var available=data.filter(function(cg){return cg.dayStatus[dayIdx]==='open';});
-    html+='<div class="day-col">';
-    html+='<div class="day-col-header">';
-    html+='<div class="day-col-date">'+day.short+'</div>';
-    html+='<div class="day-col-dayname">'+day.label+'</div>';
-    html+='<div class="day-col-count">'+available.length+' available</div>';
+function renderDaySection(dayName,cgs){
+  var html='<div class="day-section">';
+  html+='<div class="day-header"><div class="day-header-name">'+dayName+'</div>';
+  html+='<div class="day-header-count">'+cgs.length+' caregivers available</div></div>';
+
+  TYPES.forEach(function(type){
+    var typeCGs=cgs.filter(function(c){return c.cgType===type;});
+    html+='<div class="type-section">';
+    html+='<div class="type-header">';
+    html+='<div class="type-badge '+TYPE_CLASSES[type]+'">'+type+'</div>';
+    html+='<div class="type-count">'+typeCGs.length+'</div>';
     html+='</div>';
-    html+='<div class="day-col-body">';
-    available.forEach(function(cg){
-      var typeClass=cg.cgType==='Overnight'?'overnight':cg.cgType==='Live-In'?'livein':'hourly';
-      html+='<div class="cg-card">';
-      html+='<div class="cg-card-name">'+esc(cg.name)+'</div>';
-      html+='<div class="cg-card-meta">';
-      html+='<span class="cg-card-tag '+typeClass+'">'+cg.cgType+'</span>';
-      html+='<span>'+esc(cg.market)+'</span>';
-      if(cg.desiredHrs>0)html+='<span>'+cg.desiredHrs+'h</span>';
-      html+='</div></div>';
-    });
-    if(available.length===0)html+='<div style="padding:12px;font-size:11px;color:var(--gray-light);text-align:center">No one open</div>';
-    html+='</div></div>';
+
+    if(typeCGs.length>0){
+      html+='<div class="cg-grid">';
+      typeCGs.forEach(function(cg){
+        html+='<div class="cg-card">';
+        html+='<div class="cg-card-name">'+esc(cg.name)+'</div>';
+        html+='<div class="cg-card-row">';
+        html+='<span class="cg-card-market">'+esc(cg.market)+'</span>';
+        html+='<span class="cg-card-hrs">'+cg.desiredHrs+'h desired</span>';
+        // Show which other days they're open
+        var otherDays=cg.openDays.map(function(d){return DAYS[d].slice(0,3);}).join(', ');
+        html+='<span class="cg-card-hrs">Open: '+otherDays+'</span>';
+        html+='</div>';
+        // Preferences row
+        var hasPrefs=cg.drivesClients||cg.worksDogs||cg.worksCats||cg.smokingOk;
+        if(hasPrefs){
+          html+='<div class="cg-card-prefs">';
+          if(cg.drivesClients)html+='<span class="pref-dot '+(cg.drivesClients==='yes'?'yes':'no')+'" title="Drives clients: '+cg.drivesClients+'">🚗</span>';
+          if(cg.worksDogs)html+='<span class="pref-dot '+(cg.worksDogs==='yes'?'yes':'no')+'" title="Dogs: '+cg.worksDogs+'">🐕</span>';
+          if(cg.worksCats)html+='<span class="pref-dot '+(cg.worksCats==='yes'?'yes':'no')+'" title="Cats: '+cg.worksCats+'">🐈</span>';
+          if(cg.smokingOk)html+='<span class="pref-dot '+(cg.smokingOk==='yes'?'yes':'no')+'" title="Smoking: '+cg.smokingOk+'">🚬</span>';
+          html+='</div>';
+        }
+        html+='</div>';
+      });
+      html+='</div>';
+    } else {
+      html+='<div class="empty-type">No '+type.toLowerCase()+' caregivers available</div>';
+    }
+    html+='</div>';
   });
+
   html+='</div>';
-  document.getElementById('viewCalendar').innerHTML=html;
-  document.getElementById('viewCalendar').style.display='block';
-  document.getElementById('viewTable').style.display='none';
+  return html;
 }
 
-function renderTable(data){
-  var days=getVisibleDays();
-  var html='<div class="table-wrap"><table class="data-table"><thead><tr>';
-  html+='<th>Caregiver</th><th>Market</th><th>Type</th><th class="center">Desired</th>';
-  days.forEach(function(d){html+='<th class="center">'+d.label+'<br><span style="font-weight:400;font-size:8px">'+d.short+'</span></th>';});
-  html+='<th class="center">Open</th><th>Notes</th>';
-  html+='</tr></thead><tbody>';
-
-  data.forEach(function(cg){
-    html+='<tr>';
-    html+='<td class="td-name">'+esc(cg.name)+'</td>';
-    html+='<td class="td-market">'+esc(cg.market)+'</td>';
-    var typeClass=cg.cgType==='Overnight'?'overnight':cg.cgType==='Live-In'?'livein':'hourly';
-    html+='<td class="td-type '+typeClass+'">'+cg.cgType+'</td>';
-    html+='<td class="td-hrs">'+cg.desiredHrs+'h</td>';
-    days.forEach(function(day){
-      var dayIdx=allDays.indexOf(day);
-      var st=cg.dayStatus[dayIdx];
-      if(st==='open')html+='<td class="td-day open">&#9679;</td>';
-      else if(st==='busy')html+='<td class="td-day busy">&#10005;</td>';
-      else html+='<td class="td-day unavail">·</td>';
-    });
-    var openInView=days.filter(function(day){return cg.dayStatus[allDays.indexOf(day)]==='open';}).length;
-    html+='<td class="td-hrs" style="color:var(--green);font-weight:700">'+openInView+'</td>';
-    html+='<td class="td-notes" title="'+esc(cg.notes)+'">'+esc(cg.notes)+'</td>';
-    html+='</tr>';
-  });
-
-  html+='</tbody></table></div>';
-  document.getElementById('viewTable').innerHTML=html;
-  document.getElementById('viewTable').style.display='block';
-  document.getElementById('viewCalendar').style.display='none';
-}
-
-function setView(view,el){
-  currentView=view;
-  document.querySelectorAll('.view-tab').forEach(function(t){t.classList.remove('active');});
-  if(el)el.classList.add('active');
-  render();
-}
-
-function setWeek(w,el){
-  currentWeek=w;
-  document.querySelectorAll('.week-btn').forEach(function(t){t.classList.remove('active');});
-  if(el)el.classList.add('active');
+function selectDay(day,el){
+  selectedDay=day;
   render();
 }
 
@@ -472,7 +417,7 @@ function esc(s){
 }
 
 // Wire filters
-['filterState','filterMarket','filterType','filterMinDays','filterDrives','filterDogs','filterCats','filterSmoke'].forEach(function(id){
+['filterState','filterMarket','filterType','filterDrives','filterDogs','filterCats','filterSmoke'].forEach(function(id){
   document.getElementById(id).addEventListener('change',function(){
     if(id==='filterState'){
       var state=document.getElementById('filterState').value;
