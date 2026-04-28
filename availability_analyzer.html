@@ -9,7 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&family=DM+Serif+Display&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{--orange:#E8541A;--orange-dark:#C4441A;--orange-light:#F47A4A;--orange-pale:#FDF2ED;--orange-50:#FEF8F5;--charcoal:#2C2C2C;--charcoal-mid:#4A4A4A;--gray-text:#6B6B6B;--gray-light:#9B9B9B;--gray-100:#F5F5F5;--gray-200:#EBEBEB;--gray-300:#D8D8D8;--white:#FFFFFF;--cream:#FAFAF8;--green:#3DAA7A;--green-light:#dcfce7;--red:#E05252;--red-light:#fee2e2;--purple:#7c3aed;--purple-light:#ede9fe;--cyan:#0891b2;--cyan-light:#cffafe;--amber:#d97706;--amber-light:#fef3c7;--shadow-sm:0 1px 4px rgba(44,44,44,0.06),0 1px 2px rgba(44,44,44,0.04);--shadow-md:0 4px 20px rgba(44,44,44,0.09),0 2px 6px rgba(44,44,44,0.05);--r:10px;--rl:14px}
+:root{--orange:#E8541A;--orange-dark:#C4441A;--orange-light:#F47A4A;--orange-pale:#FDF2ED;--orange-50:#FEF8F5;--charcoal:#2C2C2C;--charcoal-mid:#4A4A4A;--gray-text:#6B6B6B;--gray-light:#9B9B9B;--gray-100:#F5F5F5;--gray-200:#EBEBEB;--gray-300:#D8D8D8;--white:#FFFFFF;--cream:#FAFAF8;--green:#3DAA7A;--green-light:#dcfce7;--red:#E05252;--red-light:#fee2e2;--purple:#7c3aed;--purple-light:#ede9fe;--cyan:#0891b2;--cyan-light:#cffafe;--amber:#d97706;--amber-light:#fef3c7;--blue:#2563eb;--blue-light:#dbeafe;--shadow-sm:0 1px 4px rgba(44,44,44,0.06),0 1px 2px rgba(44,44,44,0.04);--shadow-md:0 4px 20px rgba(44,44,44,0.09),0 2px 6px rgba(44,44,44,0.05);--r:10px;--rl:14px}
 html{scroll-behavior:smooth}
 body{font-family:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;background:var(--cream);color:var(--charcoal);min-height:100vh;font-size:14px;line-height:1.6;-webkit-font-smoothing:antialiased}
 
@@ -47,32 +47,40 @@ body{font-family:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;backgroun
 .pref-chip-icon{font-size:16px}
 .pref-chip select{background:transparent;border:none;font-family:inherit;font-size:11px;font-weight:600;color:var(--charcoal);outline:none;cursor:pointer}
 
-/* DAY SECTIONS */
-.day-section{margin-bottom:28px}
-.day-header{display:flex;align-items:baseline;gap:12px;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid var(--orange)}
-.day-header-name{font-family:'DM Serif Display',Georgia,serif;font-size:26px;color:var(--charcoal)}
-.day-header-count{font-size:13px;color:var(--gray-light)}
+.day-tabs{display:flex;gap:4px;margin-bottom:20px;flex-wrap:wrap}
+.day-tab{background:var(--white);border:1px solid var(--gray-200);border-radius:8px;padding:10px 18px;cursor:pointer;transition:all .15s;text-align:center;min-width:80px}
+.day-tab:hover{border-color:var(--orange-light)}
+.day-tab.active{background:var(--orange-50);border-color:var(--orange)}
+.day-tab-name{font-size:12px;font-weight:700;color:var(--charcoal)}
+.day-tab-count{font-size:10px;color:var(--gray-light);margin-top:2px}
+.day-tab.active .day-tab-name{color:var(--orange)}
 
-.type-section{margin-bottom:16px;margin-left:8px}
-.type-header{display:flex;align-items:center;gap:8px;margin-bottom:8px}
-.type-badge{display:inline-flex;align-items:center;gap:5px;padding:4px 12px;border-radius:6px;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase}
-.type-badge.overnight{background:var(--purple-light);color:var(--purple)}
+.type-section{margin-bottom:24px}
+.type-header{display:flex;align-items:center;gap:10px;margin-bottom:10px;padding-bottom:8px;border-bottom:2px solid var(--gray-200)}
+.type-badge{display:inline-flex;align-items:center;gap:5px;padding:5px 14px;border-radius:6px;font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase}
+.type-badge.overnight{background:var(--purple-light);color:var(--purple);border-bottom-color:var(--purple)}
 .type-badge.long-hours{background:var(--amber-light);color:var(--amber)}
-.type-badge.short-hours{background:var(--green-light);color:var(--green)}
+.type-badge.short-hours{background:var(--blue-light);color:var(--blue)}
 .type-badge.live-in{background:var(--cyan-light);color:var(--cyan)}
-.type-count{font-size:11px;color:var(--gray-light)}
+.type-header .type-badge~.type-count{font-size:12px;color:var(--gray-light)}
 
-.cg-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:8px}
-.cg-card{background:var(--white);border:1px solid var(--gray-200);border-radius:var(--r);padding:10px 14px;transition:all .12s;cursor:default}
+.cg-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px}
+.cg-card{background:var(--white);border:1px solid var(--gray-200);border-radius:var(--r);padding:11px 14px;transition:all .12s;cursor:default;position:relative}
 .cg-card:hover{border-color:var(--orange-light);box-shadow:var(--shadow-sm);transform:translateY(-1px)}
+.cg-card.overnight{border-left:3px solid var(--purple)}
+.cg-card.long-hours{border-left:3px solid var(--amber)}
+.cg-card.short-hours{border-left:3px solid var(--blue)}
+.cg-card.live-in{border-left:3px solid var(--cyan)}
 .cg-card-name{font-size:13px;font-weight:600;color:var(--charcoal)}
-.cg-card-row{display:flex;align-items:center;gap:8px;margin-top:4px;flex-wrap:wrap}
+.cg-card-row{display:flex;align-items:center;gap:8px;margin-top:3px;flex-wrap:wrap}
 .cg-card-market{font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--gray-text)}
 .cg-card-hrs{font-size:10px;color:var(--gray-light)}
-.cg-card-prefs{display:flex;gap:4px;margin-top:4px}
-.pref-dot{width:18px;height:18px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:10px}
+.cg-card-days{font-size:10px;color:var(--green);font-weight:600}
+.cg-card-prefs{display:flex;gap:3px;margin-top:4px}
+.pref-dot{width:18px;height:18px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:9px}
 .pref-dot.yes{background:var(--green-light)}
 .pref-dot.no{background:var(--red-light)}
+.pref-dot.unknown{background:var(--gray-100)}
 
 .empty-type{font-size:12px;color:var(--gray-light);font-style:italic;padding:8px 0}
 
@@ -81,14 +89,6 @@ body{font-family:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;backgroun
 @keyframes spin{to{transform:rotate(360deg)}}
 .loading-text{font-size:13px;color:var(--gray-light)}
 .error-msg{background:var(--red-light);border:1px solid #fca5a5;border-radius:var(--r);padding:16px 20px;color:#991b1b;font-size:13px}
-
-.day-tabs{display:flex;gap:4px;margin-bottom:20px;flex-wrap:wrap}
-.day-tab{background:var(--white);border:1px solid var(--gray-200);border-radius:8px;padding:10px 18px;cursor:pointer;transition:all .15s;text-align:center;min-width:80px}
-.day-tab:hover{border-color:var(--orange-light)}
-.day-tab.active{background:var(--orange-50);border-color:var(--orange)}
-.day-tab-name{font-size:12px;font-weight:700;color:var(--charcoal)}
-.day-tab-count{font-size:10px;color:var(--gray-light);margin-top:2px}
-.day-tab.active .day-tab-name{color:var(--orange)}
 </style>
 </head>
 <body>
@@ -106,7 +106,7 @@ body{font-family:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;backgroun
 <div class="hero">
   <div class="hero-eyebrow">Care Team Staffing</div>
   <h1 class="hero-title">Who can join a <span>care team</span>?</h1>
-  <p class="hero-sub">Caregivers with open availability not currently attached to ongoing visits — organized by day and service type so Scheduling Partners can quickly staff care teams.</p>
+  <p class="hero-sub">Caregivers with stated availability who are not currently attached to ongoing visits on those days. Pick a day, find your caregiver by type.</p>
 </div>
 
 <div class="stats-strip">
@@ -144,22 +144,10 @@ body{font-family:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;backgroun
       </div>
       <div class="filter-sep"></div>
       <div class="pref-filters">
-        <div class="pref-chip">
-          <span class="pref-chip-icon">🚗</span>
-          <select id="filterDrives"><option value="All">All</option><option value="Yes">Drives</option><option value="No">No Drive</option></select>
-        </div>
-        <div class="pref-chip">
-          <span class="pref-chip-icon">🐕</span>
-          <select id="filterDogs"><option value="All">All</option><option value="Yes">OK</option><option value="No">No</option></select>
-        </div>
-        <div class="pref-chip">
-          <span class="pref-chip-icon">🐈</span>
-          <select id="filterCats"><option value="All">All</option><option value="Yes">OK</option><option value="No">No</option></select>
-        </div>
-        <div class="pref-chip">
-          <span class="pref-chip-icon">🚬</span>
-          <select id="filterSmoke"><option value="All">All</option><option value="Yes">OK</option><option value="No">No</option></select>
-        </div>
+        <div class="pref-chip"><span class="pref-chip-icon">🚗</span><select id="filterDrives"><option value="All">All</option><option value="Yes">Drives</option><option value="No">No</option></select></div>
+        <div class="pref-chip"><span class="pref-chip-icon">🐕</span><select id="filterDogs"><option value="All">All</option><option value="Yes">OK</option><option value="No">No</option></select></div>
+        <div class="pref-chip"><span class="pref-chip-icon">🐈</span><select id="filterCats"><option value="All">All</option><option value="Yes">OK</option><option value="No">No</option></select></div>
+        <div class="pref-chip"><span class="pref-chip-icon">🚬</span><select id="filterSmoke"><option value="All">All</option><option value="Yes">OK</option><option value="No">No</option></select></div>
       </div>
     </div>
 
@@ -170,11 +158,74 @@ body{font-family:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;backgroun
 
 <script>
 var API='https://tribute-api-prod-bkc4hfcwf3f2f6bf.centralus-01.azurewebsites.net/api/vivProxy';
-var caregivers=[];
-var selectedDay=null; // null = all days, or 0-6
+var allEntries=[]; // each entry = {name, market, state, type, openDays[], prefs, notes, desiredHrs}
+var selectedDay=null;
 var DAYS=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 var TYPES=['Overnight','Long Hours','Short Hours','Live-In'];
-var TYPE_CLASSES={'Overnight':'overnight','Long Hours':'long-hours','Short Hours':'short-hours','Live-In':'live-in'};
+var TYPE_CSS={'Overnight':'overnight','Long Hours':'long-hours','Short Hours':'short-hours','Live-In':'live-in'};
+
+// Parse day abbreviations from a string like "Su, M, T, W, Th, F, Sa"
+var DAY_MAP={
+  'su':0,'sun':0,'sunday':0,
+  'm':1,'mo':1,'mon':1,'monday':1,
+  't':2,'tu':2,'tue':2,'tues':2,'tuesday':2,
+  'w':3,'we':3,'wed':3,'wednesday':3,
+  'th':4,'thu':4,'thur':4,'thurs':4,'thursday':4,'fr':4,
+  'f':5,'fri':5,'friday':5,
+  'sa':6,'sat':6,'saturday':6
+};
+// Fix: 'fr' should be Friday=5, 'th' should be Thursday=4
+DAY_MAP['fr']=5;DAY_MAP['fri']=5;
+
+function parseDays(str){
+  var days=new Set();
+  // Split on commas, spaces, semicolons
+  var tokens=str.replace(/e\/o\s*/gi,'').split(/[,;\s]+/);
+  tokens.forEach(function(t){
+    var tl=t.toLowerCase().replace(/[^a-z]/g,'');
+    if(DAY_MAP[tl]!==undefined)days.add(DAY_MAP[tl]);
+  });
+  return Array.from(days);
+}
+
+// Parse availNotes into type+days entries
+// e.g. "TS40 Overnights = Su, M, T, W, Th" -> [{type:'Overnight', days:[0,1,2,3,4]}]
+// e.g. "Long Hour Days = M, T; Short Hours = F, Sa" -> [{type:'Long Hours', days:[1,2]}, {type:'Short Hours', days:[5,6]}]
+function parseAvailNotes(notes){
+  if(!notes)return [];
+  var entries=[];
+
+  // Normalize separators between multiple type blocks
+  // Split on patterns like "Type = days" using regex
+  var typePattern=/((?:TS\d+\s+)?(?:Overnight|Long\s*Hour(?:\s*Day)?|Short\s*Hour(?:\s*Day)?|Live[\s-]?[Ii]n)s?)[\s:=]+([^;]*?)(?=(?:(?:TS\d+\s+)?(?:Overnight|Long\s*Hour|Short\s*Hour|Live[\s-]?[Ii]n))|$)/gi;
+
+  var match;
+  while((match=typePattern.exec(notes))!==null){
+    var rawType=match[1].trim();
+    var rawDays=match[2].trim();
+    var type='Short Hours';
+    var rtl=rawType.toLowerCase();
+    if(rtl.includes('overnight'))type='Overnight';
+    else if(rtl.includes('long'))type='Long Hours';
+    else if(rtl.includes('short'))type='Short Hours';
+    else if(rtl.includes('live'))type='Live-In';
+
+    var days=parseDays(rawDays);
+    if(days.length>0)entries.push({type:type,days:days});
+  }
+
+  // Fallback: if notes is just "Live-In" or "Live-in" with no days, treat as all 7 days
+  if(entries.length===0){
+    var nl=notes.toLowerCase().trim();
+    if(nl==='live-in'||nl==='live in'){
+      entries.push({type:'Live-In',days:[0,1,2,3,4,5,6]});
+    } else if(nl==='prn'){
+      // PRN = as needed, skip
+    }
+  }
+
+  return entries;
+}
 
 async function loadData(){
   try{
@@ -183,94 +234,66 @@ async function loadData(){
     var data=await res.json();
     var raw=data.caregivers||[];
 
-    caregivers=raw.filter(function(cg){return cg.status==='hired';}).map(function(cg){
-      // Stated availability: which days of the week they can work
-      var availDOW=[false,false,false,false,false,false,false];
-      if(cg.availWindows&&cg.availWindows.length>0){
-        cg.availWindows.forEach(function(w){
-          var d=parseInt(w.dow);
-          if(d>=0&&d<=6)availDOW[d]=true;
-        });
-      }
+    allEntries=[];
 
-      // Days already attached to ongoing visits
+    raw.filter(function(cg){return cg.status==='hired';}).forEach(function(cg){
       var busyDOW=new Set(cg.scheduledDays||[]);
+      var notes=cg.availNotes||'';
+      var parsed=parseAvailNotes(notes);
+      if(parsed.length===0)return;
 
-      // Open days = available minus busy
-      var openDays=[];
-      for(var i=0;i<7;i++){
-        if(availDOW[i]&&!busyDOW.has(i))openDays.push(i);
-      }
-
-      // Determine caregiver type based on typeHrs [long, overnight, short, liveIn]
-      // and availability notes
-      var notes=(cg.availNotes||'');
-      var notesLower=notes.toLowerCase();
-      var cgType='Short Hours'; // default
-
-      // Check typeHrs for what they primarily do
-      var typeHrs=cg.typeHrs||[0,0,0,0]; // [long, overnight, short, liveIn]
-      var maxTypeHrs=Math.max.apply(null,typeHrs);
-
-      if(notesLower.includes('live-in')||notesLower.includes('live in')||typeHrs[3]>0){
-        cgType='Live-In';
-      } else if(notesLower.includes('overnight')||typeHrs[1]>0){
-        cgType='Overnight';
-      } else if(typeHrs[0]>=typeHrs[2]&&typeHrs[0]>0){
-        cgType='Long Hours';
-      } else if(cg.desiredHrs>=30){
-        cgType='Long Hours';
-      }
-
-      // Also use cgType field from supply endpoint
-      if(cg.cgType==='Live-In')cgType='Live-In';
-      else if(cg.cgType==='Overnight')cgType='Overnight';
-
-      // Preferences
+      // Preferences from environment (nested structure)
       var env=cg.environment||{};
-      var drivesClients=normPref(cg.driveClients||env.driveClients||env.ableToTransport||'');
-      var worksDogs=normPref(env.dogs||env.worksDogs||env.workingWithDogs||'');
-      var worksCats=normPref(env.cats||env.worksCats||env.workingWithCats||'');
-      var smokingOk=normPref(env.smoking||env.smokingClient||env.willingToWorkWithSmoker||'');
+      var pets=env.pets||{};
+      var smoking=env.smoking||{};
+      var drivesClients=normPref(cg.driveClients||'');
+      var worksDogs=pets.dogs?normBool(pets.dogs.ok):normBool(pets.ok);
+      var worksCats=pets.cats?normBool(pets.cats.ok):normBool(pets.ok);
+      var smokingOk=normBool(smoking.ok);
 
-      return{
-        name:cg.name||'',
-        market:cg.market||'Unknown',
-        state:cg.state||'Unknown',
-        desiredHrs:cg.desiredHrs||0,
-        scheduledHrs:cg.scheduledHrs||0,
-        notes:notes,
-        cgType:cgType,
-        openDays:openDays,
-        drivesClients:drivesClients,
-        worksDogs:worksDogs,
-        worksCats:worksCats,
-        smokingOk:smokingOk
-      };
-    }).filter(function(cg){
-      // Only caregivers with at least one open day
-      return cg.openDays.length>0;
+      // Create one entry per type block for this caregiver
+      parsed.forEach(function(block){
+        var openDays=block.days.filter(function(d){return !busyDOW.has(d);});
+        if(openDays.length===0)return; // fully booked on these days
+
+        allEntries.push({
+          name:cg.name||'',
+          market:cg.market||'Unknown',
+          state:cg.state||'Unknown',
+          type:block.type,
+          statedDays:block.days,
+          openDays:openDays,
+          desiredHrs:cg.desiredHrs||0,
+          notes:notes,
+          drivesClients:drivesClients,
+          worksDogs:worksDogs,
+          worksCats:worksCats,
+          smokingOk:smokingOk
+        });
+      });
     });
 
-    // Sort alphabetically within groups
-    caregivers.sort(function(a,b){return a.name.localeCompare(b.name);});
+    // Sort by name
+    allEntries.sort(function(a,b){return a.name.localeCompare(b.name);});
 
     // Populate filters
-    var states=['All',...new Set(caregivers.map(function(c){return c.state;}).filter(Boolean))].sort();
-    var markets=['All',...new Set(caregivers.map(function(c){return c.market;}).filter(Boolean))].sort();
+    var states=['All',...new Set(allEntries.map(function(c){return c.state;}).filter(Boolean))].sort();
+    var markets=['All',...new Set(allEntries.map(function(c){return c.market;}).filter(Boolean))].sort();
     populateSelect('filterState',states);
     populateSelect('filterMarket',markets);
 
+    // Unique caregivers
+    var uniqueNames=new Set(allEntries.map(function(e){return e.name;}));
+
     // Stats
-    document.getElementById('statAvailable').textContent=caregivers.length;
-    document.getElementById('statOvernight').textContent=caregivers.filter(function(c){return c.cgType==='Overnight';}).length;
-    document.getElementById('statLong').textContent=caregivers.filter(function(c){return c.cgType==='Long Hours';}).length;
-    document.getElementById('statShort').textContent=caregivers.filter(function(c){return c.cgType==='Short Hours';}).length;
-    document.getElementById('statLiveIn').textContent=caregivers.filter(function(c){return c.cgType==='Live-In';}).length;
+    document.getElementById('statAvailable').textContent=uniqueNames.size;
+    document.getElementById('statOvernight').textContent=new Set(allEntries.filter(function(e){return e.type==='Overnight';}).map(function(e){return e.name;})).size;
+    document.getElementById('statLong').textContent=new Set(allEntries.filter(function(e){return e.type==='Long Hours';}).map(function(e){return e.name;})).size;
+    document.getElementById('statShort').textContent=new Set(allEntries.filter(function(e){return e.type==='Short Hours';}).map(function(e){return e.name;})).size;
+    document.getElementById('statLiveIn').textContent=new Set(allEntries.filter(function(e){return e.type==='Live-In';}).map(function(e){return e.name;})).size;
 
     document.getElementById('loadingScreen').style.display='none';
     document.getElementById('appContent').style.display='block';
-    renderDayTabs();
     render();
   }catch(err){
     document.getElementById('loadingScreen').style.display='none';
@@ -282,8 +305,15 @@ async function loadData(){
 function normPref(val){
   if(!val)return '';
   var v=String(val).toLowerCase().trim();
-  if(v==='yes'||v==='y'||v==='true'||v==='1')return 'yes';
-  if(v==='no'||v==='n'||v==='false'||v==='0')return 'no';
+  if(v==='yes'||v==='y'||v==='true')return 'yes';
+  if(v==='no'||v==='n'||v==='false')return 'no';
+  if(v==='pending')return 'pending';
+  return '';
+}
+
+function normBool(val){
+  if(val===true)return 'yes';
+  if(val===false)return 'no';
   return '';
 }
 
@@ -302,54 +332,42 @@ function getFiltered(){
   var cats=document.getElementById('filterCats').value;
   var smoke=document.getElementById('filterSmoke').value;
 
-  return caregivers.filter(function(cg){
-    if(state!=='All'&&cg.state!==state)return false;
-    if(market!=='All'&&cg.market!==market)return false;
-    if(type!=='All'&&cg.cgType!==type)return false;
-    if(notes&&cg.notes.toLowerCase().indexOf(notes)===-1)return false;
-    if(drives==='Yes'&&cg.drivesClients!=='yes')return false;
-    if(drives==='No'&&cg.drivesClients!=='no')return false;
-    if(dogs==='Yes'&&cg.worksDogs!=='yes')return false;
-    if(dogs==='No'&&cg.worksDogs!=='no')return false;
-    if(cats==='Yes'&&cg.worksCats!=='yes')return false;
-    if(cats==='No'&&cg.worksCats!=='no')return false;
-    if(smoke==='Yes'&&cg.smokingOk!=='yes')return false;
-    if(smoke==='No'&&cg.smokingOk!=='no')return false;
+  return allEntries.filter(function(e){
+    if(state!=='All'&&e.state!==state)return false;
+    if(market!=='All'&&e.market!==market)return false;
+    if(type!=='All'&&e.type!==type)return false;
+    if(notes&&e.notes.toLowerCase().indexOf(notes)===-1)return false;
+    if(drives==='Yes'&&e.drivesClients!=='yes')return false;
+    if(drives==='No'&&e.drivesClients!=='no')return false;
+    if(dogs==='Yes'&&e.worksDogs!=='yes')return false;
+    if(dogs==='No'&&e.worksDogs!=='no')return false;
+    if(cats==='Yes'&&e.worksCats!=='yes')return false;
+    if(cats==='No'&&e.worksCats!=='no')return false;
+    if(smoke==='Yes'&&e.smokingOk!=='yes')return false;
+    if(smoke==='No'&&e.smokingOk!=='no')return false;
     return true;
   });
 }
 
-function renderDayTabs(){
-  var filtered=getFiltered();
-  var html='<div class="day-tab'+(selectedDay===null?' active':'')+'" onclick="selectDay(null,this)">';
-  html+='<div class="day-tab-name">All Days</div>';
-  html+='<div class="day-tab-count">'+filtered.length+' total</div></div>';
-
-  for(var d=0;d<7;d++){
-    var count=filtered.filter(function(cg){return cg.openDays.indexOf(d)>=0;}).length;
-    html+='<div class="day-tab'+(selectedDay===d?' active':'')+'" onclick="selectDay('+d+',this)">';
-    html+='<div class="day-tab-name">'+DAYS[d]+'</div>';
-    html+='<div class="day-tab-count">'+count+' available</div></div>';
-  }
-  document.getElementById('dayTabs').innerHTML=html;
-}
-
 function render(){
   var filtered=getFiltered();
-  renderDayTabs();
+  renderDayTabs(filtered);
 
   var html='';
+  var showing;
 
   if(selectedDay!==null){
-    // Show single day grouped by type
-    var dayFiltered=filtered.filter(function(cg){return cg.openDays.indexOf(selectedDay)>=0;});
-    html+=renderDaySection(DAYS[selectedDay],dayFiltered);
+    showing=filtered.filter(function(e){return e.openDays.indexOf(selectedDay)>=0;});
+    html+=renderTypeGroups(showing);
   } else {
-    // Show all days
+    // Show all 7 days
     for(var d=0;d<7;d++){
-      var dayFiltered=filtered.filter(function(cg){return cg.openDays.indexOf(d)>=0;});
-      if(dayFiltered.length>0){
-        html+=renderDaySection(DAYS[d],dayFiltered);
+      var dayEntries=filtered.filter(function(e){return e.openDays.indexOf(d)>=0;});
+      if(dayEntries.length>0){
+        html+='<div style="margin-bottom:32px">';
+        html+='<div style="font-family:DM Serif Display,Georgia,serif;font-size:24px;color:var(--charcoal);margin-bottom:12px;padding-bottom:6px;border-bottom:2px solid var(--orange)">'+DAYS[d]+'<span style="font-family:DM Sans;font-size:13px;color:var(--gray-light);margin-left:10px;font-weight:400">'+dayEntries.length+' available</span></div>';
+        html+=renderTypeGroups(dayEntries);
+        html+='</div>';
       }
     }
   }
@@ -358,55 +376,61 @@ function render(){
   document.getElementById('dayContent').innerHTML=html;
 }
 
-function renderDaySection(dayName,cgs){
-  var html='<div class="day-section">';
-  html+='<div class="day-header"><div class="day-header-name">'+dayName+'</div>';
-  html+='<div class="day-header-count">'+cgs.length+' caregivers available</div></div>';
+function renderDayTabs(filtered){
+  var html='<div class="day-tab'+(selectedDay===null?' active':'')+'" onclick="selectDay(null)">';
+  html+='<div class="day-tab-name">All Days</div>';
+  var uniqueAll=new Set(filtered.map(function(e){return e.name;}));
+  html+='<div class="day-tab-count">'+uniqueAll.size+' caregivers</div></div>';
 
+  for(var d=0;d<7;d++){
+    var dayEntries=filtered.filter(function(e){return e.openDays.indexOf(d)>=0;});
+    var uniqueDay=new Set(dayEntries.map(function(e){return e.name;}));
+    html+='<div class="day-tab'+(selectedDay===d?' active':'')+'" onclick="selectDay('+d+')">';
+    html+='<div class="day-tab-name">'+DAYS[d]+'</div>';
+    html+='<div class="day-tab-count">'+uniqueDay.size+' available</div></div>';
+  }
+  document.getElementById('dayTabs').innerHTML=html;
+}
+
+function renderTypeGroups(entries){
+  var html='';
   TYPES.forEach(function(type){
-    var typeCGs=cgs.filter(function(c){return c.cgType===type;});
+    var typeEntries=entries.filter(function(e){return e.type===type;});
+    if(typeEntries.length===0)return;
+    var css=TYPE_CSS[type];
     html+='<div class="type-section">';
-    html+='<div class="type-header">';
-    html+='<div class="type-badge '+TYPE_CLASSES[type]+'">'+type+'</div>';
-    html+='<div class="type-count">'+typeCGs.length+'</div>';
-    html+='</div>';
-
-    if(typeCGs.length>0){
-      html+='<div class="cg-grid">';
-      typeCGs.forEach(function(cg){
-        html+='<div class="cg-card">';
-        html+='<div class="cg-card-name">'+esc(cg.name)+'</div>';
-        html+='<div class="cg-card-row">';
-        html+='<span class="cg-card-market">'+esc(cg.market)+'</span>';
-        html+='<span class="cg-card-hrs">'+cg.desiredHrs+'h desired</span>';
-        // Show which other days they're open
-        var otherDays=cg.openDays.map(function(d){return DAYS[d].slice(0,3);}).join(', ');
-        html+='<span class="cg-card-hrs">Open: '+otherDays+'</span>';
-        html+='</div>';
-        // Preferences row
-        var hasPrefs=cg.drivesClients||cg.worksDogs||cg.worksCats||cg.smokingOk;
-        if(hasPrefs){
-          html+='<div class="cg-card-prefs">';
-          if(cg.drivesClients)html+='<span class="pref-dot '+(cg.drivesClients==='yes'?'yes':'no')+'" title="Drives clients: '+cg.drivesClients+'">🚗</span>';
-          if(cg.worksDogs)html+='<span class="pref-dot '+(cg.worksDogs==='yes'?'yes':'no')+'" title="Dogs: '+cg.worksDogs+'">🐕</span>';
-          if(cg.worksCats)html+='<span class="pref-dot '+(cg.worksCats==='yes'?'yes':'no')+'" title="Cats: '+cg.worksCats+'">🐈</span>';
-          if(cg.smokingOk)html+='<span class="pref-dot '+(cg.smokingOk==='yes'?'yes':'no')+'" title="Smoking: '+cg.smokingOk+'">🚬</span>';
-          html+='</div>';
-        }
-        html+='</div>';
-      });
+    html+='<div class="type-header"><div class="type-badge '+css+'">'+type+'</div><span class="type-count">'+typeEntries.length+'</span></div>';
+    html+='<div class="cg-grid">';
+    typeEntries.forEach(function(e){
+      var openDayNames=e.openDays.map(function(d){return DAYS[d].slice(0,3);}).join(', ');
+      html+='<div class="cg-card '+css+'">';
+      html+='<div class="cg-card-name">'+esc(e.name)+'</div>';
+      html+='<div class="cg-card-row">';
+      html+='<span class="cg-card-market">'+esc(e.market)+'</span>';
+      html+='<span class="cg-card-hrs">'+e.desiredHrs+'h desired</span>';
       html+='</div>';
-    } else {
-      html+='<div class="empty-type">No '+type.toLowerCase()+' caregivers available</div>';
-    }
-    html+='</div>';
+      html+='<div class="cg-card-row"><span class="cg-card-days">Open: '+openDayNames+'</span></div>';
+      // Prefs
+      html+='<div class="cg-card-prefs">';
+      html+=prefDot('🚗',e.drivesClients,'Drives clients');
+      html+=prefDot('🐕',e.worksDogs,'Dogs');
+      html+=prefDot('🐈',e.worksCats,'Cats');
+      html+=prefDot('🚬',e.smokingOk,'Smoking');
+      html+='</div>';
+      html+='</div>';
+    });
+    html+='</div></div>';
   });
-
-  html+='</div>';
   return html;
 }
 
-function selectDay(day,el){
+function prefDot(icon,val,label){
+  if(val==='yes')return '<span class="pref-dot yes" title="'+label+': Yes">'+icon+'</span>';
+  if(val==='no')return '<span class="pref-dot no" title="'+label+': No">'+icon+'</span>';
+  return '<span class="pref-dot unknown" title="'+label+': Unknown">'+icon+'</span>';
+}
+
+function selectDay(day){
   selectedDay=day;
   render();
 }
@@ -416,13 +440,12 @@ function esc(s){
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-// Wire filters
 ['filterState','filterMarket','filterType','filterDrives','filterDogs','filterCats','filterSmoke'].forEach(function(id){
   document.getElementById(id).addEventListener('change',function(){
     if(id==='filterState'){
       var state=document.getElementById('filterState').value;
       var markets=['All'];
-      caregivers.forEach(function(c){if((state==='All'||c.state===state)&&markets.indexOf(c.market)===-1)markets.push(c.market);});
+      allEntries.forEach(function(c){if((state==='All'||c.state===state)&&markets.indexOf(c.market)===-1)markets.push(c.market);});
       markets.sort();populateSelect('filterMarket',markets);
     }
     render();
