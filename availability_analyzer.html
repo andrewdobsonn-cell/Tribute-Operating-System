@@ -389,7 +389,9 @@ async function loadData(){
           worksDogs:worksDogs,
           worksCats:worksCats,
           smokingOk:smokingOk,
-          gender:gender
+          gender:gender,
+          lat:cg.lat||null,
+          lng:cg.lng||null
         });
       });
     });
@@ -626,7 +628,7 @@ async function runFinder(){
   }
 
   // Show loading state
-  document.getElementById('finderResults').innerHTML='<div style="text-align:center;padding:30px;color:var(--gray-light)"><div class="spinner" style="margin:0 auto 10px"></div>Searching'+(address?' and calculating distances...':'...')+'</div>';
+  document.getElementById('finderResults').innerHTML='<div style="text-align:center;padding:30px;color:var(--gray-light)"><div class="spinner" style="margin:0 auto 10px"></div>Searching'+(address?' and calculating driving distances...':'...')+'</div>';
 
   // Geocode client address for distance calculation
   var clientCoords=null;
@@ -657,17 +659,55 @@ async function runFinder(){
     return true;
   });
 
-  // Calculate distance for each candidate
-  candidates.forEach(function(e){
-    e._distance=null;
-    if(clientCoords){
-      // Use market center as caregiver location estimate
-      var cgCoords=MARKET_COORDS[e.market];
-      if(cgCoords){
-        e._distance=Math.round(distanceMiles(clientCoords.lat,clientCoords.lng,cgCoords.lat,cgCoords.lng));
-      }
+  // Calculate driving distance for each candidate using OSRM
+  if(clientCoords){
+    // Build list of caregiver coordinates (use actual lat/lng or fall back to market center)
+    var coordsList=candidates.map(function(e){
+      if(e.lat&&e.lng)return{lat:e.lat,lng:e.lng};
+      var mc=MARKET_COORDS[e.market];
+      return mc?{lat:mc.lat,lng:mc.lng}:null;
+    });
+
+    // Use OSRM Table API for efficient batch distance calculation
+    // Split into chunks of 50 to stay within URL limits
+    var CHUNK=50;
+    var distances=new Array(candidates.length).fill(null);
+    for(var ci=0;ci<candidates.length;ci+=CHUNK){
+      var chunk=coordsList.slice(ci,ci+CHUNK);
+      var validIndices=[];
+      var coords=clientCoords.lng+','+clientCoords.lat;
+      chunk.forEach(function(cg,j){
+        if(cg){validIndices.push(ci+j);coords+=';'+cg.lng+','+cg.lat;}
+      });
+      if(validIndices.length===0)continue;
+      try{
+        var url='https://router.project-osrm.org/table/v1/driving/'+coords+'?sources=0&annotations=distance';
+        var res=await fetch(url);
+        var data=await res.json();
+        if(data.code==='Ok'&&data.distances&&data.distances[0]){
+          var dists=data.distances[0]; // distances from source (index 0) to all destinations
+          var di=1; // skip index 0 (source)
+          validIndices.forEach(function(origIdx){
+            if(di<dists.length&&dists[di]!==null){
+              distances[origIdx]=Math.round(dists[di]*0.000621371); // meters to miles
+            }
+            di++;
+          });
+        }
+      }catch(ex){}
     }
-  });
+    candidates.forEach(function(e,i){
+      e._distance=distances[i]||null;
+      e._distApprox=false;
+      // Fallback to Haversine if OSRM failed
+      if(e._distance===null&&coordsList[i]){
+        e._distance=Math.round(distanceMiles(clientCoords.lat,clientCoords.lng,coordsList[i].lat,coordsList[i].lng));
+        e._distApprox=true;
+      }
+    });
+  } else {
+    candidates.forEach(function(e){e._distance=null;});
+  }
 
   // Score each candidate
   candidates.forEach(function(e){
@@ -751,7 +791,7 @@ function renderFinderResults(state){
       html+='<span class="result-type-badge '+css+'">'+e.type+'</span>';
       if(e.gender)html+='<span style="font-size:10px;color:var(--gray-light)">'+e.gender+'</span>';
       if(e.phone)html+='<span style="font-size:10px"><a href="tel:'+esc(e.phone)+'" style="color:var(--orange);text-decoration:none">'+esc(e.phone)+'</a></span>';
-      if(e._distance!==null)html+='<span style="font-size:10px;font-weight:600;color:'+(e._distance<=15?'var(--green)':e._distance<=30?'var(--amber)':'var(--red)')+'">~'+e._distance+' mi</span>';
+      if(e._distance!==null)html+='<span style="font-size:10px;font-weight:600;color:'+(e._distance<=15?'var(--green)':e._distance<=30?'var(--amber)':'var(--red)')+'">'+(e._distApprox?'~':'')+e._distance+' mi'+(e._distApprox?'':' drive')+'</span>';
       html+='</div>';
       html+='<div class="result-meta"><span class="result-days">Available: '+matchDays+'</span><span class="result-match">'+coverageText+'</span></div>';
       html+='<div class="result-prefs">'+prefDot('🚗',e.drivesClients,'Drives')+prefDot('🐕',e.worksDogs,'Dogs')+prefDot('🐈',e.worksCats,'Cats')+prefDot('🚬',e.smokingOk,'Smoking')+'</div>';
