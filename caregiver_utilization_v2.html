@@ -216,6 +216,7 @@ const DAY_ABBREVS=["Su","Mo","Tu","We","Th","Fr","Sa"];
 const DAY_MAP={su:0,sun:0,sunday:0,mo:1,mon:1,monday:1,tu:2,tue:2,tuesday:2,we:3,wed:3,wednesday:3,th:4,thu:4,thursday:4,fr:5,fri:5,friday:5,sa:6,sat:6,saturday:6};
 const DAY_PAT=/(?:Su|Sun|Sunday|Mo|Mon|Monday|Tu|Tue|Tuesday|We|Wed|Wednesday|Th|Thu|Thursday|Fr|Fri|Friday|Sa|Sat|Saturday)/gi;
 
+const API='https://tribute-api-prod-bkc4hfcwf3f2f6bf.centralus-01.azurewebsites.net/api/vivProxy';
 let ACTIVE=[],PRN_R=[],PTO_R=[],TRAVEL=[];
 
 // ═══════════════════════════════════════════════════════════════
@@ -651,16 +652,23 @@ async function runReport(){
   // Travel gaps
   TRAVEL=processTravelGaps(dfSc,dfCg);
 
-  // Save to localStorage
-  const saveData={
-    active:ACTIVE,prn:PRN_R,pto:PTO_R,travel:TRAVEL,
-    ts:new Date().toISOString(),
-    cgName:fileCG.name,scName:fileSC.name
-  };
-  try{localStorage.setItem('util_data',JSON.stringify(saveData))}catch(e){console.warn('localStorage save failed',e)}
+  // Publish to API so everyone sees it
+  const saveData={active:ACTIVE,prn:PRN_R,pto:PTO_R,travel:TRAVEL,
+    uploadedBy:'manual',cgName:fileCG.name,scName:fileSC.name};
+  document.getElementById('btn-run').textContent='Publishing...';
+  document.getElementById('btn-run').disabled=true;
+  try{
+    const resp=await fetch(API+'?endpoint=utilization_upload',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(saveData)
+    });
+    const result=await resp.json();
+    if(result.ok)showUploadInfo(result.uploadedAt,fileCG.name,fileSC.name);
+  }catch(e){console.warn('Publish failed',e);showUploadInfo(new Date().toISOString(),fileCG.name,fileSC.name)}
+  document.getElementById('btn-run').textContent='Generate Report';
+  document.getElementById('btn-run').disabled=false;
 
   populateFilters();
-  showUploadInfo(saveData.ts,saveData.cgName,saveData.scName);
   renderAll();
 }
 
@@ -675,34 +683,25 @@ function populateFilters(){
 
 function showUploadInfo(ts,cgName,scName){
   const d=new Date(ts);
-  const when=d.toLocaleDateString('en-US',{month:'short',day:'numeric'})+' at '+d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
-  document.getElementById('upload-info').textContent='Last uploaded '+when+' — '+cgName+' + '+scName;
+  const when=d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'})+' at '+d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+  document.getElementById('upload-info').innerHTML='Data last published <strong>'+when+'</strong> — '+cgName+' + '+scName;
   document.getElementById('last-upload').style.display='block';
 }
 
-function clearSaved(){
-  localStorage.removeItem('util_data');
-  ACTIVE=[];PRN_R=[];PTO_R=[];TRAVEL=[];
-  document.getElementById('content').classList.remove('show');
-  document.getElementById('stats-strip').classList.remove('show');
-  document.getElementById('last-upload').style.display='none';
-}
-
-// Auto-load saved data on page open
-(function loadSaved(){
+// Auto-load from API on page open (everyone sees the same data)
+(async function loadFromAPI(){
   try{
-    const raw=localStorage.getItem('util_data');
-    if(!raw)return;
-    const d=JSON.parse(raw);
+    const resp=await fetch(API+'?endpoint=utilization_upload');
+    const d=await resp.json();
+    if(d.empty||!d.active)return;
     ACTIVE=d.active||[];PRN_R=d.prn||[];PTO_R=d.pto||[];
-    // Restore Date objects in TRAVEL
     TRAVEL=(d.travel||[]).map(g=>({...g,date:new Date(g.date),gapStart:new Date(g.gapStart),gapEnd:new Date(g.gapEnd)}));
     document.getElementById('content').classList.add('show');
     document.getElementById('stats-strip').classList.add('show');
     populateFilters();
-    showUploadInfo(d.ts,d.cgName,d.scName);
+    showUploadInfo(d._uploadedAt||d._cachedAt,d.cgName||'CaregiverData.csv',d.scName||'ScheduleData.csv');
     renderAll();
-  }catch(e){console.warn('Failed to load saved data',e)}
+  }catch(e){console.warn('No published data yet',e)}
 })();
 
 // ═══════════════════════════════════════════════════════════════
