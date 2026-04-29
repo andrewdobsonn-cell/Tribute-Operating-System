@@ -156,6 +156,10 @@ td.wrap{white-space:normal;max-width:220px;overflow:hidden;text-overflow:ellipsi
     </div>
     <button class="btn-run" id="btn-run" disabled onclick="runReport()">Generate Report</button>
   </div>
+  <div id="last-upload" style="margin-top:12px;font-size:12px;color:var(--gray-text);display:none">
+    <span id="upload-info"></span>
+    <button onclick="clearSaved()" style="margin-left:12px;background:none;border:1px solid var(--gray-300);border-radius:6px;padding:4px 12px;font-size:11px;color:var(--gray-text);cursor:pointer;font-family:inherit">Clear saved data</button>
+  </div>
 </div>
 
 <div class="stats-strip" id="stats-strip">
@@ -647,16 +651,59 @@ async function runReport(){
   // Travel gaps
   TRAVEL=processTravelGaps(dfSc,dfCg);
 
-  // Populate filters
+  // Save to localStorage
+  const saveData={
+    active:ACTIVE,prn:PRN_R,pto:PTO_R,travel:TRAVEL,
+    ts:new Date().toISOString(),
+    cgName:fileCG.name,scName:fileSC.name
+  };
+  try{localStorage.setItem('util_data',JSON.stringify(saveData))}catch(e){console.warn('localStorage save failed',e)}
+
+  populateFilters();
+  showUploadInfo(saveData.ts,saveData.cgName,saveData.scName);
+  renderAll();
+}
+
+function populateFilters(){
   const states=new Set(),markets=new Set();
   [...ACTIVE,...PRN_R,...PTO_R].forEach(r=>{states.add(r.state);markets.add(r.market)});
   fSt.innerHTML='<option value="">All States</option>';
   fMk.innerHTML='<option value="">All Markets</option>';
   ST_ORDER.forEach(s=>{if(states.has(s)){const o=document.createElement('option');o.value=s;o.textContent=s;fSt.appendChild(o)}});
   MKT_ORDER.forEach(m=>{if(markets.has(m)){const o=document.createElement('option');o.value=m;o.textContent=m;fMk.appendChild(o)}});
-
-  renderAll();
 }
+
+function showUploadInfo(ts,cgName,scName){
+  const d=new Date(ts);
+  const when=d.toLocaleDateString('en-US',{month:'short',day:'numeric'})+' at '+d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+  document.getElementById('upload-info').textContent='Last uploaded '+when+' — '+cgName+' + '+scName;
+  document.getElementById('last-upload').style.display='block';
+}
+
+function clearSaved(){
+  localStorage.removeItem('util_data');
+  ACTIVE=[];PRN_R=[];PTO_R=[];TRAVEL=[];
+  document.getElementById('content').classList.remove('show');
+  document.getElementById('stats-strip').classList.remove('show');
+  document.getElementById('last-upload').style.display='none';
+}
+
+// Auto-load saved data on page open
+(function loadSaved(){
+  try{
+    const raw=localStorage.getItem('util_data');
+    if(!raw)return;
+    const d=JSON.parse(raw);
+    ACTIVE=d.active||[];PRN_R=d.prn||[];PTO_R=d.pto||[];
+    // Restore Date objects in TRAVEL
+    TRAVEL=(d.travel||[]).map(g=>({...g,date:new Date(g.date),gapStart:new Date(g.gapStart),gapEnd:new Date(g.gapEnd)}));
+    document.getElementById('content').classList.add('show');
+    document.getElementById('stats-strip').classList.add('show');
+    populateFilters();
+    showUploadInfo(d.ts,d.cgName,d.scName);
+    renderAll();
+  }catch(e){console.warn('Failed to load saved data',e)}
+})();
 
 // ═══════════════════════════════════════════════════════════════
 // HELPERS
