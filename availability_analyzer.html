@@ -515,7 +515,7 @@ function renderTypeGroups(entries){
     html+='<div class="cg-grid">';
     typeEntries.forEach(function(e){
       var openDayNames=e.openDays.map(function(d){return DAYS[d].slice(0,3);}).join(', ');
-      html+='<div class="cg-card '+css+'"><div class="cg-card-name">'+(e.id?'<a href="https://tribute.mavencare.com/caregivers/'+esc(e.id)+'" target="_blank" style="color:inherit;text-decoration:none;border-bottom:1px dashed var(--gray-300)">'+esc(e.name)+'</a>':esc(e.name))+'</div>';
+      html+='<div class="cg-card '+css+'"><div class="cg-card-name">'+(e.id?'<a href="https://tribute.mavencare.com/caregivers/'+esc(e.id)+'/dashboard/summary" target="_blank" style="color:inherit;text-decoration:none;border-bottom:1px dashed var(--gray-300)">'+esc(e.name)+'</a>':esc(e.name))+'</div>';
       html+='<div class="cg-card-row"><span class="cg-card-market">'+esc(e.market)+'</span><span class="cg-card-hrs">'+e.desiredHrs+'h desired</span>';
       if(e.phone)html+='<span class="cg-card-hrs"><a href="tel:'+esc(e.phone)+'" style="color:var(--orange);text-decoration:none">'+esc(e.phone)+'</a></span>';
       html+='</div>';
@@ -717,7 +717,7 @@ async function runFinder(){
       var coverageText=requestedDays.length>0?(e._overlap+'/'+requestedDays.length+' days covered'):(e.openDays.length+' open days');
 
       html+='<div class="result-card"><div class="result-left">';
-      html+='<div class="result-name">'+(e.id?'<a href="https://tribute.mavencare.com/caregivers/'+esc(e.id)+'" target="_blank" style="color:inherit;text-decoration:none;border-bottom:1px dashed var(--gray-300)">'+esc(e.name)+'</a>':esc(e.name))+'</div>';
+      html+='<div class="result-name">'+(e.id?'<a href="https://tribute.mavencare.com/caregivers/'+esc(e.id)+'/dashboard/summary" target="_blank" style="color:inherit;text-decoration:none;border-bottom:1px dashed var(--gray-300)">'+esc(e.name)+'</a>':esc(e.name))+'</div>';
       html+='<div class="result-meta">';
       html+='<span class="result-market">'+esc(e.market)+'</span>';
       html+='<span class="result-type-badge '+css+'">'+e.type+'</span>';
