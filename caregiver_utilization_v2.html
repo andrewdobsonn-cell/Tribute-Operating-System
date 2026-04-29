@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Caregiver Utilization — Tribute OS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--orange:#E8541A;--orange-dark:#C4441A;--orange-light:#F47A4A;--orange-pale:#FDF2ED;--orange-50:#FEF8F5;--charcoal:#2C2C2C;--charcoal-mid:#4A4A4A;--gray-text:#6B6B6B;--gray-light:#9B9B9B;--gray-100:#F5F5F5;--gray-200:#EBEBEB;--gray-300:#D8D8D8;--white:#FFFFFF;--cream:#FAFAF8;--green:#3DAA7A;--green-light:#E2EFDA;--red:#E05252;--red-light:#FFC7C3;--purple:#7c3aed;--purple-light:#E4DEF2;--cyan:#0891b2;--cyan-light:#cffafe;--amber:#d97706;--amber-light:#FFF2CC;--blue:#2563eb;--blue-light:#DAE3F3;--shadow-sm:0 1px 4px rgba(44,44,44,0.06),0 1px 2px rgba(44,44,44,0.04);--shadow-md:0 4px 20px rgba(44,44,44,0.09),0 2px 6px rgba(44,44,44,0.05);--r:10px;--rl:14px;--navy:#0F2647;--slate:#44546A;--prn-bg:#EEEACC;--prn-fg:#654321;--pto-bg:#E4DEF2;--pto-fg:#4B3278;--orange-fill:#FCE4D6;--yellow-fill:#FFF2CC;--blue-fill:#DAE3F3;--green-fill:#E2EFDA}
+html{scroll-behavior:smooth}
+body{font-family:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;background:var(--cream);color:var(--charcoal);min-height:100vh;font-size:14px;line-height:1.6;-webkit-font-smoothing:antialiased}
+
+/* Topbar */
+.topbar{background:var(--white);border-bottom:1px solid var(--gray-200);padding:0 48px;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:100;box-shadow:var(--shadow-sm)}
+.topbar-brand{display:flex;align-items:baseline}
+.topbar-tribute{font-family:'DM Serif Display',Georgia,serif;font-size:22px;color:var(--orange)}
+.topbar-os{font-size:11px;font-weight:600;color:var(--gray-light);margin-left:6px;letter-spacing:1.5px;text-transform:uppercase}
+.topbar-right{display:flex;align-items:center;gap:16px}
+.live-dot{width:8px;height:8px;border-radius:50%;background:#3DAA7A;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.topbar-link{font-size:13px;color:var(--gray-text);text-decoration:none;font-weight:500}
+.topbar-link:hover{color:var(--orange)}
+
+/* Hero */
+.hero{padding:48px 48px 0;max-width:1400px;margin:0 auto}
+.hero-eyebrow{font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--orange);margin-bottom:8px}
+.hero-title{font-family:'DM Serif Display',Georgia,serif;font-size:36px;color:var(--charcoal);margin-bottom:6px}
+.hero-subtitle{font-size:15px;color:var(--gray-text);max-width:600px}
+
+/* Stats strip */
+.stats-strip{display:flex;gap:0;margin:32px 48px 0;border-radius:var(--rl);overflow:hidden;box-shadow:var(--shadow-md);max-width:1400px;margin-left:auto;margin-right:auto;padding:0 48px}
+.stat-card{flex:1;background:var(--orange);padding:20px 24px;text-align:center;border-right:1px solid rgba(255,255,255,0.15)}
+.stat-card:last-child{border-right:none}
+.stat-label{font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:rgba(255,255,255,0.75);margin-bottom:4px}
+.stat-value{font-family:'DM Serif Display',Georgia,serif;font-size:28px;color:var(--white)}
+.stat-sub{font-size:11px;color:rgba(255,255,255,0.6);margin-top:2px}
+
+/* Content */
+.content{max-width:1400px;margin:0 auto;padding:32px 48px 64px}
+
+/* Filters */
+.filter-bar{display:flex;gap:16px;align-items:flex-end;margin-bottom:24px;flex-wrap:wrap}
+.filter-group{display:flex;flex-direction:column;gap:4px}
+.filter-group label{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--gray-text)}
+.filter-group select{padding:8px 32px 8px 12px;border:1px solid var(--gray-300);border-radius:8px;font-size:13px;font-family:inherit;background:var(--white);color:var(--charcoal);cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg width='10' height='6' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%236B6B6B'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center}
+.filter-group select:focus{outline:none;border-color:var(--orange);box-shadow:0 0 0 3px rgba(232,84,26,0.1)}
+
+/* Tabs */
+.tab-bar{display:flex;gap:4px;margin-bottom:24px;flex-wrap:wrap;border-bottom:2px solid var(--gray-200);padding-bottom:0}
+.tab-btn{padding:10px 18px;font-size:13px;font-weight:600;color:var(--gray-text);background:none;border:none;border-bottom:2px solid transparent;margin-bottom:-2px;cursor:pointer;font-family:inherit;transition:all .15s}
+.tab-btn:hover{color:var(--charcoal)}
+.tab-btn.active{color:var(--orange);border-bottom-color:var(--orange)}
+
+/* Tables */
+.table-card{background:var(--white);border-radius:var(--rl);box-shadow:var(--shadow-sm);overflow:hidden;margin-bottom:24px}
+.table-title{padding:16px 20px;font-size:15px;font-weight:700;color:var(--white);background:var(--navy)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{background:var(--slate);color:var(--white);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.5px;padding:10px 12px;text-align:center;position:sticky;top:56px;z-index:10}
+th:first-child{text-align:left}
+td{padding:8px 12px;border-bottom:1px solid var(--gray-200);text-align:center;white-space:nowrap}
+td:first-child{text-align:left}
+tr:hover td{background:var(--orange-50)}
+
+/* Summary row styles */
+.row-overall{background:var(--navy);color:var(--white);font-weight:700}
+.row-overall td{color:var(--white);border-bottom:1px solid rgba(255,255,255,0.15)}
+.row-overall:hover td{background:var(--navy)}
+.row-lh{background:var(--green-fill)}
+.row-on{background:var(--orange-fill)}
+.row-sh{background:var(--yellow-fill)}
+.row-li{background:var(--blue-fill)}
+.row-prn{background:var(--prn-bg);color:var(--prn-fg);font-style:italic}
+.row-prn td{color:var(--prn-fg)}
+.row-pto{background:var(--pto-bg);color:var(--pto-fg);font-style:italic}
+.row-pto td{color:var(--pto-fg)}
+.row-spacer td{padding:4px;border:none;background:var(--cream)}
+
+/* Type badges */
+.badge{display:inline-block;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap}
+.badge-lh{background:var(--green-fill);color:#2d5a1e}
+.badge-on{background:var(--orange-fill);color:#8b4513}
+.badge-sh{background:var(--yellow-fill);color:#8b6914}
+.badge-li{background:var(--blue-fill);color:#1e3a5f}
+.badge-prn{background:var(--prn-bg);color:var(--prn-fg)}
+.badge-pto{background:var(--pto-bg);color:var(--pto-fg)}
+
+/* Util colors */
+.util-high{color:var(--red);font-weight:700}
+.util-zero{background:var(--yellow-fill)}
+.util-over{background:var(--orange-fill)}
+
+/* Day breakdown cells */
+.day-red{background:#FFC7C3;font-weight:600}
+.day-yellow{background:#FFF2CC}
+.day-green{background:#E2EFDA}
+.day-avail-ov{background:#1A3A6E;color:var(--white)}
+.day-avail-sub{background:#F8FAFC;color:#475569}
+.day-unused-ov{background:#2C4A7C;color:var(--white)}
+.day-unused-sub{background:#FFF7ED;color:#92400E}
+
+/* TS Admin colors */
+.ts-green{background:var(--green-fill)}
+.ts-blue{background:var(--blue-fill)}
+.ts-yellow{background:var(--yellow-fill)}
+.ts-orange{background:var(--orange-fill)}
+
+/* Travel gap highlight */
+.gap-long{background:var(--orange-fill)}
+
+/* Tab panels */
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+
+/* Responsive */
+.table-scroll{overflow-x:auto;max-height:80vh;overflow-y:auto}
+
+/* Loading */
+.loading{text-align:center;padding:80px 20px;color:var(--gray-text)}
+.loading-spinner{width:32px;height:32px;border:3px solid var(--gray-200);border-top-color:var(--orange);border-radius:50%;animation:spin .6s linear infinite;margin:0 auto 16px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.empty-state{text-align:center;padding:60px 20px;color:var(--gray-light);font-size:14px}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-brand">
+    <span class="topbar-tribute">Tribute</span>
+    <span class="topbar-os">Operating System</span>
+  </div>
+  <div class="topbar-right">
+    <div class="live-dot"></div>
+    <a href="index.html" class="topbar-link">Dashboard</a>
+  </div>
+</div>
+
+<div class="hero">
+  <div class="hero-eyebrow">Workforce Analytics</div>
+  <h1 class="hero-title">Caregiver Utilization</h1>
+  <p class="hero-subtitle">Weekly utilization report matching the Python caregiver utilization script — all tabs, calculations, and breakdowns.</p>
+</div>
+
+<div class="stats-strip">
+  <div class="stat-card"><div class="stat-label">Active CGs</div><div class="stat-value" id="kpi-active">—</div></div>
+  <div class="stat-card"><div class="stat-label">Overall Util</div><div class="stat-value" id="kpi-util">—</div></div>
+  <div class="stat-card"><div class="stat-label">Adj Capacity</div><div class="stat-value" id="kpi-cap">—</div></div>
+  <div class="stat-card"><div class="stat-label">Hrs Worked</div><div class="stat-value" id="kpi-worked">—</div></div>
+  <div class="stat-card"><div class="stat-label">PRN</div><div class="stat-value" id="kpi-prn">—</div></div>
+  <div class="stat-card"><div class="stat-label">On PTO</div><div class="stat-value" id="kpi-pto">—</div></div>
+</div>
+
+<div class="content">
+  <div class="filter-bar">
+    <div class="filter-group">
+      <label>State</label>
+      <select id="flt-state"><option value="">All States</option></select>
+    </div>
+    <div class="filter-group">
+      <label>Market</label>
+      <select id="flt-market"><option value="">All Markets</option></select>
+    </div>
+    <div class="filter-group">
+      <label>Service Type</label>
+      <select id="flt-type">
+        <option value="">All Types</option>
+        <option value="0">Long Hours</option>
+        <option value="1">Overnight</option>
+        <option value="2">Short Hours</option>
+        <option value="3">Live-In</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="tab-bar">
+    <button class="tab-btn active" data-tab="market-summary">Market Summary</button>
+    <button class="tab-btn" data-tab="state-summary">State Summary</button>
+    <button class="tab-btn" data-tab="day-breakdown">Day Breakdown</button>
+    <button class="tab-btn" data-tab="cg-detail">Caregiver Detail</button>
+    <button class="tab-btn" data-tab="cg-roster">Caregiver Roster</button>
+    <button class="tab-btn" data-tab="ts-admin">TS Admin Tracker</button>
+    <button class="tab-btn" data-tab="travel-time">Travel Time</button>
+  </div>
+
+  <div id="tab-market-summary" class="tab-panel active"></div>
+  <div id="tab-state-summary" class="tab-panel"></div>
+  <div id="tab-day-breakdown" class="tab-panel"></div>
+  <div id="tab-cg-detail" class="tab-panel"></div>
+  <div id="tab-cg-roster" class="tab-panel"></div>
+  <div id="tab-ts-admin" class="tab-panel"></div>
+  <div id="tab-travel-time" class="tab-panel"></div>
+</div>
+
+<script>
+const API='https://tribute-api-prod.azurewebsites.net/api/vivProxy';
+const TYPE_NAMES=['Long Hours','Overnight','Short Hours','Live-In'];
+const DAY_NAMES=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const MKT_ORDER=["Boston","North of Boston","MetroWest Boston","South of Boston","Chicago","Annapolis","Baltimore","Bethesda","Bel-Air","Unknown"];
+const ST_ORDER=["Massachusetts","Illinois","Maryland","Unknown"];
+const STATE_MAP={"Boston":"Massachusetts","North of Boston":"Massachusetts","MetroWest Boston":"Massachusetts","South of Boston":"Massachusetts","Chicago":"Illinois","Annapolis":"Maryland","Baltimore":"Maryland","Bethesda":"Maryland","Bel-Air":"Maryland"};
+
+let DATA=null;
+
+// Tab switching
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-'+btn.dataset.tab).classList.add('active');
+  });
+});
+
+// Filters
+const fltState=document.getElementById('flt-state');
+const fltMarket=document.getElementById('flt-market');
+const fltType=document.getElementById('flt-type');
+[fltState,fltMarket,fltType].forEach(f=>f.addEventListener('change',()=>renderAll()));
+
+function pct(v){return v!=null?(v*100).toFixed(1)+'%':'—'}
+function hrs(v){return v!=null?v.toFixed(1):'—'}
+function num(v){return v!=null?v.toLocaleString():'—'}
+function typeCls(i){return['row-lh','row-on','row-sh','row-li'][i]||''}
+function badgeCls(i){return['badge-lh','badge-on','badge-sh','badge-li'][i]||''}
+function getState(mkt){return STATE_MAP[mkt]||'Unknown'}
+
+async function loadData(){
+  document.querySelectorAll('.tab-panel').forEach(p=>p.innerHTML='<div class="loading"><div class="loading-spinner"></div>Loading utilization data...</div>');
+  try{
+    const r=await fetch(API+'?endpoint=utilization_report');
+    DATA=await r.json();
+    populateFilters();
+    renderAll();
+  }catch(e){
+    document.querySelectorAll('.tab-panel').forEach(p=>p.innerHTML='<div class="empty-state">Failed to load data: '+e.message+'</div>');
+  }
+}
+
+function populateFilters(){
+  const states=new Set(), markets=new Set();
+  (DATA.caregiverDetail||[]).forEach(c=>{if(c.state)states.add(c.state);if(c.market)markets.add(c.market)});
+  (DATA.ptoDetail||[]).forEach(c=>{if(c.state)states.add(c.state);if(c.market)markets.add(c.market)});
+  ST_ORDER.forEach(s=>{if(states.has(s)){const o=document.createElement('option');o.value=s;o.textContent=s;fltState.appendChild(o)}});
+  MKT_ORDER.forEach(m=>{if(markets.has(m)){const o=document.createElement('option');o.value=m;o.textContent=m;fltMarket.appendChild(o)}});
+}
+
+function filterCGs(rows){
+  let r=rows;
+  const st=fltState.value, mk=fltMarket.value, tp=fltType.value;
+  if(st)r=r.filter(c=>c.state===st);
+  if(mk)r=r.filter(c=>c.market===mk);
+  if(tp!=='')r=r.filter(c=>c.primType===parseInt(tp));
+  return r;
+}
+
+function renderAll(){
+  if(!DATA)return;
+  const detail=DATA.caregiverDetail||[];
+  const prn=detail.filter(c=>c.isPRN);
+  const active=detail.filter(c=>!c.isPRN);
+  const pto=DATA.ptoDetail||[];
+  const ts=DATA.tsAdminTracker||[];
+  const travel=DATA.travelGaps||[];
+  const dayBk=DATA.dayBreakdown||[];
+  const roster=DATA.roster||[];
+
+  updateKPIs(active,prn,pto);
+  renderMarketSummary(active,prn,pto);
+  renderStateSummary(active,prn,pto);
+  renderDayBreakdown(dayBk,active);
+  renderCaregiverDetail(active,prn);
+  renderRoster(active);
+  renderTSAdmin(active);
+  renderTravelTime(travel);
+}
+
+function updateKPIs(active,prn,pto){
+  const st=fltState.value,mk=fltMarket.value,tp=fltType.value;
+  let rows=active;
+  if(st)rows=rows.filter(c=>c.state===st);
+  if(mk)rows=rows.filter(c=>c.market===mk);
+  if(tp!=='')rows=rows.filter(c=>c.primType===parseInt(tp));
+
+  const totalCap=rows.reduce((s,r)=>s+r.adjCap,0);
+  const totalWrk=rows.reduce((s,r)=>s+Math.min(r.workedHrs,r.adjCap>0?r.adjCap:r.workedHrs),0);
+  const util=totalCap>0?totalWrk/totalCap:0;
+
+  let prnF=prn,ptoF=pto;
+  if(st){prnF=prnF.filter(c=>c.state===st);ptoF=ptoF.filter(c=>c.state===st)}
+  if(mk){prnF=prnF.filter(c=>c.market===mk);ptoF=ptoF.filter(c=>c.market===mk)}
+
+  document.getElementById('kpi-active').textContent=rows.length;
+  document.getElementById('kpi-util').textContent=pct(util);
+  document.getElementById('kpi-cap').textContent=hrs(totalCap);
+  document.getElementById('kpi-worked').textContent=hrs(rows.reduce((s,r)=>s+r.workedHrs,0));
+  document.getElementById('kpi-prn').textContent=prnF.length;
+  document.getElementById('kpi-pto').textContent=ptoF.length;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MARKET SUMMARY — matches Python write_summary_sheet exactly
+// ═══════════════════════════════════════════════════════════════
+function renderMarketSummary(active,prn,pto){
+  const st=fltState.value;
+  let html='<div class="table-card"><div class="table-title">Caregiver Utilization Report — Market Summary</div><div class="table-scroll"><table><thead><tr>';
+  html+='<th>Market</th><th>Service Type</th><th>Count</th><th>Desired Hrs</th><th>Adj Capacity</th><th>Hrs Worked</th><th>Util %</th><th>Over 100%</th><th>Zero Util</th><th># Working</th>';
+  html+='</tr></thead><tbody>';
+
+  const order=st?MKT_ORDER.filter(m=>getState(m)===st):MKT_ORDER;
+
+  order.forEach(mkt=>{
+    const mk=fltMarket.value;
+    if(mk&&mk!==mkt)return;
+    const rows=active.filter(c=>c.market===mkt);
+    if(!rows.length)return;
+
+    // Overall row
+    const cnt=rows.length;
+    const desired=rows.reduce((s,r)=>s+r.desiredHrs,0);
+    const cap=rows.reduce((s,r)=>s+r.adjCap,0);
+    const worked=rows.reduce((s,r)=>s+r.workedHrs,0);
+    const wrkCap=rows.reduce((s,r)=>s+(r.adjCap>0?Math.min(r.workedHrs,r.adjCap):r.workedHrs),0);
+    const util=cap>0?wrkCap/cap:null;
+    const over=rows.filter(r=>r.adjCap>0&&r.workedHrs>r.adjCap).length;
+    const zero=rows.filter(r=>r.adjCap>0&&r.workedHrs===0).length;
+
+    html+=summaryRow(mkt,'Active Caregivers',cnt,desired,cap,worked,util,over,zero,'row-overall');
+
+    // Type breakdown
+    [0,1,2,3].forEach(ti=>{
+      const tp=fltType.value;
+      if(tp!==''&&parseInt(tp)!==ti)return;
+      const tr=rows.filter(r=>r.primType===ti);
+      if(!tr.length)return;
+      const tCnt=tr.length;
+      const tDes=tr.reduce((s,r)=>s+r.desiredHrs,0);
+      const tCap=tr.reduce((s,r)=>s+r.adjCap,0);
+      const tWrk=tr.reduce((s,r)=>s+r.workedHrs,0);
+      const tWC=tr.reduce((s,r)=>s+(r.adjCap>0?Math.min(r.workedHrs,r.adjCap):r.workedHrs),0);
+      const tUtil=tCap>0?tWC/tCap:null;
+      const tOver=tr.filter(r=>r.adjCap>0&&r.workedHrs>r.adjCap).length;
+      const tZero=tr.filter(r=>r.adjCap>0&&r.workedHrs===0).length;
+      html+=summaryRow('','  '+TYPE_NAMES[ti],tCnt,tDes,tCap,tWrk,tUtil,tOver,tZero,typeCls(ti));
+    });
+
+    // PRN row
+    const prnRows=prn.filter(c=>c.market===mkt);
+    html+=summaryRow('','  PRN Worked',prnRows.length,0,0,prnRows.reduce((s,r)=>s+r.workedHrs,0),null,0,0,'row-prn');
+
+    // PTO row
+    const ptoRows=pto.filter(c=>c.market===mkt);
+    if(ptoRows.length){
+      const tc=[0,0,0,0];
+      ptoRows.forEach(r=>{const pt=r.primType!=null?r.primType:2;tc[pt]++});
+      const parts=[];
+      if(tc[0])parts.push(tc[0]+' Long Hours');
+      if(tc[1])parts.push(tc[1]+' Overnight');
+      if(tc[2])parts.push(tc[2]+' Short Hours');
+      if(tc[3])parts.push(tc[3]+' Live-In');
+      html+='<tr class="row-pto"><td></td><td style="text-align:left">  On PTO</td><td>'+ptoRows.length+'</td><td colspan="7" style="text-align:left">'+parts.join(', ')+'</td></tr>';
+    }
+
+    // Spacer
+    html+='<tr class="row-spacer"><td colspan="10"></td></tr>';
+  });
+
+  html+='</tbody></table></div></div>';
+  document.getElementById('tab-market-summary').innerHTML=html;
+}
+
+function summaryRow(key,svc,cnt,des,cap,wrk,util,over,zero,cls){
+  const working=cnt-zero;
+  return '<tr class="'+cls+'"><td>'+key+'</td><td style="text-align:left">'+svc+'</td><td>'+cnt+'</td><td>'+hrs(des)+'</td><td>'+hrs(cap)+'</td><td>'+hrs(wrk)+'</td><td>'+pct(util)+'</td><td>'+over+'</td><td>'+zero+'</td><td>'+working+'</td></tr>';
+}
+
+// ═══════════════════════════════════════════════════════════════
+// STATE SUMMARY — same structure, grouped by state
+// ═══════════════════════════════════════════════════════════════
+function renderStateSummary(active,prn,pto){
+  let html='<div class="table-card"><div class="table-title">Caregiver Utilization Report — State Summary</div><div class="table-scroll"><table><thead><tr>';
+  html+='<th>State</th><th>Service Type</th><th>Count</th><th>Desired Hrs</th><th>Adj Capacity</th><th>Hrs Worked</th><th>Util %</th><th>Over 100%</th><th>Zero Util</th><th># Working</th>';
+  html+='</tr></thead><tbody>';
+
+  const stFlt=fltState.value;
+  const order=stFlt?[stFlt]:ST_ORDER;
+
+  order.forEach(state=>{
+    let rows=active.filter(c=>c.state===state);
+    const mk=fltMarket.value;
+    if(mk)rows=rows.filter(c=>c.market===mk);
+    if(!rows.length)return;
+
+    const cnt=rows.length;
+    const desired=rows.reduce((s,r)=>s+r.desiredHrs,0);
+    const cap=rows.reduce((s,r)=>s+r.adjCap,0);
+    const worked=rows.reduce((s,r)=>s+r.workedHrs,0);
+    const wrkCap=rows.reduce((s,r)=>s+(r.adjCap>0?Math.min(r.workedHrs,r.adjCap):r.workedHrs),0);
+    const util=cap>0?wrkCap/cap:null;
+    const over=rows.filter(r=>r.adjCap>0&&r.workedHrs>r.adjCap).length;
+    const zero=rows.filter(r=>r.adjCap>0&&r.workedHrs===0).length;
+
+    html+=summaryRow(state,'Active Caregivers',cnt,desired,cap,worked,util,over,zero,'row-overall');
+
+    [0,1,2,3].forEach(ti=>{
+      const tp=fltType.value;
+      if(tp!==''&&parseInt(tp)!==ti)return;
+      const tr=rows.filter(r=>r.primType===ti);
+      if(!tr.length)return;
+      const tCnt=tr.length;
+      const tDes=tr.reduce((s,r)=>s+r.desiredHrs,0);
+      const tCap=tr.reduce((s,r)=>s+r.adjCap,0);
+      const tWrk=tr.reduce((s,r)=>s+r.workedHrs,0);
+      const tWC=tr.reduce((s,r)=>s+(r.adjCap>0?Math.min(r.workedHrs,r.adjCap):r.workedHrs),0);
+      const tUtil=tCap>0?tWC/tCap:null;
+      const tOver=tr.filter(r=>r.adjCap>0&&r.workedHrs>r.adjCap).length;
+      const tZero=tr.filter(r=>r.adjCap>0&&r.workedHrs===0).length;
+      html+=summaryRow('','  '+TYPE_NAMES[ti],tCnt,tDes,tCap,tWrk,tUtil,tOver,tZero,typeCls(ti));
+    });
+
+    const prnRows=prn.filter(c=>c.state===state);
+    if(mk)prnRows.filter(c=>c.market===mk);
+    html+=summaryRow('','  PRN Worked',prn.filter(c=>c.state===state&&(!mk||c.market===mk)).length,0,0,prn.filter(c=>c.state===state&&(!mk||c.market===mk)).reduce((s,r)=>s+r.workedHrs,0),null,0,0,'row-prn');
+
+    const ptoRows=pto.filter(c=>c.state===state&&(!mk||c.market===mk));
+    if(ptoRows.length){
+      const tc=[0,0,0,0];
+      ptoRows.forEach(r=>{const pt=r.primType!=null?r.primType:2;tc[pt]++});
+      const parts=[];
+      if(tc[0])parts.push(tc[0]+' Long Hours');
+      if(tc[1])parts.push(tc[1]+' Overnight');
+      if(tc[2])parts.push(tc[2]+' Short Hours');
+      if(tc[3])parts.push(tc[3]+' Live-In');
+      html+='<tr class="row-pto"><td></td><td style="text-align:left">  On PTO</td><td>'+ptoRows.length+'</td><td colspan="7" style="text-align:left">'+parts.join(', ')+'</td></tr>';
+    }
+
+    html+='<tr class="row-spacer"><td colspan="10"></td></tr>';
+  });
+
+  html+='</tbody></table></div></div>';
+  document.getElementById('tab-state-summary').innerHTML=html;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DAY BREAKDOWN — 3-row blocks: Util%, #Avail, #Unused per market/type
+// Matches Python write_day_breakdown + _write_day_row exactly
+// ═══════════════════════════════════════════════════════════════
+function renderDayBreakdown(dayBkApi,active){
+  const st=fltState.value,mk=fltMarket.value;
+  let html='<div class="table-card"><div class="table-title">Day Breakdown by Market</div><div class="table-scroll"><table><thead><tr>';
+  html+='<th>Market</th><th>Service Type</th><th>Metric</th>';
+  DAY_NAMES.forEach(d=>html+='<th>'+d+'</th>');
+  html+='</tr></thead><tbody>';
+
+  const dayTypes=[0,1,3]; // LH, ON, LI only — matches Python
+
+  const order=mk?[mk]:(st?MKT_ORDER.filter(m=>getState(m)===st):MKT_ORDER);
+
+  order.forEach(mkt=>{
+    // Filter active rows for this market with prim_type in day_types
+    const mktRows=active.filter(c=>c.market===mkt);
+    const hasData=mktRows.some(r=>dayTypes.includes(r.primType));
+    if(!hasData)return;
+
+    // Overall row (types 0,1,3 combined)
+    const ovCap=[0,0,0,0,0,0,0],ovWrk=[0,0,0,0,0,0,0],ovAvail=[0,0,0,0,0,0,0];
+    mktRows.forEach(r=>{
+      if(!dayTypes.includes(r.primType))return;
+      for(let d=0;d<7;d++){
+        ovCap[d]+=(r.dayCap||[])[d]||0;
+        ovWrk[d]+=(r.dayWorked||[])[d]||0;
+        if(((r.dayCap||[])[d]||0)>0)ovAvail[d]+=((r.dayAvail||[])[d]||0);
+      }
+    });
+    html+=dayBlock(mkt,'Overall',ovCap,ovWrk,ovAvail,true,'row-overall',mktRows,-1,dayTypes);
+
+    // Per type rows
+    dayTypes.forEach(ti=>{
+      const tRows=mktRows.filter(r=>r.primType===ti);
+      if(!tRows.length)return;
+      const tCap=[0,0,0,0,0,0,0],tWrk=[0,0,0,0,0,0,0],tAvail=[0,0,0,0,0,0,0];
+      tRows.forEach(r=>{
+        for(let d=0;d<7;d++){
+          tCap[d]+=(r.dayCap||[])[d]||0;
+          tWrk[d]+=(r.dayWorked||[])[d]||0;
+          if(((r.dayCap||[])[d]||0)>0)tAvail[d]+=((r.dayAvail||[])[d]||0);
+        }
+      });
+      html+=dayBlock('','  '+TYPE_NAMES[ti],tCap,tWrk,tAvail,false,typeCls(ti),mktRows,ti,dayTypes);
+    });
+
+    html+='<tr class="row-spacer"><td colspan="10"></td></tr>';
+  });
+
+  html+='</tbody></table></div></div>';
+  document.getElementById('tab-day-breakdown').innerHTML=html;
+}
+
+function dayBlock(key,svc,cap,wrk,avail,isOv,cls,allMktRows,typeFilter,dayTypes){
+  let h='';
+  // Row 1: Util %
+  h+='<tr class="'+cls+'"><td>'+key+'</td><td style="text-align:left">'+svc+'</td><td><strong>Util %</strong></td>';
+  for(let d=0;d<7;d++){
+    if(cap[d]>0){
+      let u=wrk[d]/cap[d];if(u>1)u=1;
+      let dcls='';
+      if(!isOv){
+        if(u>=0.95)dcls='day-red';
+        else if(u>=0.85)dcls='day-yellow';
+        else dcls='day-green';
+      }
+      h+='<td class="'+dcls+'">'+(u*100).toFixed(1)+'%</td>';
+    }else{
+      h+='<td>—</td>';
+    }
+  }
+  h+='</tr>';
+
+  // Row 2: # Avail
+  const avCls=isOv?'day-avail-ov':'day-avail-sub';
+  h+='<tr class="'+avCls+'"><td></td><td></td><td># Avail</td>';
+  for(let d=0;d<7;d++){
+    h+='<td>'+avail[d].toFixed(1)+'</td>';
+  }
+  h+='</tr>';
+
+  // Row 3: # Unused
+  const unCls=isOv?'day-unused-ov':'day-unused-sub';
+  h+='<tr class="'+unCls+'"><td></td><td></td><td># Unused</td>';
+  for(let d=0;d<7;d++){
+    let unused=0;
+    allMktRows.forEach(r=>{
+      const pt=r.primType;
+      const inScope=typeFilter===-1?dayTypes.includes(pt):(pt===typeFilter);
+      if(inScope){
+        const wt=(r.dayAvail||[])[d]||0;
+        if(wt>0&&((r.dayWorked||[])[d]||0)===0)unused+=wt;
+      }
+    });
+    h+='<td>'+(unused>0?unused.toFixed(1):'')+'</td>';
+  }
+  h+='</tr>';
+
+  return h;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CAREGIVER DETAIL — matches Python write_caregiver_detail exactly
+// Columns: CG#, First, Last, Market, State, Status, Designation,
+//   Service Type, Desired, Adj Cap, Hrs Worked, Visits, Util%,
+//   LH Days, ON Days, SH Days, Live-In, Sun-Sat, Notes, Tags, HR
+// ═══════════════════════════════════════════════════════════════
+function renderCaregiverDetail(active,prn){
+  const st=fltState.value,mk=fltMarket.value,tp=fltType.value;
+  let rows=[...active];
+  if(st)rows=rows.filter(c=>c.state===st);
+  if(mk)rows=rows.filter(c=>c.market===mk);
+  if(tp!=='')rows=rows.filter(c=>c.primType===parseInt(tp));
+
+  let prnRows=[...prn];
+  if(st)prnRows=prnRows.filter(c=>c.state===st);
+  if(mk)prnRows=prnRows.filter(c=>c.market===mk);
+
+  // Sort by market order then name
+  const mktOrd=(m)=>MKT_ORDER.indexOf(m)>=0?MKT_ORDER.indexOf(m):99;
+  rows.sort((a,b)=>mktOrd(a.market)-mktOrd(b.market)||(a.lastName||'').localeCompare(b.lastName||''));
+  prnRows.sort((a,b)=>mktOrd(a.market)-mktOrd(b.market)||(a.lastName||'').localeCompare(b.lastName||''));
+
+  let html='<div class="table-card"><div class="table-title">Caregiver Utilization Report — Caregiver Detail</div><div class="table-scroll"><table><thead><tr>';
+  const hdrs=['CG#','First Name','Last Name','Market','State','Status','Desig','Service Type','Desired','Adj Cap','Hrs Worked','Visits','Util %','LH Days','ON Days','SH Days','Live-In','Sun','Mon','Tue','Wed','Thu','Fri','Sat','Notes','Tags','HR'];
+  hdrs.forEach(h=>html+='<th>'+h+'</th>');
+  html+='</tr></thead><tbody>';
+
+  rows.forEach(r=>{
+    html+=detailRow(r,false);
+  });
+  prnRows.forEach(r=>{
+    html+=detailRow(r,true);
+  });
+
+  if(!rows.length&&!prnRows.length)html+='<tr><td colspan="27" class="empty-state">No caregivers match filters</td></tr>';
+
+  html+='</tbody></table></div></div>';
+  document.getElementById('tab-cg-detail').innerHTML=html;
+}
+
+function detailRow(r,isPRN){
+  const cls=isPRN?'row-prn':'';
+  const utilVal=r.utilPct!=null&&!isPRN?pct(r.utilPct):'—';
+  let utilCls='';
+  if(!isPRN&&r.utilPct!=null){
+    if(r.utilPct===0)utilCls='util-zero';
+    else if(r.utilPct>1)utilCls='util-over';
+  }
+  if(!isPRN&&r.utilPct==null)utilCls='util-zero';
+
+  const dd=r.dayDisplay||['','','','','','',''];
+  const cgNum=r.id||'';
+  const notes=r.availNotes||'';
+  const tags=r.tags||'';
+
+  let h='<tr class="'+cls+'">';
+  h+='<td>'+cgNum+'</td>';
+  h+='<td style="text-align:left">'+(r.firstName||'')+'</td>';
+  h+='<td style="text-align:left">'+(r.lastName||'')+'</td>';
+  h+='<td>'+(r.market||'')+'</td>';
+  h+='<td>'+(r.state||'')+'</td>';
+  h+='<td>'+(r.cgType||'')+'</td>';
+  h+='<td>'+(r.designation||'')+'</td>';
+  h+='<td><span class="badge '+badgeCls(r.primType)+'">'+(r.svcType||'')+'</span></td>';
+  h+='<td>'+hrs(r.desiredHrs)+'</td>';
+  h+='<td>'+hrs(r.adjCap)+'</td>';
+  h+='<td>'+hrs(r.workedHrs)+'</td>';
+  h+='<td>'+(r.visitCount||0)+'</td>';
+  h+='<td class="'+utilCls+'">'+utilVal+'</td>';
+  h+='<td>'+(r.ldDays||'')+'</td>';
+  h+='<td>'+(r.odDays||'')+'</td>';
+  h+='<td>'+(r.sdDays||'')+'</td>';
+  h+='<td>'+(r.isLI||'')+'</td>';
+  for(let d=0;d<7;d++)h+='<td>'+dd[d]+'</td>';
+  h+='<td style="text-align:left;max-width:200px;overflow:hidden;text-overflow:ellipsis" title="'+esc(notes)+'">'+esc(notes)+'</td>';
+  h+='<td style="text-align:left;max-width:150px;overflow:hidden;text-overflow:ellipsis" title="'+esc(tags)+'">'+esc(tags)+'</td>';
+  h+='<td></td>';
+  h+='</tr>';
+  return h;
+}
+
+function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+
+// ═══════════════════════════════════════════════════════════════
+// CAREGIVER ROSTER — unused caregivers (cap>0, worked=0) by day
+// Matches Python write_roster_sheet exactly
+// ═══════════════════════════════════════════════════════════════
+function renderRoster(active){
+  const st=fltState.value,mk=fltMarket.value;
+  let html='<div class="table-card"><div class="table-title">Caregiver Roster — Day View</div><div class="table-scroll"><table><thead><tr>';
+  html+='<th>Caregiver</th><th>State</th><th>Market</th><th>Day</th><th>Service Type</th><th>Adj Capacity</th><th>Hrs Worked (Week)</th><th>Week Util %</th>';
+  html+='</tr></thead><tbody>';
+
+  const typeOrder=[0,1,3];
+  let hasRows=false;
+  const order=mk?[mk]:(st?MKT_ORDER.filter(m=>getState(m)===st):MKT_ORDER);
+
+  order.forEach(mkt=>{
+    const mktRows=active.filter(c=>c.market===mkt&&typeOrder.includes(c.primType));
+    if(!mktRows.length)return;
+
+    // Check if any CG in this market has unused days
+    let mktHas=false;
+    mktRows.forEach(r=>{
+      for(let d=0;d<7;d++){
+        if(((r.dayCap||[])[d]||0)>0&&((r.dayWorked||[])[d]||0)===0){mktHas=true;return}
+      }
+    });
+    if(!mktHas)return;
+
+    const mktState=getState(mkt);
+
+    for(let d=0;d<7;d++){
+      let dayHas=false;
+      mktRows.forEach(r=>{
+        if(((r.dayCap||[])[d]||0)>0&&((r.dayWorked||[])[d]||0)===0)dayHas=true;
+      });
+      if(!dayHas)continue;
+
+      typeOrder.forEach(t=>{
+        const tRows=mktRows.filter(r=>r.primType===t&&((r.dayCap||[])[d]||0)>0&&((r.dayWorked||[])[d]||0)===0);
+        if(!tRows.length)return;
+
+        tRows.forEach(r=>{
+          hasRows=true;
+          const name=(r.firstName||'')+' '+(r.lastName||'');
+          html+='<tr class="'+typeCls(t)+'">';
+          html+='<td style="text-align:left">'+name+'</td>';
+          html+='<td>'+mktState+'</td>';
+          html+='<td>'+mkt+'</td>';
+          html+='<td>'+DAY_NAMES[d]+'</td>';
+          html+='<td><span class="badge '+badgeCls(t)+'">'+TYPE_NAMES[t]+'</span></td>';
+          html+='<td>'+hrs(r.adjCap)+'</td>';
+          html+='<td>'+hrs(r.workedHrs)+'</td>';
+          html+='<td>'+(r.utilPct!=null?pct(r.utilPct):'—')+'</td>';
+          html+='</tr>';
+        });
+      });
+    }
+  });
+
+  if(!hasRows)html+='<tr><td colspan="8" class="empty-state">No unused caregivers found</td></tr>';
+  html+='</tbody></table></div></div>';
+  document.getElementById('tab-cg-roster').innerHTML=html;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TS ADMIN TRACKER — matches Python write_ts_sheet exactly
+// ═══════════════════════════════════════════════════════════════
+function renderTSAdmin(active){
+  const st=fltState.value,mk=fltMarket.value;
+  let tsRows=active.filter(r=>r.tsType>0);
+  if(st)tsRows=tsRows.filter(r=>r.state===st);
+  if(mk)tsRows=tsRows.filter(r=>r.market===mk);
+
+  let html='<div class="table-card"><div class="table-title">TS Admin Tracker</div><div class="table-scroll"><table><thead><tr>';
+  html+='<th>Caregiver</th><th>Market</th><th>State</th><th>Type</th><th>Threshold</th><th>Avail Days</th><th>Desired Hrs</th><th>Adj Capacity</th><th>Hrs Worked</th><th>PTO Hrs (capped)</th><th>Admin Payout</th>';
+  html+='</tr></thead><tbody>';
+
+  tsRows.forEach(r=>{
+    const threshold=r.tsType;
+    const pto=r.ptoHrs||0;
+    const worked=r.workedHrs||0;
+    const payout=Math.max(0,threshold-worked-pto);
+
+    // Count avail days from dayAvail
+    let availDaysCount=0;
+    (r.dayAvail||[]).forEach(v=>{if(v>0)availDaysCount++});
+    const minDays=threshold===30?3:4;
+    const availStr=availDaysCount+' of '+minDays+'+ req';
+
+    const name=(r.firstName||'')+' '+(r.lastName||'');
+
+    let rowCls='';
+    if(threshold===30)rowCls='ts-blue';
+    else rowCls='ts-green';
+    if(payout>0){
+      if(payout>=threshold*0.5)rowCls='ts-orange';
+      else rowCls='ts-yellow';
+    }
+
+    html+='<tr class="'+rowCls+'">';
+    html+='<td style="text-align:left">'+name+'</td>';
+    html+='<td>'+r.market+'</td>';
+    html+='<td>'+r.state+'</td>';
+    html+='<td>TS'+threshold+'</td>';
+    html+='<td>'+threshold+'</td>';
+    html+='<td>'+availStr+'</td>';
+    html+='<td>'+hrs(r.desiredHrs)+'</td>';
+    html+='<td>'+hrs(r.adjCap)+'</td>';
+    html+='<td>'+hrs(worked)+'</td>';
+    html+='<td>'+hrs(pto)+'</td>';
+    html+='<td'+(payout>0?' style="font-weight:700"':'')+'>'+hrs(payout)+'</td>';
+    html+='</tr>';
+  });
+
+  if(!tsRows.length)html+='<tr><td colspan="11" class="empty-state">No TributeSecure caregivers found</td></tr>';
+  html+='</tbody></table></div></div>';
+  document.getElementById('tab-ts-admin').innerHTML=html;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TRAVEL TIME — matches Python write_travel_time exactly
+// ═══════════════════════════════════════════════════════════════
+function renderTravelTime(travel){
+  const st=fltState.value,mk=fltMarket.value;
+  let gaps=travel;
+  if(st)gaps=gaps.filter(g=>g.state===st);
+  if(mk)gaps=gaps.filter(g=>g.market===mk);
+
+  let html='<div class="table-card"><div class="table-title">Missing Travel Time</div><div class="table-scroll"><table><thead><tr>';
+  html+='<th>Caregiver</th><th>Market</th><th>State</th><th>Day</th><th>Date</th><th>Gap Start</th><th>Gap End</th><th>Gap (hrs)</th><th>Between Clients</th>';
+  html+='</tr></thead><tbody>';
+
+  gaps.forEach((g,i)=>{
+    const isLong=g.gapHrs>1;
+    const cls=isLong?'gap-long':'';
+    const gapStart=g.gapStart?new Date(g.gapStart).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}):'';
+    const gapEnd=g.gapEnd?new Date(g.gapEnd).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}):'';
+    const dt=g.date||'';
+
+    html+='<tr class="'+cls+'">';
+    html+='<td style="text-align:left">'+(g.cgName||'')+'</td>';
+    html+='<td>'+(g.market||'')+'</td>';
+    html+='<td>'+(g.state||'')+'</td>';
+    html+='<td>'+(g.day||'')+'</td>';
+    html+='<td>'+dt+'</td>';
+    html+='<td>'+gapStart+'</td>';
+    html+='<td>'+gapEnd+'</td>';
+    html+='<td>'+g.gapHrs.toFixed(2)+'</td>';
+    html+='<td style="text-align:left">'+(g.pair||'')+'</td>';
+    html+='</tr>';
+  });
+
+  if(!gaps.length)html+='<tr><td colspan="9" class="empty-state">No missing travel time gaps found this week</td></tr>';
+  html+='</tbody></table></div></div>';
+  document.getElementById('tab-travel-time').innerHTML=html;
+}
+
+// Boot
+loadData();
+</script>
+</body>
+</html>
