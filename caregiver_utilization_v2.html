@@ -57,11 +57,13 @@ body{font-family:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;backgroun
 /* Tables */
 .table-card{background:var(--white);border-radius:var(--rl);box-shadow:var(--shadow-sm);overflow:hidden;margin-bottom:24px}
 .table-title{padding:16px 20px;font-size:15px;font-weight:700;color:var(--white);background:var(--navy)}
-table{width:100%;border-collapse:collapse;font-size:13px}
-th{background:var(--slate);color:var(--white);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.5px;padding:10px 12px;text-align:center;position:sticky;top:56px;z-index:10}
-th:first-child{text-align:left}
-td{padding:8px 12px;border-bottom:1px solid var(--gray-200);text-align:center;white-space:nowrap}
-td:first-child{text-align:left}
+table{width:100%;border-collapse:collapse;font-size:13px;table-layout:auto}
+th{background:var(--slate);color:var(--white);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.5px;padding:10px 14px;text-align:center;position:sticky;top:56px;z-index:10;white-space:nowrap}
+th:first-child{text-align:left;min-width:140px}
+td{padding:9px 14px;border-bottom:1px solid var(--gray-200);text-align:center;white-space:nowrap}
+td:first-child{text-align:left;min-width:140px}
+td:nth-child(2){text-align:left;min-width:130px}
+th:nth-child(2){text-align:left;min-width:130px}
 tr:hover td{background:var(--orange-50)}
 
 /* Summary row styles */
@@ -115,7 +117,16 @@ tr:hover td{background:var(--orange-50)}
 .tab-panel.active{display:block}
 
 /* Responsive */
-.table-scroll{overflow-x:auto;max-height:80vh;overflow-y:auto}
+.table-scroll{overflow-x:auto;max-height:80vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
+
+/* Row type hover overrides */
+.row-lh:hover td{background:#d4e5cc}
+.row-on:hover td{background:#f5d8c8}
+.row-sh:hover td{background:#f5e8b8}
+.row-li:hover td{background:#ccd7e8}
+.row-prn:hover td{background:#e2ddb8}
+.row-pto:hover td{background:#d8d2e8}
+.row-spacer:hover td{background:var(--cream)}
 
 /* Loading */
 .loading{text-align:center;padding:80px 20px;color:var(--gray-text)}
