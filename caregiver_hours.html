@@ -1072,11 +1072,11 @@ function renderBarriersUI(d){
   var BARRIER_COLORS={'Turndowns':'var(--red)','Communication: Not Responding':'var(--amber)',
     'Reliability: Short Notice Avail Change':'var(--red)','Reliability: Didn\'t Follow Availability':'var(--red)',
     'Flexibility: Won\'t Travel':'var(--amber)','Flexibility: Won\'t See Client in Skill Level':'var(--amber)',
-    'Flexibility: Weekend Commitment Not Met':'var(--amber)','Desired Hours':'var(--purple)'};
+    'Flexibility: Weekend Commitment Not Met':'var(--amber)','Desired Hours':'var(--purple)','Availability Change':'var(--cyan)'};
   var BARRIER_ICONS={'Turndowns':'🚫','Communication: Not Responding':'📵',
     'Reliability: Short Notice Avail Change':'⏰','Reliability: Didn\'t Follow Availability':'📋',
     'Flexibility: Won\'t Travel':'🚗','Flexibility: Won\'t See Client in Skill Level':'🎯',
-    'Flexibility: Weekend Commitment Not Met':'📅','Desired Hours':'📉'};
+    'Flexibility: Weekend Commitment Not Met':'📅','Desired Hours':'📉','Availability Change':'🔄'};
 
   html+='<div class="fc"><div class="ct">Incidents by Category</div>';
   if(filteredTypeSummary.length>0){
