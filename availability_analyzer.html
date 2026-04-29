@@ -120,9 +120,12 @@ body{font-family:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;backgroun
 .finder-btn-clear:hover{border-color:var(--red);color:var(--red)}
 
 /* RESULTS */
-.results-header{display:flex;align-items:baseline;gap:12px;margin-bottom:16px}
+.results-header{display:flex;align-items:baseline;gap:12px;margin-bottom:16px;flex-wrap:wrap}
 .results-title{font-family:'DM Serif Display',Georgia,serif;font-size:22px;color:var(--charcoal)}
 .results-count{font-size:13px;color:var(--gray-light)}
+.results-sort{margin-left:auto;display:flex;align-items:center;gap:6px}
+.results-sort label{font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--gray-light)}
+.results-sort select{background:var(--gray-100);border:1px solid var(--gray-200);border-radius:6px;padding:5px 8px;font-family:inherit;font-size:11px;color:var(--charcoal);outline:none}
 
 .result-card{background:var(--white);border:1px solid var(--gray-200);border-radius:var(--rl);padding:16px 20px;margin-bottom:8px;transition:all .12s;display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center}
 .result-card:hover{border-color:var(--orange-light);box-shadow:var(--shadow-sm)}
@@ -278,6 +281,8 @@ var genderMap={};  // name -> gender
 var selectedDay=null;
 var finderDays=new Set();
 var currentMode='browse';
+var finderSort='score'; // 'score' or 'distance'
+var lastFinderCandidates=[];
 var DAYS=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 var TYPES=['Overnight','Long Hours','Short Hours','Live-In'];
 var TYPE_CSS={'Overnight':'overnight','Long Hours':'long-hours','Short Hours':'short-hours','Live-In':'live-in'};
@@ -698,19 +703,42 @@ async function runFinder(){
     e._overlap=requestedDays.length>0?requestedDays.filter(function(d){return e.openDays.indexOf(d)>=0;}).length:e.openDays.length;
   });
 
-  // Sort: highest score first, then by distance
-  candidates.sort(function(a,b){
-    if(b._score!==a._score)return b._score-a._score;
-    if(a._distance!==null&&b._distance!==null)return a._distance-b._distance;
-    return 0;
-  });
+  // Store candidates for re-sorting
+  lastFinderCandidates=candidates;
+  finderSort='score';
+  renderFinderResults(state);
+}
+
+function renderFinderResults(state){
+  var candidates=lastFinderCandidates.slice();
+  var requestedDays=Array.from(finderDays);
+
+  // Sort based on current preference
+  if(finderSort==='distance'){
+    candidates.sort(function(a,b){
+      // Null distances go to bottom
+      if(a._distance===null&&b._distance===null)return b._score-a._score;
+      if(a._distance===null)return 1;
+      if(b._distance===null)return -1;
+      if(a._distance!==b._distance)return a._distance-b._distance;
+      return b._score-a._score;
+    });
+  } else {
+    candidates.sort(function(a,b){
+      if(b._score!==a._score)return b._score-a._score;
+      if(a._distance!==null&&b._distance!==null)return a._distance-b._distance;
+      return 0;
+    });
+  }
 
   // Render results
   var html='';
   if(candidates.length===0){
     html='<div style="text-align:center;padding:40px;color:var(--gray-light)">No caregivers match these criteria'+(state?' in '+state:'')+'. Try relaxing some filters.</div>';
   } else {
-    html+='<div class="results-header"><div class="results-title">Care Team Recommendations</div><div class="results-count">'+candidates.length+' matches'+(state?' in '+state:'')+'</div></div>';
+    html+='<div class="results-header"><div class="results-title">Care Team Recommendations</div><div class="results-count">'+candidates.length+' matches'+(state?' in '+state:'')+'</div>';
+    html+='<div class="results-sort"><label>Sort by</label><select onchange="finderSort=this.value;renderFinderResults(\''+esc(state||'')+'\')"><option value="score"'+(finderSort==='score'?' selected':'')+'>Best Match</option><option value="distance"'+(finderSort==='distance'?' selected':'')+'>Distance (closest)</option></select></div>';
+    html+='</div>';
     candidates.forEach(function(e){
       var css=TYPE_CSS[e.type];
       var matchDays=requestedDays.length>0?requestedDays.filter(function(d){return e.openDays.indexOf(d)>=0;}).map(function(d){return DAYS[d].slice(0,3);}).join(', '):e.openDays.map(function(d){return DAYS[d].slice(0,3);}).join(', ');
