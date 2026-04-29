@@ -252,6 +252,7 @@ body{font-family:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;backgroun
 
           <div class="finder-prefs">
             <label class="finder-pref"><input type="checkbox" id="finderMale"><span class="finder-pref-label">Requesting Male Caregiver</span></label>
+            <label class="finder-pref"><input type="checkbox" id="finderFemale"><span class="finder-pref-label">Requesting Female Caregiver</span></label>
             <label class="finder-pref"><input type="checkbox" id="finderDogs"><span class="finder-pref-label">Client Has Dogs</span></label>
             <label class="finder-pref"><input type="checkbox" id="finderCats"><span class="finder-pref-label">Client Has Cats</span></label>
             <label class="finder-pref"><input type="checkbox" id="finderParking"><span class="finder-pref-label">Parking Available</span></label>
@@ -539,6 +540,7 @@ function clearFinder(){
   document.getElementById('finderTypeShort').checked=false;
   document.getElementById('finderTypeLiveIn').checked=false;
   document.getElementById('finderMale').checked=false;
+  document.getElementById('finderFemale').checked=false;
   document.getElementById('finderDogs').checked=false;
   document.getElementById('finderCats').checked=false;
   document.getElementById('finderParking').checked=false;
@@ -588,6 +590,7 @@ async function runFinder(){
   var needShort=document.getElementById('finderTypeShort').checked;
   var needLiveIn=document.getElementById('finderTypeLiveIn').checked;
   var needMale=document.getElementById('finderMale').checked;
+  var needFemale=document.getElementById('finderFemale').checked;
   var hasDogs=document.getElementById('finderDogs').checked;
   var hasCats=document.getElementById('finderCats').checked;
   var hasParking=document.getElementById('finderParking').checked;
@@ -630,6 +633,7 @@ async function runFinder(){
     if(filterByType&&acceptedTypes.indexOf(e.type)===-1)return false;
     // Gender filter
     if(needMale&&e.gender!=='male')return false;
+    if(needFemale&&e.gender!=='female')return false;
     // Dogs - must be OK with dogs
     if(hasDogs&&e.worksDogs==='no')return false;
     // Cats - must be OK with cats
@@ -684,6 +688,7 @@ async function runFinder(){
     if(hasCats&&e.worksCats==='yes')score+=5;
     if(needsDriver&&e.drivesClients==='yes')score+=10;
     if(needMale&&e.gender==='male')score+=10;
+    if(needFemale&&e.gender==='female')score+=10;
 
     e._score=score;
     e._overlap=requestedDays.length>0?requestedDays.filter(function(d){return e.openDays.indexOf(d)>=0;}).length:e.openDays.length;
