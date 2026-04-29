@@ -254,45 +254,56 @@ function renderDashboard(){
 function renderMarketSummary(){
   var el=$('#tab-market');
   el.innerHTML='<div class="ts">Week of '+D.weekOf+'</div>';
+  // Build flat rows: overall + type sub-rows per market (matches Python summary sheet)
+  var summaryRows=[];
+  D.marketSummary.sort(function(a,b){return MKT_ORDER.indexOf(a.market)-MKT_ORDER.indexOf(b.market);}).forEach(function(m){
+    summaryRows.push({label:m.market,svcType:'Active Caregivers',count:m.cgCount||0,desired:m.totalDesired||0,adjCap:m.totalAdjCap||0,worked:m.totalWorked||0,utilPct:m.utilPct,overCount:m.overCount||0,zeroCount:m.zeroCount||0,workingCount:m.workingCount||0,isOverall:true});
+    if(m.typeBreakdown){m.typeBreakdown.forEach(function(t){
+      summaryRows.push({label:'',svcType:'  '+t.type,count:t.count,desired:t.desired,adjCap:t.adjCap,worked:t.worked,utilPct:t.utilPct,overCount:t.overCount,zeroCount:t.zeroCount,workingCount:t.count-t.zeroCount,isOverall:false});
+    });}
+    if(m.prnCount>0)summaryRows.push({label:'',svcType:'  PRN Worked',count:m.prnCount,desired:0,adjCap:0,worked:m.prnWorked||0,utilPct:null,overCount:0,zeroCount:0,workingCount:m.prnCount,isOverall:false,isPRN:true});
+    if(m.ptoCount>0)summaryRows.push({label:'',svcType:'  On PTO',count:m.ptoCount,desired:0,adjCap:0,worked:0,utilPct:null,overCount:0,zeroCount:0,workingCount:0,isOverall:false,isPTO:true});
+  });
   var cols=[
-    {label:'Market',key:'market'},
-    {label:'State',key:'state'},
-    {label:'CGs',key:'cgCount'},
-    {label:'Desired',key:'totalDesired',render:function(r){return fmt(r.totalDesired||0,1);}},
-    {label:'Adj Cap',key:'totalAdjCap',render:function(r){return fmt(r.totalAdjCap||0,1);}},
-    {label:'Worked',key:'totalWorked',render:function(r){return fmt(r.totalWorked||0,1);}},
+    {label:'Market',key:'label',render:function(r){return r.isOverall?'<strong>'+r.label+'</strong>':'';}},
+    {label:'Service Type',key:'svcType',render:function(r){return r.isPRN?'<span style="color:#654321">'+r.svcType+'</span>':r.isPTO?'<span style="color:#4B3278;font-style:italic">'+r.svcType+'</span>':r.isOverall?'<strong>'+r.svcType+'</strong>':r.svcType;}},
+    {label:'Count',key:'count'},
+    {label:'Desired Hrs',key:'desired',render:function(r){return fmt(r.desired,1);}},
+    {label:'Adj Capacity',key:'adjCap',render:function(r){return r.adjCap>0?fmt(r.adjCap,1):'—';}},
+    {label:'Hrs Worked',key:'worked',render:function(r){return fmt(r.worked,1);}},
     {label:'Util %',key:'utilPct',render:function(r){return r.utilPct!=null?utilBar(r.utilPct):'—';}},
     {label:'Over 100%',key:'overCount'},
     {label:'Zero Util',key:'zeroCount'},
-    {label:'# Working',key:'workingCount'},
-    {label:'Revenue',key:'revenue',render:function(r){return fmtDol(r.revenue);}},
-    {label:'Cost',key:'cost',render:function(r){return fmtDol(r.cost);}},
-    {label:'Margin %',key:'grossMarginPct',render:function(r){return fmtPct(r.grossMarginPct*100);}},
-    {label:'Avg Bill Rate',key:'avgBillRate',render:function(r){return '$'+fmt(r.avgBillRate,2);}},
-    {label:'Avg Pay Rate',key:'avgPayRate',render:function(r){return '$'+fmt(r.avgPayRate,2);}}
+    {label:'# Working',key:'workingCount'}
   ];
-  buildTable(el,cols,D.marketSummary,{defaultSort:0});
+  buildTable(el,cols,summaryRows,{});
 }
 
 // ── STATE SUMMARY ──
 function renderStateSummary(){
   var el=$('#tab-state');
   el.innerHTML='<div class="ts">Week of '+D.weekOf+'</div>';
+  var summaryRows=[];
+  var ST_ORDER=['Massachusetts','Illinois','Maryland'];
+  D.stateSummary.sort(function(a,b){return ST_ORDER.indexOf(a.state)-ST_ORDER.indexOf(b.state);}).forEach(function(s){
+    summaryRows.push({label:s.state,svcType:'Active Caregivers',count:s.cgCount||0,desired:s.totalDesired||0,adjCap:s.totalAdjCap||0,worked:s.totalWorked||0,utilPct:s.utilPct,overCount:s.overCount||0,zeroCount:s.zeroCount||0,workingCount:s.workingCount||0,isOverall:true});
+    if(s.typeBreakdown){s.typeBreakdown.forEach(function(t){
+      summaryRows.push({label:'',svcType:'  '+t.type,count:t.count,desired:t.desired,adjCap:t.adjCap,worked:t.worked,utilPct:t.utilPct,overCount:t.overCount,zeroCount:t.zeroCount,workingCount:t.count-t.zeroCount,isOverall:false});
+    });}
+  });
   var cols=[
-    {label:'State',key:'state'},
-    {label:'CGs',key:'cgCount'},
-    {label:'Desired',key:'totalDesired',render:function(r){return fmt(r.totalDesired||0,1);}},
-    {label:'Adj Cap',key:'totalAdjCap',render:function(r){return fmt(r.totalAdjCap||0,1);}},
-    {label:'Worked',key:'totalWorked',render:function(r){return fmt(r.totalWorked||0,1);}},
+    {label:'State',key:'label',render:function(r){return r.isOverall?'<strong>'+r.label+'</strong>':'';}},
+    {label:'Service Type',key:'svcType',render:function(r){return r.isOverall?'<strong>'+r.svcType+'</strong>':r.svcType;}},
+    {label:'Count',key:'count'},
+    {label:'Desired Hrs',key:'desired',render:function(r){return fmt(r.desired,1);}},
+    {label:'Adj Capacity',key:'adjCap',render:function(r){return r.adjCap>0?fmt(r.adjCap,1):'—';}},
+    {label:'Hrs Worked',key:'worked',render:function(r){return fmt(r.worked,1);}},
     {label:'Util %',key:'utilPct',render:function(r){return r.utilPct!=null?utilBar(r.utilPct):'—';}},
     {label:'Over 100%',key:'overCount'},
     {label:'Zero Util',key:'zeroCount'},
-    {label:'# Working',key:'workingCount'},
-    {label:'Revenue',key:'revenue',render:function(r){return fmtDol(r.revenue);}},
-    {label:'Cost',key:'cost',render:function(r){return fmtDol(r.cost);}},
-    {label:'Margin %',key:'grossMarginPct',render:function(r){return fmtPct(r.grossMarginPct*100);}}
+    {label:'# Working',key:'workingCount'}
   ];
-  buildTable(el,cols,D.stateSummary,{defaultSort:0});
+  buildTable(el,cols,summaryRows,{});
 }
 
 // ── CAREGIVER DETAIL ──
