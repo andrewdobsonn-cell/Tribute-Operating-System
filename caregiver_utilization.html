@@ -130,7 +130,7 @@ function utilBar(p){
   return '<div class="util-bar '+cls+'"><div class="util-track"><div class="util-fill" style="width:'+Math.min(p,100)+'%"></div></div><span class="util-pct">'+fmtPct(p)+'</span></div>';
 }
 function typeBadge(t){
-  var m={'Long Hours':'type-long','Overnight':'type-overnight','Short Hours':'type-short','Live-In':'type-livein','Hourly':'type-short'};
+  var m={'Long Hours':'type-long','Overnight':'type-overnight','Short Hours':'type-short','Live-In':'type-livein','Hourly':'type-short','Live-In / Long Hours':'type-long','Live-In / Overnight':'type-overnight','PRN Worked':'type-short'};
   return '<span class="type-badge '+(m[t]||'type-short')+'">'+t+'</span>';
 }
 function gapClass(h){return h>=1.5?'gap-high':h>=0.5?'gap-med':'gap-low';}
@@ -227,11 +227,10 @@ function renderDashboard(){
   var el=$('#tab-dash');var s=D.summary;
   el.innerHTML='<div class="ts">Week of '+D.weekOf+' to '+D.weekEnd+' | Generated '+new Date(D.generatedAt).toLocaleString()+'</div>';
   el.innerHTML+='<div class="kpi-row">'+
-    kpi('Active Caregivers',fmt(s.activeCaregivers)+' / '+fmt(s.totalCaregivers),'','of total')+
-    kpi('Overall Utilization',fmtPct(s.overallUtilPct),s.overallUtilPct>=80?'green':s.overallUtilPct>=50?'yellow':'red')+
-    kpi('Total Scheduled',fmt(s.totalScheduledHrs,1)+' hrs','')+
+    kpi('Active Caregivers',fmt(s.activeCaregivers)+' / '+fmt(s.totalCaregivers),'','Active: '+fmt(s.activeCount||0)+' | PRN: '+fmt(s.prnCount||0)+' | PTO: '+fmt(s.ptoCount||0))+
+    kpi('Overall Utilization',fmtPct(s.overallUtilPct),s.overallUtilPct>=80?'green':s.overallUtilPct>=50?'yellow':'red','Adj Cap: '+fmt(s.totalAdjCap||0,1))+
+    kpi('Hrs Worked',fmt(s.totalWorkedHrs||s.totalScheduledHrs,1)+' hrs','','Desired: '+fmt(s.totalDesiredHrs,1))+
     kpi('Total Billed',fmt(s.totalBilledHrs,1)+' hrs','blue')+
-    kpi('Total Payable',fmt(s.totalPayableHrs,1)+' hrs','')+
     kpi('Revenue',fmtDol(s.totalRevenue),'green')+
     kpi('Cost',fmtDol(s.totalCost),'red')+
     kpi('Gross Profit',fmtDol(s.grossProfit),'green',fmt(s.grossMarginPct,1)+'% margin')+
@@ -241,10 +240,11 @@ function renderDashboard(){
     kpi('Validation Flags',fmt(s.validationCount),s.validationCount>0?'orange':'green')+
   '</div>';
   // Market heatmap
-  var h='<div class="table-wrap"><table><thead><tr><th>Market</th><th>Fill Rate</th><th>Billed Hrs</th><th>Payable Hrs</th><th>Revenue</th><th>Gross Margin</th></tr></thead><tbody>';
+  var h='<div class="table-wrap"><table><thead><tr><th>Market</th><th>CGs</th><th>Adj Cap</th><th>Worked</th><th>Util %</th><th>Over 100%</th><th>Zero Util</th><th>Revenue</th><th>Gross Margin</th></tr></thead><tbody>';
   D.marketSummary.sort(function(a,b){return MKT_ORDER.indexOf(a.market)-MKT_ORDER.indexOf(b.market);}).forEach(function(m){
     var gmCls=m.grossMarginPct>=0.4?'green':m.grossMarginPct>=0.3?'yellow':'red';
-    h+='<tr><td><strong>'+m.market+'</strong></td><td>'+fmtPct(m.fillRate*100)+'</td><td>'+fmt(m.billedHrs,1)+'</td><td>'+fmt(m.payableHrs,1)+'</td><td>'+fmtDol(m.revenue)+'</td><td class="'+gmCls+'">'+fmtPct(m.grossMarginPct*100)+'</td></tr>';
+    var uCls=m.utilPct>=80?'green':m.utilPct>=50?'yellow':'red';
+    h+='<tr><td><strong>'+m.market+'</strong></td><td>'+fmt(m.cgCount||0)+'</td><td>'+fmt(m.totalAdjCap||0,1)+'</td><td>'+fmt(m.totalWorked||0,1)+'</td><td class="'+uCls+'">'+fmtPct(m.utilPct||0)+'</td><td>'+(m.overCount||0)+'</td><td>'+(m.zeroCount||0)+'</td><td>'+fmtDol(m.revenue)+'</td><td class="'+gmCls+'">'+fmtPct(m.grossMarginPct*100)+'</td></tr>';
   });
   h+='</tbody></table></div>';
   el.innerHTML+=h;
@@ -257,17 +257,16 @@ function renderMarketSummary(){
   var cols=[
     {label:'Market',key:'market'},
     {label:'State',key:'state'},
-    {label:'Visits',key:'totalVisits'},
-    {label:'Filled',key:'filledVisits'},
-    {label:'Open',key:'openVisits'},
-    {label:'Cancelled',key:'cancelledVisits'},
-    {label:'Fill Rate',key:'fillRate',render:function(r){return fmtPct(r.fillRate*100);}},
-    {label:'Scheduled Hrs',key:'scheduledHrs',render:function(r){return fmt(r.scheduledHrs,1);}},
-    {label:'Billed Hrs',key:'billedHrs',render:function(r){return fmt(r.billedHrs,1);}},
-    {label:'Payable Hrs',key:'payableHrs',render:function(r){return fmt(r.payableHrs,1);}},
+    {label:'CGs',key:'cgCount'},
+    {label:'Desired',key:'totalDesired',render:function(r){return fmt(r.totalDesired||0,1);}},
+    {label:'Adj Cap',key:'totalAdjCap',render:function(r){return fmt(r.totalAdjCap||0,1);}},
+    {label:'Worked',key:'totalWorked',render:function(r){return fmt(r.totalWorked||0,1);}},
+    {label:'Util %',key:'utilPct',render:function(r){return r.utilPct!=null?utilBar(r.utilPct):'—';}},
+    {label:'Over 100%',key:'overCount'},
+    {label:'Zero Util',key:'zeroCount'},
+    {label:'# Working',key:'workingCount'},
     {label:'Revenue',key:'revenue',render:function(r){return fmtDol(r.revenue);}},
     {label:'Cost',key:'cost',render:function(r){return fmtDol(r.cost);}},
-    {label:'Gross Profit',key:'grossProfit',render:function(r){return fmtDol(r.grossProfit);}},
     {label:'Margin %',key:'grossMarginPct',render:function(r){return fmtPct(r.grossMarginPct*100);}},
     {label:'Avg Bill Rate',key:'avgBillRate',render:function(r){return '$'+fmt(r.avgBillRate,2);}},
     {label:'Avg Pay Rate',key:'avgPayRate',render:function(r){return '$'+fmt(r.avgPayRate,2);}}
@@ -281,19 +280,17 @@ function renderStateSummary(){
   el.innerHTML='<div class="ts">Week of '+D.weekOf+'</div>';
   var cols=[
     {label:'State',key:'state'},
-    {label:'Visits',key:'totalVisits'},
-    {label:'Filled',key:'filledVisits'},
-    {label:'Open',key:'openVisits'},
-    {label:'Fill Rate',key:'fillRate',render:function(r){return fmtPct(r.fillRate*100);}},
-    {label:'Scheduled Hrs',key:'scheduledHrs',render:function(r){return fmt(r.scheduledHrs,1);}},
-    {label:'Billed Hrs',key:'billedHrs',render:function(r){return fmt(r.billedHrs,1);}},
-    {label:'Payable Hrs',key:'payableHrs',render:function(r){return fmt(r.payableHrs,1);}},
+    {label:'CGs',key:'cgCount'},
+    {label:'Desired',key:'totalDesired',render:function(r){return fmt(r.totalDesired||0,1);}},
+    {label:'Adj Cap',key:'totalAdjCap',render:function(r){return fmt(r.totalAdjCap||0,1);}},
+    {label:'Worked',key:'totalWorked',render:function(r){return fmt(r.totalWorked||0,1);}},
+    {label:'Util %',key:'utilPct',render:function(r){return r.utilPct!=null?utilBar(r.utilPct):'—';}},
+    {label:'Over 100%',key:'overCount'},
+    {label:'Zero Util',key:'zeroCount'},
+    {label:'# Working',key:'workingCount'},
     {label:'Revenue',key:'revenue',render:function(r){return fmtDol(r.revenue);}},
     {label:'Cost',key:'cost',render:function(r){return fmtDol(r.cost);}},
-    {label:'Gross Profit',key:'grossProfit',render:function(r){return fmtDol(r.grossProfit);}},
-    {label:'Margin %',key:'grossMarginPct',render:function(r){return fmtPct(r.grossMarginPct*100);}},
-    {label:'Avg Bill Rate',key:'avgBillRate',render:function(r){return '$'+fmt(r.avgBillRate,2);}},
-    {label:'Avg Pay Rate',key:'avgPayRate',render:function(r){return '$'+fmt(r.avgPayRate,2);}}
+    {label:'Margin %',key:'grossMarginPct',render:function(r){return fmtPct(r.grossMarginPct*100);}}
   ];
   buildTable(el,cols,D.stateSummary,{defaultSort:0});
 }
@@ -303,7 +300,7 @@ function renderCaregiverDetail(){
   var el=$('#tab-detail');
   el.innerHTML='<div class="ts" id="ts-detail">Week of '+D.weekOf+'</div>'+
     '<div class="filter-bar"><span class="fl">Market</span><select id="flt-mkt"><option value="">All</option></select>'+
-    '<span class="fl">Type</span><select id="flt-type"><option value="">All</option><option value="Long Hours">Long Hrs</option><option value="Overnight">Overnight</option><option value="Short Hours">Short Hrs</option><option value="Live-In">Live-In</option></select>'+
+    '<span class="fl">Type</span><select id="flt-type"><option value="">All</option><option value="Long Hours">Long Hrs</option><option value="Overnight">Overnight</option><option value="Short Hours">Short Hrs</option><option value="Live-In">Live-In</option><option value="PRN">PRN</option></select>'+
     '<span class="fl">Search</span><input id="flt-search" placeholder="Name..." style="width:140px">'+
     '<span class="fl">Show</span><select id="flt-show"><option value="all">All</option><option value="zero">Zero Util</option><option value="over">Over 100%</option><option value="under50">Under 50%</option></select></div>';
   // Populate market filter
@@ -314,23 +311,28 @@ function renderCaregiverDetail(){
   var cols=[
     {label:'Name',key:'name'},
     {label:'Market',key:'market'},
-    {label:'Type',key:'cgType',render:function(r){return typeBadge(r.cgType);}},
+    {label:'Service Type',key:'svcType',render:function(r){return typeBadge(r.svcType||r.cgType);}},
     {label:'Desired',key:'desiredHrs',render:function(r){return fmt(r.desiredHrs,1);}},
-    {label:'Scheduled',key:'scheduledHrs',render:function(r){return fmt(r.scheduledHrs,1);}},
-    {label:'Billed',key:'billedHrs',render:function(r){return fmt(r.billedHrs,1);}},
-    {label:'Payable',key:'payableHrs',render:function(r){return fmt(r.payableHrs,1);}},
-    {label:'Util %',key:'utilPct',render:function(r){return utilBar(r.utilPct);}},
+    {label:'Adj Cap',key:'adjCap',render:function(r){return fmt(r.adjCap,1);}},
+    {label:'Worked',key:'workedHrs',render:function(r){return fmt(r.workedHrs,1);}},
+    {label:'Util %',key:'utilPct',render:function(r){return r.utilPct!=null?utilBar(r.utilPct):'—';}},
     {label:'Gap',key:'gap',render:function(r){return r.gap>0?'<span style="color:var(--red)">'+fmt(r.gap,1)+'</span>':'—';}},
     {label:'Capacity',key:'capacityReason'},
-    {label:'Long',key:'typeHrs',val:function(r){return r.typeHrs[0];},render:function(r){return r.typeHrs[0]>0?fmt(r.typeHrs[0],1):'—';}},
-    {label:'ON',val:function(r){return r.typeHrs[1];},render:function(r){return r.typeHrs[1]>0?fmt(r.typeHrs[1],1):'—';}},
-    {label:'Short',val:function(r){return r.typeHrs[2];},render:function(r){return r.typeHrs[2]>0?fmt(r.typeHrs[2],1):'—';}},
-    {label:'Live-In',val:function(r){return r.typeHrs[3];},render:function(r){return r.typeHrs[3]>0?fmt(r.typeHrs[3],1):'—';}},
+    {label:'LH Days',key:'ldDays',render:function(r){return r.ldDays||'—';}},
+    {label:'ON Days',key:'odDays',render:function(r){return r.odDays||'—';}},
+    {label:'Live-In',key:'isLI'},
+    {label:'Su',val:function(r){return r.dayDisplay?r.dayDisplay[0]:'';},render:function(r){return r.dayDisplay?r.dayDisplay[0]:'—';}},
+    {label:'Mo',val:function(r){return r.dayDisplay?r.dayDisplay[1]:'';},render:function(r){return r.dayDisplay?r.dayDisplay[1]:'—';}},
+    {label:'Tu',val:function(r){return r.dayDisplay?r.dayDisplay[2]:'';},render:function(r){return r.dayDisplay?r.dayDisplay[2]:'—';}},
+    {label:'We',val:function(r){return r.dayDisplay?r.dayDisplay[3]:'';},render:function(r){return r.dayDisplay?r.dayDisplay[3]:'—';}},
+    {label:'Th',val:function(r){return r.dayDisplay?r.dayDisplay[4]:'';},render:function(r){return r.dayDisplay?r.dayDisplay[4]:'—';}},
+    {label:'Fr',val:function(r){return r.dayDisplay?r.dayDisplay[5]:'';},render:function(r){return r.dayDisplay?r.dayDisplay[5]:'—';}},
+    {label:'Sa',val:function(r){return r.dayDisplay?r.dayDisplay[6]:'';},render:function(r){return r.dayDisplay?r.dayDisplay[6]:'—';}},
     {label:'PTO',key:'ptoHrs',render:function(r){return r.ptoHrs>0?'<span style="color:var(--purple)">'+fmt(r.ptoHrs,1)+'</span>':'—';}},
     {label:'TS',key:'tsType',render:function(r){return r.tsType>0?'TS'+r.tsType:'—';}},
     {label:'Designation',key:'designation'}
   ];
-  var tbl=buildTable(el,cols,D.caregiverDetail,{defaultSort:7,defaultAsc:true,maxHeight:'65vh'});
+  var tbl=buildTable(el,cols,D.caregiverDetail,{defaultSort:6,defaultAsc:true,maxHeight:'65vh'});
 
   function applyFilters(){
     var mkt=$('#flt-mkt').value;
@@ -339,7 +341,8 @@ function renderCaregiverDetail(){
     var show=$('#flt-show').value;
     var filtered=D.caregiverDetail.filter(function(c){
       if(mkt&&c.market!==mkt)return false;
-      if(type&&c.cgType!==type)return false;
+      if(type==='PRN'){if(!c.isPRN)return false;}
+      else if(type&&(c.svcType||c.cgType).indexOf(type)<0)return false;
       if(search&&c.name.toLowerCase().indexOf(search)<0)return false;
       if(show==='zero'&&c.utilPct>0)return false;
       if(show==='over'&&c.utilPct<=100)return false;
@@ -357,25 +360,35 @@ function renderCaregiverDetail(){
 // ── DAY BREAKDOWN ──
 function renderDayBreakdown(){
   var el=$('#tab-daybreak');
-  el.innerHTML='<div class="ts">Week of '+D.weekOf+'</div>'+
-    '<div class="filter-bar"><span class="fl">Market</span><select id="flt-day-mkt"><option value="">All</option></select></div>';
+  el.innerHTML='<div class="ts">Week of '+D.weekOf+' — Capacity / Worked / Available / Unused per Day (LH, ON, LI only)</div>'+
+    '<div class="filter-bar"><span class="fl">Market</span><select id="flt-day-mkt"><option value="">All</option></select>'+
+    '<span class="fl">Type</span><select id="flt-day-type"><option value="">All</option><option value="Long Hours">Long Hrs</option><option value="Overnight">Overnight</option><option value="Live-In">Live-In</option></select></div>';
   var mkts={};D.dayBreakdown.forEach(function(r){mkts[r.market]=1;});
   var sel=$('#flt-day-mkt');
   MKT_ORDER.forEach(function(m){if(mkts[m])sel.innerHTML+='<option value="'+m+'">'+m+'</option>';});
 
   var cols=[
     {label:'Market',key:'market'},
-    {label:'Date',key:'date'},
     {label:'Day',key:'day'},
     {label:'Type',key:'type',render:function(r){return typeBadge(r.type);}},
-    {label:'Total Scheduled',key:'totalScheduled',render:function(r){return fmt(r.totalScheduled,1);}},
-    {label:'Visit Count',key:'visitCount'}
+    {label:'CGs',key:'cgCount'},
+    {label:'Capacity',key:'capacity',render:function(r){return fmt(r.capacity,1);}},
+    {label:'Worked',key:'worked',render:function(r){return fmt(r.worked,1);}},
+    {label:'# Avail',key:'availCount',render:function(r){return fmt(r.availCount,1);}},
+    {label:'# Unused',key:'unusedCount',render:function(r){return r.unusedCount>0?'<span style="color:var(--orange);font-weight:600">'+r.unusedCount+'</span>':'0';}}
   ];
-  var tbl=buildTable(el,cols,D.dayBreakdown,{defaultSort:1});
-  sel.onchange=function(){
-    var m=sel.value;
-    tbl.setRows(m?D.dayBreakdown.filter(function(r){return r.market===m;}):D.dayBreakdown);
-  };
+  var tbl=buildTable(el,cols,D.dayBreakdown,{defaultSort:0});
+  function filterDB(){
+    var m=$('#flt-day-mkt').value;
+    var t=$('#flt-day-type').value;
+    tbl.setRows(D.dayBreakdown.filter(function(r){
+      if(m&&r.market!==m)return false;
+      if(t&&r.type!==t)return false;
+      return true;
+    }));
+  }
+  sel.onchange=filterDB;
+  $('#flt-day-type').onchange=filterDB;
 }
 
 // ── CAREGIVER ROSTER ──
@@ -390,14 +403,19 @@ function renderRoster(){
   var cols=[
     {label:'Name',key:'name'},
     {label:'Market',key:'market'},
-    {label:'State',key:'state'},
     {label:'Designation',key:'designation'},
-    {label:'Type',key:'cgType',render:function(r){return typeBadge(r.cgType);}},
+    {label:'Service Type',key:'svcType',render:function(r){return typeBadge(r.svcType||r.cgType);}},
     {label:'Desired',key:'desiredHrs',render:function(r){return fmt(r.desiredHrs,1);}},
-    {label:'Scheduled',key:'scheduledHrs',render:function(r){return fmt(r.scheduledHrs,1);}},
-    {label:'Billed',key:'billedHrs',render:function(r){return fmt(r.billedHrs,1);}},
-    {label:'Payable',key:'payableHrs',render:function(r){return fmt(r.payableHrs,1);}},
-    {label:'Overtime',key:'overtimeHrs',render:function(r){return r.overtimeHrs>0?'<span style="color:var(--red);font-weight:600">'+fmt(r.overtimeHrs,1)+'</span>':'—';}},
+    {label:'Adj Cap',key:'adjCap',render:function(r){return fmt(r.adjCap||0,1);}},
+    {label:'Worked',key:'workedHrs',render:function(r){return fmt(r.workedHrs||0,1);}},
+    {label:'Util %',key:'utilPct',render:function(r){return r.utilPct!=null?utilBar(r.utilPct):'—';}},
+    {label:'Su',val:function(r){return r.dayDisplay?r.dayDisplay[0]:'';},render:function(r){return r.dayDisplay?r.dayDisplay[0]:'—';}},
+    {label:'Mo',val:function(r){return r.dayDisplay?r.dayDisplay[1]:'';},render:function(r){return r.dayDisplay?r.dayDisplay[1]:'—';}},
+    {label:'Tu',val:function(r){return r.dayDisplay?r.dayDisplay[2]:'';},render:function(r){return r.dayDisplay?r.dayDisplay[2]:'—';}},
+    {label:'We',val:function(r){return r.dayDisplay?r.dayDisplay[3]:'';},render:function(r){return r.dayDisplay?r.dayDisplay[3]:'—';}},
+    {label:'Th',val:function(r){return r.dayDisplay?r.dayDisplay[4]:'';},render:function(r){return r.dayDisplay?r.dayDisplay[4]:'—';}},
+    {label:'Fr',val:function(r){return r.dayDisplay?r.dayDisplay[5]:'';},render:function(r){return r.dayDisplay?r.dayDisplay[5]:'—';}},
+    {label:'Sa',val:function(r){return r.dayDisplay?r.dayDisplay[6]:'';},render:function(r){return r.dayDisplay?r.dayDisplay[6]:'—';}},
     {label:'Hire Date',key:'hireDate',render:function(r){return r.hireDate?new Date(r.hireDate).toLocaleDateString():'—';}}
   ];
   var tbl=buildTable(el,cols,D.roster,{defaultSort:6,defaultAsc:false,maxHeight:'65vh'});
