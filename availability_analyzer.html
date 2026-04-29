@@ -338,10 +338,13 @@ async function loadData(){
     var raw=supplyData.caregivers||[];
 
     // Build recurring days map (cgid -> array of DOWs with ongoing visits)
+    // Also build time-off map (cgid -> array of DOWs with PTO/sick 2+ weeks out)
     var recurringMap={};
+    var timeOffMap={};
     if(recurRes.ok){
       var recurData=await recurRes.json();
       recurringMap=recurData.recurringDays||{};
+      timeOffMap=recurData.timeOffDays||{};
     }
 
     // Build gender map from caregivers endpoint
@@ -355,9 +358,10 @@ async function loadData(){
 
     allEntries=[];
     raw.filter(function(cg){return cg.status==='hired';}).forEach(function(cg){
-      // Use recurring days (2+ weeks out) instead of this week's scheduledDays
+      // Use recurring days + time-off days to determine unavailable DOWs
       var recurDays=recurringMap[cg.id]||[];
-      var busyDOW=new Set(recurDays);
+      var toDays=timeOffMap[cg.id]||[];
+      var busyDOW=new Set([...recurDays,...toDays]);
       var notes=cg.availNotes||'';
       var parsed=parseAvailNotes(notes);
       if(parsed.length===0)return;
