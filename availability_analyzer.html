@@ -321,14 +321,22 @@ function parseAvailNotes(notes){
 
 async function loadData(){
   try{
-    // Fetch both endpoints in parallel
-    var [supplyRes, cgRes]=await Promise.all([
+    // Fetch all three endpoints in parallel
+    var [supplyRes, cgRes, recurRes]=await Promise.all([
       fetch(API+'?endpoint=caregiver_supply'),
-      fetch(API+'?endpoint=caregivers')
+      fetch(API+'?endpoint=caregivers'),
+      fetch(API+'?endpoint=recurring_days')
     ]);
     if(!supplyRes.ok)throw new Error('Supply API returned '+supplyRes.status);
     var supplyData=await supplyRes.json();
     var raw=supplyData.caregivers||[];
+
+    // Build recurring days map (cgid -> array of DOWs with ongoing visits)
+    var recurringMap={};
+    if(recurRes.ok){
+      var recurData=await recurRes.json();
+      recurringMap=recurData.recurringDays||{};
+    }
 
     // Build gender map from caregivers endpoint
     if(cgRes.ok){
@@ -341,7 +349,9 @@ async function loadData(){
 
     allEntries=[];
     raw.filter(function(cg){return cg.status==='hired';}).forEach(function(cg){
-      var busyDOW=new Set(cg.scheduledDays||[]);
+      // Use recurring days (2+ weeks out) instead of this week's scheduledDays
+      var recurDays=recurringMap[cg.id]||[];
+      var busyDOW=new Set(recurDays);
       var notes=cg.availNotes||'';
       var parsed=parseAvailNotes(notes);
       if(parsed.length===0)return;
