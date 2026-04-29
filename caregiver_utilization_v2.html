@@ -93,6 +93,22 @@ td.wr{white-space:normal;max-width:200px;overflow:hidden;text-overflow:ellipsis}
 .spin{width:28px;height:28px;border:3px solid var(--gray-200);border-top-color:var(--orange);border-radius:50%;animation:spin .6s linear infinite;margin:0 auto 12px}
 @keyframes spin{to{transform:rotate(360deg)}}
 #upload-meta{margin-top:10px;font-size:12px;color:var(--gray-text);display:none}
+
+/* Dashboard */
+.dash-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:16px}
+.dash-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+.dash-kpi{background:var(--white);border-radius:var(--r);padding:20px;text-align:center;box-shadow:var(--shadow-sm)}
+.dash-kpi .kl{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--gray-text);margin-bottom:4px}
+.dash-kpi .kv{font-family:'DM Serif Display',Georgia,serif;font-size:28px;color:var(--charcoal)}
+.dash-kpi .ks{font-size:11px;color:var(--gray-light);margin-top:2px}
+.heatmap-cell{padding:6px 10px;text-align:center;font-size:12px;font-weight:600;border:1px solid var(--gray-200)}
+.hm-low{background:#FEE2E2;color:#991B1B}
+.hm-med{background:#FEF3C7;color:#92400E}
+.hm-good{background:#D1FAE5;color:#065F46}
+.hm-high{background:#DBEAFE;color:#1E40AF}
+.hm-full{background:#E0E7FF;color:#3730A3}
+.hm-none{background:var(--gray-100);color:var(--gray-light)}
+.alert-row{background:var(--orange-fill)}
 </style>
 </head>
 <body>
@@ -118,7 +134,8 @@ td.wr{white-space:normal;max-width:200px;overflow:hidden;text-overflow:ellipsis}
 <div class="filter-group"><label>Service Type</label><select id="f-tp"><option value="">All Types</option><option value="0">Long Hours</option><option value="1">Overnight</option><option value="2">Short Hours</option><option value="3">Live-In</option></select></div>
 </div>
 <div class="tab-bar">
-<button class="tab-btn active" data-t="det">Caregiver Detail</button>
+<button class="tab-btn active" data-t="dash">Dashboard</button>
+<button class="tab-btn" data-t="det">Caregiver Detail</button>
 <button class="tab-btn" data-t="mkt">Market Summary</button>
 <button class="tab-btn" data-t="sta">State Summary</button>
 <button class="tab-btn" data-t="day">Day Breakdown</button>
@@ -129,7 +146,8 @@ td.wr{white-space:normal;max-width:200px;overflow:hidden;text-overflow:ellipsis}
 <button class="tab-btn" data-t="smx">Shift Mix</button>
 <button class="tab-btn" data-t="nh">New Hires</button>
 </div>
-<div id="p-det" class="tp active"></div>
+<div id="p-dash" class="tp active"></div>
+<div id="p-det" class="tp"></div>
 <div id="p-mkt" class="tp"></div>
 <div id="p-sta" class="tp"></div>
 <div id="p-day" class="tp"></div>
@@ -270,7 +288,7 @@ function processCaregivers(dfCg,sched){
     const hasHourly=nl.includes('long hour')||nl.includes('overnight')||nl.includes('short hour');const isMixed=isLI&&hasHourly;
     if(worked===0&&isMixed&&primType===3){if(nl.includes('long hour'))primType=0;else if(nl.includes('overnight'))primType=1;else primType=2}
     let ptName=TYPE_NAMES[primType];let availDays,dailyRate;
-    if(isLI&&primType===3){availDays={};for(let d=0;d<7;d++)availDays[d]=1.0;dailyRate=24;ptName='Live-In';desired=168}
+    if(isLI&&primType===3){availDays={};for(let d=0;d<7;d++)availDays[d]=1.0;dailyRate=24;ptName='Live-In'}
     else if(isLI&&isMixed&&primType!==3){if(nl.includes('long hour')){availDays=parseAvailDays(notes,'Long Hours');ptName='Live-In / Long Hours'}else{availDays=parseAvailDays(notes,'Overnight');ptName='Live-In / Overnight'}dailyRate=12}
     else if(isLI&&!isMixed&&primType!==3){availDays={};dailyRate=0}
     else if(primType===0){availDays=parseAvailDays(notes,'Long Hours');dailyRate=12}
@@ -346,7 +364,7 @@ function showMeta(ts,cn,sn){const d=new Date(ts);document.getElementById('upload
 // ═════════════════════════════════════════════════════════════
 // RENDER
 // ═════════════════════════════════════════════════════════════
-function renderAll(){updateKPIs();renderDetail();renderSummary('mkt','market',MKT_ORDER,'Market Summary','Market/State');renderSummary('sta','state',ST_ORDER,'State Summary','State');renderDayBreakdown();renderRoster();renderTS();renderTravel();renderLHO();renderShiftMix();renderNewHires()}
+function renderAll(){updateKPIs();renderDashboard();renderDetail();renderSummary('mkt','market',MKT_ORDER,'Market Summary','Market/State');renderSummary('sta','state',ST_ORDER,'State Summary','State');renderDayBreakdown();renderRoster();renderTS();renderTravel();renderLHO();renderShiftMix();renderNewHires()}
 
 function updateKPIs(){
   let r=ACTIVE;const s=fSt.value,m=fMk.value,t=fTp.value;
@@ -357,6 +375,74 @@ function updateKPIs(){
   document.getElementById('k-cap').textContent=H(cap);document.getElementById('k-wrk').textContent=H(r.reduce((s,x)=>s+x.worked,0));
   document.getElementById('k-prn').textContent=pr.length;document.getElementById('k-pto').textContent=pt.length;
 }
+
+// ── Dashboard (matching Excel Dashboard tab) ──
+function renderDashboard(){
+  const cap=ACTIVE.reduce((s,r)=>s+r.adjCap,0);
+  const wrk=ACTIVE.reduce((s,r)=>s+Math.min(r.worked,r.adjCap>0?r.adjCap:r.worked),0);
+  const util=cap>0?wrk/cap:0;
+  let h='<div class="dash-kpis">';
+  h+='<div class="dash-kpi"><div class="kl">Active Caregivers</div><div class="kv">'+ACTIVE.length+'</div><div class="ks">this week</div></div>';
+  h+='<div class="dash-kpi"><div class="kl">PRN Worked</div><div class="kv">'+PRN_R.length+'</div><div class="ks">this week</div></div>';
+  h+='<div class="dash-kpi"><div class="kl">On PTO</div><div class="kv">'+PTO_R.length+'</div><div class="ks">this week</div></div>';
+  h+='<div class="dash-kpi"><div class="kl">Overall Util %</div><div class="kv">'+P(util)+'</div><div class="ks">this week</div></div>';
+  h+='</div>';
+  // Market Utilization Heatmap
+  h+='<div class="dash-grid"><div>';
+  h+='<div class="tc"><div class="tt">Market Utilization Heatmap</div><div class="ts"><table><thead><tr><th class="al">Market</th><th>Overall</th><th>Long Hours</th><th>Overnight</th><th>Short Hours</th><th>Live-In</th></tr></thead><tbody>';
+  for(const mkt of MKT_ORDER){
+    const rows=ACTIVE.filter(r=>r.market===mkt);if(!rows.length)continue;
+    h+='<tr><td class="al">'+mkt+'</td>';
+    // Overall util
+    const oCap=rows.reduce((s,r)=>s+r.adjCap,0),oWc=rows.reduce((s,r)=>s+(r.adjCap>0?Math.min(r.worked,r.adjCap):r.worked),0);
+    h+='<td class="heatmap-cell '+hmCls(oCap>0?oWc/oCap:null)+'">'+P(oCap>0?oWc/oCap:null)+'</td>';
+    for(let ti=0;ti<4;ti++){
+      const tr=rows.filter(r=>r.primType===ti);
+      if(!tr.length){h+='<td class="heatmap-cell hm-none">—</td>';continue}
+      const tCap=tr.reduce((s,r)=>s+r.adjCap,0),tWc=tr.reduce((s,r)=>s+(r.adjCap>0?Math.min(r.worked,r.adjCap):r.worked),0);
+      const tU=tCap>0?tWc/tCap:null;
+      h+='<td class="heatmap-cell '+hmCls(tU)+'">'+P(tU)+'</td>';
+    }
+    h+='</tr>';
+  }
+  h+='<tr><td colspan="6" style="font-size:10px;color:var(--gray-text);padding:8px"><strong>Legend:</strong> ';
+  h+='<span class="heatmap-cell hm-low" style="display:inline-block;padding:2px 8px;margin:0 4px">&lt;50%</span>';
+  h+='<span class="heatmap-cell hm-med" style="display:inline-block;padding:2px 8px;margin:0 4px">50-74%</span>';
+  h+='<span class="heatmap-cell hm-good" style="display:inline-block;padding:2px 8px;margin:0 4px">75-89%</span>';
+  h+='<span class="heatmap-cell hm-high" style="display:inline-block;padding:2px 8px;margin:0 4px">90-99%</span>';
+  h+='<span class="heatmap-cell hm-full" style="display:inline-block;padding:2px 8px;margin:0 4px">100%+</span>';
+  h+='</td></tr>';
+  h+='</tbody></table></div></div></div>';
+  // State Utilization + Capacity Alerts
+  h+='<div>';
+  h+='<div class="tc"><div class="tt">State Utilization</div><div class="ts"><table><thead><tr><th class="al">State</th><th>Util %</th><th>Headcount</th><th>Hrs Worked</th><th>Adj Cap</th></tr></thead><tbody>';
+  for(const st of ST_ORDER){
+    const rows=ACTIVE.filter(r=>r.state===st);if(!rows.length)continue;
+    const sCap=rows.reduce((s,r)=>s+r.adjCap,0),sWc=rows.reduce((s,r)=>s+(r.adjCap>0?Math.min(r.worked,r.adjCap):r.worked),0);
+    const sU=sCap>0?sWc/sCap:null;
+    h+='<tr><td class="al">'+st+'</td><td class="heatmap-cell '+hmCls(sU)+'">'+P(sU)+'</td><td>'+rows.length+'</td><td>'+H(rows.reduce((s,r)=>s+r.worked,0))+'</td><td>'+H(sCap)+'</td></tr>';
+  }
+  h+='</tbody></table></div></div>';
+  // Capacity Alerts (90%+ util)
+  h+='<div class="tc" style="margin-top:16px"><div class="tt">Capacity Alerts (90%+ Util)</div><div class="ts"><table><thead><tr><th class="al">Market</th><th>Service Type</th><th>Util %</th><th>Count</th><th>Capacity</th></tr></thead><tbody>';
+  let hasAlert=false;
+  for(const mkt of MKT_ORDER){
+    const rows=ACTIVE.filter(r=>r.market===mkt);if(!rows.length)continue;
+    // Check overall
+    const oCap=rows.reduce((s,r)=>s+r.adjCap,0),oWc=rows.reduce((s,r)=>s+(r.adjCap>0?Math.min(r.worked,r.adjCap):r.worked),0);
+    const oU=oCap>0?oWc/oCap:0;
+    if(oU>=0.9){hasAlert=true;h+='<tr class="alert-row"><td class="al">'+mkt+'</td><td>Overall</td><td>'+P(oU)+'</td><td>'+rows.length+'</td><td>'+H(oCap)+'</td></tr>'}
+    for(let ti=0;ti<4;ti++){const tr=rows.filter(r=>r.primType===ti);if(!tr.length)continue;
+      const tCap=tr.reduce((s,r)=>s+r.adjCap,0),tWc=tr.reduce((s,r)=>s+(r.adjCap>0?Math.min(r.worked,r.adjCap):r.worked),0);
+      const tU=tCap>0?tWc/tCap:0;
+      if(tU>=0.9){hasAlert=true;h+='<tr class="alert-row"><td class="al">'+mkt+'</td><td>'+TYPE_NAMES[ti]+'</td><td>'+P(tU)+'</td><td>'+tr.length+'</td><td>'+H(tCap)+'</td></tr>'}}
+  }
+  if(!hasAlert)h+='<tr><td colspan="5" class="empty">No capacity alerts</td></tr>';
+  h+='</tbody></table></div></div>';
+  h+='</div></div>';
+  document.getElementById('p-dash').innerHTML=h;
+}
+function hmCls(v){if(v==null)return'hm-none';if(v>=1)return'hm-full';if(v>=.9)return'hm-high';if(v>=.75)return'hm-good';if(v>=.5)return'hm-med';return'hm-low'}
 
 // ── Caregiver Detail (28 cols matching Excel) ──
 function renderDetail(){
@@ -430,8 +516,8 @@ function renderDayBreakdown(){
 function dayBlk(key,svc,cap,wrk,avail,isOv,cls,allR,tf,dayTypes){
   let h='<tr class="'+cls+'"><td class="al">'+key+'</td><td class="al">'+svc+'</td><td><strong>Util %</strong></td>';
   for(let d=0;d<7;d++){if(cap[d]>0){let u=wrk[d]/cap[d];if(u>1)u=1;let dc='';if(!isOv){if(u>=.95)dc='dr';else if(u>=.85)dc='dy';else dc='dg'}h+='<td class="'+dc+'">'+(u*100).toFixed(1)+'%</td>'}else h+='<td>—</td>'}h+='</tr>';
-  h+='<tr class="'+(isOv?'av-ov':'av-sub')+'"><td></td><td></td><td># Avail</td>';for(let d=0;d<7;d++)h+='<td>'+avail[d].toFixed(1)+'</td>';h+='</tr>';
-  h+='<tr class="'+(isOv?'un-ov':'un-sub')+'"><td></td><td></td><td># Unused</td>';
+  h+='<tr class="'+(isOv?'av-ov':'av-sub')+'"><td class="al">'+key+'</td><td></td><td>Total Scheduled</td>';for(let d=0;d<7;d++)h+='<td>'+avail[d].toFixed(1)+'</td>';h+='</tr>';
+  h+='<tr class="'+(isOv?'un-ov':'un-sub')+'"><td class="al">'+key+'</td><td></td><td># Unused</td>';
   for(let d=0;d<7;d++){let un=0;allR.forEach(r=>{const inS=tf===-1?dayTypes.includes(r.primType):(r.primType===tf);if(inS&&r.dayAvail[d]>0&&r.dayWorked[d]===0)un+=r.dayAvail[d]});h+='<td>'+(un>0?un.toFixed(1):'')+'</td>'}h+='</tr>';return h;
 }
 
