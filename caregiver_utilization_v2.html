@@ -180,14 +180,14 @@ const DAY_PAT=/(?:Su|Sun|Sunday|Mo|Mon|Monday|Tu|Tue|Tuesday|We|Wed|Wednesday|Th
 let ACTIVE=[],PRN_R=[],PTO_R=[],TRAVEL=[],SCHED_RAW=[];
 let CURRENT_WEEK_KEY='';
 
-// ── Week helpers ──
-function getMonday(d){const dt=new Date(d);const day=dt.getDay();const diff=dt.getDate()-day+(day===0?-6:1);dt.setDate(diff);dt.setHours(0,0,0,0);return dt}
-function fmtWeekKey(d){const m=getMonday(d);return m.getFullYear()+'-'+String(m.getMonth()+1).padStart(2,'0')+'-'+String(m.getDate()).padStart(2,'0')}
+// ── Week helpers (Sunday–Saturday weeks) ──
+function getWeekStart(d){const dt=new Date(d);dt.setDate(dt.getDate()-dt.getDay());dt.setHours(0,0,0,0);return dt}
+function fmtWeekKey(d){const s=getWeekStart(d);return s.getFullYear()+'-'+String(s.getMonth()+1).padStart(2,'0')+'-'+String(s.getDate()).padStart(2,'0')}
 function weekLabel(weekKey){
   const wk=new Date(weekKey+'T12:00:00');const today=new Date();
-  const thisMon=getMonday(today);const diff=Math.round((wk-thisMon)/(7*86400000));
-  const sun=new Date(wk);sun.setDate(sun.getDate()+6);
-  const range=(wk.getMonth()+1)+'/'+wk.getDate()+' – '+(sun.getMonth()+1)+'/'+sun.getDate();
+  const thisStart=getWeekStart(today);const diff=Math.round((wk-thisStart)/(7*86400000));
+  const sat=new Date(wk);sat.setDate(sat.getDate()+6);
+  const range=(wk.getMonth()+1)+'/'+wk.getDate()+' – '+(sat.getMonth()+1)+'/'+sat.getDate();
   if(diff===0)return'This Week ('+range+')';
   if(diff===-1)return'Last Week ('+range+')';
   if(diff===1)return'Next Week ('+range+')';
@@ -401,20 +401,20 @@ function processTravelGaps(dfSc){
 // ── Get the 3 relevant weeks: last, this, next ──
 function getRelevantWeeks(){
   const today=new Date();
-  const thisMon=getMonday(today);
-  const lastMon=new Date(thisMon);lastMon.setDate(lastMon.getDate()-7);
-  const nextMon=new Date(thisMon);nextMon.setDate(nextMon.getDate()+7);
-  return[fmtWeekKey(lastMon),fmtWeekKey(thisMon),fmtWeekKey(nextMon)];
+  const thisStart=getWeekStart(today);
+  const lastStart=new Date(thisStart);lastStart.setDate(lastStart.getDate()-7);
+  const nextStart=new Date(thisStart);nextStart.setDate(nextStart.getDate()+7);
+  return[fmtWeekKey(lastStart),fmtWeekKey(thisStart),fmtWeekKey(nextStart)];
 }
 
 // ── Filter schedule rows to a specific week ──
 function filterScheduleByWeek(dfSc,weekKey){
-  const mon=new Date(weekKey+'T00:00:00');
-  const sun=new Date(mon);sun.setDate(sun.getDate()+6);sun.setHours(23,59,59,999);
+  const sun=new Date(weekKey+'T00:00:00');
+  const sat=new Date(sun);sat.setDate(sat.getDate()+6);sat.setHours(23,59,59,999);
   return dfSc.filter(row=>{
     const st=row['Scheduled Start Time']||'';if(!st)return false;
     const d=new Date(st);if(isNaN(d))return false;
-    return d>=mon&&d<=sun;
+    return d>=sun&&d<=sat;
   });
 }
 
