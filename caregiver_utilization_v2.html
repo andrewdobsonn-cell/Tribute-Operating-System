@@ -430,12 +430,15 @@ async function runReport(){
   document.getElementById('btn-run').textContent='Publishing...';document.getElementById('btn-run').disabled=true;
   const primaryWeek=relevantWeeks[1]; // this week
 
-  for(const weekKey of relevantWeeks){
+  for(let wi=0;wi<relevantWeeks.length;wi++){
+    const weekKey=relevantWeeks[wi];
     const dfSc=filterScheduleByWeek(dfScAll,weekKey);
     const dfCg=filterActiveForWeek(dfCgRaw,weekKey);
     const sched=processSchedule(dfSc);const result=processCaregivers(dfCg,sched);
     const travel=processTravelGaps(dfSc);
-    try{await fetch(API+'?endpoint=utilization_upload',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({active:result.activeRows,prn:result.prnRows,pto:result.ptoRows,travel,cgName:fileCG.name,scName:fileSC.name,weekKey})})}catch(e){console.warn('Failed to upload week',weekKey,e)}
+    const payload={active:result.activeRows,prn:result.prnRows,pto:result.ptoRows,travel,cgName:fileCG.name,scName:fileSC.name,weekKey};
+    if(wi===0)payload.allWeeks=relevantWeeks; // first upload replaces the index
+    try{await fetch(API+'?endpoint=utilization_upload',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})}catch(e){console.warn('Failed to upload week',weekKey,e)}
     // Load the primary week into view
     if(weekKey===primaryWeek){
       ACTIVE=result.activeRows;PRN_R=result.prnRows;PTO_R=result.ptoRows;TRAVEL=travel;
