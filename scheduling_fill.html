@@ -218,12 +218,22 @@ function filterBarHTML(showShifts, showEdit, resultCount, total){
 }
 
 // ── OPEN VISITS ──────────────────────────────────────────────────────────────
+function arrToMap(arr,keyField,valField){
+  var m={};
+  if(!arr)return m;
+  if(!Array.isArray(arr))return arr;
+  arr.forEach(function(x){m[x[keyField]]=x[valField];});
+  return m;
+}
+
 function renderOpenVisits(){
   var d=openData;
   if(!d){loading('Loading open visits...');return;}
   if(d.error){showErr(d.error);return;}
-  var w7=d.window7||{total:0,byState:{},byMarket:{}};
-  var w30=d.window30||{total:0,byState:{},byMarket:{}};
+  var w7raw=d.window7||{total:0,byState:[],byMarket:[]};
+  var w30raw=d.window30||{total:0,byState:[],byMarket:[]};
+  var w7={total:w7raw.total,byState:arrToMap(w7raw.byState,'state','open'),byMarket:arrToMap(w7raw.byMarket,'market','open')};
+  var w30={total:w30raw.total,byState:arrToMap(w30raw.byState,'state','open'),byMarket:arrToMap(w30raw.byMarket,'market','open')};
   var grid=d.dayGrid||{};
   var html='';
   html+='<div class="kg">';
