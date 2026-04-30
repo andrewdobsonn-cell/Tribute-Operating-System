@@ -454,10 +454,11 @@ function showMeta(ts,cn,sn){const d=new Date(ts);document.getElementById('upload
 // ── Week loading ──
 async function refreshWeekDropdown(selectKey){
   fWk.innerHTML='';
+  const relevant=new Set(getRelevantWeeks());
   try{
     const resp=await fetch(API+'?endpoint=utilization_upload&action=list');
     const idx=await resp.json();
-    const weeks=(idx.weeks||[]).slice().sort().reverse();
+    const weeks=(idx.weeks||[]).filter(w=>relevant.has(w)).sort().reverse();
     if(!weeks.length){fWk.innerHTML='<option value="">No data</option>';return}
     for(const wk of weeks){const o=document.createElement('option');o.value=wk;o.textContent=weekLabel(wk);fWk.appendChild(o)}
     fWk.value=selectKey||weeks[0];
@@ -483,7 +484,8 @@ async function loadWeek(weekKey){
   try{
     const resp=await fetch(API+'?endpoint=utilization_upload&action=list');
     const idx=await resp.json();
-    const weeks=(idx.weeks||[]).slice().sort().reverse();
+    const relevant=new Set(getRelevantWeeks());
+    const weeks=(idx.weeks||[]).filter(w=>relevant.has(w)).sort().reverse();
     if(weeks.length){
       await refreshWeekDropdown(weeks[0]);
       await loadWeek(weeks[0]);
