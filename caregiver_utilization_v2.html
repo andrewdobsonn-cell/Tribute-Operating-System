@@ -248,6 +248,7 @@ function H(v){return v!=null&&!isNaN(v)?v.toFixed(1):'—'}
 function E(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
 function RC(i){return['lh','on','sh','li'][i]||''}
 function BC(i){return['b-lh','b-on','b-sh','b-li'][i]||''}
+function fmtPhone(p){if(!p)return'';const d=p.replace(/\D/g,'');if(d.length===10)return'('+d.slice(0,3)+') '+d.slice(3,6)+'-'+d.slice(6);if(d.length===11&&d[0]==='1')return'('+d.slice(1,4)+') '+d.slice(4,7)+'-'+d.slice(7);return p}
 function fmtTime(d){if(!(d instanceof Date)||isNaN(d))return'';let h=d.getHours(),m=d.getMinutes(),ap=h>=12?'PM':'AM';h=h%12||12;return h+':'+(m<10?'0':'')+m+' '+ap}
 function fmtDate(d){if(!(d instanceof Date)||isNaN(d))return'';return(d.getMonth()+1)+'/'+d.getDate()+'/'+d.getFullYear()}
 function getMarket(tags){const tl=tags.toLowerCase();for(const tag of MKT_PRI){if(tl.includes(tag.toLowerCase())){const idx=MKT_TAGS.findIndex(t=>t.toLowerCase()===tag.toLowerCase());return MKT_NAMES[idx]}}return'Unknown'}
@@ -375,6 +376,7 @@ function processCaregivers(dfCg,sched){
       payable:cgPay,billed:cgBil,cancelled:cgCan,
       ldDays:parseDaysStr(notes,'Long Hours'),odDays:parseDaysStr(notes,'Overnight'),sdDays:parseDaysStr(notes,'Short Hours'),
       isLI:isLI?'Yes':'No',dayDisp:dayDisplay,notes,tags,hr:row['HR Assignee Name']||'',
+      phone:row['Phone Number']||'',
       primType,dayCap,dayWorked,dayAvail,tsType,ptoHrs:tcPto,cgId,
       typeHrs:cgTH,typeVis:cgTV,dayTypeHrs:cgDT,
       hireDate,daysSinceHire,isOT};
@@ -668,20 +670,53 @@ function dayBlk(key,svc,cap,wrk,avail,isOv,cls,allR,tf,dayTypes){
   for(let d=0;d<7;d++){let un=0;allR.forEach(r=>{const inS=tf===-1?dayTypes.includes(r.primType):(r.primType===tf);if(inS&&r.dayAvail[d]>0&&r.dayWorked[d]===0)un+=r.dayAvail[d]});h+='<td>'+(un>0?un.toFixed(1):'')+'</td>'}h+='</tr>';return h;
 }
 
-// ── Caregiver Roster (9 cols matching Excel) ──
+// ── Caregiver Roster ──
 function renderRoster(){
   const s=fSt.value,m=fMk.value;
-  const hdrs=['Caregiver','State','Market','Day','Service Type','Adj Capacity','Hrs Worked (Week)','Week Util %','Overtime'];
-  let h='<div class="tc"><div class="tt">Caregiver Roster — Day View</div><div class="ts"><table id="tbl-ros"><thead><tr>';
-  hdrs.forEach(c=>h+='<th'+(c==='Caregiver'?' class="al"':'')+'>'+c+'</th>');h+='</tr></thead><tbody>';
-  const typeOrder=[0,1,3];let has=false;const order=m?[m]:(s?MKT_ORDER.filter(k=>getState(k)===s):MKT_ORDER);
-  for(const mkt of order){const mR=ACTIVE.filter(c=>c.market===mkt&&typeOrder.includes(c.primType));if(!mR.length)continue;
-    let mH=false;mR.forEach(r=>{for(let d=0;d<7;d++)if(r.dayCap[d]>0&&r.dayWorked[d]===0)mH=true});if(!mH)continue;const mSt=getState(mkt);
-    for(let d=0;d<7;d++){if(!mR.some(r=>r.dayCap[d]>0&&r.dayWorked[d]===0))continue;
-      for(const t of typeOrder){const tR=mR.filter(r=>r.primType===t&&r.dayCap[d]>0&&r.dayWorked[d]===0);
-        for(const r of tR){has=true;h+='<tr class="'+RC(t)+'"><td class="al">'+E(r.first)+' '+E(r.last)+'</td><td>'+mSt+'</td><td>'+mkt+'</td><td>'+DAY_NAMES[d]+'</td><td><span class="badge '+BC(t)+'">'+TYPE_NAMES[t]+'</span></td><td>'+H(r.adjCap)+'</td><td>'+H(r.worked)+'</td><td>'+P(r.util)+'</td><td>'+(r.isOT?'Yes':'')+'</td></tr>'}}}}
-  if(!has)h+='<tr><td colspan="9" class="empty">No unused caregivers found</td></tr>';
-  h+='</tbody></table></div></div>';document.getElementById('p-ros').innerHTML=h;addSort(document.getElementById('tbl-ros'));
+  // Build filter controls
+  let h='<div style="display:flex;gap:14px;align-items:flex-end;margin-bottom:16px;flex-wrap:wrap">';
+  h+='<div class="filter-group"><label>Day</label><select id="ros-day"><option value="">All Days</option>';
+  DAY_NAMES.forEach((dn,i)=>h+='<option value="'+i+'">'+dn+'</option>');
+  h+='</select></div>';
+  h+='<div class="filter-group"><label>Service Type</label><select id="ros-type"><option value="">All Types</option><option value="0">Long Hours</option><option value="1">Overnight</option><option value="3">Live-In</option></select></div>';
+  h+='<div id="ros-count" style="font-size:13px;color:var(--gray-text);padding:8px 0"></div>';
+  h+='</div>';
+  h+='<div class="tc"><div class="tt">Available Caregivers — Not Scheduled</div><div class="ts"><table id="tbl-ros"><thead><tr>';
+  const hdrs=['Caregiver','Phone','State','Market','Day','Service Type','Adj Capacity','Hrs Worked (Week)','Week Util %'];
+  hdrs.forEach(c=>h+='<th'+(c==='Caregiver'||c==='Phone'?' class="al"':'')+'>'+c+'</th>');
+  h+='</tr></thead><tbody id="ros-body"></tbody></table></div></div>';
+  document.getElementById('p-ros').innerHTML=h;
+  // Wire up filters
+  document.getElementById('ros-day').addEventListener('change',fillRoster);
+  document.getElementById('ros-type').addEventListener('change',fillRoster);
+  fillRoster();
+}
+function fillRoster(){
+  const s=fSt.value,m=fMk.value;
+  const dayF=document.getElementById('ros-day').value;
+  const typeF=document.getElementById('ros-type').value;
+  const typeOrder=typeF!==''?[parseInt(typeF)]:[0,1,3];
+  const days=dayF!==''?[parseInt(dayF)]:[0,1,2,3,4,5,6];
+  const order=m?[m]:(s?MKT_ORDER.filter(k=>getState(k)===s):MKT_ORDER);
+  const rows=[];
+  for(const mkt of order){
+    const mR=ACTIVE.filter(c=>c.market===mkt&&typeOrder.includes(c.primType));if(!mR.length)continue;
+    const mSt=getState(mkt);
+    for(const d of days){
+      for(const t of typeOrder){
+        const tR=mR.filter(r=>r.primType===t&&r.dayAvail[d]>0&&r.dayWorked[d]===0);
+        for(const r of tR)rows.push({r,mSt,mkt,d,t});
+      }
+    }
+  }
+  let h='';
+  for(const{r,mSt,mkt,d,t}of rows){
+    h+='<tr class="'+RC(t)+'"><td class="al">'+E(r.first)+' '+E(r.last)+'</td><td class="al">'+fmtPhone(r.phone)+'</td><td>'+mSt+'</td><td>'+mkt+'</td><td>'+DAY_NAMES[d]+'</td><td><span class="badge '+BC(t)+'">'+TYPE_NAMES[t]+'</span></td><td>'+H(r.adjCap)+'</td><td>'+H(r.worked)+'</td><td>'+P(r.util)+'</td></tr>';
+  }
+  if(!rows.length)h='<tr><td colspan="9" class="empty">No available caregivers for this selection</td></tr>';
+  document.getElementById('ros-body').innerHTML=h;
+  document.getElementById('ros-count').textContent=rows.length+' caregiver'+(rows.length!==1?'s':'')+' available';
+  addSort(document.getElementById('tbl-ros'));
 }
 
 // ── TS Admin (12 cols matching Excel) ──
