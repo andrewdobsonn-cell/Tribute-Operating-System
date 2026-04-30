@@ -174,8 +174,8 @@ const EXCLUDE_T=new Set(["Expense Reimbursement","Bonus 1 Year (Ann)","Bonus 2&3
 const TYPE_NAMES=["Long Hours","Overnight","Short Hours","Live-In"];
 const DAY_NAMES=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const DAY_ABBREVS=["Su","Mo","Tu","We","Th","Fr","Sa"];
-const DAY_MAP={su:0,sun:0,sunday:0,mo:1,mon:1,monday:1,tu:2,tue:2,tuesday:2,we:3,wed:3,wednesday:3,th:4,thu:4,thursday:4,fr:5,fri:5,friday:5,sa:6,sat:6,saturday:6};
-const DAY_PAT=/(?:Su|Sun|Sunday|Mo|Mon|Monday|Tu|Tue|Tuesday|We|Wed|Wednesday|Th|Thu|Thursday|Fr|Fri|Friday|Sa|Sat|Saturday)/gi;
+const DAY_MAP={su:0,sun:0,sunday:0,mo:1,mon:1,monday:1,m:1,tu:2,tue:2,tuesday:2,t:2,we:3,wed:3,wednesday:3,w:3,th:4,thu:4,thursday:4,r:4,fr:5,fri:5,friday:5,f:5,sa:6,sat:6,saturday:6};
+const DAY_PAT=/(?:Su|Sun|Sunday|Mo|Mon|Monday|Tu|Tue|Tuesday|We|Wed|Wednesday|Th|Thu|Thursday|Fr|Fri|Friday|Sa|Sat|Saturday|M|T|W|R|F)/gi;
 
 let ACTIVE=[],PRN_R=[],PTO_R=[],TRAVEL=[],SCHED_RAW=[];
 let CURRENT_WEEK_KEY='';
