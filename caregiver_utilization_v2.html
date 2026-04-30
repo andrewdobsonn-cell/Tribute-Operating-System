@@ -396,15 +396,13 @@ function processTravelGaps(dfSc){
   return gaps;
 }
 
-// ── Detect all weeks in schedule ──
-function detectAllWeeks(dfSc){
-  const counts={};
-  for(const row of dfSc){
-    const st=row['Scheduled Start Time']||'';if(!st)continue;
-    const d=new Date(st);if(isNaN(d))continue;
-    const wk=fmtWeekKey(d);counts[wk]=(counts[wk]||0)+1;
-  }
-  return Object.keys(counts).sort();
+// ── Get the 3 relevant weeks: last, this, next ──
+function getRelevantWeeks(){
+  const today=new Date();
+  const thisMon=getMonday(today);
+  const lastMon=new Date(thisMon);lastMon.setDate(lastMon.getDate()-7);
+  const nextMon=new Date(thisMon);nextMon.setDate(nextMon.getDate()+7);
+  return[fmtWeekKey(lastMon),fmtWeekKey(thisMon),fmtWeekKey(nextMon)];
 }
 
 // ── Filter schedule rows to a specific week ──
@@ -426,17 +424,13 @@ async function runReport(){
   const dfCgRaw=normalizeCgColumns(parseCSV(cgText));
   const dfScAll=parseCSV(scText);
   SCHED_RAW=dfScAll;
-  const allWeeks=detectAllWeeks(dfScAll);
-  if(!allWeeks.length){alert('No valid dates found in schedule CSV');return}
+  const relevantWeeks=getRelevantWeeks();
 
-  // Process and upload each week
+  // Process and upload each of the 3 weeks
   document.getElementById('btn-run').textContent='Publishing...';document.getElementById('btn-run').disabled=true;
-  let primaryWeek=allWeeks[0];
-  const thisWeekKey=fmtWeekKey(new Date());
-  if(allWeeks.includes(thisWeekKey))primaryWeek=thisWeekKey;
-  else{const best=detectWeekFromSchedule(dfScAll);if(best)primaryWeek=best}
+  const primaryWeek=relevantWeeks[1]; // this week
 
-  for(const weekKey of allWeeks){
+  for(const weekKey of relevantWeeks){
     const dfSc=filterScheduleByWeek(dfScAll,weekKey);
     const dfCg=filterActiveForWeek(dfCgRaw,weekKey);
     const sched=processSchedule(dfSc);const result=processCaregivers(dfCg,sched);
