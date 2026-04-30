@@ -396,26 +396,62 @@ function processTravelGaps(dfSc){
   return gaps;
 }
 
+// ── Detect all weeks in schedule ──
+function detectAllWeeks(dfSc){
+  const counts={};
+  for(const row of dfSc){
+    const st=row['Scheduled Start Time']||'';if(!st)continue;
+    const d=new Date(st);if(isNaN(d))continue;
+    const wk=fmtWeekKey(d);counts[wk]=(counts[wk]||0)+1;
+  }
+  return Object.keys(counts).sort();
+}
+
+// ── Filter schedule rows to a specific week ──
+function filterScheduleByWeek(dfSc,weekKey){
+  const mon=new Date(weekKey+'T00:00:00');
+  const sun=new Date(mon);sun.setDate(sun.getDate()+6);sun.setHours(23,59,59,999);
+  return dfSc.filter(row=>{
+    const st=row['Scheduled Start Time']||'';if(!st)return false;
+    const d=new Date(st);if(isNaN(d))return false;
+    return d>=mon&&d<=sun;
+  });
+}
+
 // ── Main Run ──
 async function runReport(){
   document.getElementById('content').classList.add('show');document.getElementById('stats-strip').classList.add('show');
   document.querySelectorAll('.tp').forEach(p=>p.innerHTML='<div class="processing"><div class="spin"></div>Processing...</div>');
   const cgText=await readFile(fileCG),scText=await readFile(fileSC);
-  let dfCg=parseCSV(cgText);const dfSc=parseCSV(scText);
-  SCHED_RAW=dfSc;
-  const weekKey=detectWeekFromSchedule(dfSc);
-  // Normalize column names & filter to caregivers active during this week
-  dfCg=normalizeCgColumns(dfCg);
-  dfCg=filterActiveForWeek(dfCg,weekKey);
-  const sched=processSchedule(dfSc);const result=processCaregivers(dfCg,sched);
-  ACTIVE=result.activeRows;PRN_R=result.prnRows;PTO_R=result.ptoRows;
-  TRAVEL=processTravelGaps(dfSc);
-  CURRENT_WEEK_KEY=weekKey;
-  // Publish
+  const dfCgRaw=normalizeCgColumns(parseCSV(cgText));
+  const dfScAll=parseCSV(scText);
+  SCHED_RAW=dfScAll;
+  const allWeeks=detectAllWeeks(dfScAll);
+  if(!allWeeks.length){alert('No valid dates found in schedule CSV');return}
+
+  // Process and upload each week
   document.getElementById('btn-run').textContent='Publishing...';document.getElementById('btn-run').disabled=true;
-  try{const resp=await fetch(API+'?endpoint=utilization_upload',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({active:ACTIVE,prn:PRN_R,pto:PTO_R,travel:TRAVEL,cgName:fileCG.name,scName:fileSC.name,weekKey})});const r=await resp.json();if(r.ok)showMeta(r.uploadedAt,fileCG.name,fileSC.name)}catch(e){showMeta(new Date().toISOString(),fileCG.name,fileSC.name)}
+  let primaryWeek=allWeeks[0];
+  const thisWeekKey=fmtWeekKey(new Date());
+  if(allWeeks.includes(thisWeekKey))primaryWeek=thisWeekKey;
+  else{const best=detectWeekFromSchedule(dfScAll);if(best)primaryWeek=best}
+
+  for(const weekKey of allWeeks){
+    const dfSc=filterScheduleByWeek(dfScAll,weekKey);
+    const dfCg=filterActiveForWeek(dfCgRaw,weekKey);
+    const sched=processSchedule(dfSc);const result=processCaregivers(dfCg,sched);
+    const travel=processTravelGaps(dfSc);
+    try{await fetch(API+'?endpoint=utilization_upload',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({active:result.activeRows,prn:result.prnRows,pto:result.ptoRows,travel,cgName:fileCG.name,scName:fileSC.name,weekKey})})}catch(e){console.warn('Failed to upload week',weekKey,e)}
+    // Load the primary week into view
+    if(weekKey===primaryWeek){
+      ACTIVE=result.activeRows;PRN_R=result.prnRows;PTO_R=result.ptoRows;TRAVEL=travel;
+      CURRENT_WEEK_KEY=weekKey;
+    }
+  }
+
+  showMeta(new Date().toISOString(),fileCG.name,fileSC.name);
   document.getElementById('btn-run').textContent='Generate Report';document.getElementById('btn-run').disabled=false;
-  await refreshWeekDropdown(weekKey);
+  await refreshWeekDropdown(primaryWeek);
   popFilters();renderAll();
 }
 function popFilters(){const states=new Set(),markets=new Set();[...ACTIVE,...PRN_R,...PTO_R].forEach(r=>{states.add(r.state);markets.add(r.market)});fSt.innerHTML='<option value="">All States</option>';fMk.innerHTML='<option value="">All Markets</option>';ST_ORDER.forEach(s=>{if(states.has(s)){const o=document.createElement('option');o.value=s;o.textContent=s;fSt.appendChild(o)}});MKT_ORDER.forEach(m=>{if(markets.has(m)){const o=document.createElement('option');o.value=m;o.textContent=m;fMk.appendChild(o)}})}
