@@ -258,6 +258,33 @@ function tagHasMarket(tags){const tl=tags.toLowerCase();return MKT_TAGS.some(t=>
 function parseCSV(text){const rows=[];let cur='',inQ=false,row=[],i=0;text=text.replace(/\r\n/g,'\n').replace(/\r/g,'\n');while(i<text.length){const c=text[i];if(inQ){if(c==='"'){if(text[i+1]==='"'){cur+='"';i+=2}else{inQ=false;i++}}else{cur+=c;i++}}else{if(c==='"'){inQ=true;i++}else if(c===','){row.push(cur);cur='';i++}else if(c==='\n'){row.push(cur);rows.push(row);row=[];cur='';i++}else{cur+=c;i++}}}if(cur||row.length)row.push(cur),rows.push(row);if(!rows.length)return[];const hdrs=rows[0].map(h=>h.trim());return rows.slice(1).map(r=>{const o={};hdrs.forEach((h,i)=>o[h]=(r[i]||'').trim());return o})}
 async function readFile(f){return new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res(e.target.result);r.onerror=rej;r.readAsText(f)})}
 
+// ── Normalize caregiver CSV column names ──
+function normalizeCgColumns(rows){
+  const map={'Caregiver - First Name':'First Name','Caregiver - Last Name':'Last Name'};
+  return rows.map(r=>{const o={...r};for(const[from,to]of Object.entries(map)){if(from in o&&!(to in o)){o[to]=o[from]}}return o});
+}
+
+// ── Filter caregivers active during a given week ──
+function filterActiveForWeek(rows,weekKey){
+  if(!weekKey)return rows;
+  const mon=new Date(weekKey+'T00:00:00');
+  const sun=new Date(mon);sun.setDate(sun.getDate()+6);sun.setHours(23,59,59,999);
+  return rows.filter(r=>{
+    // Parse hire date — must be hired on or before end of week
+    const hdStr=(r['Date Hired']||'').trim();
+    if(hdStr){const hd=new Date(hdStr);if(!isNaN(hd)&&hd>sun)return false}
+    // Currently hired caregivers always pass (re-hires have old TermDate)
+    const status=(r['Status']||'').trim().toLowerCase();
+    if(status==='hired')return true;
+    // Terminated caregivers — include if terminated ON or AFTER Monday of week
+    const tdStr=(r['Terminated Date']||'').trim();
+    if(!tdStr)return status!=='terminated';
+    const td=new Date(tdStr);
+    if(isNaN(td))return false;
+    return td>=mon;
+  });
+}
+
 // ── Notes Parsing ──
 function parseAvailDays(notes,section){const result={};let nC=notes,nL=notes.toLowerCase();for(const pfx of["ts40 ","ts30 ","ts 40 ","ts 30 "]){nL=nL.split(pfx).join('');nC=nC.replace(new RegExp(pfx.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'gi'),'')}if(section==='Any'){let m;DAY_PAT.lastIndex=0;while((m=DAY_PAT.exec(nC))!==null){const d=DAY_MAP[m[0].toLowerCase()];if(d!==undefined&&!(d in result))result[d]=1.0}return result}const kwMap={'Long Hours':['long hour days','long hours days'],'Overnight':['overnight days','overnights'],'Short Hours':['short hour days','short hours days']};const kws=kwMap[section]||[];let secStart=-1;for(const kw of kws){const i=nL.indexOf(kw);if(i>=0){secStart=i;break}}if(secStart<0)return result;const eqIdx=nC.indexOf('=',secStart);if(eqIdx<0)return result;let nextSec=nC.length;for(const kw of['long hour','overnight','short hour','live-in','live in']){const n=nL.indexOf(kw,secStart+1);if(n>secStart&&n<nextSec)nextSec=n}const seg=nC.substring(eqIdx+1,nextSec);const dayKeys=Object.keys(DAY_MAP).join('|');const eodPat=new RegExp('e/o\\s+('+dayKeys+')','gi');let m;while((m=eodPat.exec(seg))!==null){const d=DAY_MAP[m[1].toLowerCase()];if(d!==undefined)result[d]=0.5}DAY_PAT.lastIndex=0;while((m=DAY_PAT.exec(seg))!==null){const d=DAY_MAP[m[0].toLowerCase()];if(d!==undefined&&!(d in result)){const pre=seg.substring(0,m.index).trim().toLowerCase();result[d]=pre.endsWith('e/o')?0.5:1.0}}return result}
 function ptFromNotes(notes){const nl=notes.toLowerCase();if(nl.includes('live-in')||nl.includes('live in'))return 3;if(nl.includes('long hour'))return 0;if(nl.includes('overnight'))return 1;return 2}
@@ -374,12 +401,15 @@ async function runReport(){
   document.getElementById('content').classList.add('show');document.getElementById('stats-strip').classList.add('show');
   document.querySelectorAll('.tp').forEach(p=>p.innerHTML='<div class="processing"><div class="spin"></div>Processing...</div>');
   const cgText=await readFile(fileCG),scText=await readFile(fileSC);
-  const dfCg=parseCSV(cgText),dfSc=parseCSV(scText);
+  let dfCg=parseCSV(cgText);const dfSc=parseCSV(scText);
   SCHED_RAW=dfSc;
+  const weekKey=detectWeekFromSchedule(dfSc);
+  // Normalize column names & filter to caregivers active during this week
+  dfCg=normalizeCgColumns(dfCg);
+  dfCg=filterActiveForWeek(dfCg,weekKey);
   const sched=processSchedule(dfSc);const result=processCaregivers(dfCg,sched);
   ACTIVE=result.activeRows;PRN_R=result.prnRows;PTO_R=result.ptoRows;
   TRAVEL=processTravelGaps(dfSc);
-  const weekKey=detectWeekFromSchedule(dfSc);
   CURRENT_WEEK_KEY=weekKey;
   // Publish
   document.getElementById('btn-run').textContent='Publishing...';document.getElementById('btn-run').disabled=true;
