@@ -1009,30 +1009,53 @@ async function runStacker(){
     if(e.id&&!availById[e.id])availById[e.id]=e;
   });
 
-  // Process ALL caregivers from stacker_visits (anyone with visits this week)
-  // This is much broader than the availability pool — catches all short-hour workers
+  // Build a unified candidate list from TWO sources:
+  // 1. stacker_visits API — caregivers with visits this week (has schedule data)
+  // 2. Availability pool — caregivers marked available (may have 0 visits)
+  var candidateList=[]; // {cgid2, cg2 (nullable), avail (nullable)}
+  var seen={};
+
+  // Source 1: All caregivers from visit data
   var cgIds=Object.keys(caregivers);
-  for(var ai=0;ai<cgIds.length;ai++){
-    var cgid2=cgIds[ai];
-    var cg2=caregivers[cgid2];
+  for(var ci2=0;ci2<cgIds.length;ci2++){
+    var id1=cgIds[ci2];
+    var c1=caregivers[id1];
+    if(stateFilter&&c1.state!==stateFilter)continue;
+    var wh1=0;
+    c1.visits.forEach(function(v){wh1+=v.scheduledHrs||0;});
+    if(wh1>=maxHours)continue;
+    var av1=availById[id1]||availByName[c1.name]||null;
+    candidateList.push({cgid2:id1,cg2:c1,avail:av1,weeklyHrs:wh1});
+    seen[id1]=true;
+    if(c1.name)seen[c1.name]=true;
+  }
 
-    // State filter
-    if(stateFilter&&cg2.state!==stateFilter)continue;
+  // Source 2: Availability pool caregivers with 0 hours (not in visit data)
+  allEntries.forEach(function(e){
+    if(seen[e.id]||seen[e.name])return;
+    if(stateFilter&&e.state!==stateFilter)return;
+    if(e.openDays.indexOf(targetDOW)<0)return;
+    candidateList.push({cgid2:e.id||'',cg2:null,avail:e,weeklyHrs:0});
+    if(e.id)seen[e.id]=true;
+    seen[e.name]=true;
+  });
 
-    // Calculate weekly hours and filter out high-hour caregivers
-    var weeklyHrs=0;
-    cg2.visits.forEach(function(v){weeklyHrs+=v.scheduledHrs||0;});
-    if(weeklyHrs>=maxHours)continue;
-
-    // Enrich with availability pool data if available
-    var avail=availById[cgid2]||availByName[cg2.name]||null;
+  // Process each candidate
+  for(var ai=0;ai<candidateList.length;ai++){
+    var cand=candidateList[ai];
+    var cgid2=cand.cgid2;
+    var cg2=cand.cg2;
+    var avail=cand.avail;
+    var weeklyHrs=cand.weeklyHrs;
 
     // Get visits for this specific date
     var dayVisits=[];
-    cg2.visits.forEach(function(v){
-      if(v.date===dateStr)dayVisits.push(v);
-    });
-    dayVisits.sort(function(a,b){return new Date(a.startTime)-new Date(b.startTime);});
+    if(cg2){
+      cg2.visits.forEach(function(v){
+        if(v.date===dateStr)dayVisits.push(v);
+      });
+      dayVisits.sort(function(a,b){return new Date(a.startTime)-new Date(b.startTime);});
+    }
 
     // Build candidate gaps
     var gaps=[];
@@ -1122,20 +1145,20 @@ async function runStacker(){
     if(!bestGap)continue;
 
     // Get caregiver home coords
-    var cgHomeLat=cg2.homeLat||null,cgHomeLng=cg2.homeLng||null;
+    var cgHomeLat=(cg2&&cg2.homeLat)||null,cgHomeLng=(cg2&&cg2.homeLng)||null;
     if(!cgHomeLat&&avail&&avail.lat){cgHomeLat=avail.lat;cgHomeLng=avail.lng;}
     // Fall back to market center
-    var cgMarket=cg2.market||(avail&&avail.market)||'Unknown';
+    var cgMarket=(cg2&&cg2.market)||(avail&&avail.market)||'Unknown';
     if(!cgHomeLat&&MARKET_COORDS[cgMarket]){
       cgHomeLat=MARKET_COORDS[cgMarket].lat;
       cgHomeLng=MARKET_COORDS[cgMarket].lng;
     }
 
     matches.push({
-      name:cg2.name||'',
+      name:(cg2&&cg2.name)||(avail&&avail.name)||'',
       id:cgid2,
       market:cgMarket,
-      state:cg2.state||(avail&&avail.state)||'',
+      state:(cg2&&cg2.state)||(avail&&avail.state)||'',
       type:avail?avail.type:'',
       phone:(avail&&avail.phone)||'',
       desiredHrs:avail?avail.desiredHrs:0,
