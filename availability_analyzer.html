@@ -1029,7 +1029,12 @@ async function runStacker(){
     var c1=caregivers[id1];
     if(stateFilter&&c1.state!==stateFilter)continue;
     var wh1=0;
-    c1.visits.forEach(function(v){wh1+=v.scheduledHrs||0;});
+    var hasLiveIn=false;
+    c1.visits.forEach(function(v){
+      wh1+=v.scheduledHrs||0;
+      if(v.scheduledHrs>=20)hasLiveIn=true; // 20+ hr shifts = live-in
+    });
+    if(hasLiveIn)continue; // Skip live-in caregivers entirely
     if(wh1>=maxHours)continue;
     var av1=availById[id1]||availByName[c1.name]||null;
     candidateList.push({cgid2:id1,cg2:c1,avail:av1,weeklyHrs:wh1});
@@ -1067,6 +1072,11 @@ async function runStacker(){
       });
       dayVisits.sort(function(a,b){return new Date(a.startTime)-new Date(b.startTime);});
     }
+
+    // Enforce 16h daily max — skip if adding this visit would exceed it
+    var dayHrs=0;
+    dayVisits.forEach(function(v){dayHrs+=v.scheduledHrs||0;});
+    if(dayHrs+durationHrs>16)continue;
 
     // Build candidate gaps
     var gaps=[];
@@ -1186,76 +1196,80 @@ async function runStacker(){
   var withVisits=matches.filter(function(m){return m.dayVisits.length>0;}).length;
   console.log('[Smart Stacker] matches: '+matches.length+' total, '+withVisits+' with existing visits on '+dateStr);
 
-  // Calculate real drive times via OSRM for each match
-  // For each caregiver we need: driveIn (prev location → new client) and driveOut (new client → next location)
-  // prev location = previous visit's client coords, or caregiver home if first gap
-  // next location = next visit's client coords, or 0 if last gap
+  // Calculate real drive times via batch OSRM table API (2 calls instead of 100+)
   if(clientCoords&&matches.length>0){
-    // Build OSRM route requests per match (3-point routes: origin → newClient → destination)
-    var CHUNK=10; // smaller chunks since each needs its own route
+    // Determine origin/destination coords per match
+    matches.forEach(function(m){
+      var g=m.gap;
+      if(g.isFirst){m._fromLat=m.homeLat;m._fromLng=m.homeLng;}
+      else if(g.prevLat&&g.prevLng){m._fromLat=g.prevLat;m._fromLng=g.prevLng;}
+      else{m._fromLat=m.homeLat;m._fromLng=m.homeLng;}
+      if(!g.isLast&&g.nextLat&&g.nextLng){m._toLat=g.nextLat;m._toLng=g.nextLng;}
+      else{m._toLat=null;m._toLng=null;}
+    });
+
+    // Batch driveIn: table with new client as dest (index 0), origins as sources
+    var CHUNK=80;
     for(var ci=0;ci<matches.length;ci+=CHUNK){
       var chunk=matches.slice(ci,ci+CHUNK);
-      await Promise.all(chunk.map(async function(m,j){
-        var g=m.gap;
-        // Determine origin point (where caregiver is coming from)
-        var fromLat=null,fromLng=null;
-        if(g.isFirst){
-          // Coming from home
-          fromLat=m.homeLat;fromLng=m.homeLng;
-        } else if(g.prevLat&&g.prevLng){
-          // Coming from previous client
-          fromLat=g.prevLat;fromLng=g.prevLng;
-        } else {
-          // Fallback to home
-          fromLat=m.homeLat;fromLng=m.homeLng;
-        }
-        // Determine destination point (where caregiver goes after)
-        var toLat=null,toLng=null;
-        if(!g.isLast&&g.nextLat&&g.nextLng){
-          toLat=g.nextLat;toLng=g.nextLng;
-        }
-
-        // Calculate driveIn: from → newClient
-        if(fromLat&&fromLng){
-          try{
-            var urlIn='https://router.project-osrm.org/route/v1/driving/'+fromLng+','+fromLat+';'+clientCoords.lng+','+clientCoords.lat+'?overview=false';
-            var resIn=await fetch(urlIn);
-            var dataIn=await resIn.json();
-            if(dataIn.code==='Ok'&&dataIn.routes&&dataIn.routes[0]){
-              g.driveIn=dataIn.routes[0].duration/3600; // seconds→hours
-              m._distance=Math.round(dataIn.routes[0].distance*0.000621371); // meters→miles
-              m._driveMin=Math.round(dataIn.routes[0].duration/60);
-            }
-          }catch(e){}
-        } else if(g.isFirst){
-          g.driveIn=0; // no coords, assume negligible
-        }
-
-        // Calculate driveOut: newClient → next client
-        if(!g.isLast&&toLat&&toLng){
-          try{
-            var urlOut='https://router.project-osrm.org/route/v1/driving/'+clientCoords.lng+','+clientCoords.lat+';'+toLng+','+toLat+'?overview=false';
-            var resOut=await fetch(urlOut);
-            var dataOut=await resOut.json();
-            if(dataOut.code==='Ok'&&dataOut.routes&&dataOut.routes[0]){
-              g.driveOut=dataOut.routes[0].duration/3600;
-            }
-          }catch(e){}
-        } else if(g.isLast){
-          g.driveOut=0;
-        }
-
-        // If no origin coords but not first gap, keep the 15-min estimate
-        // Recalculate slack and fit with real drive times
-        var required=g.driveIn+bufferHrs+durationHrs+bufferHrs+g.driveOut;
-        g.slack=g.gapDuration-required;
-        g.fit=g.slack>=0.25?'fit':(g.slack>=0?'tight':'nofit');
-        g.visitStartHr=g.gapStartHr+g.driveIn+bufferHrs;
-      }));
-      // Small delay between chunks to avoid OSRM rate limits
-      if(ci+CHUNK<matches.length) await new Promise(function(r){setTimeout(r,300);});
+      var inCoords=clientCoords.lng+','+clientCoords.lat;
+      var inIdx=[];
+      chunk.forEach(function(m,j){
+        if(m._fromLat&&m._fromLng){inIdx.push(ci+j);inCoords+=';'+m._fromLng+','+m._fromLat;}
+      });
+      if(inIdx.length>0){
+        try{
+          var srcList=inIdx.map(function(_,i){return i+1;}).join(';');
+          var resIn=await fetch('https://router.project-osrm.org/table/v1/driving/'+inCoords+'?sources='+srcList+'&destinations=0&annotations=distance,duration');
+          var dataIn=await resIn.json();
+          if(dataIn.code==='Ok'&&dataIn.durations&&dataIn.distances){
+            inIdx.forEach(function(origIdx,ri){
+              var dur=dataIn.durations[ri]&&dataIn.durations[ri][0];
+              var dist=dataIn.distances[ri]&&dataIn.distances[ri][0];
+              if(dur!=null){
+                matches[origIdx].gap.driveIn=dur/3600;
+                matches[origIdx]._distance=Math.round(dist*0.000621371);
+                matches[origIdx]._driveMin=Math.round(dur/60);
+              }
+            });
+          }
+        }catch(e){}
+      }
     }
-    // Filter out no-fit after real drive times and exceeding max drive
+
+    // Batch driveOut: table with new client as source (index 0), next-visits as dests
+    for(var ci=0;ci<matches.length;ci+=CHUNK){
+      var chunk=matches.slice(ci,ci+CHUNK);
+      var outCoords=clientCoords.lng+','+clientCoords.lat;
+      var outIdx=[];
+      chunk.forEach(function(m,j){
+        if(m._toLat&&m._toLng){outIdx.push(ci+j);outCoords+=';'+m._toLng+','+m._toLat;}
+      });
+      if(outIdx.length>0){
+        try{
+          var destList=outIdx.map(function(_,i){return i+1;}).join(';');
+          var resOut=await fetch('https://router.project-osrm.org/table/v1/driving/'+outCoords+'?sources=0&destinations='+destList+'&annotations=duration');
+          var dataOut=await resOut.json();
+          if(dataOut.code==='Ok'&&dataOut.durations&&dataOut.durations[0]){
+            var durs=dataOut.durations[0];
+            outIdx.forEach(function(origIdx,di){
+              if(durs[di+1]!=null){matches[origIdx].gap.driveOut=durs[di+1]/3600;}
+            });
+          }
+        }catch(e){}
+      }
+    }
+
+    // Recalculate slack/fit with real drive times, then filter
+    matches.forEach(function(m){
+      var g=m.gap;
+      if(g.isFirst&&!m._fromLat)g.driveIn=0;
+      if(g.isLast)g.driveOut=0;
+      var required=g.driveIn+bufferHrs+durationHrs+bufferHrs+g.driveOut;
+      g.slack=g.gapDuration-required;
+      g.fit=g.slack>=0.25?'fit':(g.slack>=0?'tight':'nofit');
+      g.visitStartHr=g.gapStartHr+g.driveIn+bufferHrs;
+    });
     matches=matches.filter(function(m){
       if(m.gap.fit==='nofit'||m.gap.slack<0)return false;
       if(m._driveMin!==null&&m._driveMin>maxDrive)return false;
