@@ -1283,7 +1283,7 @@ async function runStacker(){
 }
 
 function parseTimeToHrs(t){var p=t.split(':');return parseInt(p[0])+(parseInt(p[1]||0)/60);}
-function toHrs(isoStr){var d=new Date(isoStr);return d.getUTCHours()+d.getUTCMinutes()/60;}
+function toHrs(isoStr){var d=new Date(isoStr);return d.getHours()+d.getMinutes()/60;}
 function fmtHr(h){var hr=Math.floor(h);var mn=Math.round((h-hr)*60);var ampm=hr>=12?'PM':'AM';var h12=hr%12||12;return h12+':'+(mn<10?'0':'')+mn+ampm;}
 
 function renderStackerResults(dateStr,duration,buffer,address){
