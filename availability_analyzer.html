@@ -1040,6 +1040,10 @@ async function runStacker(){
     seen[e.name]=true;
   });
 
+  console.log('[Smart Stacker] candidates: '+candidateList.length+' total ('+
+    candidateList.filter(function(c){return c.cg2!==null;}).length+' from visit data, '+
+    candidateList.filter(function(c){return c.cg2===null;}).length+' from avail pool)');
+
   // Process each candidate
   for(var ai=0;ai<candidateList.length;ai++){
     var cand=candidateList[ai];
@@ -1171,6 +1175,9 @@ async function runStacker(){
       _driveMin:null
     });
   }
+
+  var withVisits=matches.filter(function(m){return m.dayVisits.length>0;}).length;
+  console.log('[Smart Stacker] matches: '+matches.length+' total, '+withVisits+' with existing visits on '+dateStr);
 
   // Calculate real drive times via OSRM for each match
   // For each caregiver we need: driveIn (prev location → new client) and driveOut (new client → next location)
