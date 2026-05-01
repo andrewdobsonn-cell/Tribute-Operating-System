@@ -166,9 +166,16 @@ body{font-family:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;backgroun
 .stacker-card-meta{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--gray-text);margin-bottom:12px}
 .stacker-card-meta strong{color:var(--charcoal)}
 
-.stacker-timeline{position:relative;height:36px;background:var(--gray-100);border-radius:6px;overflow:hidden;margin-bottom:8px}
-.stacker-tl-visit{position:absolute;top:4px;height:18px;background:var(--blue-light);border:1px solid rgba(37,99,235,0.3);border-radius:3px;font-size:8px;color:var(--blue);display:flex;align-items:center;justify-content:center;overflow:hidden;white-space:nowrap;padding:0 3px}
-.stacker-tl-gap{position:absolute;top:2px;height:22px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700}
+.stacker-timeline{position:relative;height:36px;background:var(--gray-100);border-radius:6px;overflow:visible;margin-bottom:8px}
+.stacker-tl-visit{position:absolute;top:4px;height:18px;background:var(--blue-light);border:1px solid rgba(37,99,235,0.3);border-radius:3px;font-size:8px;color:var(--blue);display:flex;align-items:center;justify-content:center;overflow:hidden;white-space:nowrap;padding:0 3px;cursor:pointer;z-index:1}
+.stacker-tl-visit:hover{z-index:10;background:var(--blue);color:#fff;border-color:var(--blue);box-shadow:0 2px 8px rgba(37,99,235,0.35)}
+.stacker-tl-tooltip{position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:var(--charcoal);color:#fff;font-size:11px;padding:8px 12px;border-radius:6px;white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .15s;z-index:100;box-shadow:0 4px 12px rgba(0,0,0,0.25);line-height:1.5}
+.stacker-tl-tooltip::after{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);border:5px solid transparent;border-top-color:var(--charcoal)}
+.stacker-tl-visit:hover .stacker-tl-tooltip{opacity:1}
+.stacker-tl-gap{position:absolute;top:2px;height:22px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;cursor:pointer;z-index:2}
+.stacker-tl-gap:hover{z-index:10;box-shadow:0 2px 8px rgba(0,0,0,0.2)}
+.stacker-tl-gap .stacker-tl-tooltip{bottom:calc(100% + 6px)}
+.stacker-tl-gap:hover .stacker-tl-tooltip{opacity:1}
 .stacker-tl-gap.fit{background:rgba(61,170,122,0.2);border:1.5px dashed var(--green);color:#166534}
 .stacker-tl-gap.tight{background:rgba(217,119,6,0.2);border:1.5px dashed var(--amber);color:#92400e}
 .stacker-tl-labels{display:flex;justify-content:space-between;font-size:9px;color:var(--gray-light);margin-top:2px}
@@ -1349,12 +1356,19 @@ function renderStackerResults(dateStr,duration,buffer,address){
       var vs=toHrs(v.startTime);var ve=toHrs(v.endTime);
       var left=Math.max(0,(vs-tlStart)/tlRange*100);
       var width=Math.min(100-left,(ve-vs)/tlRange*100);
-      html+='<div class="stacker-tl-visit" style="left:'+left+'%;width:'+Math.max(width,2)+'%" title="'+esc(v.client)+' '+fmtHr(vs)+'-'+fmtHr(ve)+'">'+esc(v.client)+'</div>';
+      var vHrs=v.scheduledHrs||((ve-vs));
+      html+='<div class="stacker-tl-visit" style="left:'+left+'%;width:'+Math.max(width,2)+'%">';
+      html+='<div class="stacker-tl-tooltip"><strong>'+esc(v.client)+'</strong><br>'+fmtHr(vs)+' – '+fmtHr(ve)+' ('+vHrs.toFixed(1)+'h)'+(v.market?'<br>'+esc(v.market):'')+'</div>';
+      html+=esc(v.client);
+      html+='</div>';
     });
     // The gap
     var gLeft=Math.max(0,(g.visitStartHr-tlStart)/tlRange*100);
     var gWidth=Math.min(100-gLeft,(duration/60)/tlRange*100);
-    html+='<div class="stacker-tl-gap '+g.fit+'" style="left:'+gLeft+'%;width:'+Math.max(gWidth,3)+'%" title="New visit '+fmtHr(g.visitStartHr)+'-'+fmtHr(g.visitStartHr+duration/60)+'">NEW</div>';
+    var gEndHr=g.visitStartHr+duration/60;
+    html+='<div class="stacker-tl-gap '+g.fit+'" style="left:'+gLeft+'%;width:'+Math.max(gWidth,3)+'%">';
+    html+='<div class="stacker-tl-tooltip"><strong>Proposed New Visit</strong><br>'+fmtHr(g.visitStartHr)+' – '+fmtHr(gEndHr)+' ('+duration+' min)'+'<br>Drive in: '+Math.round(g.driveIn*60)+'min · Drive out: '+Math.round(g.driveOut*60)+'min'+'<br>Slack: '+Math.round(g.slack*60)+' min</div>';
+    html+='NEW</div>';
     html+='</div>';
     html+='<div class="stacker-tl-labels"><span>6AM</span><span>9AM</span><span>12PM</span><span>3PM</span><span>6PM</span><span>9PM</span></div>';
 
