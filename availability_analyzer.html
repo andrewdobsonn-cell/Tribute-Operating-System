@@ -145,6 +145,38 @@ body{font-family:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;backgroun
 .result-score{font-size:22px;font-weight:700;color:var(--orange)}
 .result-score-label{font-size:9px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--gray-light)}
 
+/* SMART STACKER */
+.stacker-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:20px}
+.stacker-kpi{background:var(--white);border:1px solid var(--gray-200);border-radius:var(--r);padding:14px 16px}
+.stacker-kpi-label{font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--gray-light);margin-bottom:4px}
+.stacker-kpi-value{font-size:22px;font-weight:600;color:var(--charcoal)}
+.stacker-kpi-sub{font-size:10px;color:var(--gray-light);margin-top:3px}
+
+.stacker-card{background:var(--white);border:1px solid var(--gray-200);border-radius:var(--rl);padding:18px 20px;margin-bottom:10px;transition:all .12s}
+.stacker-card:hover{border-color:var(--orange-light);box-shadow:var(--shadow-sm)}
+.stacker-card.fit{border-left:4px solid var(--green)}
+.stacker-card.tight{border-left:4px solid var(--amber)}
+
+.stacker-card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px}
+.stacker-card-name{font-size:15px;font-weight:600;color:var(--charcoal)}
+.stacker-card-badge{font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:3px 10px;border-radius:6px}
+.stacker-card-badge.fit{background:var(--green-light);color:#166534}
+.stacker-card-badge.tight{background:var(--amber-light);color:#92400e}
+
+.stacker-card-meta{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--gray-text);margin-bottom:12px}
+.stacker-card-meta strong{color:var(--charcoal)}
+
+.stacker-timeline{position:relative;height:36px;background:var(--gray-100);border-radius:6px;overflow:hidden;margin-bottom:8px}
+.stacker-tl-visit{position:absolute;top:4px;height:18px;background:var(--blue-light);border:1px solid rgba(37,99,235,0.3);border-radius:3px;font-size:8px;color:var(--blue);display:flex;align-items:center;justify-content:center;overflow:hidden;white-space:nowrap;padding:0 3px}
+.stacker-tl-gap{position:absolute;top:2px;height:22px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700}
+.stacker-tl-gap.fit{background:rgba(61,170,122,0.2);border:1.5px dashed var(--green);color:#166534}
+.stacker-tl-gap.tight{background:rgba(217,119,6,0.2);border:1.5px dashed var(--amber);color:#92400e}
+.stacker-tl-labels{display:flex;justify-content:space-between;font-size:9px;color:var(--gray-light);margin-top:2px}
+
+.stacker-drive{display:flex;gap:20px;flex-wrap:wrap;font-size:11px;color:var(--gray-text);margin-top:6px}
+.stacker-drive-item{display:flex;align-items:center;gap:4px}
+.stacker-drive-item strong{color:var(--charcoal)}
+
 .loading-screen{display:flex;align-items:center;justify-content:center;min-height:400px;flex-direction:column;gap:16px}
 .spinner{width:28px;height:28px;border:3px solid var(--gray-200);border-top-color:var(--orange);border-radius:50%;animation:spin .7s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -190,6 +222,7 @@ body{font-family:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;backgroun
     <div class="mode-tabs">
       <div class="mode-tab active" onclick="setMode('browse',this)">Browse Availability</div>
       <div class="mode-tab" onclick="setMode('finder',this)">Find Care Team</div>
+      <div class="mode-tab" onclick="setMode('stacker',this)">Smart Stacker</div>
     </div>
 
     <!-- ====== BROWSE MODE ====== -->
@@ -270,6 +303,63 @@ body{font-family:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;backgroun
       </div>
 
       <div id="finderResults"></div>
+    </div>
+
+    <!-- ====== SMART STACKER MODE ====== -->
+    <div id="stackerMode" style="display:none">
+      <div class="finder-panel">
+        <div class="finder-title">Smart Stacker</div>
+        <div class="finder-sub">Find caregivers with a gap in their schedule that fits a new visit — factoring in real drive time</div>
+        <div class="finder-grid">
+          <div class="finder-field" style="grid-column:1/-1">
+            <label>New Client Address</label>
+            <input type="text" id="stackerAddress" placeholder="e.g. 123 Main St, Boston MA 02101">
+          </div>
+          <div class="finder-field">
+            <label>Date</label>
+            <input type="date" id="stackerDate">
+          </div>
+          <div class="finder-field">
+            <label>Earliest Start</label>
+            <input type="time" id="stackerTimeStart" value="09:00">
+          </div>
+          <div class="finder-field">
+            <label>Latest Start</label>
+            <input type="time" id="stackerTimeEnd" value="17:00">
+          </div>
+          <div class="finder-field">
+            <label>Visit Duration (min)</label>
+            <input type="number" id="stackerDuration" value="90" min="15" step="15">
+          </div>
+          <div class="finder-field">
+            <label>State</label>
+            <select id="stackerState">
+              <option value="">All States</option>
+              <option value="Massachusetts">Massachusetts</option>
+              <option value="Maryland">Maryland</option>
+              <option value="Illinois">Illinois</option>
+            </select>
+          </div>
+          <div class="finder-field">
+            <label>Max Drive (min each way)</label>
+            <input type="number" id="stackerMaxDrive" value="30" min="5" step="5">
+          </div>
+          <div class="finder-days" style="border-top:none;padding-top:0">
+            <label>Advanced</label>
+            <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center">
+              <div class="finder-field" style="min-width:auto">
+                <label>Buffer (min)</label>
+                <input type="number" id="stackerBuffer" value="10" min="0" step="5" style="width:70px">
+              </div>
+            </div>
+          </div>
+          <div class="finder-actions">
+            <button class="finder-btn" onclick="runStacker()">Find Stackable Gaps</button>
+            <button class="finder-btn-clear" onclick="clearStacker()">Clear</button>
+          </div>
+        </div>
+      </div>
+      <div id="stackerResults"></div>
     </div>
   </div>
 </div>
@@ -456,6 +546,12 @@ function setMode(mode,el){
   if(el)el.classList.add('active');
   document.getElementById('browseMode').style.display=mode==='browse'?'block':'none';
   document.getElementById('finderMode').style.display=mode==='finder'?'block':'none';
+  document.getElementById('stackerMode').style.display=mode==='stacker'?'block':'none';
+  if(mode==='stacker'&&!document.getElementById('stackerDate').value){
+    // Default to tomorrow
+    var tmrw=new Date();tmrw.setDate(tmrw.getDate()+1);
+    document.getElementById('stackerDate').value=tmrw.toISOString().split('T')[0];
+  }
 }
 
 // ====== BROWSE MODE ======
@@ -831,6 +927,373 @@ function esc(s){
   });
 });
 document.getElementById('filterNotes').addEventListener('input',render);
+
+// ====== SMART STACKER ======
+var stackerSort='drive'; // 'drive','slack','earliest'
+var lastStackerResults=[];
+
+function clearStacker(){
+  document.getElementById('stackerAddress').value='';
+  document.getElementById('stackerDuration').value='90';
+  document.getElementById('stackerBuffer').value='10';
+  document.getElementById('stackerMaxDrive').value='30';
+  document.getElementById('stackerTimeStart').value='09:00';
+  document.getElementById('stackerTimeEnd').value='17:00';
+  document.getElementById('stackerState').value='';
+  document.getElementById('stackerResults').innerHTML='';
+  lastStackerResults=[];
+}
+
+async function runStacker(){
+  var address=document.getElementById('stackerAddress').value.trim();
+  var dateStr=document.getElementById('stackerDate').value;
+  var timeStart=document.getElementById('stackerTimeStart').value;
+  var timeEnd=document.getElementById('stackerTimeEnd').value;
+  var duration=parseInt(document.getElementById('stackerDuration').value)||90;
+  var buffer=parseInt(document.getElementById('stackerBuffer').value)||10;
+  var maxDrive=parseInt(document.getElementById('stackerMaxDrive').value)||30;
+  var stateFilter=document.getElementById('stackerState').value;
+
+  if(!dateStr){alert('Please select a date');return;}
+
+  // Auto-detect state from address
+  if(!stateFilter&&address){
+    var al=address.toLowerCase();
+    if(al.includes(', ma')||al.includes('massachusetts'))stateFilter='Massachusetts';
+    else if(al.includes(', md')||al.includes('maryland'))stateFilter='Maryland';
+    else if(al.includes(', il')||al.includes('illinois'))stateFilter='Illinois';
+    if(stateFilter)document.getElementById('stackerState').value=stateFilter;
+  }
+
+  var resultsEl=document.getElementById('stackerResults');
+  resultsEl.innerHTML='<div style="text-align:center;padding:30px;color:var(--gray-light)"><div class="spinner" style="margin:0 auto 10px"></div>Loading caregiver schedules and calculating gaps...</div>';
+
+  // Geocode client address
+  var clientCoords=null;
+  if(address){clientCoords=await geocodeAddress(address);}
+
+  // Fetch visit schedules from API
+  var scheduleData=null;
+  try{
+    var res=await fetch(API+'?endpoint=stacker_visits&date='+dateStr);
+    if(!res.ok)throw new Error('HTTP '+res.status);
+    scheduleData=await res.json();
+  }catch(e){
+    resultsEl.innerHTML='<div class="error-msg">Error loading schedules: '+e.message+'</div>';
+    return;
+  }
+
+  var targetDOW=new Date(dateStr+'T12:00:00').getDay();
+  var durationHrs=duration/60;
+  var bufferHrs=buffer/60;
+  var maxDriveHrs=maxDrive/60;
+
+  // Parse time window
+  var windowStart=parseTimeToHrs(timeStart);
+  var windowEnd=parseTimeToHrs(timeEnd);
+
+  // Get caregivers from the ongoing availability pool who are open on this day
+  var availPool={};
+  allEntries.forEach(function(e){
+    if(stateFilter&&e.state!==stateFilter)return;
+    if(e.openDays.indexOf(targetDOW)<0)return;
+    if(!availPool[e.name])availPool[e.name]=e;
+  });
+
+  var caregivers=scheduleData.caregivers||{};
+  var matches=[];
+
+  // Also consider available caregivers with NO visits that day
+  var cgByName={};
+  for(var cgid in caregivers){
+    var cg=caregivers[cgid];
+    cgByName[cg.name]=cgid;
+  }
+
+  // Process each available caregiver
+  var availNames=Object.keys(availPool);
+  for(var ai=0;ai<availNames.length;ai++){
+    var avail=availPool[availNames[ai]];
+    var cgid2=avail.id||cgByName[avail.name]||null;
+    var cg2=cgid2?caregivers[cgid2]:null;
+
+    // Get visits for this specific date
+    var dayVisits=[];
+    if(cg2){
+      cg2.visits.forEach(function(v){
+        if(v.date===dateStr)dayVisits.push(v);
+      });
+      dayVisits.sort(function(a,b){return new Date(a.startTime)-new Date(b.startTime);});
+    }
+
+    // Build candidate gaps
+    var gaps=[];
+    var dayStartHr=6; // 6am default day start
+    var dayEndHr=22;   // 10pm default day end
+
+    if(dayVisits.length===0){
+      // Fully open day — single large gap
+      gaps.push({
+        gapStartHr:dayStartHr,gapEndHr:dayEndHr,
+        prevClient:null,prevEndTime:null,prevMarket:null,
+        nextClient:null,nextStartTime:null,nextMarket:null,
+        isFirst:true,isLast:true
+      });
+    } else {
+      // Gap before first visit
+      var firstStart=toHrs(dayVisits[0].startTime);
+      if(firstStart>dayStartHr){
+        gaps.push({
+          gapStartHr:dayStartHr,gapEndHr:firstStart,
+          prevClient:null,prevEndTime:null,prevMarket:null,
+          nextClient:dayVisits[0].client,nextStartTime:dayVisits[0].startTime,nextMarket:dayVisits[0].market,
+          isFirst:true,isLast:false
+        });
+      }
+      // Gaps between visits
+      for(var vi=0;vi<dayVisits.length-1;vi++){
+        var vEnd=toHrs(dayVisits[vi].endTime);
+        var vNextStart=toHrs(dayVisits[vi+1].startTime);
+        if(vNextStart>vEnd){
+          gaps.push({
+            gapStartHr:vEnd,gapEndHr:vNextStart,
+            prevClient:dayVisits[vi].client,prevEndTime:dayVisits[vi].endTime,prevMarket:dayVisits[vi].market,
+            nextClient:dayVisits[vi+1].client,nextStartTime:dayVisits[vi+1].startTime,nextMarket:dayVisits[vi+1].market,
+            isFirst:false,isLast:false
+          });
+        }
+      }
+      // Gap after last visit
+      var lastEnd=toHrs(dayVisits[dayVisits.length-1].endTime);
+      if(lastEnd<dayEndHr){
+        gaps.push({
+          gapStartHr:lastEnd,gapEndHr:dayEndHr,
+          prevClient:dayVisits[dayVisits.length-1].client,prevEndTime:dayVisits[dayVisits.length-1].endTime,prevMarket:dayVisits[dayVisits.length-1].market,
+          nextClient:null,nextStartTime:null,nextMarket:null,
+          isFirst:false,isLast:true
+        });
+      }
+    }
+
+    // Evaluate each gap against the time window
+    var bestGap=null;
+    for(var gi=0;gi<gaps.length;gi++){
+      var g=gaps[gi];
+      // Intersect with requested time window
+      var effStart=Math.max(g.gapStartHr,windowStart);
+      var effEnd=Math.min(g.gapEndHr,windowEnd+durationHrs);
+      var gapDuration=effEnd-effStart;
+      if(gapDuration<durationHrs)continue;
+
+      // Drive time estimates (will be refined with OSRM below)
+      var driveIn=g.isFirst?0:0.25;  // default 15 min placeholder
+      var driveOut=g.isLast?0:0.25;
+      var required=driveIn+bufferHrs+durationHrs+bufferHrs+driveOut;
+      var slack=gapDuration-required;
+      if(slack<0)continue;
+
+      var fit=slack>=0.25?'fit':'tight';
+      if(!bestGap||slack>bestGap.slack){
+        bestGap={
+          gapStartHr:effStart,gapEndHr:effEnd,gapDuration:gapDuration,
+          driveIn:driveIn,driveOut:driveOut,slack:slack,fit:fit,
+          prevClient:g.prevClient,nextClient:g.nextClient,
+          prevMarket:g.prevMarket,nextMarket:g.nextMarket,
+          isFirst:g.isFirst,isLast:g.isLast,
+          visitStartHr:effStart+driveIn+bufferHrs
+        };
+      }
+    }
+
+    if(!bestGap)continue;
+
+    // Get caregiver home coords
+    var cgHomeLat=null,cgHomeLng=null;
+    if(cg2){cgHomeLat=cg2.homeLat;cgHomeLng=cg2.homeLng;}
+    if(!cgHomeLat&&avail.lat){cgHomeLat=avail.lat;cgHomeLng=avail.lng;}
+    // Fall back to market center
+    if(!cgHomeLat&&MARKET_COORDS[avail.market]){
+      cgHomeLat=MARKET_COORDS[avail.market].lat;
+      cgHomeLng=MARKET_COORDS[avail.market].lng;
+    }
+
+    matches.push({
+      name:avail.name,
+      id:avail.id||cgid2||'',
+      market:avail.market,
+      state:avail.state,
+      type:avail.type,
+      phone:avail.phone||'',
+      desiredHrs:avail.desiredHrs,
+      dayVisits:dayVisits,
+      gap:bestGap,
+      homeLat:cgHomeLat,
+      homeLng:cgHomeLng,
+      _distance:null,
+      _driveMin:null
+    });
+  }
+
+  // Batch OSRM distance calc from caregiver home → client address
+  if(clientCoords&&matches.length>0){
+    var CHUNK=50;
+    for(var ci=0;ci<matches.length;ci+=CHUNK){
+      var chunk=matches.slice(ci,ci+CHUNK);
+      var validIdx=[];
+      var coords=clientCoords.lng+','+clientCoords.lat;
+      chunk.forEach(function(m,j){
+        if(m.homeLat&&m.homeLng){
+          validIdx.push(ci+j);
+          coords+=';'+m.homeLng+','+m.homeLat;
+        }
+      });
+      if(validIdx.length===0)continue;
+      try{
+        var osrmUrl='https://router.project-osrm.org/table/v1/driving/'+coords+'?sources=0&annotations=distance,duration';
+        var osrmRes=await fetch(osrmUrl);
+        var osrmData=await osrmRes.json();
+        if(osrmData.code==='Ok'&&osrmData.distances&&osrmData.distances[0]&&osrmData.durations&&osrmData.durations[0]){
+          var dists=osrmData.distances[0];
+          var durs=osrmData.durations[0];
+          var di=1;
+          validIdx.forEach(function(origIdx){
+            if(di<dists.length){
+              matches[origIdx]._distance=Math.round(dists[di]*0.000621371); // meters→miles
+              matches[origIdx]._driveMin=Math.round(durs[di]/60);
+              // Update gap drive estimates with real data
+              var driveHrs=durs[di]/3600;
+              var g=matches[origIdx].gap;
+              if(g.isFirst)g.driveIn=driveHrs;
+              else g.driveIn=Math.min(driveHrs,g.gapDuration/2); // rough estimate for between-visit
+              if(g.isLast)g.driveOut=0;
+              else g.driveOut=Math.min(driveHrs,g.gapDuration/2);
+              var required=g.driveIn+bufferHrs+durationHrs+bufferHrs+g.driveOut;
+              g.slack=g.gapDuration-required;
+              g.fit=g.slack>=0.25?'fit':(g.slack>=0?'tight':'nofit');
+              g.visitStartHr=g.gapStartHr+g.driveIn+bufferHrs;
+            }
+            di++;
+          });
+        }
+      }catch(ex){}
+    }
+    // Filter out no-fit after real drive times and exceeding max drive
+    matches=matches.filter(function(m){
+      if(m.gap.fit==='nofit'||m.gap.slack<0)return false;
+      if(m._driveMin!==null&&m._driveMin>maxDrive)return false;
+      return true;
+    });
+  }
+
+  lastStackerResults=matches;
+  stackerSort='drive';
+  renderStackerResults(dateStr,duration,buffer,address);
+}
+
+function parseTimeToHrs(t){var p=t.split(':');return parseInt(p[0])+(parseInt(p[1]||0)/60);}
+function toHrs(isoStr){var d=new Date(isoStr);return d.getUTCHours()+d.getUTCMinutes()/60;}
+function fmtHr(h){var hr=Math.floor(h);var mn=Math.round((h-hr)*60);var ampm=hr>=12?'PM':'AM';var h12=hr%12||12;return h12+':'+(mn<10?'0':'')+mn+ampm;}
+
+function renderStackerResults(dateStr,duration,buffer,address){
+  var matches=lastStackerResults.slice();
+  // Sort
+  if(stackerSort==='drive'){
+    matches.sort(function(a,b){
+      if(a._distance===null&&b._distance===null)return b.gap.slack-a.gap.slack;
+      if(a._distance===null)return 1;
+      if(b._distance===null)return -1;
+      return a._distance-b._distance;
+    });
+  } else if(stackerSort==='slack'){
+    matches.sort(function(a,b){return b.gap.slack-a.gap.slack;});
+  } else if(stackerSort==='earliest'){
+    matches.sort(function(a,b){return a.gap.gapStartHr-b.gap.gapStartHr;});
+  }
+
+  var fitCount=matches.filter(function(m){return m.gap.fit==='fit';}).length;
+  var tightCount=matches.filter(function(m){return m.gap.fit==='tight';}).length;
+  var dateLabel=new Date(dateStr+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'});
+
+  var html='';
+  html+='<div class="stacker-kpis">';
+  html+='<div class="stacker-kpi"><div class="stacker-kpi-label">Total Matches</div><div class="stacker-kpi-value" style="color:var(--orange)">'+matches.length+'</div><div class="stacker-kpi-sub">caregivers with gaps</div></div>';
+  html+='<div class="stacker-kpi"><div class="stacker-kpi-label">Clean Fit</div><div class="stacker-kpi-value" style="color:var(--green)">'+fitCount+'</div><div class="stacker-kpi-sub">15+ min slack</div></div>';
+  html+='<div class="stacker-kpi"><div class="stacker-kpi-label">Tight Fit</div><div class="stacker-kpi-value" style="color:var(--amber)">'+tightCount+'</div><div class="stacker-kpi-sub">&lt;15 min slack</div></div>';
+  html+='<div class="stacker-kpi"><div class="stacker-kpi-label">Date</div><div class="stacker-kpi-value" style="font-size:16px">'+dateLabel+'</div><div class="stacker-kpi-sub">'+duration+' min visit + '+buffer+' min buffer</div></div>';
+  html+='</div>';
+
+  if(matches.length===0){
+    html+='<div style="text-align:center;padding:40px;color:var(--gray-light)">No caregivers with stackable gaps found for this date and time window. Try widening the time window or increasing max drive time.</div>';
+    document.getElementById('stackerResults').innerHTML=html;
+    return;
+  }
+
+  // Sort controls
+  html+='<div class="results-header"><div class="results-title">Stackable Gaps</div><div class="results-count">'+matches.length+' matches</div>';
+  html+='<div class="results-sort"><label>Sort by</label><select onchange="stackerSort=this.value;renderStackerResults(\''+dateStr+'\','+duration+','+buffer+',\''+esc(address)+'\')">';
+  html+='<option value="drive"'+(stackerSort==='drive'?' selected':'')+'>Drive Distance</option>';
+  html+='<option value="slack"'+(stackerSort==='slack'?' selected':'')+'>Most Slack</option>';
+  html+='<option value="earliest"'+(stackerSort==='earliest'?' selected':'')+'>Earliest Gap</option>';
+  html+='</select></div></div>';
+
+  // Render each match
+  matches.forEach(function(m){
+    var g=m.gap;
+    var css=TYPE_CSS[m.type]||'';
+    html+='<div class="stacker-card '+g.fit+'">';
+    // Header
+    html+='<div class="stacker-card-header">';
+    html+='<div>';
+    html+='<div class="stacker-card-name">'+(m.id?'<a href="https://tribute.mavencare.com/caregivers/'+esc(m.id)+'/dashboard/summary" target="_blank" style="color:inherit;text-decoration:none;border-bottom:1px dashed var(--gray-300)">'+esc(m.name)+'</a>':esc(m.name))+'</div>';
+    html+='<div style="font-size:11px;color:var(--gray-text);margin-top:2px">';
+    html+='<span class="result-type-badge '+css+'" style="margin-right:6px">'+m.type+'</span>';
+    html+=esc(m.market);
+    if(m.phone)html+=' · <a href="tel:'+esc(m.phone)+'" style="color:var(--orange);text-decoration:none">'+esc(m.phone)+'</a>';
+    html+='</div></div>';
+    html+='<div style="text-align:right">';
+    html+='<div class="stacker-card-badge '+g.fit+'">'+(g.fit==='fit'?'Clean Fit':'Tight Fit')+'</div>';
+    if(m._distance!==null)html+='<div style="font-size:12px;font-weight:600;margin-top:4px;color:'+(m._distance<=15?'var(--green)':m._distance<=25?'var(--amber)':'var(--red)')+'">'+m._distance+' mi · '+m._driveMin+' min drive</div>';
+    html+='</div></div>';
+
+    // Meta
+    html+='<div class="stacker-card-meta">';
+    html+='<span>Gap: <strong>'+fmtHr(g.gapStartHr)+' – '+fmtHr(g.gapEndHr)+'</strong></span>';
+    html+='<span>Slack: <strong>'+Math.round(g.slack*60)+' min</strong></span>';
+    html+='<span>Visit at: <strong>'+fmtHr(g.visitStartHr)+'</strong></span>';
+    html+='<span>'+m.dayVisits.length+' visit'+(m.dayVisits.length!==1?'s':'')+' that day</span>';
+    html+='</div>';
+
+    // Timeline
+    var tlStart=6,tlEnd=22;
+    var tlRange=tlEnd-tlStart;
+    html+='<div class="stacker-timeline">';
+    // Existing visits
+    m.dayVisits.forEach(function(v){
+      var vs=toHrs(v.startTime);var ve=toHrs(v.endTime);
+      var left=Math.max(0,(vs-tlStart)/tlRange*100);
+      var width=Math.min(100-left,(ve-vs)/tlRange*100);
+      html+='<div class="stacker-tl-visit" style="left:'+left+'%;width:'+Math.max(width,2)+'%" title="'+esc(v.client)+' '+fmtHr(vs)+'-'+fmtHr(ve)+'">'+esc(v.client)+'</div>';
+    });
+    // The gap
+    var gLeft=Math.max(0,(g.visitStartHr-tlStart)/tlRange*100);
+    var gWidth=Math.min(100-gLeft,(duration/60)/tlRange*100);
+    html+='<div class="stacker-tl-gap '+g.fit+'" style="left:'+gLeft+'%;width:'+Math.max(gWidth,3)+'%" title="New visit '+fmtHr(g.visitStartHr)+'-'+fmtHr(g.visitStartHr+duration/60)+'">NEW</div>';
+    html+='</div>';
+    html+='<div class="stacker-tl-labels"><span>6AM</span><span>9AM</span><span>12PM</span><span>3PM</span><span>6PM</span><span>9PM</span></div>';
+
+    // Drive details
+    html+='<div class="stacker-drive">';
+    if(g.prevClient)html+='<div class="stacker-drive-item">From: <strong>'+esc(g.prevClient)+'</strong> ('+Math.round(g.driveIn*60)+' min drive)</div>';
+    else html+='<div class="stacker-drive-item">From: <strong>Home / Start of day</strong>'+(m._driveMin!=null?' ('+m._driveMin+' min)':'')+'</div>';
+    if(g.nextClient)html+='<div class="stacker-drive-item">To: <strong>'+esc(g.nextClient)+'</strong> ('+Math.round(g.driveOut*60)+' min drive)</div>';
+    else html+='<div class="stacker-drive-item">To: <strong>End of day</strong></div>';
+    html+='</div>';
+
+    html+='</div>';
+  });
+
+  document.getElementById('stackerResults').innerHTML=html;
+}
 
 loadData();
 </script>
