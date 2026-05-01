@@ -1035,8 +1035,8 @@ async function runStacker(){
       // Fully open day — single large gap
       gaps.push({
         gapStartHr:dayStartHr,gapEndHr:dayEndHr,
-        prevClient:null,prevEndTime:null,prevMarket:null,
-        nextClient:null,nextStartTime:null,nextMarket:null,
+        prevClient:null,prevEndTime:null,prevMarket:null,prevLat:null,prevLng:null,
+        nextClient:null,nextStartTime:null,nextMarket:null,nextLat:null,nextLng:null,
         isFirst:true,isLast:true
       });
     } else {
@@ -1045,8 +1045,9 @@ async function runStacker(){
       if(firstStart>dayStartHr){
         gaps.push({
           gapStartHr:dayStartHr,gapEndHr:firstStart,
-          prevClient:null,prevEndTime:null,prevMarket:null,
+          prevClient:null,prevEndTime:null,prevMarket:null,prevLat:null,prevLng:null,
           nextClient:dayVisits[0].client,nextStartTime:dayVisits[0].startTime,nextMarket:dayVisits[0].market,
+          nextLat:dayVisits[0].clientLat||null,nextLng:dayVisits[0].clientLng||null,
           isFirst:true,isLast:false
         });
       }
@@ -1058,7 +1059,9 @@ async function runStacker(){
           gaps.push({
             gapStartHr:vEnd,gapEndHr:vNextStart,
             prevClient:dayVisits[vi].client,prevEndTime:dayVisits[vi].endTime,prevMarket:dayVisits[vi].market,
+            prevLat:dayVisits[vi].clientLat||null,prevLng:dayVisits[vi].clientLng||null,
             nextClient:dayVisits[vi+1].client,nextStartTime:dayVisits[vi+1].startTime,nextMarket:dayVisits[vi+1].market,
+            nextLat:dayVisits[vi+1].clientLat||null,nextLng:dayVisits[vi+1].clientLng||null,
             isFirst:false,isLast:false
           });
         }
@@ -1069,7 +1072,8 @@ async function runStacker(){
         gaps.push({
           gapStartHr:lastEnd,gapEndHr:dayEndHr,
           prevClient:dayVisits[dayVisits.length-1].client,prevEndTime:dayVisits[dayVisits.length-1].endTime,prevMarket:dayVisits[dayVisits.length-1].market,
-          nextClient:null,nextStartTime:null,nextMarket:null,
+          prevLat:dayVisits[dayVisits.length-1].clientLat||null,prevLng:dayVisits[dayVisits.length-1].clientLng||null,
+          nextClient:null,nextStartTime:null,nextMarket:null,nextLat:null,nextLng:null,
           isFirst:false,isLast:true
         });
       }
@@ -1099,6 +1103,8 @@ async function runStacker(){
           driveIn:driveIn,driveOut:driveOut,slack:slack,fit:fit,
           prevClient:g.prevClient,nextClient:g.nextClient,
           prevMarket:g.prevMarket,nextMarket:g.nextMarket,
+          prevLat:g.prevLat,prevLng:g.prevLng,
+          nextLat:g.nextLat,nextLng:g.nextLng,
           isFirst:g.isFirst,isLast:g.isLast,
           visitStartHr:effStart+driveIn+bufferHrs
         };
@@ -1134,48 +1140,74 @@ async function runStacker(){
     });
   }
 
-  // Batch OSRM distance calc from caregiver home → client address
+  // Calculate real drive times via OSRM for each match
+  // For each caregiver we need: driveIn (prev location → new client) and driveOut (new client → next location)
+  // prev location = previous visit's client coords, or caregiver home if first gap
+  // next location = next visit's client coords, or 0 if last gap
   if(clientCoords&&matches.length>0){
-    var CHUNK=50;
+    // Build OSRM route requests per match (3-point routes: origin → newClient → destination)
+    var CHUNK=10; // smaller chunks since each needs its own route
     for(var ci=0;ci<matches.length;ci+=CHUNK){
       var chunk=matches.slice(ci,ci+CHUNK);
-      var validIdx=[];
-      var coords=clientCoords.lng+','+clientCoords.lat;
-      chunk.forEach(function(m,j){
-        if(m.homeLat&&m.homeLng){
-          validIdx.push(ci+j);
-          coords+=';'+m.homeLng+','+m.homeLat;
+      await Promise.all(chunk.map(async function(m,j){
+        var g=m.gap;
+        // Determine origin point (where caregiver is coming from)
+        var fromLat=null,fromLng=null;
+        if(g.isFirst){
+          // Coming from home
+          fromLat=m.homeLat;fromLng=m.homeLng;
+        } else if(g.prevLat&&g.prevLng){
+          // Coming from previous client
+          fromLat=g.prevLat;fromLng=g.prevLng;
+        } else {
+          // Fallback to home
+          fromLat=m.homeLat;fromLng=m.homeLng;
         }
-      });
-      if(validIdx.length===0)continue;
-      try{
-        var osrmUrl='https://router.project-osrm.org/table/v1/driving/'+coords+'?sources=0&annotations=distance,duration';
-        var osrmRes=await fetch(osrmUrl);
-        var osrmData=await osrmRes.json();
-        if(osrmData.code==='Ok'&&osrmData.distances&&osrmData.distances[0]&&osrmData.durations&&osrmData.durations[0]){
-          var dists=osrmData.distances[0];
-          var durs=osrmData.durations[0];
-          var di=1;
-          validIdx.forEach(function(origIdx){
-            if(di<dists.length){
-              matches[origIdx]._distance=Math.round(dists[di]*0.000621371); // meters→miles
-              matches[origIdx]._driveMin=Math.round(durs[di]/60);
-              // Update gap drive estimates with real data
-              var driveHrs=durs[di]/3600;
-              var g=matches[origIdx].gap;
-              if(g.isFirst)g.driveIn=driveHrs;
-              else g.driveIn=Math.min(driveHrs,g.gapDuration/2); // rough estimate for between-visit
-              if(g.isLast)g.driveOut=0;
-              else g.driveOut=Math.min(driveHrs,g.gapDuration/2);
-              var required=g.driveIn+bufferHrs+durationHrs+bufferHrs+g.driveOut;
-              g.slack=g.gapDuration-required;
-              g.fit=g.slack>=0.25?'fit':(g.slack>=0?'tight':'nofit');
-              g.visitStartHr=g.gapStartHr+g.driveIn+bufferHrs;
+        // Determine destination point (where caregiver goes after)
+        var toLat=null,toLng=null;
+        if(!g.isLast&&g.nextLat&&g.nextLng){
+          toLat=g.nextLat;toLng=g.nextLng;
+        }
+
+        // Calculate driveIn: from → newClient
+        if(fromLat&&fromLng){
+          try{
+            var urlIn='https://router.project-osrm.org/route/v1/driving/'+fromLng+','+fromLat+';'+clientCoords.lng+','+clientCoords.lat+'?overview=false';
+            var resIn=await fetch(urlIn);
+            var dataIn=await resIn.json();
+            if(dataIn.code==='Ok'&&dataIn.routes&&dataIn.routes[0]){
+              g.driveIn=dataIn.routes[0].duration/3600; // seconds→hours
+              m._distance=Math.round(dataIn.routes[0].distance*0.000621371); // meters→miles
+              m._driveMin=Math.round(dataIn.routes[0].duration/60);
             }
-            di++;
-          });
+          }catch(e){}
+        } else if(g.isFirst){
+          g.driveIn=0; // no coords, assume negligible
         }
-      }catch(ex){}
+
+        // Calculate driveOut: newClient → next client
+        if(!g.isLast&&toLat&&toLng){
+          try{
+            var urlOut='https://router.project-osrm.org/route/v1/driving/'+clientCoords.lng+','+clientCoords.lat+';'+toLng+','+toLat+'?overview=false';
+            var resOut=await fetch(urlOut);
+            var dataOut=await resOut.json();
+            if(dataOut.code==='Ok'&&dataOut.routes&&dataOut.routes[0]){
+              g.driveOut=dataOut.routes[0].duration/3600;
+            }
+          }catch(e){}
+        } else if(g.isLast){
+          g.driveOut=0;
+        }
+
+        // If no origin coords but not first gap, keep the 15-min estimate
+        // Recalculate slack and fit with real drive times
+        var required=g.driveIn+bufferHrs+durationHrs+bufferHrs+g.driveOut;
+        g.slack=g.gapDuration-required;
+        g.fit=g.slack>=0.25?'fit':(g.slack>=0?'tight':'nofit');
+        g.visitStartHr=g.gapStartHr+g.driveIn+bufferHrs;
+      }));
+      // Small delay between chunks to avoid OSRM rate limits
+      if(ci+CHUNK<matches.length) await new Promise(function(r){setTimeout(r,300);});
     }
     // Filter out no-fit after real drive times and exceeding max drive
     matches=matches.filter(function(m){
