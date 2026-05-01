@@ -344,6 +344,10 @@ body{font-family:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;backgroun
             <label>Max Drive (min each way)</label>
             <input type="number" id="stackerMaxDrive" value="30" min="5" step="5">
           </div>
+          <div class="finder-field">
+            <label>Max Weekly Hours</label>
+            <input type="number" id="stackerMaxHours" value="25" min="0" step="1" title="Only show caregivers currently working fewer than this many hours per week">
+          </div>
           <div class="finder-days" style="border-top:none;padding-top:0">
             <label>Advanced</label>
             <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center">
@@ -937,6 +941,7 @@ function clearStacker(){
   document.getElementById('stackerDuration').value='90';
   document.getElementById('stackerBuffer').value='10';
   document.getElementById('stackerMaxDrive').value='30';
+  document.getElementById('stackerMaxHours').value='25';
   document.getElementById('stackerTimeStart').value='09:00';
   document.getElementById('stackerTimeEnd').value='17:00';
   document.getElementById('stackerState').value='';
@@ -952,6 +957,7 @@ async function runStacker(){
   var duration=parseInt(document.getElementById('stackerDuration').value)||90;
   var buffer=parseInt(document.getElementById('stackerBuffer').value)||10;
   var maxDrive=parseInt(document.getElementById('stackerMaxDrive').value)||30;
+  var maxHours=parseInt(document.getElementById('stackerMaxHours').value)||25;
   var stateFilter=document.getElementById('stackerState').value;
 
   if(!dateStr){alert('Please select a date');return;}
@@ -1016,6 +1022,13 @@ async function runStacker(){
     var avail=availPool[availNames[ai]];
     var cgid2=avail.id||cgByName[avail.name]||null;
     var cg2=cgid2?caregivers[cgid2]:null;
+
+    // Calculate weekly hours and filter out high-hour caregivers
+    var weeklyHrs=0;
+    if(cg2){
+      cg2.visits.forEach(function(v){weeklyHrs+=v.scheduledHrs||0;});
+    }
+    if(weeklyHrs>=maxHours)continue;
 
     // Get visits for this specific date
     var dayVisits=[];
@@ -1131,6 +1144,7 @@ async function runStacker(){
       type:avail.type,
       phone:avail.phone||'',
       desiredHrs:avail.desiredHrs,
+      weeklyHrs:Math.round(weeklyHrs*10)/10,
       dayVisits:dayVisits,
       gap:bestGap,
       homeLat:cgHomeLat,
@@ -1240,6 +1254,8 @@ function renderStackerResults(dateStr,duration,buffer,address){
     matches.sort(function(a,b){return b.gap.slack-a.gap.slack;});
   } else if(stackerSort==='earliest'){
     matches.sort(function(a,b){return a.gap.gapStartHr-b.gap.gapStartHr;});
+  } else if(stackerSort==='hours'){
+    matches.sort(function(a,b){return a.weeklyHrs-b.weeklyHrs;});
   }
 
   var fitCount=matches.filter(function(m){return m.gap.fit==='fit';}).length;
@@ -1251,6 +1267,8 @@ function renderStackerResults(dateStr,duration,buffer,address){
   html+='<div class="stacker-kpi"><div class="stacker-kpi-label">Total Matches</div><div class="stacker-kpi-value" style="color:var(--orange)">'+matches.length+'</div><div class="stacker-kpi-sub">caregivers with gaps</div></div>';
   html+='<div class="stacker-kpi"><div class="stacker-kpi-label">Clean Fit</div><div class="stacker-kpi-value" style="color:var(--green)">'+fitCount+'</div><div class="stacker-kpi-sub">15+ min slack</div></div>';
   html+='<div class="stacker-kpi"><div class="stacker-kpi-label">Tight Fit</div><div class="stacker-kpi-value" style="color:var(--amber)">'+tightCount+'</div><div class="stacker-kpi-sub">&lt;15 min slack</div></div>';
+  var avgHrs=matches.length?Math.round(matches.reduce(function(s,m){return s+m.weeklyHrs;},0)/matches.length*10)/10:0;
+  html+='<div class="stacker-kpi"><div class="stacker-kpi-label">Avg Weekly Hrs</div><div class="stacker-kpi-value" style="color:var(--blue)">'+avgHrs+'</div><div class="stacker-kpi-sub">short-hour caregivers</div></div>';
   html+='<div class="stacker-kpi"><div class="stacker-kpi-label">Date</div><div class="stacker-kpi-value" style="font-size:16px">'+dateLabel+'</div><div class="stacker-kpi-sub">'+duration+' min visit + '+buffer+' min buffer</div></div>';
   html+='</div>';
 
@@ -1266,6 +1284,7 @@ function renderStackerResults(dateStr,duration,buffer,address){
   html+='<option value="drive"'+(stackerSort==='drive'?' selected':'')+'>Drive Distance</option>';
   html+='<option value="slack"'+(stackerSort==='slack'?' selected':'')+'>Most Slack</option>';
   html+='<option value="earliest"'+(stackerSort==='earliest'?' selected':'')+'>Earliest Gap</option>';
+  html+='<option value="hours"'+(stackerSort==='hours'?' selected':'')+'>Fewest Hours</option>';
   html+='</select></div></div>';
 
   // Render each match
@@ -1293,6 +1312,7 @@ function renderStackerResults(dateStr,duration,buffer,address){
     html+='<span>Slack: <strong>'+Math.round(g.slack*60)+' min</strong></span>';
     html+='<span>Visit at: <strong>'+fmtHr(g.visitStartHr)+'</strong></span>';
     html+='<span>'+m.dayVisits.length+' visit'+(m.dayVisits.length!==1?'s':'')+' that day</span>';
+    html+='<span>Weekly: <strong>'+m.weeklyHrs+'h</strong>'+(m.desiredHrs?' / '+m.desiredHrs+'h desired':'')+'</span>';
     html+='</div>';
 
     // Timeline
