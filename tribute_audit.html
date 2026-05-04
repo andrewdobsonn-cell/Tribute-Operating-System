@@ -346,7 +346,7 @@ function detectTS(bookings, tagLookup) {
         'PTO Hrs':pto.toFixed(2),'Hrs Owed':payout.toFixed(2),
         'Client':office,'Visit Type':'TS Admin Time',
         'Action':`Create ${payout.toFixed(2)}h TS Admin Time — ${office}`,
-        severity: payout >= info.threshold*0.5 ? 'error':'warn', geo });
+        severity: payout >= info.threshold*0.5 ? 'error':'warn', geo, _cgid:cgid });
     }
   });
   issues.sort((a,b) => sf(b['Hrs Owed'])-sf(a['Hrs Owed']));
@@ -380,7 +380,7 @@ function detectTravelTime(bookings) {
       'Gap Start':fmtT(a._end),'Gap End':fmtT(b._start),'Gap Hrs':hrs.toFixed(2),
       'From → To':`${a._client} → ${b._client}`,'Visit Type':'Travel Time',
       'Action':`Create ${hrs.toFixed(2)}h Travel Time — ${office}`,
-      severity:'warn', geo:a._geo});
+      severity:'warn', geo:a._geo, _cgid:a._cgid});
   }
   return issues;
 }
@@ -394,7 +394,8 @@ function detectApprovalQueue(bookings) {
       'CG Rate':`$${b._cg_rate.toFixed(2)}`,'Cancelled':b._cancelled?'Yes':'No',
       'Status':b._status.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase()),
       'Action':'Approve in Viv',
-      severity: b._status==='REQUIRES_REAPPROVAL'?'error':'warn', geo:b._geo}));
+      severity: b._status==='REQUIRES_REAPPROVAL'?'error':'warn', geo:b._geo,
+      _cgid:b._cgid, _cid:b._cid, _bid:b._bid}));
 }
 
 function detectCancelled(bookings) {
@@ -410,7 +411,8 @@ function detectCancelled(bookings) {
       'Billable':fmtH(b._bill_h),'Payable':fmtH(b._pay_h),'CG Rate':`$${b._cg_rate.toFixed(2)}`,
       'Flags':flags.join(' | '),'Status':b._status,
       'Action':'Verify cancelled visit pay/bill settings',
-      severity:b._bill_h>0?'error':'warn', geo:b._geo});
+      severity:b._bill_h>0?'error':'warn', geo:b._geo,
+      _cgid:b._cgid, _cid:b._cid, _bid:b._bid});
   });
   return issues;
 }
@@ -429,7 +431,8 @@ function detectDurationMismatches(bookings) {
       'Market':b._geo,'Date':fmtD(b._start),'Visit Type':b._vt,
       'Scheduled':fmtH(dur),'Billable':fmtH(bill),'Payable':fmtH(pay),
       'Flags':flags.join(' | '),'Status':b._status,
-      'Action':'Review and correct hours in Viv', severity:'warn', geo:b._geo});
+      'Action':'Review and correct hours in Viv', severity:'warn', geo:b._geo,
+      _cgid:b._cgid, _cid:b._cid, _bid:b._bid});
   });
   return issues;
 }
@@ -452,7 +455,7 @@ function detectOverlapsCG(bookings) {
           'Visit 1':`${a._client} ${fmtD(a._start)} ${fmtT(a._start)}–${fmtT(a._end)}`,
           'Visit 2':`${b._client} ${fmtD(b._start)} ${fmtT(b._start)}–${fmtT(b._end)}`,
           'Overlap':`${mins} min`,'Action':`Resolve ${mins}-min caregiver overlap`,
-          severity:'error', geo:a._geo});
+          severity:'error', geo:a._geo, _cgid:a._cgid, _bid:a._bid});
       }
     }
   });
@@ -481,7 +484,7 @@ function detectOverlapsClient(bookings) {
         'CG 1':`${a._cg_name} ${fmtD(a._start)} ${fmtT(a._start)}–${fmtT(a._end)}`,
         'CG 2':`${b._cg_name} ${fmtD(b._start)} ${fmtT(b._start)}–${fmtT(b._end)}`,
         'Overlap':`${mins} min`,'Action':`Resolve ${mins}-min client billing overlap`,
-        severity:'error', geo:a._geo});
+        severity:'error', geo:a._geo, _cid:a._cid, _bid:a._bid});
     }
   });
   return issues;
@@ -493,7 +496,7 @@ function detectRateType(bookings) {
     .map(b => ({'Caregiver':b._cg_name,'Market':b._geo,'Date':fmtD(b._start),
       'Visit Type':b._vt,'Current':'Hourly','Should Be':'Shift',
       'CG Rate':`$${b._cg_rate.toFixed(2)}`,'Action':'Change Rate Type: Hourly → Shift',
-      severity:'error', geo:b._geo}));
+      severity:'error', geo:b._geo, _cgid:b._cgid, _cid:b._cid, _bid:b._bid}));
 }
 
 function detectTimeOffRates(bookings) {
@@ -502,7 +505,7 @@ function detectTimeOffRates(bookings) {
     .map(b => ({'Caregiver':b._cg_name,'Market':b._geo,'Date':fmtD(b._start),
       'Visit Type':b._vt,'CG Rate':`$${b._cg_rate.toFixed(2)}`,'Pay Hrs':fmtH(b._pay_h),
       'Status':b._status,'Action':'Set CG Rate = $0.00 and Payable = 0h',
-      severity:'error', geo:b._geo}));
+      severity:'error', geo:b._geo, _cgid:b._cgid, _cid:b._cid, _bid:b._bid}));
 }
 
 function detectMissingEVV(bookings) {
@@ -516,7 +519,8 @@ function detectMissingEVV(bookings) {
       'Market':b._geo,'Date':fmtD(b._start),'Visit Type':b._vt,
       'Scheduled':`${fmtT(b._start)} – ${fmtT(b._end)}`,'Missing':missing.join(', '),
       'Status':b._status,'Action':`Resolve missing EVV: ${missing.join(', ')}`,
-      severity:missing.includes('Check-In')?'error':'warn', geo:b._geo});
+      severity:missing.includes('Check-In')?'error':'warn', geo:b._geo,
+      _cgid:b._cgid, _cid:b._cid, _bid:b._bid});
   });
   return issues;
 }
@@ -527,7 +531,7 @@ function detectAssignmentErrors(bookings) {
     .map(b => ({'Caregiver':b._cg_name,'Market':b._geo,'Date':fmtD(b._start),
       'Visit Type':b._vt,'Current Client':b._client,'Should Be':`Office Training (${b._geo})`,
       'Status':b._status,'Action':`Change client → Office Training (${b._geo})`,
-      severity:'warn', geo:b._geo}));
+      severity:'warn', geo:b._geo, _cgid:b._cgid, _cid:b._cid, _bid:b._bid}));
 }
 
 function detectVTMismatch(bookings) {
@@ -595,7 +599,7 @@ function detectVTMismatch(bookings) {
       'Expected Range':`${mn!==null?fmtH(mn):'0'} – ${mx!==null?fmtH(mx):'∞'}`,
       'Suggestion':suggestion,'Status':b._status,
       'Action':suggestion!=='—'?`Wrong type for ${fmtH(b._pay_h)} — consider '${suggestion}'`:`Review: ${fmtH(b._pay_h)} outside range for ${b._vt}`,
-      severity:'error', geo:b._geo});
+      severity:'error', geo:b._geo, _cgid:b._cgid, _cid:b._cid, _bid:b._bid});
   });
   return issues;
 }
@@ -650,7 +654,8 @@ function detect247Gaps(bookings) {
             'CG After':`${dayVisits[i+1]._cg_name} (${fmtT(dayVisits[i+1]._start)}–${fmtT(dayVisits[i+1]._end)})`,
             'Day Coverage':fmtH(totalH)+'h',
             'Action':`${(gapMins/60).toFixed(1)}h gap in 24/7 coverage — verify CG handoff`,
-            severity: gapMins >= 120 ? 'error' : 'warn', geo:info.geo});
+            severity: gapMins >= 120 ? 'error' : 'warn', geo:info.geo,
+            _cid:cid, _bid:dayVisits[i]._bid});
         }
       }
     });
@@ -718,7 +723,8 @@ function detectLiveInHourly(bookings, liveInContext, auditStart, auditEnd) {
         'Action': weekTotal <= 48
           ? `Live-In under 24h (${fmtH(v._pay_h)}h) — CG has ≤48h/wk (${fmtH(weekTotal)}h), pay hourly up to 16h/day`
           : `Live-In under 24h (${fmtH(v._pay_h)}h) — CG has ${fmtH(weekTotal)}h/wk, review pay structure`,
-        severity: weekTotal <= 48 ? 'error' : 'warn', geo:p.geo});
+        severity: weekTotal <= 48 ? 'error' : 'warn', geo:p.geo,
+        _cgid:p.cgid, _cid:p.cid, _bid:v._bid});
     });
   });
   issues.sort((a,b) => sf(a['Weekly Total'])-sf(b['Weekly Total']));
@@ -747,9 +753,15 @@ function makeTable(cols, rows, sectionId) {
     const geo = esc(r.geo||'');
     const cells = cols.map(c => {
       const val = r[c]||'';
-      if (c==='Action') return `<td><span class="pill ${sev}">${esc(val)}</span></td>`;
+      if (c==='Action') {
+        if (r._bid) return `<td><a href="https://tribute.mavencare.com/bookings/${esc(r._bid)}" target="_blank" class="pill ${sev}" style="text-decoration:none">${esc(val)}</a></td>`;
+        return `<td><span class="pill ${sev}">${esc(val)}</span></td>`;
+      }
       if (c==='Status') return `<td><span class="stag" style="color:var(--${sev==='error'?'red':sev==='warn'?'yellow':'blue'})">${esc(val)}</span></td>`;
       if (c==='Flags'||c==='Missing') return `<td class="fc">${esc(val)}</td>`;
+      if (c==='Caregiver'&&r._cgid&&val) return `<td><a href="https://tribute.mavencare.com/caregivers/${esc(r._cgid)}/dashboard/summary" target="_blank" style="color:var(--blue);text-decoration:none;border-bottom:1px dashed var(--bd2)">${esc(val)}</a></td>`;
+      if (c==='Client'&&r._cid&&val) return `<td><a href="https://tribute.mavencare.com/clients/${esc(r._cid)}/dashboard/summary" target="_blank" style="color:var(--blue);text-decoration:none;border-bottom:1px dashed var(--bd2)">${esc(val)}</a></td>`;
+      if ((c==='Date'||c==='Time')&&r._bid&&val) return `<td><a href="https://tribute.mavencare.com/bookings/${esc(r._bid)}" target="_blank" style="color:var(--t1);text-decoration:none;border-bottom:1px dashed var(--bd2)">${esc(val)}</a></td>`;
       return `<td>${esc(val)}</td>`;
     }).join('');
     return `<tr data-geo="${geo}">${cells}</tr>`;
