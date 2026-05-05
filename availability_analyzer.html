@@ -683,13 +683,23 @@ async function geocodeAddress(addr){
   return null;
 }
 
-// Haversine distance in miles
+// Haversine distance in miles (fallback only)
 function distanceMiles(lat1,lng1,lat2,lng2){
   var R=3959;
   var dLat=(lat2-lat1)*Math.PI/180;
   var dLng=(lng2-lng1)*Math.PI/180;
   var a=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)*Math.sin(dLng/2);
   return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+
+// OpenRouteService matrix via API proxy (returns miles and seconds)
+async function orsMatrix(locations, sources, destinations){
+  var res=await fetch(API+'?endpoint=distance_matrix',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({locations:locations,sources:sources,destinations:destinations,metrics:['distance','duration']})
+  });
+  return await res.json();
 }
 
 // Known market center coordinates for distance estimation
@@ -780,29 +790,26 @@ async function runFinder(){
     });
 
     // Use OSRM Table API for efficient batch distance calculation
-    // Split into chunks of 50 to stay within URL limits
-    var CHUNK=50;
+    // Split into chunks of 49 (ORS max 50 locations including source)
+    var CHUNK=49;
     var distances=new Array(candidates.length).fill(null);
     for(var ci=0;ci<candidates.length;ci+=CHUNK){
       var chunk=coordsList.slice(ci,ci+CHUNK);
+      var locs=[[clientCoords.lng,clientCoords.lat]];
       var validIndices=[];
-      var coords=clientCoords.lng+','+clientCoords.lat;
       chunk.forEach(function(cg,j){
-        if(cg){validIndices.push(ci+j);coords+=';'+cg.lng+','+cg.lat;}
+        if(cg){validIndices.push(ci+j);locs.push([cg.lng,cg.lat]);}
       });
       if(validIndices.length===0)continue;
+      var destIdx=validIndices.map(function(_,i){return i+1;});
       try{
-        var url='https://router.project-osrm.org/table/v1/driving/'+coords+'?sources=0&annotations=distance';
-        var res=await fetch(url);
-        var data=await res.json();
-        if(data.code==='Ok'&&data.distances&&data.distances[0]){
-          var dists=data.distances[0]; // distances from source (index 0) to all destinations
-          var di=1; // skip index 0 (source)
-          validIndices.forEach(function(origIdx){
+        var data=await orsMatrix(locs,[0],destIdx);
+        if(data.distances&&data.distances[0]){
+          var dists=data.distances[0];
+          validIndices.forEach(function(origIdx,di){
             if(di<dists.length&&dists[di]!==null){
-              distances[origIdx]=Math.round(dists[di]*0.000621371); // meters to miles
+              distances[origIdx]=Math.round(dists[di]); // already in miles
             }
-            di++;
           });
         }
       }catch(ex){}
@@ -1196,7 +1203,7 @@ async function runStacker(){
   var withVisits=matches.filter(function(m){return m.dayVisits.length>0;}).length;
   console.log('[Smart Stacker] matches: '+matches.length+' total, '+withVisits+' with existing visits on '+dateStr);
 
-  // Calculate real drive times via batch OSRM table API (2 calls instead of 100+)
+  // Calculate real drive times via OpenRouteService batch matrix
   if(clientCoords&&matches.length>0){
     // Determine origin/destination coords per match
     matches.forEach(function(m){
@@ -1208,27 +1215,26 @@ async function runStacker(){
       else{m._toLat=null;m._toLng=null;}
     });
 
-    // Batch driveIn: table with new client as dest (index 0), origins as sources
-    var CHUNK=80;
+    // Batch driveIn: origins → new client
+    var CHUNK=49;
     for(var ci=0;ci<matches.length;ci+=CHUNK){
       var chunk=matches.slice(ci,ci+CHUNK);
-      var inCoords=clientCoords.lng+','+clientCoords.lat;
+      var locs=[[clientCoords.lng,clientCoords.lat]];
       var inIdx=[];
       chunk.forEach(function(m,j){
-        if(m._fromLat&&m._fromLng){inIdx.push(ci+j);inCoords+=';'+m._fromLng+','+m._fromLat;}
+        if(m._fromLat&&m._fromLng){inIdx.push(ci+j);locs.push([m._fromLng,m._fromLat]);}
       });
       if(inIdx.length>0){
         try{
-          var srcList=inIdx.map(function(_,i){return i+1;}).join(';');
-          var resIn=await fetch('https://router.project-osrm.org/table/v1/driving/'+inCoords+'?sources='+srcList+'&destinations=0&annotations=distance,duration');
-          var dataIn=await resIn.json();
-          if(dataIn.code==='Ok'&&dataIn.durations&&dataIn.distances){
+          var srcIdx=inIdx.map(function(_,i){return i+1;});
+          var dataIn=await orsMatrix(locs,srcIdx,[0]);
+          if(dataIn.durations&&dataIn.distances){
             inIdx.forEach(function(origIdx,ri){
               var dur=dataIn.durations[ri]&&dataIn.durations[ri][0];
               var dist=dataIn.distances[ri]&&dataIn.distances[ri][0];
               if(dur!=null){
-                matches[origIdx].gap.driveIn=dur/3600;
-                matches[origIdx]._distance=Math.round(dist*0.000621371);
+                matches[origIdx].gap.driveIn=dur/3600; // seconds→hours
+                matches[origIdx]._distance=Math.round(dist); // already miles
                 matches[origIdx]._driveMin=Math.round(dur/60);
               }
             });
@@ -1237,23 +1243,22 @@ async function runStacker(){
       }
     }
 
-    // Batch driveOut: table with new client as source (index 0), next-visits as dests
+    // Batch driveOut: new client → next visit locations
     for(var ci=0;ci<matches.length;ci+=CHUNK){
       var chunk=matches.slice(ci,ci+CHUNK);
-      var outCoords=clientCoords.lng+','+clientCoords.lat;
+      var locs=[[clientCoords.lng,clientCoords.lat]];
       var outIdx=[];
       chunk.forEach(function(m,j){
-        if(m._toLat&&m._toLng){outIdx.push(ci+j);outCoords+=';'+m._toLng+','+m._toLat;}
+        if(m._toLat&&m._toLng){outIdx.push(ci+j);locs.push([m._toLng,m._toLat]);}
       });
       if(outIdx.length>0){
         try{
-          var destList=outIdx.map(function(_,i){return i+1;}).join(';');
-          var resOut=await fetch('https://router.project-osrm.org/table/v1/driving/'+outCoords+'?sources=0&destinations='+destList+'&annotations=duration');
-          var dataOut=await resOut.json();
-          if(dataOut.code==='Ok'&&dataOut.durations&&dataOut.durations[0]){
+          var destIdx=outIdx.map(function(_,i){return i+1;});
+          var dataOut=await orsMatrix(locs,[0],destIdx);
+          if(dataOut.durations&&dataOut.durations[0]){
             var durs=dataOut.durations[0];
             outIdx.forEach(function(origIdx,di){
-              if(durs[di+1]!=null){matches[origIdx].gap.driveOut=durs[di+1]/3600;}
+              if(durs[di]!=null){matches[origIdx].gap.driveOut=durs[di]/3600;}
             });
           }
         }catch(e){}
