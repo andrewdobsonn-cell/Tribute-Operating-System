@@ -113,12 +113,8 @@ td.wr{white-space:normal;max-width:200px;overflow:hidden;text-overflow:ellipsis}
 </head>
 <body>
 <div class="topbar"><div class="topbar-brand"><span class="topbar-tribute">Tribute</span><span class="topbar-os">Operating System</span></div><div class="topbar-right"><a href="index.html" class="topbar-link">Dashboard</a></div></div>
-<div class="hero"><div class="hero-eyebrow">Workforce Analytics</div><h1 class="hero-title">Caregiver Utilization</h1><p class="hero-subtitle">Upload Caregiver Data + Schedule Data CSVs to generate the full utilization report. Data is shared company-wide until the next upload.</p></div>
-<div class="upload-section"><div class="upload-grid">
-<div class="upload-box" id="box-cg" onclick="document.getElementById('file-cg').click()"><label>Caregiver Data CSV</label><div class="fn" id="name-cg">Click to select</div><div class="fh">CaregiverData.csv</div><input type="file" id="file-cg" accept=".csv"></div>
-<div class="upload-box" id="box-sc" onclick="document.getElementById('file-sc').click()"><label>Schedule Data CSV</label><div class="fn" id="name-sc">Click to select</div><div class="fh">ScheduleData.csv</div><input type="file" id="file-sc" accept=".csv"></div>
-<button class="btn-run" id="btn-run" disabled onclick="runReport()">Generate Report</button>
-</div><div id="upload-meta"></div></div>
+<div class="hero"><div class="hero-eyebrow">Workforce Analytics</div><h1 class="hero-title">Caregiver Utilization</h1><p class="hero-subtitle">Live data from Viv — select any week to view utilization metrics.</p></div>
+<div id="upload-meta" style="display:none"></div>
 <div class="stats-strip" id="stats-strip">
 <div class="stat-card"><div class="stat-label">Active</div><div class="stat-value" id="k-active">—</div></div>
 <div class="stat-card"><div class="stat-label">Util %</div><div class="stat-value" id="k-util">—</div></div>
@@ -129,7 +125,7 @@ td.wr{white-space:normal;max-width:200px;overflow:hidden;text-overflow:ellipsis}
 </div>
 <div class="content" id="content">
 <div class="filter-bar">
-<div class="filter-group"><label>Week</label><select id="f-wk"><option value="">Loading...</option></select></div>
+<div class="filter-group"><label>Week</label><div style="display:flex;gap:4px;align-items:center"><button id="wk-prev" style="padding:5px 10px;border:1px solid var(--gray-300);border-radius:6px;background:var(--white);cursor:pointer;font-size:14px;font-family:inherit" title="Previous week">◀</button><select id="f-wk" style="min-width:200px"><option value="">Loading...</option></select><button id="wk-next" style="padding:5px 10px;border:1px solid var(--gray-300);border-radius:6px;background:var(--white);cursor:pointer;font-size:14px;font-family:inherit" title="Next week">▶</button><input type="date" id="wk-pick" style="padding:5px 8px;border:1px solid var(--gray-300);border-radius:6px;font-size:11px;font-family:inherit;color:var(--gray-text)" title="Jump to any week"></div></div>
 <div class="filter-group"><label>State</label><select id="f-st"><option value="">All States</option></select></div>
 <div class="filter-group"><label>Market</label><select id="f-mk"><option value="">All Markets</option></select></div>
 <div class="filter-group"><label>Service Type</label><select id="f-tp"><option value="">All Types</option><option value="0">Long Hours</option><option value="1">Overnight</option><option value="2">Short Hours</option><option value="3">Live-In</option></select></div>
@@ -207,17 +203,26 @@ function detectWeekFromSchedule(dfSc){
   return best||fmtWeekKey(new Date());
 }
 
-// ── File upload ──
-let fileCG=null,fileSC=null;
-document.getElementById('file-cg').addEventListener('change',e=>{fileCG=e.target.files[0];document.getElementById('name-cg').textContent=fileCG?fileCG.name:'Click to select';document.getElementById('box-cg').classList.toggle('loaded',!!fileCG);ck()});
-document.getElementById('file-sc').addEventListener('change',e=>{fileSC=e.target.files[0];document.getElementById('name-sc').textContent=fileSC?fileSC.name:'Click to select';document.getElementById('box-sc').classList.toggle('loaded',!!fileSC);ck()});
-function ck(){document.getElementById('btn-run').disabled=!(fileCG&&fileSC)}
+// ── Week navigation ──
+document.getElementById('wk-prev').addEventListener('click',function(){
+  var cur=CURRENT_WEEK_KEY||fmtWeekKey(new Date());
+  var d=new Date(cur+'T12:00:00');d.setDate(d.getDate()-7);
+  var wk=fmtWeekKey(d);loadLiveWeek(wk);
+});
+document.getElementById('wk-next').addEventListener('click',function(){
+  var cur=CURRENT_WEEK_KEY||fmtWeekKey(new Date());
+  var d=new Date(cur+'T12:00:00');d.setDate(d.getDate()+7);
+  var wk=fmtWeekKey(d);loadLiveWeek(wk);
+});
+document.getElementById('wk-pick').addEventListener('change',function(){
+  if(this.value){var wk=fmtWeekKey(new Date(this.value+'T12:00:00'));loadLiveWeek(wk);}
+});
 
 // ── Tabs ──
 document.querySelectorAll('.tab-btn').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.tab-btn').forEach(x=>x.classList.remove('active'));document.querySelectorAll('.tp').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.getElementById('p-'+b.dataset.t).classList.add('active')}));
 const fWk=document.getElementById('f-wk'),fSt=document.getElementById('f-st'),fMk=document.getElementById('f-mk'),fTp=document.getElementById('f-tp');
 [fSt,fMk,fTp].forEach(f=>f.addEventListener('change',renderAll));
-fWk.addEventListener('change',()=>{if(fWk.value&&fWk.value!==CURRENT_WEEK_KEY)loadWeek(fWk.value)});
+fWk.addEventListener('change',function(){if(fWk.value&&fWk.value!==CURRENT_WEEK_KEY)loadLiveWeek(fWk.value)});
 
 // ── Sorting ──
 function addSort(tableEl){
@@ -418,97 +423,50 @@ function filterScheduleByWeek(dfSc,weekKey){
   });
 }
 
-// ── Main Run ──
-async function runReport(){
-  document.getElementById('content').classList.add('show');document.getElementById('stats-strip').classList.add('show');
-  document.querySelectorAll('.tp').forEach(p=>p.innerHTML='<div class="processing"><div class="spin"></div>Processing...</div>');
-  const cgText=await readFile(fileCG),scText=await readFile(fileSC);
-  const dfCgRaw=normalizeCgColumns(parseCSV(cgText));
-  const dfScAll=parseCSV(scText);
-  SCHED_RAW=dfScAll;
-  const relevantWeeks=getRelevantWeeks();
-
-  // Process and upload each of the 3 weeks
-  document.getElementById('btn-run').textContent='Publishing...';document.getElementById('btn-run').disabled=true;
-  const primaryWeek=relevantWeeks[1]; // this week
-
-  for(let wi=0;wi<relevantWeeks.length;wi++){
-    const weekKey=relevantWeeks[wi];
-    const dfSc=filterScheduleByWeek(dfScAll,weekKey);
-    const dfCg=filterActiveForWeek(dfCgRaw,weekKey);
-    const sched=processSchedule(dfSc);const result=processCaregivers(dfCg,sched);
-    const travel=processTravelGaps(dfSc);
-    const payload={active:result.activeRows,prn:result.prnRows,pto:result.ptoRows,travel,cgName:fileCG.name,scName:fileSC.name,weekKey};
-    if(wi===0)payload.allWeeks=relevantWeeks; // first upload replaces the index
-    try{await fetch(API+'?endpoint=utilization_upload',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})}catch(e){console.warn('Failed to upload week',weekKey,e)}
-    // Load the primary week into view
-    if(weekKey===primaryWeek){
-      ACTIVE=result.activeRows;PRN_R=result.prnRows;PTO_R=result.ptoRows;TRAVEL=travel;
-      CURRENT_WEEK_KEY=weekKey;
-    }
-  }
-
-  showMeta(new Date().toISOString(),fileCG.name,fileSC.name);
-  document.getElementById('btn-run').textContent='Generate Report';document.getElementById('btn-run').disabled=false;
-  await refreshWeekDropdown(primaryWeek);
-  popFilters();renderAll();
-}
+// ── Auto-load on page load ──
+(function(){
+  var thisWeek=fmtWeekKey(new Date());
+  loadLiveWeek(thisWeek);
+})();
 function popFilters(){const states=new Set(),markets=new Set();[...ACTIVE,...PRN_R,...PTO_R].forEach(r=>{states.add(r.state);markets.add(r.market)});fSt.innerHTML='<option value="">All States</option>';fMk.innerHTML='<option value="">All Markets</option>';ST_ORDER.forEach(s=>{if(states.has(s)){const o=document.createElement('option');o.value=s;o.textContent=s;fSt.appendChild(o)}});MKT_ORDER.forEach(m=>{if(markets.has(m)){const o=document.createElement('option');o.value=m;o.textContent=m;fMk.appendChild(o)}})}
 function showMeta(ts,cn,sn){const d=new Date(ts);document.getElementById('upload-meta').innerHTML='Data published <strong>'+d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'})+' at '+d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})+'</strong> — '+cn+' + '+sn;document.getElementById('upload-meta').style.display='block'}
 
-// ── Week loading ──
-async function refreshWeekDropdown(selectKey){
+// ── Week loading (live API) ──
+function updateWeekDropdown(weekKey){
   fWk.innerHTML='';
-  const relevant=new Set(getRelevantWeeks());
-  try{
-    const resp=await fetch(API+'?endpoint=utilization_upload&action=list');
-    const idx=await resp.json();
-    const weeks=(idx.weeks||[]).filter(w=>relevant.has(w)).sort().reverse();
-    if(!weeks.length){fWk.innerHTML='<option value="">No data</option>';return}
-    for(const wk of weeks){const o=document.createElement('option');o.value=wk;o.textContent=weekLabel(wk);fWk.appendChild(o)}
-    fWk.value=selectKey||weeks[0];
-  }catch(e){fWk.innerHTML='<option value="">Error loading</option>'}
+  var weeks=getRelevantWeeks();
+  // Add the selected week if not in the standard 3
+  if(weeks.indexOf(weekKey)<0)weeks.push(weekKey);
+  weeks.sort().reverse();
+  for(var i=0;i<weeks.length;i++){var o=document.createElement('option');o.value=weeks[i];o.textContent=weekLabel(weeks[i]);fWk.appendChild(o)}
+  fWk.value=weekKey;
 }
-async function loadWeek(weekKey){
-  document.querySelectorAll('.tp').forEach(p=>p.innerHTML='<div class="processing"><div class="spin"></div>Loading...</div>');
+async function loadLiveWeek(weekKey){
+  CURRENT_WEEK_KEY=weekKey;
+  updateWeekDropdown(weekKey);
+  document.getElementById('content').classList.add('show');
+  document.getElementById('stats-strip').classList.add('show');
+  document.querySelectorAll('.tp').forEach(function(p){p.innerHTML='<div class="processing"><div class="spin"></div>Loading from Viv...</div>'});
   try{
-    const resp=await fetch(API+'?endpoint=utilization_upload&week='+encodeURIComponent(weekKey));
-    const d=await resp.json();
-    if(d.empty||!d.active){document.querySelectorAll('.tp').forEach(p=>p.innerHTML='<div class="empty">No data for this week</div>');return}
-    ACTIVE=d.active||[];PRN_R=d.prn||[];PTO_R=d.pto||[];
-    TRAVEL=(d.travel||[]).map(g=>({...g,date:new Date(g.date),gapStart:new Date(g.gapStart),gapEnd:new Date(g.gapEnd)}));
-    CURRENT_WEEK_KEY=weekKey;
-    document.getElementById('content').classList.add('show');document.getElementById('stats-strip').classList.add('show');
-    popFilters();showMeta(d._uploadedAt||d._cachedAt,d.cgName||'CaregiverData.csv',d.scName||'ScheduleData.csv');
-    renderAll();
-  }catch(e){console.warn('Failed to load week',weekKey,e)}
+    var resp=await fetch(API+'?endpoint=utilization_live&week='+encodeURIComponent(weekKey));
+    var d=await resp.json();
+    if(!d.caregivers||!d.schedule){document.querySelectorAll('.tp').forEach(function(p){p.innerHTML='<div class="empty">No data for this week</div>'});return}
+    // Process raw data through existing pipeline
+    var dfCg=filterActiveForWeek(d.caregivers,weekKey);
+    var dfSc=d.schedule;
+    SCHED_RAW=dfSc;
+    var sched=processSchedule(dfSc);
+    var result=processCaregivers(dfCg,sched);
+    var travel=processTravelGaps(dfSc);
+    ACTIVE=result.activeRows;PRN_R=result.prnRows;PTO_R=result.ptoRows;TRAVEL=travel;
+    showMeta(d.generatedAt||new Date().toISOString(),'Viv Report Builder','Viv Schedule API');
+    popFilters();renderAll();
+  }catch(e){
+    console.error('[utilization_live]',e);
+    document.querySelectorAll('.tp').forEach(function(p){p.innerHTML='<div class="empty">Error loading data: '+e.message+'</div>'});
+  }
 }
-
-// Auto-load from API
-(async function(){
-  try{
-    const resp=await fetch(API+'?endpoint=utilization_upload&action=list');
-    const idx=await resp.json();
-    const relevant=new Set(getRelevantWeeks());
-    const weeks=(idx.weeks||[]).filter(w=>relevant.has(w)).sort().reverse();
-    if(weeks.length){
-      await refreshWeekDropdown(weeks[0]);
-      await loadWeek(weeks[0]);
-    }else{
-      // Try legacy single-blob format
-      const resp2=await fetch(API+'?endpoint=utilization_upload');
-      const d=await resp2.json();
-      if(!d.empty&&d.active){
-        ACTIVE=d.active||[];PRN_R=d.prn||[];PTO_R=d.pto||[];
-        TRAVEL=(d.travel||[]).map(g=>({...g,date:new Date(g.date),gapStart:new Date(g.gapStart),gapEnd:new Date(g.gapEnd)}));
-        document.getElementById('content').classList.add('show');document.getElementById('stats-strip').classList.add('show');
-        popFilters();showMeta(d._uploadedAt||d._cachedAt,d.cgName||'CaregiverData.csv',d.scName||'ScheduleData.csv');
-        renderAll();
-      }
-      fWk.innerHTML='<option value="">No data</option>';
-    }
-  }catch(e){console.warn('No data yet',e);fWk.innerHTML='<option value="">No data</option>'}
-})();
+async function loadWeek(weekKey){return loadLiveWeek(weekKey);}
 
 // ═════════════════════════════════════════════════════════════
 // RENDER
