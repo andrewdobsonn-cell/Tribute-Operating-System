@@ -108,6 +108,7 @@ select.geo-sel{font-size:11px;padding:5px 10px;border:.5px solid var(--border2);
   <div class="tab" onclick="setTab('revenue',this)">Revenue</div>
   <div class="tab" onclick="setTab('monthly',this)">Monthly</div>
   <div class="tab" onclick="setTab('summary',this)">Summary</div>
+  <div class="tab" onclick="setTab('validation',this)">Validation</div>
 </div>
 
 <div id="ct"></div>
@@ -266,6 +267,7 @@ function render(){
   else if(currentTab==='revenue')renderRevenue();
   else if(currentTab==='monthly')renderMonthly();
   else if(currentTab==='summary')renderSummary();
+  else if(currentTab==='validation')renderValidation();
 }
 
 function renderHours(){
@@ -482,6 +484,148 @@ function renderSummary(){
   html+='</div>';
 
   document.getElementById('ct').innerHTML=html;
+}
+
+var validationData=null;
+function renderValidation(){
+  var ct=document.getElementById('ct');
+  var sun=getSunday(new Date());
+
+  var html='<div class="fc" style="margin-bottom:12px"><div class="ct">Calculation Validation</div>';
+  html+='<div style="display:flex;gap:10px;align-items:center;margin-bottom:12px">';
+  html+='<label style="font-size:11px;color:var(--text2)">Week start (Sunday):</label>';
+  html+='<input type="date" id="valWeek" value="'+sun+'" style="font-size:11px;padding:5px 10px;border:.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text)">';
+  html+='<button onclick="fetchValidation()" style="font-size:11px;padding:5px 14px;border-radius:20px;border:.5px solid var(--border2);background:var(--text);color:var(--bg);cursor:pointer;font-weight:600">Fetch &amp; Validate</button>';
+  html+='<span id="valStatus" style="font-size:11px;color:var(--text3)"></span>';
+  html+='</div>';
+  html+='<div style="font-size:11px;color:var(--text3);margin-bottom:8px">Fetches raw visit data from Viv and shows every calculation step. First fetch takes 1-2 minutes.</div>';
+  html+='</div>';
+  html+='<div id="valOutput">';
+  if(validationData)html+=renderValidationData(validationData);
+  html+='</div>';
+  ct.innerHTML=html;
+}
+
+async function fetchValidation(){
+  var week=document.getElementById('valWeek').value;
+  var status=document.getElementById('valStatus');
+  var output=document.getElementById('valOutput');
+  status.textContent='Fetching from Viv...';
+  output.innerHTML='<div style="padding:40px;text-align:center;color:var(--text3)">Loading... this may take 1-2 minutes.</div>';
+  try{
+    var res=await fetch(API+'?endpoint=weekly_volume&startWeek='+week+'&endWeek='+week+'&debug=true');
+    if(!res.ok)throw new Error('API '+res.status);
+    var data=await res.json();
+    validationData={data:data,week:week};
+    status.textContent='Loaded '+new Date().toLocaleTimeString();
+    output.innerHTML=renderValidationData(validationData);
+  }catch(e){
+    status.textContent='Error: '+e.message;
+    output.innerHTML='<div class="fc" style="color:var(--red)">Failed: '+e.message+'</div>';
+  }
+}
+
+function renderValidationData(vd){
+  var data=vd.data,week=vd.week;
+  if(!data.debug||!data.debug.length)return'<div class="fc">No data returned</div>';
+  var wk=data.debug[0],rows=wk.rows,skipped=wk.skipped,totalRaw=wk.totalVisitsRaw;
+
+  var agg={};
+  var grandHrs=0,grandVivRev=0,grandManualRev=0,grandConverted=0;
+  rows.forEach(function(r){
+    var k=r.geo+'|'+r.shiftType;
+    if(!agg[k])agg[k]={geo:r.geo,shiftType:r.shiftType,hours:0,vivRevenue:0,manualRevenue:0,visits:0};
+    agg[k].hours+=r.billableHours;agg[k].vivRevenue+=r.vivRevenue;agg[k].manualRevenue+=r.manualRevenue;agg[k].visits++;
+    grandHrs+=r.billableHours;grandVivRev+=r.vivRevenue;grandManualRev+=r.manualRevenue;
+    grandConverted+=(r.shiftType==='Live-In'?r.billableHours*2/3:r.billableHours);
+  });
+  var aggArr=Object.values(agg).sort(function(a,b){return b.vivRevenue-a.vivRevenue;});
+
+  var h='';
+  // Summary
+  h+='<div class="fc"><div class="ct">Week of '+week+' — Summary</div>';
+  h+='<div class="kg">';
+  h+='<div class="kpi"><div class="kl">Raw Visits</div><div class="kv">'+totalRaw.toLocaleString()+'</div><div class="ks">Billable: '+rows.length+'</div></div>';
+  h+='<div class="kpi"><div class="kl">Raw Hours</div><div class="kv">'+fn(grandHrs)+'</div></div>';
+  h+='<div class="kpi"><div class="kl">Converted Hours</div><div class="kv g">'+fn(grandConverted)+'</div><div class="ks">Live-In x 2/3</div></div>';
+  h+='<div class="kpi"><div class="kl">Viv Revenue</div><div class="kv b">'+fm(grandVivRev)+'</div><div class="ks">grossMargin.totalRevenue</div></div>';
+  h+='</div>';
+  h+='<div class="kg">';
+  h+='<div class="kpi"><div class="kl">Manual Revenue</div><div class="kv a">'+fm(grandManualRev)+'</div><div class="ks">units x billRate + flat</div></div>';
+  h+='<div class="kpi"><div class="kl">Revenue Diff</div><div class="kv '+(Math.abs(grandVivRev-grandManualRev)<100?'g':'r')+'">'+fm(grandVivRev-grandManualRev)+'</div><div class="ks">Viv - Manual</div></div>';
+  h+='<div class="kpi"><div class="kl">Skipped</div><div class="kv">'+Object.values(skipped).reduce(function(a,b){return a+b;},0)+'</div><div class="ks">Type:'+skipped.excludedType+' Cancel:'+skipped.canceled+' Geo:'+skipped.excludedGeo+' Client:'+skipped.excludedClient+' NoBill:'+skipped.nonBillable+'</div></div>';
+  h+='</div></div>';
+
+  // Agg table
+  h+='<div class="fc"><div class="ct">Aggregation by GEO + Shift Type</div>';
+  h+='<div class="scroll-wrap"><table class="tbl"><thead><tr><th>GEO</th><th>Shift</th><th>Visits</th><th>Hours</th><th>Converted</th><th>Viv Rev</th><th>Manual Rev</th><th>Diff</th></tr></thead><tbody>';
+  aggArr.forEach(function(a){
+    var conv=a.shiftType==='Live-In'?a.hours*2/3:a.hours;
+    var diff=a.vivRevenue-a.manualRevenue;
+    var warn=Math.abs(diff)>50;
+    h+='<tr><td>'+a.geo+'</td><td>'+a.shiftType+'</td><td style="text-align:right">'+a.visits+'</td>';
+    h+='<td style="text-align:right">'+fn(a.hours)+'</td><td style="text-align:right">'+fn(conv)+'</td>';
+    h+='<td style="text-align:right">'+fm(a.vivRevenue)+'</td><td style="text-align:right">'+fm(a.manualRevenue)+'</td>';
+    h+='<td style="text-align:right;'+(warn?'background:#fcebeb;color:#791f1f;font-weight:600':'')+'">'+fm(diff)+'</td></tr>';
+  });
+  h+='<tr style="border-top:2px solid var(--border2);font-weight:700"><td>TOTAL</td><td></td><td style="text-align:right">'+rows.length+'</td>';
+  h+='<td style="text-align:right">'+fn(grandHrs)+'</td><td style="text-align:right">'+fn(grandConverted)+'</td>';
+  h+='<td style="text-align:right">'+fm(grandVivRev)+'</td><td style="text-align:right">'+fm(grandManualRev)+'</td>';
+  h+='<td style="text-align:right">'+fm(grandVivRev-grandManualRev)+'</td></tr>';
+  h+='</tbody></table></div></div>';
+
+  // Visit detail
+  h+='<div class="fc"><div class="ct">Visit-Level Detail ('+rows.length+' visits)</div>';
+  h+='<div style="display:flex;gap:8px;margin-bottom:8px;align-items:center">';
+  h+='<select id="valGeo" onchange="filterValTable()" style="font-size:11px;padding:4px 8px;border:.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text)">';
+  h+='<option value="all">All GEOs</option>';
+  var geos=Array.from(new Set(rows.map(function(r){return r.geo;}))).sort();
+  geos.forEach(function(g){h+='<option value="'+g+'">'+g+'</option>';});
+  h+='</select>';
+  h+='<select id="valShift" onchange="filterValTable()" style="font-size:11px;padding:4px 8px;border:.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text)">';
+  h+='<option value="all">All Shifts</option><option value="Hourly">Hourly</option><option value="Live-In">Live-In</option></select></div>';
+  h+='<div style="max-height:500px;overflow:auto;border:.5px solid var(--border);border-radius:var(--r)"><table class="tbl" id="valVisitTbl"><thead><tr>';
+  h+='<th>Date</th><th>GEO</th><th>Client</th><th>Shift</th><th>Rate Type</th><th>Billing ms</th><th>Hours</th>';
+  h+='<th>Client Rate</th><th>Bill Rate</th><th>Flat</th><th>Units</th><th>Manual Rev</th><th>Viv Rev</th><th>Diff</th><th>Filled</th>';
+  h+='</tr></thead><tbody>';
+  rows.sort(function(a,b){return a.date.localeCompare(b.date)||a.geo.localeCompare(b.geo);});
+  rows.forEach(function(r){
+    var diff=r.revenueDiff;var warn=Math.abs(diff)>1;
+    h+='<tr data-geo="'+r.geo+'" data-shift="'+r.shiftType+'">';
+    h+='<td>'+r.date+'</td><td>'+r.geo+'</td><td>'+r.client+'</td>';
+    h+='<td style="text-align:right">'+r.shiftType+'</td><td style="text-align:right">'+r.rateType+'</td>';
+    h+='<td style="text-align:right">'+r.billingMs.toLocaleString()+'</td><td style="text-align:right">'+fn(r.billableHours)+'</td>';
+    h+='<td style="text-align:right">'+fm(r.clientRate)+'</td><td style="text-align:right">'+fm(r.billRate)+'</td>';
+    h+='<td style="text-align:right">'+fm(r.billingFlat)+'</td><td style="text-align:right">'+fn(r.billingUnits)+'</td>';
+    h+='<td style="text-align:right">'+fm(r.manualRevenue)+'</td>';
+    h+='<td style="text-align:right;color:var(--blue)">'+fm(r.vivRevenue)+'</td>';
+    h+='<td style="text-align:right;'+(warn?'background:#fcebeb;color:#791f1f;font-weight:600':'')+'">'+fm(diff)+'</td>';
+    h+='<td style="text-align:right">'+(r.filled?'Yes':'Open')+'</td></tr>';
+  });
+  h+='</tbody></table></div></div>';
+
+  // Formula ref
+  h+='<div class="fc"><div class="ct">Calculation Reference</div>';
+  h+='<div style="font-size:12px;line-height:2">';
+  h+='<b>billableHours</b> = billingMilliseconds / 3,600,000<br>';
+  h+='<b>billingUnits</b> = if Daily: billableHours / 24, else: billableHours<br>';
+  h+='<b>billingFlat</b> = sum of accs[].incClient<br>';
+  h+='<b>Manual Revenue</b> = (billingUnits x billRate) + billingFlat<br>';
+  h+='<b>Viv Revenue</b> = queries.grossMargin.totalRevenue (pre-computed)<br>';
+  h+='<b>Converted Hours</b> = Live-In hours x 2/3; Hourly as-is<br>';
+  h+='<b style="color:var(--blue)">Dashboard uses Viv Revenue</b>';
+  h+='</div></div>';
+  return h;
+}
+
+function filterValTable(){
+  var geo=document.getElementById('valGeo').value;
+  var shift=document.getElementById('valShift').value;
+  document.querySelectorAll('#valVisitTbl tbody tr').forEach(function(r){
+    var gm=geo==='all'||r.getAttribute('data-geo')===geo;
+    var sm=shift==='all'||r.getAttribute('data-shift')===shift;
+    r.style.display=(gm&&sm)?'':'none';
+  });
 }
 
 init();
