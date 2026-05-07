@@ -144,7 +144,10 @@ function init(){
   // Parse embedded data: [geo, shiftType, date, revenue, hours]
   weeklyRows=WEEKLY_DATA.map(function(r){return{geo:r[0],shiftType:r[1],startOfWeek:r[2],totalRevenue:r[3],billableHours:r[4]};});
   monthlyRows=MONTHLY_DATA.map(function(r){return{geo:r[0],shiftType:r[1],startOfMonth:r[2],totalRevenue:r[3],billableHours:r[4]};});
-  // No future filtering — show all weeks including projections
+  // Only keep historical weeks from embedded data (before current week)
+  var thisWeekStart=getSunday(new Date());
+  weeklyRows=weeklyRows.filter(function(r){return r.startOfWeek<thisWeekStart;});
+  monthlyRows=monthlyRows.filter(function(r){return r.startOfMonth<thisWeekStart;});
   document.getElementById('ts').textContent='Last updated: '+new Date().toLocaleDateString();
   render();
   // Fetch live data for current week from Viv API
@@ -154,17 +157,12 @@ function init(){
 async function fetchLiveData(){
   try{
     var thisWeek=getSunday(new Date());
-    // Find the last embedded week
-    var embeddedWeeks=Array.from(new Set(weeklyRows.map(function(r){return r.startOfWeek;}))).sort();
-    var lastEmbedded=embeddedWeeks[embeddedWeeks.length-1]||'2022-01-01';
-    // Only fetch if embedded data doesn't cover current week
-    if(lastEmbedded>=thisWeek)return;
-    // Fetch from the week after the last embedded week through current week
-    var startWeek=new Date(lastEmbedded);
-    startWeek.setDate(startWeek.getDate()+7);
-    var startStr=startWeek.toISOString().split('T')[0];
+    // Fetch current week + next 4 weeks from Viv
+    var endDate=new Date(thisWeek);
+    endDate.setDate(endDate.getDate()+28);
+    var endStr=endDate.toISOString().split('T')[0];
     document.getElementById('sl').innerHTML='<span class="dot"></span>Fetching live data from Viv...';
-    var res=await fetch(API+'?endpoint=weekly_volume&startWeek='+startStr+'&endWeek='+thisWeek);
+    var res=await fetch(API+'?endpoint=weekly_volume&startWeek='+thisWeek+'&endWeek='+endStr);
     if(!res.ok)throw new Error('API returned '+res.status);
     var data=await res.json();
     if(data.weekly&&data.weekly.length>0){
