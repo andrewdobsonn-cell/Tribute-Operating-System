@@ -144,10 +144,7 @@ function init(){
   // Parse embedded data: [geo, shiftType, date, revenue, hours]
   weeklyRows=WEEKLY_DATA.map(function(r){return{geo:r[0],shiftType:r[1],startOfWeek:r[2],totalRevenue:r[3],billableHours:r[4]};});
   monthlyRows=MONTHLY_DATA.map(function(r){return{geo:r[0],shiftType:r[1],startOfMonth:r[2],totalRevenue:r[3],billableHours:r[4]};});
-  // Filter out future weeks
-  var today=new Date().toISOString().split('T')[0];
-  weeklyRows=weeklyRows.filter(function(r){return r.startOfWeek<=today;});
-  monthlyRows=monthlyRows.filter(function(r){return r.startOfMonth<=today;});
+  // No future filtering — show all weeks including projections
   document.getElementById('ts').textContent='Last updated: '+new Date().toLocaleDateString();
   render();
   // Fetch live data for current week from Viv API
@@ -160,11 +157,12 @@ async function fetchLiveData(){
     // Find the last embedded week
     var embeddedWeeks=Array.from(new Set(weeklyRows.map(function(r){return r.startOfWeek;}))).sort();
     var lastEmbedded=embeddedWeeks[embeddedWeeks.length-1]||'2022-01-01';
+    // Only fetch if embedded data doesn't cover current week
+    if(lastEmbedded>=thisWeek)return;
     // Fetch from the week after the last embedded week through current week
     var startWeek=new Date(lastEmbedded);
     startWeek.setDate(startWeek.getDate()+7);
     var startStr=startWeek.toISOString().split('T')[0];
-    if(startStr>thisWeek)return; // embedded data already covers current week
     document.getElementById('sl').innerHTML='<span class="dot"></span>Fetching live data from Viv...';
     var res=await fetch(API+'?endpoint=weekly_volume&startWeek='+startStr+'&endWeek='+thisWeek);
     if(!res.ok)throw new Error('API returned '+res.status);
