@@ -780,6 +780,11 @@ body {
       <div class="tile-name">Availability Analyzer</div>
       <div class="tile-desc">Caregiver day-of-week availability, preferences, and workforce capacity by market</div>
     </div>
+    <div class="dash-tile" onclick="loadDash('weekly_volume',this)">
+      <div class="tile-icon">📊</div>
+      <div class="tile-name">Weekly Volume</div>
+      <div class="tile-desc">Weekly and monthly hours of service, revenue trends, and state-level rollups</div>
+    </div>
   </div>
 
   <!-- ACTIVE DASHBOARD FRAME -->
@@ -891,6 +896,7 @@ var DASHES = {
   caregiver_utilization:  { title:'Caregiver Utilization',    file:'caregiver_utilization_v2.html' },
   tribute_audit:          { title:'Weekly Audit',              file:'tribute_audit.html' },
   availability_analyzer:  { title:'Availability Analyzer',     file:'availability_analyzer.html' },
+  weekly_volume:          { title:'Weekly Volume',              file:'weekly_volume.html' },
 };
 
 var curDash = 'executive';
