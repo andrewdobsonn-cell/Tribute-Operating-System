@@ -78,11 +78,24 @@ select.geo-sel{font-size:11px;padding:5px 10px;border:.5px solid var(--border2);
 <div class="ctrl-row">
   <select class="geo-sel" id="geoSel" onchange="render()">
     <option value="all">All Markets</option>
-    <option value="Massachusetts">Massachusetts</option>
-    <option value="Maryland">Maryland</option>
-    <option value="Illinois">Illinois</option>
-    <option value="Virginia">Virginia</option>
-    <option value="Northern New Jersey">Northern New Jersey</option>
+    <optgroup label="States">
+      <option value="Massachusetts">Massachusetts</option>
+      <option value="Maryland">Maryland</option>
+      <option value="Illinois">Illinois</option>
+      <option value="Virginia">Virginia</option>
+    </optgroup>
+    <optgroup label="Markets">
+      <option value="Annapolis">Annapolis</option>
+      <option value="Baltimore">Baltimore</option>
+      <option value="Bethesda">Bethesda</option>
+      <option value="Boston">Boston</option>
+      <option value="Chicago">Chicago</option>
+      <option value="MetroWest Boston">MetroWest Boston</option>
+      <option value="North of Boston">North of Boston</option>
+      <option value="Northern New Jersey">Northern New Jersey</option>
+      <option value="Northern Virginia">Northern Virginia</option>
+      <option value="South of Boston">South of Boston</option>
+    </optgroup>
   </select>
   <div class="tgl">
     <div class="tgl-btn on" onclick="setMode('converted',this)">Converted Hours</div>
@@ -123,6 +136,10 @@ let currentMode='converted';
 let weeklyRows=[];
 let monthlyRows=[];
 
+var API='https://tribute-api-prod-bkc4hfcwf3f2f6bf.centralus-01.azurewebsites.net/api/vivProxy';
+
+function getSunday(d){var dt=new Date(d);dt.setDate(dt.getDate()-dt.getDay());return dt.toISOString().split('T')[0];}
+
 function init(){
   // Parse embedded data: [geo, shiftType, date, revenue, hours]
   weeklyRows=WEEKLY_DATA.map(function(r){return{geo:r[0],shiftType:r[1],startOfWeek:r[2],totalRevenue:r[3],billableHours:r[4]};});
@@ -133,6 +150,36 @@ function init(){
   monthlyRows=monthlyRows.filter(function(r){return r.startOfMonth<=today;});
   document.getElementById('ts').textContent='Last updated: '+new Date().toLocaleDateString();
   render();
+  // Fetch live data for current week from Viv API
+  fetchLiveData();
+}
+
+async function fetchLiveData(){
+  try{
+    var thisWeek=getSunday(new Date());
+    // Find the last embedded week
+    var embeddedWeeks=Array.from(new Set(weeklyRows.map(function(r){return r.startOfWeek;}))).sort();
+    var lastEmbedded=embeddedWeeks[embeddedWeeks.length-1]||'2022-01-01';
+    // Fetch from the week after the last embedded week through current week
+    var startWeek=new Date(lastEmbedded);
+    startWeek.setDate(startWeek.getDate()+7);
+    var startStr=startWeek.toISOString().split('T')[0];
+    if(startStr>thisWeek)return; // embedded data already covers current week
+    document.getElementById('sl').innerHTML='<span class="dot"></span>Fetching live data from Viv...';
+    var res=await fetch(API+'?endpoint=weekly_volume&startWeek='+startStr+'&endWeek='+thisWeek);
+    if(!res.ok)throw new Error('API returned '+res.status);
+    var data=await res.json();
+    if(data.weekly&&data.weekly.length>0){
+      weeklyRows=weeklyRows.concat(data.weekly);
+      document.getElementById('sl').innerHTML='<span class="dot"></span>Live data loaded &middot; '+data.weekly.length+' rows from Viv';
+      render();
+    }else{
+      document.getElementById('sl').innerHTML='<span class="dot"></span>Data loaded &middot; no new live data';
+    }
+  }catch(e){
+    console.warn('Live fetch error:',e.message);
+    document.getElementById('sl').innerHTML='<span class="dot"></span>Embedded data only &middot; live fetch failed';
+  }
 }
 
 function setPeriod(p,el){
