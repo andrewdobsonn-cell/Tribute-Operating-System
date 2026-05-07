@@ -144,33 +144,30 @@ function init(){
   // Parse embedded data: [geo, shiftType, date, revenue, hours]
   weeklyRows=WEEKLY_DATA.map(function(r){return{geo:r[0],shiftType:r[1],startOfWeek:r[2],totalRevenue:r[3],billableHours:r[4]};});
   monthlyRows=MONTHLY_DATA.map(function(r){return{geo:r[0],shiftType:r[1],startOfMonth:r[2],totalRevenue:r[3],billableHours:r[4]};});
-  // Only keep historical weeks from embedded data (before current week)
-  var thisWeekStart=getSunday(new Date());
-  weeklyRows=weeklyRows.filter(function(r){return r.startOfWeek<thisWeekStart;});
-  monthlyRows=monthlyRows.filter(function(r){return r.startOfMonth<thisWeekStart;});
+  // Keep all embedded data (past + future projections from Excel)
+  // Current week will be replaced with live Viv data
   document.getElementById('ts').textContent='Last updated: '+new Date().toLocaleDateString();
   render();
-  // Fetch live data for current week from Viv API
+  // Fetch live data for current week only from Viv API
   fetchLiveData();
 }
 
 async function fetchLiveData(){
   try{
     var thisWeek=getSunday(new Date());
-    // Fetch current week + next 4 weeks from Viv
-    var endDate=new Date(thisWeek);
-    endDate.setDate(endDate.getDate()+28);
-    var endStr=endDate.toISOString().split('T')[0];
-    document.getElementById('sl').innerHTML='<span class="dot"></span>Fetching live data from Viv...';
-    var res=await fetch(API+'?endpoint=weekly_volume&startWeek='+thisWeek+'&endWeek='+endStr);
+    // Fetch only the current week live from Viv
+    document.getElementById('sl').innerHTML='<span class="dot"></span>Fetching current week from Viv...';
+    var res=await fetch(API+'?endpoint=weekly_volume&startWeek='+thisWeek+'&endWeek='+thisWeek);
     if(!res.ok)throw new Error('API returned '+res.status);
     var data=await res.json();
     if(data.weekly&&data.weekly.length>0){
+      // Remove current week from embedded data and replace with live
+      weeklyRows=weeklyRows.filter(function(r){return r.startOfWeek!==thisWeek;});
       weeklyRows=weeklyRows.concat(data.weekly);
-      document.getElementById('sl').innerHTML='<span class="dot"></span>Live data loaded &middot; '+data.weekly.length+' rows from Viv';
+      document.getElementById('sl').innerHTML='<span class="dot"></span>Current week live from Viv &middot; future weeks from Excel projections';
       render();
     }else{
-      document.getElementById('sl').innerHTML='<span class="dot"></span>Data loaded &middot; no new live data';
+      document.getElementById('sl').innerHTML='<span class="dot"></span>Data loaded &middot; current week has no Viv data yet';
     }
   }catch(e){
     console.warn('Live fetch error:',e.message);
