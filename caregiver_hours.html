@@ -734,9 +734,9 @@ function renderTributeSecure(){
   var allCgs=getFiltered();
   var tsCgs=allCgs.filter(function(c){return c.tsThreshold>0;});
   var agg=aggregateGroup(tsCgs);
-  var ts40=tsCgs.filter(function(c){return c.tsThreshold===40;});
-  var ts30=tsCgs.filter(function(c){return c.tsThreshold===30;});
-  var ts20=tsCgs.filter(function(c){return c.tsThreshold===20;});
+  var tsByLevel={};
+  tsCgs.forEach(function(c){(tsByLevel[c.tsThreshold]=tsByLevel[c.tsThreshold]||[]).push(c);});
+  var tsLevels=Object.keys(tsByLevel).map(Number).sort(function(a,b){return b-a;});
 
   // Caregivers below threshold (owed hours)
   var belowThreshold=tsCgs.filter(function(c){
@@ -752,8 +752,9 @@ function renderTributeSecure(){
 
   html+='<div class="kg">';
   html+='<div class="kpi"><div class="kl">TS Caregivers</div><div class="kv p">'+fn(tsCgs.length)+'</div><div class="ks">of '+fn(allCgs.length)+' total</div></div>';
-  html+='<div class="kpi"><div class="kl">TS40</div><div class="kv p">'+fn(ts40.length)+'</div><div class="ks">40h guarantee</div></div>';
-  html+='<div class="kpi"><div class="kl">TS30</div><div class="kv p">'+fn(ts30.length)+'</div><div class="ks">30h guarantee</div></div>';
+  tsLevels.forEach(function(lvl){
+    html+='<div class="kpi"><div class="kl">TS'+lvl+'</div><div class="kv p">'+fn(tsByLevel[lvl].length)+'</div><div class="ks">'+lvl+'h guarantee</div></div>';
+  });
   html+='<div class="kpi"><div class="kl">Below Threshold</div><div class="kv '+(belowThreshold.length>0?'r':'g')+'">'+fn(belowThreshold.length)+'</div><div class="ks">'+fn(Math.round(totalOwed))+'h owed</div></div>';
   html+='<div class="kpi"><div class="kl">At 75%+ Desired</div><div class="kv '+(agg.goal75>=0.9?'g':agg.goal75>=0.7?'a':'r')+'">'+fp(agg.goal75)+'</div><div class="ks">of TS caregivers</div></div>';
   html+='</div>';
@@ -826,9 +827,11 @@ function renderList(){
   html+='<select onchange="filterByTS(this.value)" style="font-size:11px;padding:7px 10px;border:.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text);cursor:pointer">';
   html+='<option value="">All TS</option>';
   html+='<option value="any">Tribute Secure only</option>';
-  html+='<option value="40">TS40</option>';
-  html+='<option value="30">TS30</option>';
-  html+='<option value="20">TS20</option>';
+  var allTsLevels={};
+  (data.caregivers||[]).forEach(function(c){if(c.tsThreshold>0)allTsLevels[c.tsThreshold]=true;});
+  Object.keys(allTsLevels).map(Number).sort(function(a,b){return b-a;}).forEach(function(lvl){
+    html+='<option value="'+lvl+'">TS'+lvl+'</option>';
+  });
   html+='</select>';
   html+='<select onchange="filterByBucket(this.value)" style="font-size:11px;padding:7px 10px;border:.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text);cursor:pointer">';
   html+='<option value="">All happiness</option>';

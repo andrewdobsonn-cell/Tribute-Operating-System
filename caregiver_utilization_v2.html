@@ -366,7 +366,7 @@ function processCaregivers(dfCg,sched){
     const dayCap=[0,0,0,0,0,0,0],dayWorked=[0,0,0,0,0,0,0],dayAvail=[0,0,0,0,0,0,0];
     if(dailyRate>0){for(let d=0;d<7;d++){const wt=availDays[d]||0;if(wt>0&&!cgPF[d]){dayCap[d]=dailyRate*wt;dayAvail[d]=wt}dayWorked[d]=cgDT[d][primType]}for(let d=0;d<7;d++)if(dayCap[d]===0&&dayWorked[d]>0){dayCap[d]=dailyRate;dayAvail[d]=1.0}}
     const tcPto=cgPH.reduce((s,v)=>s+Math.min(v,10),0);
-    let tsType=0;for(const tp of tags.toLowerCase().split(',')){const t=tp.trim();if(t==='tributesecure40')tsType=40;else if(t==='tributesecure30')tsType=30}
+    let tsType=0;for(const tp of tags.toLowerCase().split(',')){const t=tp.trim();const m=t.match(/^tributesecure(\d+)$/);if(m){tsType=parseInt(m[1],10);break}if(t==='tributesecure'){tsType=30;break}}
     const anyDays=parseAvailDays(notes,'Any');const dayDisplay=[];
     for(let d=0;d<7;d++){const wt=availDays[d]||0;if(wt===0.5)dayDisplay.push('e/o');else if(d in anyDays)dayDisplay.push('Y');else if(isLI)dayDisplay.push('Live-In');else dayDisplay.push('N')}
     const visits=cgTV.reduce((a,b)=>a+b,0);

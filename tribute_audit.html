@@ -281,11 +281,10 @@ function enrichBookings(rows) {
 function loadTags(tagsObj) {
   const result = {};
   Object.entries(tagsObj).forEach(([cgid, info]) => {
-    let thresh = 0;
+    // Guaranteed hours = the number after "TS" (e.g. TS16 → 16, TS40 → 40)
     const threshStr = (info.threshold || '').toString().toUpperCase();
-    if (threshStr.includes('40')) thresh = 40;
-    else if (threshStr.includes('30')) thresh = 30;
-    else if (threshStr.includes('20')) thresh = 20;
+    const m = threshStr.match(/TS(\d+)/);
+    const thresh = m ? parseInt(m[1], 10) : 0;
     result[cgid] = {
       threshold: thresh,
       market: info.market || 'Unknown',
