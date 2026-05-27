@@ -138,6 +138,7 @@ var GATE_KEY=null;
 var terms=[], roster=[], rosterByMnum={}, insights=null, callIndex=null, callMeta=null, notesStore={};
 var engByPhone={};                         // call-intel SMS/communication signals (by phone last10)
 var rejInsights=null, rejInsightsLoading=false;  // Claude visit-rejection analysis
+var CLAUDE=API.replace('/vivProxy','/claudeProxy'), cgWhy={};  // per-caregiver on-demand Claude "why"
 var hoursById={}, hoursLoaded=false;      // current-week desired/scheduled per caregiver (by Viv id)
 var hoursWeeks={}, hrWindowLoaded=0, hrWindowLoading=false;  // multi-week scheduled series for tenure avg
 var curTab='roster';
@@ -466,6 +467,33 @@ function loadRejInsights(force){
     .then(function(r){return r.json()}).then(function(d){rejInsights=d;rejInsightsLoading=false;if(curTab==='rejections')render()})
     .catch(function(){rejInsightsLoading=false;if(curTab==='rejections')render()});
 }
+function whyPrompt(c){
+  var e=engFor(c)||{}, h=hoursFor(c)||{}, ci=callIndex&&callIndex[c.mnum], L=[];
+  L.push('Tenure: '+(c.tenureDays!=null?c.tenureDays+' days':'unknown')+(c.prn?' (PRN/as-needed)':''));
+  L.push('Desired hours/wk: '+(c.desiredHours||0)+', currently scheduled: '+(h.scheduled!=null?Math.round(h.scheduled):'unknown'));
+  if(e.offered)L.push('Visit offers: '+(e.accepted||0)+' accepted of '+e.offered+' ('+Math.round((e.acceptance_rate||0)*100)+'% acceptance)'+(e.last_declined?', last declined '+fmtDate(e.last_declined):''));
+  if(e.tone||e.responsiveness)L.push('Text tone: '+(e.tone||'?')+', responsiveness: '+(e.responsiveness||'?'));
+  if(e.inbound!=null)L.push('Texts: '+(e.inbound||0)+' inbound / '+(e.outbound||0)+' outbound');
+  if(ci)L.push('Calls: '+ci.outbound+' outbound, '+ci.answered+' answered'+(ci.lastCall?', last '+ci.lastCall:''));
+  L.push('Market/state: '+(c.market||c.state||'unknown'));
+  return L.join('\n');
+}
+function analyzeWhy(c){
+  var k=c.mnum; if(cgWhy[k])return; cgWhy[k]={loading:true};
+  var sys='You are a home-care retention analyst. In 2–3 sentences, explain why THIS caregiver is likely declining visits / at risk based only on the signals given, then suggest one concrete next action. No preamble, no caveats about limited data.';
+  fetch(CLAUDE,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:400,system:sys,messages:[{role:'user',content:'Caregiver signals:\n'+whyPrompt(c)+'\n\nWhy is this caregiver likely declining / at risk, and what should we do?'}]})})
+    .then(function(r){return r.json()}).then(function(d){cgWhy[k]={text:(d.content&&d.content[0]&&d.content[0].text)||'(no response)'};repaintRej()})
+    .catch(function(e){cgWhy[k]={text:'Analysis failed: '+e.message};repaintRej()});
+  repaintRej();
+}
+function toggleRej(m){expanded['r'+m]=!expanded['r'+m];if(expanded['r'+m]){var c=rosterByMnum[m];if(c&&!cgWhy[m])analyzeWhy(c);}repaintRej();}
+function rejDetail(c){
+  var w=cgWhy[c.mnum];
+  var sig='<div class="muted" style="margin-bottom:8px">'+esc(whyPrompt(c).replace(/\n/g,'  ·  '))+'</div>';
+  var why=w?(w.loading?'<div class="muted">Analyzing why… </div>':'<div style="font-size:13px;line-height:1.6"><b>Why (Claude):</b> '+esc(w.text)+'</div>'):'';
+  return sig+why;
+}
+function repaintRej(){if(curTab==='rejections')document.getElementById('view').innerHTML=renderRejections();}
 function renderRejections(){
   if(!roster.length)return '<div class="loading"><div class="spin"></div>Loading roster…</div>';
   var active=scopedRoster().filter(function(c){return c.status==='hired'});
@@ -494,8 +522,9 @@ function renderRejections(){
   }
   var rows=sortRows(withOffers,REJ_COLS,rejSort);
   h+='<div class="tbl-wrap"><table class="tbl"><thead>'+sortHeader(REJ_COLS,rejSort,'rejSortBy')+'</thead><tbody>';
-  rows.slice(0,500).forEach(function(c){var e=engFor(c);var rate=e.acceptance_rate;var band=(rate!=null&&rate<0.5)?'br':(rate!=null&&rate<0.75)?'ba':'bg';
-    h+='<tr><td>'+esc(c.name||'(unnamed)')+(c.prn?' <span class="bdg bb">PRN</span>':'')+'</td><td class="l">'+esc(c.market||'—')+'</td><td class="l">'+esc(c.mce||'—')+'</td><td>'+(e.offered||0)+'</td><td>'+(e.accepted||0)+'</td><td><span class="bdg '+band+'">'+(rate!=null?Math.round(rate*100)+'%':'—')+'</span></td><td>'+(e.last_declined?fmtDate(e.last_declined):'—')+'</td></tr>';
+  rows.slice(0,500).forEach(function(c){var e=engFor(c);var rate=e.acceptance_rate;var band=(rate!=null&&rate<0.5)?'br':(rate!=null&&rate<0.75)?'ba':'bg';var op=expanded['r'+c.mnum];
+    h+='<tr class="cg-row'+(op?' expanded':'')+'" onclick="toggleRej('+c.mnum+')"><td><span class="exp-arrow">▶</span>'+esc(c.name||'(unnamed)')+(c.prn?' <span class="bdg bb">PRN</span>':'')+'</td><td class="l">'+esc(c.market||'—')+'</td><td class="l">'+esc(c.mce||'—')+'</td><td>'+(e.offered||0)+'</td><td>'+(e.accepted||0)+'</td><td><span class="bdg '+band+'">'+(rate!=null?Math.round(rate*100)+'%':'—')+'</span></td><td>'+(e.last_declined?fmtDate(e.last_declined):'—')+'</td></tr>';
+    if(op)h+='<tr><td colspan="7" class="detail">'+rejDetail(c)+'</td></tr>';
   });
   return h+'</tbody></table></div>';
 }
