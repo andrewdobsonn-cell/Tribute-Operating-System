@@ -401,6 +401,20 @@ function repaint(){if(curTab==='roster')document.getElementById('view').innerHTM
 //  • Medium = 50–75% of desired
 //  • Low = 75%+ of desired
 //  • PRN = low baseline; Medium if no work 30d+; High if also no call/text 30d+
+// Explicit intervention flags (per ops). Flag 1 uses within-availability decline
+// data when the call-intel recompute populates it, else falls back to overall decline.
+function interventionFlags(c){
+  var f=[], ci=callIndex&&callIndex[c.mnum], e=engFor(c);
+  if(e&&e.accept_within_avail!=null&&(e.offered_within_avail||0)>=2&&e.accept_within_avail<0.5)
+    f.push('Declines visits within availability ('+Math.round(e.accept_within_avail*100)+'% of '+e.offered_within_avail+')');
+  else if(e&&(e.offered||0)>=3&&e.acceptance_rate!=null&&e.acceptance_rate<0.5)
+    f.push('Declining offered visits ('+Math.round(e.acceptance_rate*100)+'% of '+e.offered+' accepted)');
+  if(ci&&(ci.outbound||0)>=3&&(ci.answered||0)===0)
+    f.push('Not answering calls ('+ci.outbound+' attempts, 0 answered)');
+  if(e&&(e.outbound||0)>=3&&(e.inbound||0)===0)
+    f.push('Not replying to texts ('+e.outbound+' sent, 0 replies)');
+  return f;
+}
 function riskScore(c){
   var desired=c.desiredHours||0, prn=c.prn, reasons=[];
   var h=hoursFor(c), scheduled=h?(h.scheduled+(h.pto||0)):0;
@@ -411,14 +425,16 @@ function riskScore(c){
     .forEach(function(d){if(d!=null&&(contactDays==null||d<contactDays))contactDays=d;});
   var everContacted=(ci&&ci.total>0)||(e&&((e.inbound||0)+(e.outbound||0))>0);
   var in90=c.tenureDays!=null&&c.tenureDays<=90;
-  function R(level,score){return {level:level,score:score,reasons:reasons};}
+  var flags=interventionFlags(c);
+  function R(level,score){return {level:level,score:score,reasons:reasons,flags:flags};}
+  function withFlags(res){ if(flags.length){flags.forEach(function(fl){reasons.push('🚩 '+fl)}); if(res.level==='Low'||res.level==='Medium'){res.level='High';res.score=Math.max(res.score,75);} else res.score+=10; } return res; }
   if(prn){
     var noWork=(lastWork==null||lastWork>30), noContact=(contactDays==null||contactDays>30);
-    if(noWork&&noContact){reasons.push('PRN · no work & no call/text in 30d+');return R('High',68);}
-    if(noWork){reasons.push('PRN · no work in 30d+');return R('Medium',42);}
-    reasons.push('PRN · recently active');return R('Low',12);
+    if(noWork&&noContact){reasons.push('PRN · no work & no call/text in 30d+');return withFlags(R('High',68));}
+    if(noWork){reasons.push('PRN · no work in 30d+');return withFlags(R('Medium',42));}
+    reasons.push('PRN · recently active');return withFlags(R('Low',12));
   }
-  if(desired<=0)return null;  // non-PRN with no desired hours → not on the watchlist
+  if(desired<=0){ if(!flags.length)return null; return withFlags(R('Medium',45)); }  // flagged zero-desired still surface
   var ratio=scheduled/desired;
   var contactNote=!everContacted?'never called or texted':(contactDays!=null&&contactDays>30?'no contact '+contactDays+'d':null);
   var res;
@@ -427,33 +443,26 @@ function riskScore(c){
   else if(ratio<0.5){reasons.push('Under 50% of desired ('+Math.round(scheduled)+'/'+Math.round(desired)+'h)'+(in90?' · first 90 days':''));if(contactNote)reasons.push(contactNote);res=R('High',70);}
   else if(ratio<0.75){reasons.push('50–75% of desired ('+Math.round(scheduled)+'/'+Math.round(desired)+'h)');res=R('Medium',40);}
   else{reasons.push(Math.round(ratio*100)+'% of desired ('+Math.round(scheduled)+'/'+Math.round(desired)+'h)');res=R('Low',12);}
-  // turning down offered visits (within availability) escalates risk
-  if(e&&(e.offered||0)>=3&&e.acceptance_rate!=null&&e.acceptance_rate<0.45){
-    reasons.push('Declines ~'+Math.round((1-e.acceptance_rate)*100)+'% of offered visits');
-    res.score+=15;
-    if(res.level==='Low'){res.level='Medium';res.score=Math.max(res.score,42);}
-    else if(res.level==='Medium'){res.level='High';res.score=Math.max(res.score,72);}
-  }
-  return res;
+  return withFlags(res);
 }
 function renderAtRisk(){
   if(!roster.length)return '<div class="loading"><div class="spin"></div>Loading active roster…</div>';
   var active=scopedRoster().filter(function(c){return c.status==='hired'});
   var scored=[];
-  active.forEach(function(c){var r=riskScore(c);if(r)scored.push(Object.assign({},c,{_level:r.level,_score:r.score,_reasons:r.reasons}));});
+  active.forEach(function(c){var r=riskScore(c);if(r)scored.push(Object.assign({},c,{_level:r.level,_score:r.score,_reasons:r.reasons,_flags:r.flags||[]}));});
   var crit=scored.filter(function(c){return c._level==='Critical'}).length;
   var high=scored.filter(function(c){return c._level==='High'}).length;
   var med=scored.filter(function(c){return c._level==='Medium'}).length;
   var shown=sortRows(scored.filter(function(c){return arShowAll||c._score>=40}),AR_COLS,arSort); // default Medium+
   var h='<div class="banner w"><div class="bl w">At-risk watchlist — '+active.length+' active</div>'+
-    '<b>Scoring:</b> <span class="bdg br">Critical</span> first 90 days · 0 hrs · never called/texted &nbsp; <span class="bdg br">High</span> getting 0 or &lt;50% of desired hours &nbsp; <span class="bdg ba">Medium</span> 50–75% of desired &nbsp; <span class="bdg bg">Low</span> 75%+. PRN: low unless no work 30d+ (High if also no call/text). Caregivers with no desired hours (non-PRN) are excluded.</div>';
-  h+='<div class="kg">'+kpi('Active',active.length,'in scope','')+kpi('Critical',crit,'first-90 · 0h · no contact','r')+kpi('High',high,'0 or <50% of desired','r')+kpi('Medium',med,'50–75% of desired','a')+kpi('PRN flagged',scored.filter(function(c){return c.prn}).length,'as-needed','b')+'</div>';
+    '<b>Scoring:</b> <span class="bdg br">Critical</span> first 90 days · 0 hrs · never called/texted &nbsp; <span class="bdg br">High</span> getting 0 or &lt;50% of desired hours &nbsp; <span class="bdg ba">Medium</span> 50–75% of desired &nbsp; <span class="bdg bg">Low</span> 75%+. PRN: low unless no work 30d+ (High if also no call/text). Caregivers with no desired hours (non-PRN) are excluded.<br><b>🚩 Intervention flags</b> (any flag → at least High): declining offered visits (within-availability once that data populates) · not answering calls (3+ attempts, 0 answered) · not replying to texts (3+ sent, 0 replies).</div>';
+  h+='<div class="kg">'+kpi('Active',active.length,'in scope','')+kpi('Critical',crit,'first-90 · 0h · no contact','r')+kpi('High',high,'0 or <50% of desired','r')+kpi('Medium',med,'50–75% of desired','a')+kpi('🚩 Flagged',scored.filter(function(c){return c._flags&&c._flags.length}).length,'intervention triggers','r')+'</div>';
   h+='<div class="toolbar"><button class="btn2" onclick="arShowAll=!arShowAll;render()">'+(arShowAll?'● Showing all (incl. low) — click for Medium+ only':'○ Show all active (incl. low risk)')+'</button><span class="muted">'+shown.length+' shown</span></div>';
   h+='<div class="tbl-wrap"><table class="tbl"><thead>'+sortHeader(AR_COLS,arSort,'arSortBy')+'</thead><tbody>';
   shown.slice(0,500).forEach(function(c){
     var ci=callIndex&&callIndex[c.mnum];
     var band=(c._level==='Critical'||c._level==='High')?'br':c._level==='Medium'?'ba':'bg';
-    h+='<tr><td>'+esc(c.name||'(unnamed)')+(c.prn?' <span class="bdg bb">PRN</span>':'')+'</td><td class="l">'+esc(c.state||'—')+'</td><td class="l">'+esc(c.mce||'—')+'</td><td>'+(c.tenureDays!=null?c.tenureDays+'d':'—')+'</td>'+
+    h+='<tr><td>'+esc(c.name||'(unnamed)')+(c.prn?' <span class="bdg bb">PRN</span>':'')+((c._flags&&c._flags.length)?' <span title="'+esc(c._flags.join('  ·  '))+'">🚩</span>':'')+'</td><td class="l">'+esc(c.state||'—')+'</td><td class="l">'+esc(c.mce||'—')+'</td><td>'+(c.tenureDays!=null?c.tenureDays+'d':'—')+'</td>'+
       '<td>'+(c.lastBooking?fmtDate(c.lastBooking):'<span class="bdg br">never</span>')+'</td><td>'+hoursStr(c)+'</td><td>'+(ci?ci.outbound+'→'+ci.answered+'✓':'<span class="muted">—</span>')+'</td>'+
       '<td>'+engTexts(c)+'</td><td><span class="bdg '+band+'">'+esc(c._level)+'</span></td><td class="reasons">'+c._reasons.map(function(r){return '<span>'+esc(r)+'</span>'}).join('')+'</td></tr>';
   });
