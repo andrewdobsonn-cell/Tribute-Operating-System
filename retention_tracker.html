@@ -156,6 +156,40 @@ function fmtDate(s){var d=parseDate(s);return d?d.toLocaleDateString('en-US',{mo
 function isInvol(t){return norm(t.termType).indexOf('involunt')>-1}
 function isRiskHire(t){return /^y/i.test(t.riskHire||'')}
 function last10(s){var d=String(s==null?'':s).replace(/[^0-9]/g,'');return d.length>10?d.slice(-10):d}
+
+// ── Generic sortable tables (At-Risk, New-Hire Notes) ──
+function cmpVal(a,b,type){
+  if(type==='num'){a=(a==null||isNaN(a))?-Infinity:a;b=(b==null||isNaN(b))?-Infinity:b;return a-b}
+  if(type==='date'){var da=parseDate(a),db=parseDate(b);if(!da&&!db)return 0;if(!da)return -1;if(!db)return 1;return da-db}
+  a=norm(a);b=norm(b);return a<b?-1:a>b?1:0;
+}
+function sortHeader(cols,state,fn){return '<tr>'+cols.map(function(c){var arrow=state.col===c.col?(state.dir>0?' ▲':' ▼'):'';var cls=(c.type==='str')?' class="l"':'';return '<th'+cls+' onclick="'+fn+'(\''+c.col+'\')">'+c.label+arrow+'</th>'}).join('')+'</tr>'}
+function sortRows(rows,cols,state){var c=null;cols.forEach(function(x){if(x.col===state.col)c=x});if(!c)return rows;return rows.slice().sort(function(a,b){return cmpVal(c.val(a),c.val(b),c.type)*state.dir})}
+function toggleSort(state,col,cols){var c=null;cols.forEach(function(x){if(x.col===col)c=x});if(state.col===col)state.dir*=-1;else{state.col=col;state.dir=(c&&c.type==='str')?1:-1}}
+
+var arSort={col:'_score',dir:-1};
+var AR_COLS=[
+  {col:'name',label:'Caregiver',type:'str',val:function(r){return r.name}},
+  {col:'state',label:'State',type:'str',val:function(r){return r.state}},
+  {col:'mce',label:'MCE',type:'str',val:function(r){return r.mce}},
+  {col:'tenure',label:'Tenure',type:'num',val:function(r){return r.tenureDays}},
+  {col:'lastBooking',label:'Last booking',type:'date',val:function(r){return r.lastBooking}},
+  {col:'outreach',label:'Outreach',type:'num',val:function(r){var ci=callIndex&&callIndex[r.mnum];return ci?ci.outbound:-1}},
+  {col:'_score',label:'Risk',type:'num',val:function(r){return r._score}},
+  {col:'reasons',label:'Why',type:'num',val:function(r){return r._reasons.length}}
+];
+function arSortBy(col){toggleSort(arSort,col,AR_COLS);render()}
+
+var nhSort={col:'tenureDays',dir:1};
+var NH_COLS=[
+  {col:'name',label:'Caregiver',type:'str',val:function(c){return c.name}},
+  {col:'state',label:'State',type:'str',val:function(c){return c.state}},
+  {col:'mce',label:'MCE',type:'str',val:function(c){return c.mce}},
+  {col:'tenureDays',label:'Tenure',type:'num',val:function(c){return c.tenureDays}},
+  {col:'notes',label:'Notes',type:'num',val:function(c){return (notesStore[c.mnum]||[]).length}},
+  {col:'lastNote',label:'Last note',type:'date',val:function(c){var n=notesStore[c.mnum]||[];return n.length?n[n.length-1].weekOf:null}}
+];
+function nhSortBy(col){toggleSort(nhSort,col,NH_COLS);repaint2()}
 function saveInitials(){try{localStorage.setItem('tribute_init',document.getElementById('initials').value)}catch(e){}}
 function loadInitials(){try{var v=localStorage.getItem('tribute_init');if(v)document.getElementById('initials').value=v}catch(e){}}
 function myInitials(){return (document.getElementById('initials').value||'??').trim().toUpperCase().slice(0,12)}
@@ -292,11 +326,12 @@ function riskScore(c){
 function renderAtRisk(){
   if(!roster.length)return '<div class="loading"><div class="spin"></div>Loading active roster…</div>';
   var active=scopedRoster().filter(function(c){return c.status==='hired'});
-  var scored=active.map(function(c){var r=riskScore(c);return Object.assign({},c,{_score:r.score,_reasons:r.reasons})}).filter(function(c){return c._score>0}).sort(function(a,b){return b._score-a._score});
+  var scored=active.map(function(c){var r=riskScore(c);return Object.assign({},c,{_score:r.score,_reasons:r.reasons})}).filter(function(c){return c._score>0});
+  scored=sortRows(scored,AR_COLS,arSort);
   var high=scored.filter(function(c){return c._score>=4}).length,med=scored.filter(function(c){return c._score>=2&&c._score<4}).length;
   var h='<div class="banner w"><div class="bl w">At-risk watchlist</div>'+active.length+' active caregivers in scope, scored on early-warning signals learned from past exits (no/low booking, unreachable on outreach, first-90-day). '+(callIndex?'Call-outreach data is loaded.':'Upload call data in the Call Data tab to add outreach signals.')+'</div>';
   h+='<div class="kg">'+kpi('Active',active.length,'in scope','')+kpi('High risk',high,'score ≥ 4','r')+kpi('Medium',med,'score 2–3','a')+kpi('On watchlist',scored.length,'any signal','b')+kpi('First 90 days',active.filter(function(c){return c.tenureDays!=null&&c.tenureDays<=90}).length,'new hires','p')+'</div>';
-  h+='<div class="tbl-wrap"><table class="tbl"><thead><tr><th class="l">Caregiver</th><th class="l">State</th><th class="l">MCE</th><th>Tenure</th><th>Last booking</th><th>Outreach</th><th>Risk</th><th class="l">Why</th></tr></thead><tbody>';
+  h+='<div class="tbl-wrap"><table class="tbl"><thead>'+sortHeader(AR_COLS,arSort,'arSortBy')+'</thead><tbody>';
   scored.slice(0,300).forEach(function(c){
     var ci=callIndex&&callIndex[c.mnum];var band=c._score>=4?'br':c._score>=2?'ba':'bg';
     h+='<tr><td>'+esc(c.name||'(unnamed)')+'</td><td class="l">'+esc(c.state||'—')+'</td><td class="l">'+esc(c.mce||'—')+'</td><td>'+(c.tenureDays!=null?c.tenureDays+'d':'—')+'</td>'+
@@ -318,7 +353,8 @@ function renderNotes(){
 }
 function nhRows(nh){
   if(search)nh=nh.filter(function(c){return norm(c.name).indexOf(norm(search))>-1||norm(c.mce).indexOf(norm(search))>-1});
-  var h='<div class="tbl-wrap"><table class="tbl"><thead><tr><th class="l">Caregiver</th><th class="l">State</th><th class="l">MCE</th><th>Tenure</th><th>Notes</th><th>Last note</th></tr></thead><tbody>';
+  nh=sortRows(nh,NH_COLS,nhSort);
+  var h='<div class="tbl-wrap"><table class="tbl"><thead>'+sortHeader(NH_COLS,nhSort,'nhSortBy')+'</thead><tbody>';
   nh.forEach(function(c){
     var notes=notesStore[c.mnum]||[];var lastN=notes.length?notes[notes.length-1]:null;
     h+='<tr class="cg-row'+(expanded['n'+c.mnum]?' expanded':'')+'" onclick="toggleNote('+c.mnum+')"><td><span class="exp-arrow">▶</span>'+esc(c.name||'(unnamed)')+'</td>'+
