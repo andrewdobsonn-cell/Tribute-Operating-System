@@ -136,7 +136,7 @@ var GATE_KEY=null;
 var terms=[], roster=[], rosterByMnum={}, insights=null, callIndex=null, callMeta=null, notesStore={};
 var curTab='roster';
 var sortCol='termDate', sortDir=-1, search='', fType='';
-var expanded={};
+var expanded={}, arShowAll=false;
 // Global page filters (the "sort the whole page by …" controls)
 var gState='', gMarket='', gMCE='';
 var MARKET_STATE={'Boston':'Massachusetts','MetroWest Boston':'Massachusetts','South of Boston':'Massachusetts','North of Boston':'Massachusetts','Baltimore':'Maryland','Annapolis':'Maryland','Bethesda':'Maryland','Chicago':'Illinois','Northern Virginia':'Virginia'};
@@ -156,6 +156,10 @@ function fmtDate(s){var d=parseDate(s);return d?d.toLocaleDateString('en-US',{mo
 function isInvol(t){return norm(t.termType).indexOf('involunt')>-1}
 function isRiskHire(t){return /^y/i.test(t.riskHire||'')}
 function last10(s){var d=String(s==null?'':s).replace(/[^0-9]/g,'');return d.length>10?d.slice(-10):d}
+// Outreach (call) display — shown on every caregiver-detail surface
+function outreachVal(mnum){var ci=callIndex&&callIndex[mnum];return ci?ci.outbound:-1}
+function outreachStr(mnum){var ci=callIndex&&callIndex[mnum];return ci?(ci.outbound+'→'+ci.answered+'✓'):'<span class="muted">—</span>'}
+function outreachDetail(mnum){var ci=callIndex&&callIndex[mnum];if(!ci)return null;return ci.outbound+' outbound · '+ci.answered+' answered · '+ci.inbound+' inbound · '+ci.total+' total'+(ci.lastCall?' · last '+ci.lastCall:'')}
 
 // ── Generic sortable tables (At-Risk, New-Hire Notes) ──
 function cmpVal(a,b,type){
@@ -186,6 +190,7 @@ var NH_COLS=[
   {col:'state',label:'State',type:'str',val:function(c){return c.state}},
   {col:'mce',label:'MCE',type:'str',val:function(c){return c.mce}},
   {col:'tenureDays',label:'Tenure',type:'num',val:function(c){return c.tenureDays}},
+  {col:'outreach',label:'Outreach',type:'num',val:function(c){return outreachVal(c.mnum)}},
   {col:'notes',label:'Notes',type:'num',val:function(c){return (notesStore[c.mnum]||[]).length}},
   {col:'lastNote',label:'Last note',type:'date',val:function(c){var n=notesStore[c.mnum]||[];return n.length?n[n.length-1].weekOf:null}}
 ];
@@ -279,6 +284,7 @@ function rosterRows(){
   rows.sort(function(a,b){var x,y;
     if(sortCol==='tenure'){x=tenureDays(a);y=tenureDays(b)}
     else if(sortCol==='hiredDate'||sortCol==='termDate'){x=parseDate(a[sortCol]);y=parseDate(b[sortCol])}
+    else if(sortCol==='outreach'){x=outreachVal(a.mnum);y=outreachVal(b.mnum)}
     else{x=norm(a[sortCol]);y=norm(b[sortCol])}
     if(x==null)return 1;if(y==null)return -1;return (x<y?-1:x>y?1:0)*sortDir;});
   return rows;
@@ -289,20 +295,21 @@ function renderRoster(){
   var h='<div class="toolbar"><input class="srch" placeholder="Search name, market, MCE, reason, incident…" value="'+esc(search)+'" oninput="search=this.value;repaint()">'+
     '<select onchange="fType=this.value;repaint()">'+tOpts+'</select>'+
     '<button class="export-btn" onclick="exportCSV()">Export CSV</button><span class="muted">'+rows.length+' shown</span></div>';
-  h+='<div class="tbl-wrap"><table class="tbl"><thead><tr>'+th('Caregiver','name')+th('Market','market')+th('MCE','mce')+th('Hired','hiredDate')+th('Termed','termDate')+th('Tenure','tenure')+th('Type','termType')+th('Risk','riskHire')+'</tr></thead><tbody>';
+  h+='<div class="tbl-wrap"><table class="tbl"><thead><tr>'+th('Caregiver','name')+th('Market','market')+th('MCE','mce')+th('Hired','hiredDate')+th('Termed','termDate')+th('Tenure','tenure')+th('Outreach','outreach')+th('Type','termType')+th('Risk','riskHire')+'</tr></thead><tbody>';
   rows.forEach(function(t){
     var td=tenureDays(t);
     var typeBadge=t.termType?'<span class="bdg '+(isInvol(t)?'br':'bg')+'">'+esc(t.termType)+'</span>':'—';
     h+='<tr class="cg-row'+(expanded[t.id]?' expanded':'')+'" onclick="toggle(\''+t.id+'\')"><td><span class="exp-arrow">▶</span>'+esc(t.name||'(unnamed)')+'</td>'+
       '<td class="l">'+esc(t.market||t.marketRaw||'—')+'</td><td class="l">'+esc(t.mce||'—')+'</td><td>'+fmtDate(t.hiredDate)+'</td><td>'+fmtDate(t.termDate)+'</td><td>'+(td!=null?td+'d':'—')+'</td>'+
+      '<td>'+outreachStr(t.mnum)+'</td>'+
       '<td>'+typeBadge+'</td><td>'+(isRiskHire(t)?'<span class="bdg ba">Yes</span>':'<span class="muted">—</span>')+'</td></tr>';
-    if(expanded[t.id])h+='<tr><td colspan="8" class="detail">'+detailHTML(t)+'</td></tr>';
+    if(expanded[t.id])h+='<tr><td colspan="9" class="detail">'+detailHTML(t)+'</td></tr>';
   });
   return h+'</tbody></table></div>';
 }
 function th(label,col){var a=sortCol===col?(sortDir>0?' ▲':' ▼'):'';var cls=(col==='name'||col==='market'||col==='mce'||col==='termType')?' class="l"':'';return '<th'+cls+' onclick="sortBy(\''+col+'\')">'+label+a+'</th>'}
 function detailHTML(t){function r(l,v){return v?'<dt>'+l+'</dt><dd>'+esc(v)+'</dd>':''}
-  return '<dl>'+r('Market (raw)',t.marketRaw)+r('State',t.state)+r('MCE / assignee',t.mce)+r('Standard violated',t.standardViolated)+r('Prior incidents?',t.priorIncidents)+r('Final incident',t.finalIncident)+
+  return '<dl>'+r('Market (raw)',t.marketRaw)+r('State',t.state)+r('MCE / assignee',t.mce)+r('Outreach (calls)',outreachDetail(t.mnum))+r('Standard violated',t.standardViolated)+r('Prior incidents?',t.priorIncidents)+r('Final incident',t.finalIncident)+
     r('Corrective action?',t.correctiveAction)+r('Voluntary notes',t.voluntaryNotes)+r('Could Tribute have prevented?',t.preventable)+
     r('Risk hire at onboarding?',t.riskHire)+r('Ongoing schedule?',t.ongoingSchedule)+r('Tribute Rise level',t.riseLevel)+
     r('Transportation',t.transportation)+r('Availability type',t.availabilityType)+r('Recorded by',t.author)+'</dl>';}
@@ -326,13 +333,14 @@ function riskScore(c){
 function renderAtRisk(){
   if(!roster.length)return '<div class="loading"><div class="spin"></div>Loading active roster…</div>';
   var active=scopedRoster().filter(function(c){return c.status==='hired'});
-  var scored=active.map(function(c){var r=riskScore(c);return Object.assign({},c,{_score:r.score,_reasons:r.reasons})}).filter(function(c){return c._score>0});
+  var scored=active.map(function(c){var r=riskScore(c);return Object.assign({},c,{_score:r.score,_reasons:r.reasons})}).filter(function(c){return arShowAll||c._score>0});
   scored=sortRows(scored,AR_COLS,arSort);
   var high=scored.filter(function(c){return c._score>=4}).length,med=scored.filter(function(c){return c._score>=2&&c._score<4}).length;
   var h='<div class="banner w"><div class="bl w">At-risk watchlist</div>'+active.length+' active caregivers in scope, scored on early-warning signals learned from past exits (no/low booking, unreachable on outreach, first-90-day). '+(callIndex?'Call-outreach data is loaded.':'Upload call data in the Call Data tab to add outreach signals.')+'</div>';
   h+='<div class="kg">'+kpi('Active',active.length,'in scope','')+kpi('High risk',high,'score ≥ 4','r')+kpi('Medium',med,'score 2–3','a')+kpi('On watchlist',scored.length,'any signal','b')+kpi('First 90 days',active.filter(function(c){return c.tenureDays!=null&&c.tenureDays<=90}).length,'new hires','p')+'</div>';
+  h+='<div class="toolbar"><button class="btn2" onclick="arShowAll=!arShowAll;render()">'+(arShowAll?'● Showing all active — click for at-risk only':'○ Show all active caregivers')+'</button><span class="muted">'+scored.length+' shown</span></div>';
   h+='<div class="tbl-wrap"><table class="tbl"><thead>'+sortHeader(AR_COLS,arSort,'arSortBy')+'</thead><tbody>';
-  scored.slice(0,300).forEach(function(c){
+  scored.slice(0,500).forEach(function(c){
     var ci=callIndex&&callIndex[c.mnum];var band=c._score>=4?'br':c._score>=2?'ba':'bg';
     h+='<tr><td>'+esc(c.name||'(unnamed)')+'</td><td class="l">'+esc(c.state||'—')+'</td><td class="l">'+esc(c.mce||'—')+'</td><td>'+(c.tenureDays!=null?c.tenureDays+'d':'—')+'</td>'+
       '<td>'+(c.lastBooking?fmtDate(c.lastBooking):'<span class="bdg br">never</span>')+'</td><td>'+(ci?ci.outbound+'→'+ci.answered+'✓':'<span class="muted">—</span>')+'</td>'+
@@ -359,8 +367,9 @@ function nhRows(nh){
     var notes=notesStore[c.mnum]||[];var lastN=notes.length?notes[notes.length-1]:null;
     h+='<tr class="cg-row'+(expanded['n'+c.mnum]?' expanded':'')+'" onclick="toggleNote('+c.mnum+')"><td><span class="exp-arrow">▶</span>'+esc(c.name||'(unnamed)')+'</td>'+
       '<td class="l">'+esc(c.state||'—')+'</td><td class="l">'+esc(c.mce||'—')+'</td><td>'+(c.tenureDays!=null?c.tenureDays+'d':'—')+'</td>'+
+      '<td>'+outreachStr(c.mnum)+'</td>'+
       '<td>'+(notes.length?'<span class="bdg bb">'+notes.length+'</span>':'<span class="muted">—</span>')+'</td><td>'+(lastN?fmtDate(lastN.weekOf):'<span class="muted">none</span>')+'</td></tr>';
-    if(expanded['n'+c.mnum])h+='<tr><td colspan="6" class="detail">'+noteTimeline(c)+'</td></tr>';
+    if(expanded['n'+c.mnum])h+='<tr><td colspan="7" class="detail">'+noteTimeline(c)+'</td></tr>';
   });
   return h+'</tbody></table></div>';
 }
