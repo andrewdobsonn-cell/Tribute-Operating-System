@@ -378,41 +378,60 @@ function sortBy(c){if(sortCol===c)sortDir*=-1;else{sortCol=c;sortDir=(c==='termD
 function repaint(){if(curTab==='roster')document.getElementById('view').innerHTML=renderKPIs()+renderRoster()}
 
 // ── At-Risk (scoped active caregivers) ──
+// Risk model (per ops definition):
+//  • non-PRN with 0 desired hours → excluded (returns null)
+//  • Critical = first 90 days, 0 hours, never called or texted
+//  • High = getting 0, or under 50% of desired hours
+//  • Medium = 50–75% of desired
+//  • Low = 75%+ of desired
+//  • PRN = low baseline; Medium if no work 30d+; High if also no call/text 30d+
 function riskScore(c){
-  var reasons=[],score=0,t=c.tenureDays;
-  if(t!=null&&t<=90){score+=1;reasons.push('First 90 days')}
-  var lb=daysSince(c.lastBooking);
-  if(c.lastBooking==null||lb>21){score+=2;reasons.push(c.lastBooking==null?'Never booked':'No booking '+lb+'d')}
-  var la=daysSince(c.lastAppLogin);
-  if(la!=null&&la>30){score+=1;reasons.push('App login '+la+'d ago')}
-  var ci=callIndex&&callIndex[c.mnum];
-  if(ci){if(ci.outbound>=3&&ci.answered===0){score+=2;reasons.push(ci.outbound+' calls, 0 answered')}else if(ci.answered===0&&ci.outbound>0){score+=1;reasons.push('Unreachable ('+ci.outbound+' calls)')}}
-  else if(callIndex&&t!=null&&t<30){score+=1;reasons.push('No outreach logged')}
-  var h=hoursFor(c);
-  if(h&&h.desired>0){var got=h.scheduled+(h.pto||0);
-    if(got<=0){score+=2;reasons.push('0 of '+Math.round(h.desired)+'h desired')}
-    else if(got<h.desired*0.5){score+=1;reasons.push('Under-scheduled '+Math.round(got)+'/'+Math.round(h.desired)+'h')}}
-  var e=engFor(c);
-  if(e){var tone=(e.tone||'').toLowerCase();
-    if(tone.indexOf('withdrawn')>-1||tone.indexOf('frustrated')>-1){score+=1;reasons.push('Texts: '+e.tone)}
-    if((e.outbound||0)>=3&&(e.inbound||0)===0){score+=1;reasons.push('No text replies')}}
-  return {score:score,reasons:reasons};
+  var desired=c.desiredHours||0, prn=c.prn, reasons=[];
+  var h=hoursFor(c), scheduled=h?(h.scheduled+(h.pto||0)):0;
+  var lastWork=daysSince(c.lastBooking);
+  var ci=callIndex&&callIndex[c.mnum], e=engFor(c);
+  var contactDays=null;
+  [ci&&ci.lastCall?daysSince(ci.lastCall):null, e&&e.last_contact?daysSince(e.last_contact):null]
+    .forEach(function(d){if(d!=null&&(contactDays==null||d<contactDays))contactDays=d;});
+  var everContacted=(ci&&ci.total>0)||(e&&((e.inbound||0)+(e.outbound||0))>0);
+  var in90=c.tenureDays!=null&&c.tenureDays<=90;
+  function R(level,score){return {level:level,score:score,reasons:reasons};}
+  if(prn){
+    var noWork=(lastWork==null||lastWork>30), noContact=(contactDays==null||contactDays>30);
+    if(noWork&&noContact){reasons.push('PRN · no work & no call/text in 30d+');return R('High',68);}
+    if(noWork){reasons.push('PRN · no work in 30d+');return R('Medium',42);}
+    reasons.push('PRN · recently active');return R('Low',12);
+  }
+  if(desired<=0)return null;  // non-PRN with no desired hours → not on the watchlist
+  var ratio=scheduled/desired;
+  var contactNote=!everContacted?'never called or texted':(contactDays!=null&&contactDays>30?'no contact '+contactDays+'d':null);
+  if(in90&&scheduled<=0&&!everContacted){reasons.push('First 90 days · 0 hrs · never called or texted');return R('Critical',100);}
+  if(scheduled<=0){reasons.push((in90?'First 90 days · ':'')+'getting 0 of '+Math.round(desired)+'h desired');if(contactNote)reasons.push(contactNote);return R('High',82);}
+  if(ratio<0.5){reasons.push('Under 50% of desired ('+Math.round(scheduled)+'/'+Math.round(desired)+'h)'+(in90?' · first 90 days':''));if(contactNote)reasons.push(contactNote);return R('High',70);}
+  if(ratio<0.75){reasons.push('50–75% of desired ('+Math.round(scheduled)+'/'+Math.round(desired)+'h)');return R('Medium',40);}
+  reasons.push(Math.round(ratio*100)+'% of desired ('+Math.round(scheduled)+'/'+Math.round(desired)+'h)');
+  return R('Low',12);
 }
 function renderAtRisk(){
   if(!roster.length)return '<div class="loading"><div class="spin"></div>Loading active roster…</div>';
   var active=scopedRoster().filter(function(c){return c.status==='hired'});
-  var scored=active.map(function(c){var r=riskScore(c);return Object.assign({},c,{_score:r.score,_reasons:r.reasons})}).filter(function(c){return arShowAll||c._score>0});
-  scored=sortRows(scored,AR_COLS,arSort);
-  var high=scored.filter(function(c){return c._score>=4}).length,med=scored.filter(function(c){return c._score>=2&&c._score<4}).length;
-  var h='<div class="banner w"><div class="bl w">At-risk watchlist</div>'+active.length+' active caregivers in scope, scored on early-warning signals learned from past exits (no/low booking, unreachable on outreach, first-90-day). '+(callIndex?'Call-outreach data is loaded.':'Upload call data in the Call Data tab to add outreach signals.')+'</div>';
-  h+='<div class="kg">'+kpi('Active',active.length,'in scope','')+kpi('High risk',high,'score ≥ 4','r')+kpi('Medium',med,'score 2–3','a')+kpi('On watchlist',scored.length,'any signal','b')+kpi('First 90 days',active.filter(function(c){return c.tenureDays!=null&&c.tenureDays<=90}).length,'new hires','p')+'</div>';
-  h+='<div class="toolbar"><button class="btn2" onclick="arShowAll=!arShowAll;render()">'+(arShowAll?'● Showing all active — click for at-risk only':'○ Show all active caregivers')+'</button><span class="muted">'+scored.length+' shown</span></div>';
+  var scored=[];
+  active.forEach(function(c){var r=riskScore(c);if(r)scored.push(Object.assign({},c,{_level:r.level,_score:r.score,_reasons:r.reasons}));});
+  var crit=scored.filter(function(c){return c._level==='Critical'}).length;
+  var high=scored.filter(function(c){return c._level==='High'}).length;
+  var med=scored.filter(function(c){return c._level==='Medium'}).length;
+  var shown=sortRows(scored.filter(function(c){return arShowAll||c._score>=40}),AR_COLS,arSort); // default Medium+
+  var h='<div class="banner w"><div class="bl w">At-risk watchlist — '+active.length+' active</div>'+
+    '<b>Scoring:</b> <span class="bdg br">Critical</span> first 90 days · 0 hrs · never called/texted &nbsp; <span class="bdg br">High</span> getting 0 or &lt;50% of desired hours &nbsp; <span class="bdg ba">Medium</span> 50–75% of desired &nbsp; <span class="bdg bg">Low</span> 75%+. PRN: low unless no work 30d+ (High if also no call/text). Caregivers with no desired hours (non-PRN) are excluded.</div>';
+  h+='<div class="kg">'+kpi('Active',active.length,'in scope','')+kpi('Critical',crit,'first-90 · 0h · no contact','r')+kpi('High',high,'0 or <50% of desired','r')+kpi('Medium',med,'50–75% of desired','a')+kpi('PRN flagged',scored.filter(function(c){return c.prn}).length,'as-needed','b')+'</div>';
+  h+='<div class="toolbar"><button class="btn2" onclick="arShowAll=!arShowAll;render()">'+(arShowAll?'● Showing all (incl. low) — click for Medium+ only':'○ Show all active (incl. low risk)')+'</button><span class="muted">'+shown.length+' shown</span></div>';
   h+='<div class="tbl-wrap"><table class="tbl"><thead>'+sortHeader(AR_COLS,arSort,'arSortBy')+'</thead><tbody>';
-  scored.slice(0,500).forEach(function(c){
-    var ci=callIndex&&callIndex[c.mnum];var band=c._score>=4?'br':c._score>=2?'ba':'bg';
-    h+='<tr><td>'+esc(c.name||'(unnamed)')+'</td><td class="l">'+esc(c.state||'—')+'</td><td class="l">'+esc(c.mce||'—')+'</td><td>'+(c.tenureDays!=null?c.tenureDays+'d':'—')+'</td>'+
+  shown.slice(0,500).forEach(function(c){
+    var ci=callIndex&&callIndex[c.mnum];
+    var band=(c._level==='Critical'||c._level==='High')?'br':c._level==='Medium'?'ba':'bg';
+    h+='<tr><td>'+esc(c.name||'(unnamed)')+(c.prn?' <span class="bdg bb">PRN</span>':'')+'</td><td class="l">'+esc(c.state||'—')+'</td><td class="l">'+esc(c.mce||'—')+'</td><td>'+(c.tenureDays!=null?c.tenureDays+'d':'—')+'</td>'+
       '<td>'+(c.lastBooking?fmtDate(c.lastBooking):'<span class="bdg br">never</span>')+'</td><td>'+hoursStr(c)+'</td><td>'+(ci?ci.outbound+'→'+ci.answered+'✓':'<span class="muted">—</span>')+'</td>'+
-      '<td>'+engTexts(c)+'</td><td><span class="bdg '+band+'">'+c._score+'</span></td><td class="reasons">'+c._reasons.map(function(r){return '<span>'+esc(r)+'</span>'}).join('')+'</td></tr>';
+      '<td>'+engTexts(c)+'</td><td><span class="bdg '+band+'">'+esc(c._level)+'</span></td><td class="reasons">'+c._reasons.map(function(r){return '<span>'+esc(r)+'</span>'}).join('')+'</td></tr>';
   });
   return h+'</tbody></table></div>';
 }
