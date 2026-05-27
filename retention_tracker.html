@@ -117,6 +117,7 @@ tr.cg-row{cursor:pointer}
     <div class="ntab on" data-tab="roster"    onclick="setTab('roster',this)">Roster</div>
     <div class="ntab"     data-tab="atrisk"    onclick="setTab('atrisk',this)">At-Risk</div>
     <div class="ntab"     data-tab="notes"     onclick="setTab('notes',this)">New-Hire Notes</div>
+    <div class="ntab"     data-tab="hours"     onclick="setTab('hours',this)">Hours</div>
     <div class="ntab"     data-tab="lifecycle" onclick="setTab('lifecycle',this)">Lifecycle</div>
     <div class="ntab"     data-tab="patterns"  onclick="setTab('patterns',this)">Why They Leave</div>
     <div class="ntab"     data-tab="insights"  onclick="setTab('insights',this)">Claude Insights</div>
@@ -134,6 +135,8 @@ tr.cg-row{cursor:pointer}
 var API='https://tribute-api-prod-bkc4hfcwf3f2f6bf.centralus-01.azurewebsites.net/api/vivProxy';
 var GATE_KEY=null;
 var terms=[], roster=[], rosterByMnum={}, insights=null, callIndex=null, callMeta=null, notesStore={};
+var hoursById={}, hoursLoaded=false;      // current-week desired/scheduled per caregiver (by Viv id)
+var hoursWeeks={}, hrWindowLoaded=0, hrWindowLoading=false;  // multi-week scheduled series for tenure avg
 var curTab='roster';
 var sortCol='termDate', sortDir=-1, search='', fType='';
 var expanded={}, arShowAll=false;
@@ -178,6 +181,7 @@ var AR_COLS=[
   {col:'mce',label:'MCE',type:'str',val:function(r){return r.mce}},
   {col:'tenure',label:'Tenure',type:'num',val:function(r){return r.tenureDays}},
   {col:'lastBooking',label:'Last booking',type:'date',val:function(r){return r.lastBooking}},
+  {col:'hours',label:'Sched/Desired',type:'num',val:function(r){var h=hoursFor(r);return h?h.scheduled:-1}},
   {col:'outreach',label:'Outreach',type:'num',val:function(r){var ci=callIndex&&callIndex[r.mnum];return ci?ci.outbound:-1}},
   {col:'_score',label:'Risk',type:'num',val:function(r){return r._score}},
   {col:'reasons',label:'Why',type:'num',val:function(r){return r._reasons.length}}
@@ -195,6 +199,19 @@ var NH_COLS=[
   {col:'lastNote',label:'Last note',type:'date',val:function(c){var n=notesStore[c.mnum]||[];return n.length?n[n.length-1].weekOf:null}}
 ];
 function nhSortBy(col){toggleSort(nhSort,col,NH_COLS);repaint2()}
+
+var hrSort={col:'differential',dir:1};
+var HR_COLS=[
+  {col:'name',label:'Caregiver',type:'str',val:function(c){return c.name}},
+  {col:'state',label:'State',type:'str',val:function(c){return c.state}},
+  {col:'mce',label:'MCE',type:'str',val:function(c){return c.mce}},
+  {col:'tenure',label:'Tenure',type:'num',val:function(c){return c.tenureDays}},
+  {col:'desired',label:'Desired',type:'num',val:function(c){var h=hoursFor(c);return h?h.desired:-1}},
+  {col:'scheduled',label:'This wk',type:'num',val:function(c){var h=hoursFor(c);return h?h.scheduled:-1}},
+  {col:'avg',label:'Avg/wk',type:'num',val:function(c){var a=avgWeekly(c);return a==null?-1:a}},
+  {col:'differential',label:'Gap',type:'num',val:function(c){var h=hoursFor(c);return h?(h.scheduled+(h.pto||0)-h.desired):0}}
+];
+function hrSortBy(col){toggleSort(hrSort,col,HR_COLS);render()}
 function saveInitials(){try{localStorage.setItem('tribute_init',document.getElementById('initials').value)}catch(e){}}
 function loadInitials(){try{var v=localStorage.getItem('tribute_init');if(v)document.getElementById('initials').value=v}catch(e){}}
 function myInitials(){return (document.getElementById('initials').value||'??').trim().toUpperCase().slice(0,12)}
@@ -237,12 +254,38 @@ async function loadAll(force,fromGate){
     if(!res.ok)throw new Error('HTTP '+res.status);
     var d=await res.json();showApp();
     terms=[];(d.forms||[]).forEach(function(f){(f.submissions||[]).forEach(function(s){terms.push(s)})});
-    render();loadRoster(force);loadNotes();loadCalls();
+    render();loadRoster(force);loadNotes();loadCalls();loadHours();
   }catch(e){if(fromGate){document.getElementById('gateErr').textContent='Error: '+e.message;return}document.getElementById('view').innerHTML='<div class="err">Failed to load: '+esc(e.message)+'</div>'}
 }
 async function loadRoster(force){try{var res=await fetch(API+'?endpoint=retention_roster'+(force?'&_t='+Date.now():''),{headers:hdrs()});if(!res.ok)return;var d=await res.json();roster=d.caregivers||[];rosterByMnum={};roster.forEach(function(c){if(c.mnum!=null)rosterByMnum[c.mnum]=c});renderFilterBar();setStatus();if(curTab==='atrisk'||curTab==='notes'||curTab==='lifecycle')render()}catch(e){}}
 async function loadNotes(){try{var res=await fetch(API+'?endpoint=retention_notes',{headers:hdrs()});if(!res.ok)return;var d=await res.json();notesStore=d.notes||{};if(curTab==='notes')render()}catch(e){}}
 async function loadCalls(){try{var res=await fetch(API+'?endpoint=retention_calls',{headers:hdrs()});if(!res.ok)return;var d=await res.json();if(d.counts&&Object.keys(d.counts).length){callIndex=d.counts;callMeta=d.meta||{};setStatus();if(curTab==='atrisk'||curTab==='calls')render()}}catch(e){}}
+async function loadHours(){
+  try{var res=await fetch(API+'?endpoint=caregiver_hours',{});if(!res.ok)return;var d=await res.json();
+    hoursById={};(d.caregivers||[]).forEach(function(c){hoursById[c.id]={desired:c.desiredHrs||0,scheduled:c.scheduledHrs||0,pto:c.ptoHrs||0,differential:c.differential||0,happiness:c.happiness}});
+    hoursLoaded=true;setStatus();if(curTab==='hours'||curTab==='atrisk')render();
+  }catch(e){}
+}
+function _sundayNAgo(n){var d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()-d.getDay()-7*n);return d}
+function _fmtD(d){return d.toISOString().slice(0,10)}
+async function loadHoursWindow(n){
+  hrWindowLoading=true;render();
+  var weeks=[];for(var i=0;i<n;i++){var s=_sundayNAgo(i),e=new Date(s);e.setDate(s.getDate()+6);weeks.push([_fmtD(s),_fmtD(e)])}
+  try{
+    var results=await Promise.all(weeks.map(function(w){return fetch(API+'?endpoint=caregiver_hours&startDate='+w[0]+'&endDate='+w[1]).then(function(r){return r.ok?r.json():{caregivers:[]}}).catch(function(){return{caregivers:[]}})}));
+    hoursWeeks={};
+    results.forEach(function(d,idx){(d.caregivers||[]).forEach(function(c){if(!hoursWeeks[c.id])hoursWeeks[c.id]=[];hoursWeeks[c.id].push({week:weeks[idx][0],scheduled:c.scheduledHrs||0})})});
+    hrWindowLoaded=n;
+  }catch(e){}
+  hrWindowLoading=false;render();
+}
+function hoursFor(c){return c&&c.id?hoursById[c.id]:null}
+function hoursStr(c){var h=hoursFor(c);if(!h)return '<span class="muted">—</span>';var got=h.scheduled+(h.pto||0),gap=h.desired-got;return (Math.round(h.scheduled)||0)+'/'+(Math.round(h.desired)||0)+'h'+(gap>0.5?' <span class="bdg br">−'+Math.round(gap)+'</span>':'')}
+function avgWeekly(c){ // tenure-aware avg over loaded window
+  var w=hoursWeeks[c&&c.id]; if(!w||!w.length)return null;
+  var since=parseDate(c.hireDate); var rows=since?w.filter(function(x){return parseDate(x.week)>=new Date(since.getFullYear(),since.getMonth(),since.getDate()-6)}):w;
+  if(!rows.length)rows=w; return rows.reduce(function(s,x){return s+x.scheduled},0)/rows.length;
+}
 async function saveCalls(){if(!callIndex)return;var btn=document.getElementById('saveCallsBtn');if(btn){btn.disabled=true;btn.textContent='Saving…'}try{var res=await fetch(API+'?endpoint=retention_calls',{method:'POST',headers:Object.assign({'Content-Type':'application/json'},hdrs()),body:JSON.stringify({counts:callIndex,meta:callMeta||{}})});if(!res.ok)throw new Error('HTTP '+res.status);var d=await res.json();callMeta=d.meta||callMeta||{};render()}catch(e){alert('Save failed: '+e.message);if(btn){btn.disabled=false;btn.textContent='Save to server'}}}
 async function loadInsights(force){var v=document.getElementById('view');v.innerHTML='<div class="loading"><div class="spin"></div>'+(force?'Regenerating':'Loading')+' Claude insights…</div>';try{var res=await fetch(API+'?endpoint=termination_insights'+(force?'&regenerate=1':''),{headers:hdrs()});insights=await res.json();render()}catch(e){v.innerHTML='<div class="err">Insights failed: '+esc(e.message)+'</div>'}}
 function setStatus(){var sl=document.getElementById('statusLine');if(!sl)return;var active=roster.filter(function(c){return c.status==='hired'}).length;sl.innerHTML='<span class="dot"></span>'+terms.length+' terminations · '+(roster.length?active+' active · ':'')+(callIndex?'calls matched · ':'')+new Date().toLocaleTimeString()}
@@ -254,6 +297,7 @@ function render(){
   if(curTab==='roster'){if(!terms.length){v.innerHTML='<div class="loading">No termination records.</div>';return}v.innerHTML=renderKPIs()+renderRoster()}
   else if(curTab==='atrisk')v.innerHTML=renderAtRisk();
   else if(curTab==='notes')v.innerHTML=renderNotes();
+  else if(curTab==='hours')v.innerHTML=renderHours();
   else if(curTab==='lifecycle')v.innerHTML=renderKPIs()+renderLifecycle();
   else if(curTab==='patterns')v.innerHTML=renderKPIs()+renderPatterns();
   else if(curTab==='insights')v.innerHTML=renderInsights();
@@ -328,6 +372,10 @@ function riskScore(c){
   var ci=callIndex&&callIndex[c.mnum];
   if(ci){if(ci.outbound>=3&&ci.answered===0){score+=2;reasons.push(ci.outbound+' calls, 0 answered')}else if(ci.answered===0&&ci.outbound>0){score+=1;reasons.push('Unreachable ('+ci.outbound+' calls)')}}
   else if(callIndex&&t!=null&&t<30){score+=1;reasons.push('No outreach logged')}
+  var h=hoursFor(c);
+  if(h&&h.desired>0){var got=h.scheduled+(h.pto||0);
+    if(got<=0){score+=2;reasons.push('0 of '+Math.round(h.desired)+'h desired')}
+    else if(got<h.desired*0.5){score+=1;reasons.push('Under-scheduled '+Math.round(got)+'/'+Math.round(h.desired)+'h')}}
   return {score:score,reasons:reasons};
 }
 function renderAtRisk(){
@@ -343,7 +391,7 @@ function renderAtRisk(){
   scored.slice(0,500).forEach(function(c){
     var ci=callIndex&&callIndex[c.mnum];var band=c._score>=4?'br':c._score>=2?'ba':'bg';
     h+='<tr><td>'+esc(c.name||'(unnamed)')+'</td><td class="l">'+esc(c.state||'—')+'</td><td class="l">'+esc(c.mce||'—')+'</td><td>'+(c.tenureDays!=null?c.tenureDays+'d':'—')+'</td>'+
-      '<td>'+(c.lastBooking?fmtDate(c.lastBooking):'<span class="bdg br">never</span>')+'</td><td>'+(ci?ci.outbound+'→'+ci.answered+'✓':'<span class="muted">—</span>')+'</td>'+
+      '<td>'+(c.lastBooking?fmtDate(c.lastBooking):'<span class="bdg br">never</span>')+'</td><td>'+hoursStr(c)+'</td><td>'+(ci?ci.outbound+'→'+ci.answered+'✓':'<span class="muted">—</span>')+'</td>'+
       '<td><span class="bdg '+band+'">'+c._score+'</span></td><td class="reasons">'+c._reasons.map(function(r){return '<span>'+esc(r)+'</span>'}).join('')+'</td></tr>';
   });
   return h+'</tbody></table></div>';
@@ -387,6 +435,27 @@ async function postNote(m){
   var payload={mnum:m,text:ta.value.trim(),author:myInitials(),weekOf:sundayOf(new Date())};ta.disabled=true;
   try{var res=await fetch(API+'?endpoint=retention_notes',{method:'POST',headers:Object.assign({'Content-Type':'application/json'},hdrs()),body:JSON.stringify(payload)});if(!res.ok)throw new Error('HTTP '+res.status);if(!notesStore[m])notesStore[m]=[];notesStore[m].push({weekOf:payload.weekOf,text:payload.text,author:payload.author,ts:new Date().toISOString()});repaint2()}
   catch(e){ta.disabled=false;alert('Save failed: '+e.message)}
+}
+
+// ── Hours (desired vs received, scoped active caregivers) ──
+function renderHours(){
+  if(!roster.length)return '<div class="loading"><div class="spin"></div>Loading roster…</div>';
+  if(!hoursLoaded)return '<div class="loading"><div class="spin"></div>Loading current-week hours…</div>';
+  var active=scopedRoster().filter(function(c){return c.status==='hired'});
+  var withH=active.filter(function(c){return hoursFor(c)});
+  var totDes=withH.reduce(function(s,c){return s+(hoursFor(c).desired||0)},0);
+  var totSch=withH.reduce(function(s,c){return s+(hoursFor(c).scheduled||0)},0);
+  var under=withH.filter(function(c){var h=hoursFor(c);return (h.scheduled+(h.pto||0))<h.desired}).length;
+  var h='<div class="banner"><div class="bl">Hours — desired vs received</div>Current week (Sun–Sat) scheduled billable hours vs each caregiver\'s desired hours. A persistent gap (fewer hours than wanted) is a leading retention risk and feeds the At-Risk score. '+
+    (hrWindowLoaded?('<b>Avg/wk</b> = mean weekly hours over the last '+hrWindowLoaded+' weeks (tenure-aware).'):'<button class="btn2" onclick="loadHoursWindow(8)"'+(hrWindowLoading?' disabled':'')+'>'+(hrWindowLoading?'Loading 8-week average…':'Load 8-week tenure average')+'</button>')+'</div>';
+  h+='<div class="kg">'+kpi('Active w/ hours',withH.length,'in scope','')+kpi('Desired',Math.round(totDes)+'h','this week','b')+kpi('Scheduled',Math.round(totSch)+'h','this week','g')+kpi('Fill rate',totDes?Math.round(totSch/totDes*100)+'%':'—','scheduled/desired','a')+kpi('Under-scheduled',under,'below desired','r')+'</div>';
+  h+='<div class="tbl-wrap"><table class="tbl"><thead>'+sortHeader(HR_COLS,hrSort,'hrSortBy')+'</thead><tbody>';
+  sortRows(withH,HR_COLS,hrSort).slice(0,600).forEach(function(c){var hh=hoursFor(c),a=avgWeekly(c),gap=hh.scheduled+(hh.pto||0)-hh.desired;
+    h+='<tr><td>'+esc(c.name||'(unnamed)')+'</td><td class="l">'+esc(c.state||'—')+'</td><td class="l">'+esc(c.mce||'—')+'</td><td>'+(c.tenureDays!=null?c.tenureDays+'d':'—')+'</td>'+
+      '<td>'+Math.round(hh.desired)+'h</td><td>'+Math.round(hh.scheduled)+'h</td><td>'+(a==null?'<span class="muted">—</span>':Math.round(a)+'h')+'</td>'+
+      '<td><span class="bdg '+(gap>=-0.5?'bg':gap>=-(hh.desired*0.5)?'ba':'br')+'">'+(gap>0?'+':'')+Math.round(gap)+'h</span></td></tr>';
+  });
+  return h+'</tbody></table></div>';
 }
 
 // ── Lifecycle (scoped) ──
