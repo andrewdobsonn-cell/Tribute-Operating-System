@@ -24,7 +24,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .ntab{font-size:12px;font-weight:500;color:var(--text2);padding:8px 16px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-.5px;white-space:nowrap;user-select:none}
 .ntab.on{color:var(--text);border-bottom-color:var(--text)}
 .banner{border-radius:var(--r);padding:12px 16px;margin-bottom:16px;border-left:3px solid var(--blue);background:var(--bg2);font-size:13px;line-height:1.6}
+.banner.w{border-left-color:var(--amber)}.banner.r{border-left-color:var(--red)}
 .bl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--blue);margin-bottom:4px}
+.bl.w{color:var(--amber)}.bl.r{color:var(--red)}
 .kg{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-bottom:16px}
 @media(max-width:800px){.kg{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:500px){.kg{grid-template-columns:repeat(2,minmax(0,1fr))}}
@@ -47,11 +49,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .toolbar .srch{flex:1;min-width:200px}
 .export-btn{padding:6px 14px;font-size:11px;font-weight:600;border:none;border-radius:6px;cursor:pointer;background:var(--blue);color:#fff}
 .export-btn:hover{opacity:.85}
+.btn2{padding:6px 12px;font-size:11px;font-weight:600;border:.5px solid var(--border2);border-radius:6px;cursor:pointer;background:var(--bg2);color:var(--text)}
 .exp-arrow{display:inline-block;width:10px;font-size:10px;color:var(--text3);margin-right:6px;transition:transform .15s}
 tr.expanded .exp-arrow{transform:rotate(90deg);color:var(--text)}
 tr.cg-row{cursor:pointer}
 .detail{background:var(--bg2)!important;padding:14px 18px!important;text-align:left!important}
-.detail dl{display:grid;grid-template-columns:200px 1fr;gap:6px 14px;font-size:12px}
+.detail dl{display:grid;grid-template-columns:210px 1fr;gap:6px 14px;font-size:12px}
 .detail dt{color:var(--text2);font-weight:600}
 .detail dd{color:var(--text);white-space:pre-wrap}
 .fc{background:var(--bg);border:.5px solid var(--border);border-radius:var(--rl);padding:16px 18px;margin-bottom:12px}
@@ -69,16 +72,25 @@ tr.cg-row{cursor:pointer}
 .scaffold{text-align:center;padding:50px 20px;color:var(--text3);font-size:13px;line-height:1.7}
 .scaffold .big{font-size:30px;margin-bottom:10px}
 .muted{color:var(--text3);font-size:11px}
+.upload-card{background:var(--bg2);border:2px dashed var(--border2);border-radius:var(--rl);padding:20px;text-align:center;cursor:pointer;position:relative;margin-bottom:16px}
+.upload-card:hover{border-color:var(--blue)}
+.upload-card.loaded{border-style:solid;border-color:var(--green)}
+.upload-card input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer}
+.note-item{border-left:2px solid var(--border2);padding:6px 0 6px 12px;margin-bottom:8px;font-size:12px}
+.note-meta{font-size:10px;color:var(--text3);margin-bottom:2px}
+.note-box{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.note-box textarea{flex:1;min-width:240px;padding:8px 10px;font-size:12px;border:.5px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text);resize:vertical;min-height:50px;font-family:inherit}
+.reasons{font-size:11px;color:var(--text2);text-align:left}
+.reasons span{display:inline-block;background:var(--bg3);border-radius:8px;padding:1px 7px;margin:1px 2px;font-size:10px}
 </style>
 </head>
 <body>
 
-<!-- Password gate -->
 <div class="gate" id="gate">
   <div class="gate-box">
     <div class="logo">Tribute Operating System</div>
     <div class="title" style="font-size:18px">Retention Tracker</div>
-    <div class="sub">This dashboard contains caregiver HR records. Enter the team password to continue.</div>
+    <div class="sub">Contains caregiver HR records. Enter the team password.</div>
     <input type="password" id="gateInput" placeholder="Password" autocomplete="current-password"
            onkeydown="if(event.key==='Enter')submitGate()">
     <button onclick="submitGate()">Unlock</button>
@@ -86,7 +98,6 @@ tr.cg-row{cursor:pointer}
   </div>
 </div>
 
-<!-- App (hidden until gated) -->
 <div id="app" style="display:none">
   <div class="hdr">
     <div>
@@ -94,187 +105,263 @@ tr.cg-row{cursor:pointer}
       <div class="title">Caregiver Retention Tracker</div>
       <div class="sub" id="statusLine"><span class="dot"></span>Loading…</div>
     </div>
-    <div style="text-align:right">
+    <div style="text-align:right;display:flex;gap:8px;align-items:center">
+      <input id="initials" placeholder="Your initials" style="width:110px;padding:6px 10px;font-size:11px;border:.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text)" oninput="saveInitials()">
       <button class="export-btn" onclick="loadAll(true)">⟳ Refresh</button>
     </div>
   </div>
 
   <div class="nav-tabs" id="navTabs">
-    <div class="ntab on" data-tab="roster"   onclick="setTab('roster',this)">Roster</div>
-    <div class="ntab"     data-tab="lifecycle"onclick="setTab('lifecycle',this)">Lifecycle</div>
-    <div class="ntab"     data-tab="patterns" onclick="setTab('patterns',this)">Why They Leave</div>
-    <div class="ntab"     data-tab="atrisk"   onclick="setTab('atrisk',this)">At-Risk</div>
-    <div class="ntab"     data-tab="insights" onclick="setTab('insights',this)">Claude Insights</div>
+    <div class="ntab on" data-tab="roster"    onclick="setTab('roster',this)">Roster</div>
+    <div class="ntab"     data-tab="atrisk"    onclick="setTab('atrisk',this)">At-Risk</div>
+    <div class="ntab"     data-tab="notes"     onclick="setTab('notes',this)">New-Hire Notes</div>
+    <div class="ntab"     data-tab="lifecycle" onclick="setTab('lifecycle',this)">Lifecycle</div>
+    <div class="ntab"     data-tab="patterns"  onclick="setTab('patterns',this)">Why They Leave</div>
+    <div class="ntab"     data-tab="insights"  onclick="setTab('insights',this)">Claude Insights</div>
+    <div class="ntab"     data-tab="calls"     onclick="setTab('calls',this)">Call Data</div>
   </div>
 
   <div id="view"><div class="loading"><div class="spin"></div>Loading retention data…</div></div>
 </div>
 
 <script>
-// ─────────────────────────────────────────────────────────────
-// CONFIG — runtime-fetched data only; no PII or secrets in this file.
-// ─────────────────────────────────────────────────────────────
+// ── CONFIG — runtime-fetched data only; no PII or secrets in this file ──
 var API='https://tribute-api-prod-bkc4hfcwf3f2f6bf.centralus-01.azurewebsites.net/api/vivProxy';
-var GATE_KEY=null;                 // held in memory + sessionStorage; sent as X-Retention-Key
-var terms=[];                      // flattened normalized termination submissions
+var GATE_KEY=null;
+var terms=[];            // termination submissions (normalized)
+var roster=[];           // active+termed caregivers {mnum,name,phone,status,hireDate,termDate,tenureDays,lastBooking,...}
+var rosterByMnum={};
+var insights=null;       // termination_insights cache
+var callIndex=null;      // {mnum:{outbound,inbound,answered,total,lastCall}}
+var notesStore={};       // {mnum:[{weekOf,text,author,ts}]}
 var curTab='roster';
 var sortCol='termDate', sortDir=-1, search='', fMarket='', fType='';
 var expanded={};
 
 // ── Gate ──
 function submitGate(){
-  var v=document.getElementById('gateInput').value.trim();
-  if(!v){return}
-  GATE_KEY=v;
-  try{sessionStorage.setItem('tribute_retention_key',v)}catch(e){}
-  document.getElementById('gateErr').textContent='Checking…';
-  loadAll(false,true);
+  var v=document.getElementById('gateInput').value.trim(); if(!v)return;
+  GATE_KEY=v; try{sessionStorage.setItem('tribute_retention_key',v)}catch(e){}
+  document.getElementById('gateErr').textContent='Checking…'; loadAll(false,true);
 }
-function showApp(){document.getElementById('gate').style.display='none';document.getElementById('app').style.display='block'}
+function showApp(){document.getElementById('gate').style.display='none';document.getElementById('app').style.display='block';loadInitials()}
+function hdrs(){return {'X-Retention-Key':GATE_KEY}}
 
 // ── Utils ──
 function esc(s){if(s==null)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
 function norm(s){return(s||'').toLowerCase().trim()}
-function parseDate(s){
-  if(!s)return null;
-  var m=String(s).match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);            // MM/DD/YYYY
-  if(m)return new Date(+m[3],+m[1]-1,+m[2]);
-  var d=new Date(s); return isNaN(d)?null:d;                            // ISO fallback
-}
-function tenureDays(t){var h=parseDate(t.hiredDate),x=parseDate(t.termDate);if(!h||!x)return null;return Math.round((x-h)/86400000)}
+function parseDate(s){if(!s)return null;var m=String(s).match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);if(m)return new Date(+m[3],+m[1]-1,+m[2]);var d=new Date(s);return isNaN(d)?null:d}
+function daysSince(s){var d=parseDate(s);return d?Math.round((Date.now()-d)/86400000):null}
+function tenureDays(t){if(t.tenureDays!=null)return t.tenureDays;var h=parseDate(t.hiredDate),x=parseDate(t.termDate);if(!h)return null;return Math.round(((x||new Date())-h)/86400000)}
 function fmtDate(s){var d=parseDate(s);return d?d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'2-digit'}):'—'}
-function isInvol(t){return norm(t.termType).indexOf('involunt')===0||norm(t.termType).indexOf('involunt')>-1}
+function isInvol(t){return norm(t.termType).indexOf('involunt')>-1}
 function isRiskHire(t){return /^y/i.test(t.riskHire||'')}
+function last10(s){var d=String(s==null?'':s).replace(/[^0-9]/g,'');return d.length>10?d.slice(-10):d}
+function saveInitials(){try{localStorage.setItem('tribute_init',document.getElementById('initials').value)}catch(e){}}
+function loadInitials(){try{var v=localStorage.getItem('tribute_init');if(v)document.getElementById('initials').value=v}catch(e){}}
+function myInitials(){return (document.getElementById('initials').value||'??').trim().toUpperCase().slice(0,12)}
 
 // ── Load ──
 async function loadAll(force,fromGate){
   if(!GATE_KEY){try{GATE_KEY=sessionStorage.getItem('tribute_retention_key')}catch(e){}}
   if(!GATE_KEY)return;
-  var sl=document.getElementById('statusLine');
   try{
-    var res=await fetch(API+'?endpoint=termination_forms'+(force?'&_t='+Date.now():''),
-      {headers:{'X-Retention-Key':GATE_KEY}});
+    var res=await fetch(API+'?endpoint=termination_forms'+(force?'&_t='+Date.now():''),{headers:hdrs()});
     if(res.status===401){
       GATE_KEY=null;try{sessionStorage.removeItem('tribute_retention_key')}catch(e){}
       document.getElementById('gateErr').textContent='Incorrect password.';
-      document.getElementById('gate').style.display='flex';document.getElementById('app').style.display='none';
-      return;
+      document.getElementById('gate').style.display='flex';document.getElementById('app').style.display='none';return;
     }
     if(!res.ok)throw new Error('HTTP '+res.status);
-    var d=await res.json();
-    showApp();
-    terms=[];
-    (d.forms||[]).forEach(function(f){(f.submissions||[]).forEach(function(s){terms.push(s)})});
-    if(sl)sl.innerHTML='<span class="dot"></span>'+terms.length+' terminations · '+(d.forms||[]).length+' forms · '+new Date().toLocaleTimeString();
+    var d=await res.json(); showApp();
+    terms=[];(d.forms||[]).forEach(function(f){(f.submissions||[]).forEach(function(s){terms.push(s)})});
     render();
+    // roster + notes in parallel (non-blocking for first paint)
+    loadRoster(force); loadNotes();
   }catch(e){
     if(fromGate){document.getElementById('gateErr').textContent='Error: '+e.message;return}
     document.getElementById('view').innerHTML='<div class="err">Failed to load: '+esc(e.message)+'</div>';
   }
 }
+async function loadRoster(force){
+  try{
+    var res=await fetch(API+'?endpoint=retention_roster'+(force?'&_t='+Date.now():''),{headers:hdrs()});
+    if(!res.ok)return; var d=await res.json();
+    roster=d.caregivers||[]; rosterByMnum={};
+    roster.forEach(function(c){if(c.mnum!=null)rosterByMnum[c.mnum]=c});
+    setStatus(); if(curTab==='atrisk'||curTab==='notes'||curTab==='lifecycle')render();
+  }catch(e){}
+}
+async function loadNotes(){
+  try{var res=await fetch(API+'?endpoint=retention_notes',{headers:hdrs()});if(!res.ok)return;var d=await res.json();notesStore=d.notes||{};if(curTab==='notes')render()}catch(e){}
+}
+async function loadInsights(force){
+  var v=document.getElementById('view');
+  v.innerHTML='<div class="loading"><div class="spin"></div>'+(force?'Regenerating':'Loading')+' Claude insights…</div>';
+  try{var res=await fetch(API+'?endpoint=termination_insights'+(force?'&regenerate=1':''),{headers:hdrs()});insights=await res.json();render()}
+  catch(e){v.innerHTML='<div class="err">Insights failed: '+esc(e.message)+'</div>'}
+}
+function setStatus(){
+  var sl=document.getElementById('statusLine');if(!sl)return;
+  var active=roster.filter(function(c){return c.status==='hired'}).length;
+  sl.innerHTML='<span class="dot"></span>'+terms.length+' terminations · '+(roster.length?active+' active caregivers · ':'')+(callIndex?'calls matched · ':'')+new Date().toLocaleTimeString();
+}
 
 // ── Tabs ──
-function setTab(t,el){curTab=t;document.querySelectorAll('.ntab').forEach(function(x){x.classList.remove('on')});el.classList.add('on');render()}
+function setTab(t,el){curTab=t;document.querySelectorAll('.ntab').forEach(function(x){x.classList.remove('on')});el.classList.add('on');
+  if(t==='insights'&&!insights){loadInsights(false);return}render()}
 function render(){
-  var v=document.getElementById('view');
-  if(!terms.length){v.innerHTML='<div class="loading">No termination records loaded.</div>';return}
-  if(curTab==='roster')v.innerHTML=renderKPIs()+renderRoster();
+  var v=document.getElementById('view');setStatus();
+  if(curTab==='roster'){if(!terms.length){v.innerHTML='<div class="loading">No termination records.</div>';return}v.innerHTML=renderKPIs()+renderRoster();}
+  else if(curTab==='atrisk')v.innerHTML=renderAtRisk();
+  else if(curTab==='notes')v.innerHTML=renderNotes();
   else if(curTab==='lifecycle')v.innerHTML=renderKPIs()+renderLifecycle();
   else if(curTab==='patterns')v.innerHTML=renderKPIs()+renderPatterns();
-  else if(curTab==='atrisk')v.innerHTML=renderAtRisk();
   else if(curTab==='insights')v.innerHTML=renderInsights();
+  else if(curTab==='calls')v.innerHTML=renderCalls();
 }
 
-// ── KPIs ──
+// ── KPIs (terminations) ──
 function renderKPIs(){
-  var n=terms.length;
-  var invol=terms.filter(isInvol).length;
+  var n=terms.length,invol=terms.filter(isInvol).length;
   var ten=terms.map(tenureDays).filter(function(x){return x!=null&&x>=0});
   var avgTen=ten.length?Math.round(ten.reduce(function(a,b){return a+b},0)/ten.length):0;
-  var risk=terms.filter(isRiskHire).length;
-  var ca=terms.filter(function(t){return /^y/i.test(t.correctiveAction||'')}).length;
+  var risk=terms.filter(isRiskHire).length,ca=terms.filter(function(t){return /^y/i.test(t.correctiveAction||'')}).length;
   function pct(x){return n?Math.round(x/n*100)+'%':'—'}
-  return '<div class="kg">'+
-    kpi('Terminations',n,'all loaded forms','')+
-    kpi('Involuntary',pct(invol),invol+' of '+n,'r')+
-    kpi('Avg tenure',avgTen+'d',ten.length+' with dates','b')+
-    kpi('Risk-hire flagged',pct(risk),risk+' at onboarding','a')+
-    kpi('Had corrective action',pct(ca),ca+' of '+n,'p')+
-  '</div>';
+  return '<div class="kg">'+kpi('Terminations',n,'all forms','')+kpi('Involuntary',pct(invol),invol+' of '+n,'r')+
+    kpi('Avg tenure',avgTen+'d',ten.length+' with dates','b')+kpi('Risk-hire flagged',pct(risk),risk+' at onboarding','a')+
+    kpi('Had corrective action',pct(ca),ca+' of '+n,'p')+'</div>';
 }
-function kpi(l,v,s,c){return '<div class="kpi"><div class="kl">'+l+'</div><div class="kv '+c+'">'+v+'</div><div class="ks">'+esc(s)+'</div></div>'}
+function kpi(l,v,s,c){return '<div class="kpi"><div class="kl">'+l+'</div><div class="kv '+(c||'')+'">'+v+'</div><div class="ks">'+esc(s)+'</div></div>'}
 
-// ── Roster ──
+// ── Roster (terminations) ──
 function markets(){var s={};terms.forEach(function(t){if(t.market)s[t.market]=1});return Object.keys(s).sort()}
 function types(){var s={};terms.forEach(function(t){if(t.termType)s[t.termType]=1});return Object.keys(s).sort()}
 function rosterRows(){
   var rows=terms.filter(function(t){
     if(fMarket&&t.market!==fMarket)return false;
     if(fType&&t.termType!==fType)return false;
-    if(search){var hay=norm(t.name+' '+t.market+' '+t.termType+' '+t.standardViolated+' '+t.finalIncident);if(hay.indexOf(norm(search))<0)return false}
+    if(search){var hay=norm([t.name,t.market,t.termType,t.standardViolated,t.finalIncident].join(' '));if(hay.indexOf(norm(search))<0)return false}
     return true;
   });
-  rows.sort(function(a,b){
-    var x,y;
+  rows.sort(function(a,b){var x,y;
     if(sortCol==='tenure'){x=tenureDays(a);y=tenureDays(b)}
     else if(sortCol==='hiredDate'||sortCol==='termDate'){x=parseDate(a[sortCol]);y=parseDate(b[sortCol])}
     else{x=norm(a[sortCol]);y=norm(b[sortCol])}
-    if(x==null)return 1;if(y==null)return -1;
-    return (x<y?-1:x>y?1:0)*sortDir;
-  });
+    if(x==null)return 1;if(y==null)return -1;return (x<y?-1:x>y?1:0)*sortDir;});
   return rows;
 }
 function renderRoster(){
   var rows=rosterRows();
   var mOpts='<option value="">All markets</option>'+markets().map(function(m){return '<option'+(m===fMarket?' selected':'')+'>'+esc(m)+'</option>'}).join('');
   var tOpts='<option value="">All types</option>'+types().map(function(t){return '<option'+(t===fType?' selected':'')+'>'+esc(t)+'</option>'}).join('');
-  var h='<div class="toolbar">'+
-    '<input class="srch" placeholder="Search name, market, reason, incident…" value="'+esc(search)+'" oninput="search=this.value;repaint()">'+
-    '<select onchange="fMarket=this.value;repaint()">'+mOpts+'</select>'+
-    '<select onchange="fType=this.value;repaint()">'+tOpts+'</select>'+
-    '<button class="export-btn" onclick="exportCSV()">Export CSV</button>'+
-    '<span class="muted">'+rows.length+' shown</span></div>';
-  h+='<div class="tbl-wrap"><table class="tbl"><thead><tr>'+
-    th('Caregiver','name')+th('Market','market')+th('Hired','hiredDate')+th('Termed','termDate')+
-    th('Tenure','tenure')+th('Type','termType')+th('Risk hire','riskHire')+'</tr></thead><tbody>';
+  var h='<div class="toolbar"><input class="srch" placeholder="Search name, market, reason, incident…" value="'+esc(search)+'" oninput="search=this.value;repaint()">'+
+    '<select onchange="fMarket=this.value;repaint()">'+mOpts+'</select><select onchange="fType=this.value;repaint()">'+tOpts+'</select>'+
+    '<button class="export-btn" onclick="exportCSV()">Export CSV</button><span class="muted">'+rows.length+' shown</span></div>';
+  h+='<div class="tbl-wrap"><table class="tbl"><thead><tr>'+th('Caregiver','name')+th('Market','market')+th('Hired','hiredDate')+th('Termed','termDate')+th('Tenure','tenure')+th('Type','termType')+th('Risk','riskHire')+'</tr></thead><tbody>';
   rows.forEach(function(t){
     var td=tenureDays(t);
     var typeBadge=t.termType?'<span class="bdg '+(isInvol(t)?'br':'bg')+'">'+esc(t.termType)+'</span>':'—';
-    h+='<tr class="cg-row'+(expanded[t.id]?' expanded':'')+'" onclick="toggle(\''+t.id+'\')">'+
-      '<td><span class="exp-arrow">▶</span>'+esc(t.name||'(unnamed)')+'</td>'+
-      '<td>'+esc(t.market||'—')+'</td>'+
-      '<td>'+fmtDate(t.hiredDate)+'</td>'+
-      '<td>'+fmtDate(t.termDate)+'</td>'+
-      '<td>'+(td!=null?td+'d':'—')+'</td>'+
-      '<td style="text-align:right">'+typeBadge+'</td>'+
-      '<td>'+(isRiskHire(t)?'<span class="bdg ba">Yes</span>':'<span class="muted">—</span>')+'</td></tr>';
+    h+='<tr class="cg-row'+(expanded[t.id]?' expanded':'')+'" onclick="toggle(\''+t.id+'\')"><td><span class="exp-arrow">▶</span>'+esc(t.name||'(unnamed)')+'</td>'+
+      '<td>'+esc(t.market||'—')+'</td><td>'+fmtDate(t.hiredDate)+'</td><td>'+fmtDate(t.termDate)+'</td><td>'+(td!=null?td+'d':'—')+'</td>'+
+      '<td style="text-align:right">'+typeBadge+'</td><td>'+(isRiskHire(t)?'<span class="bdg ba">Yes</span>':'<span class="muted">—</span>')+'</td></tr>';
     if(expanded[t.id])h+='<tr><td colspan="7" class="detail">'+detailHTML(t)+'</td></tr>';
   });
-  h+='</tbody></table></div>';
+  return h+'</tbody></table></div>';
+}
+function th(label,col){var a=sortCol===col?(sortDir>0?' ▲':' ▼'):'';return '<th onclick="sortBy(\''+col+'\')">'+label+a+'</th>'}
+function detailHTML(t){function r(l,v){return v?'<dt>'+l+'</dt><dd>'+esc(v)+'</dd>':''}
+  return '<dl>'+r('Standard violated',t.standardViolated)+r('Prior incidents?',t.priorIncidents)+r('Final incident',t.finalIncident)+
+    r('Corrective action?',t.correctiveAction)+r('Voluntary notes',t.voluntaryNotes)+r('Could Tribute have prevented?',t.preventable)+
+    r('Risk hire at onboarding?',t.riskHire)+r('Ongoing schedule?',t.ongoingSchedule)+r('Tribute Rise level',t.riseLevel)+
+    r('Transportation',t.transportation)+r('Availability type',t.availabilityType)+r('Recorded by',t.author)+'</dl>';}
+function toggle(id){expanded[id]=!expanded[id];repaint()}
+function sortBy(c){if(sortCol===c)sortDir*=-1;else{sortCol=c;sortDir=(c==='termDate'||c==='hiredDate'||c==='tenure')?-1:1}repaint()}
+function repaint(){if(curTab==='roster')document.getElementById('view').innerHTML=renderKPIs()+renderRoster()}
+
+// ── At-Risk (active caregivers scored) ──
+function riskScore(c){
+  var reasons=[],score=0,t=c.tenureDays;
+  if(t!=null&&t<=90){score+=1;reasons.push('First 90 days')}
+  var lb=daysSince(c.lastBooking);
+  if(c.lastBooking==null||lb>21){score+=2;reasons.push(c.lastBooking==null?'Never booked':'No booking '+lb+'d')}
+  var la=daysSince(c.lastAppLogin);
+  if(la!=null&&la>30){score+=1;reasons.push('App login '+la+'d ago')}
+  var ci=callIndex&&callIndex[c.mnum];
+  if(ci){if(ci.outbound>=3&&ci.answered===0){score+=2;reasons.push(ci.outbound+' calls, 0 answered')}
+    else if(ci.answered===0&&ci.outbound>0){score+=1;reasons.push('Unreachable ('+ci.outbound+' calls)')}}
+  else if(callIndex&&t!=null&&t<30){score+=1;reasons.push('No outreach logged')}
+  return {score:score,reasons:reasons};
+}
+function renderAtRisk(){
+  if(!roster.length)return '<div class="loading"><div class="spin"></div>Loading active roster…</div>';
+  var active=roster.filter(function(c){return c.status==='hired'});
+  var scored=active.map(function(c){var r=riskScore(c);return Object.assign({},c,{_score:r.score,_reasons:r.reasons})})
+    .filter(function(c){return c._score>0}).sort(function(a,b){return b._score-a._score});
+  var high=scored.filter(function(c){return c._score>=4}).length,med=scored.filter(function(c){return c._score>=2&&c._score<4}).length;
+  var h='<div class="banner w"><div class="bl w">At-risk watchlist</div>'+active.length+' active caregivers scored on early-warning signals learned from past exits (no/low booking, unreachable on outreach, first-90-day window). '+
+    (callIndex?'Call-outreach data is loaded.':'Upload call data in the Call Data tab to add outreach signals.')+'</div>';
+  h+='<div class="kg">'+kpi('Active',active.length,'status = hired','')+kpi('High risk',high,'score ≥ 4','r')+kpi('Medium',med,'score 2–3','a')+
+    kpi('On watchlist',scored.length,'any risk signal','b')+kpi('First 90 days',active.filter(function(c){return c.tenureDays!=null&&c.tenureDays<=90}).length,'new hires','p')+'</div>';
+  h+='<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Caregiver</th><th>Market</th><th>Tenure</th><th>Last booking</th><th>Outreach</th><th>Risk</th><th style="text-align:left">Why</th></tr></thead><tbody>';
+  scored.slice(0,300).forEach(function(c){
+    var ci=callIndex&&callIndex[c.mnum];
+    var band=c._score>=4?'br':c._score>=2?'ba':'bg';
+    h+='<tr><td>'+esc(c.name||'(unnamed)')+'</td><td>'+esc(c.market||'—')+'</td><td>'+(c.tenureDays!=null?c.tenureDays+'d':'—')+'</td>'+
+      '<td>'+(c.lastBooking?fmtDate(c.lastBooking):'<span class="bdg br">never</span>')+'</td>'+
+      '<td>'+(ci?ci.outbound+'→'+ci.answered+'✓':'<span class="muted">—</span>')+'</td>'+
+      '<td style="text-align:right"><span class="bdg '+band+'">'+c._score+'</span></td>'+
+      '<td class="reasons">'+c._reasons.map(function(r){return '<span>'+esc(r)+'</span>'}).join('')+'</td></tr>';
+  });
+  return h+'</tbody></table></div>';
+}
+
+// ── New-Hire Notes (weekly, accumulating) ──
+function sundayOf(d){var x=new Date(d);x.setDate(x.getDate()-x.getDay());x.setHours(0,0,0,0);return x.toISOString().slice(0,10)}
+function renderNotes(){
+  if(!roster.length)return '<div class="loading"><div class="spin"></div>Loading new-hire roster…</div>';
+  var nh=roster.filter(function(c){return c.status==='hired'&&c.tenureDays!=null&&c.tenureDays<=90}).sort(function(a,b){return (a.tenureDays||0)-(b.tenureDays||0)});
+  var h='<div class="banner"><div class="bl">Weekly new-hire notes</div>Post a weekly note on each caregiver in their first 90 days — notes accumulate into a per-caregiver timeline (nothing is overwritten). Set your initials top-right. '+nh.length+' caregivers in the window.</div>';
+  h+='<div class="toolbar"><input class="srch" placeholder="Search new hires…" value="'+esc(search)+'" oninput="search=this.value;repaint2()"></div>';
+  h+='<div id="nhList">'+nhRows(nh)+'</div>';
   return h;
 }
-function th(label,col){var arrow=sortCol===col?(sortDir>0?' ▲':' ▼'):'';return '<th onclick="sortBy(\''+col+'\')">'+label+arrow+'</th>'}
-function detailHTML(t){
-  function row(l,v){return v?'<dt>'+l+'</dt><dd>'+esc(v)+'</dd>':''}
-  return '<dl>'+
-    row('Standard violated',t.standardViolated)+
-    row('Prior incidents?',t.priorIncidents)+
-    row('Final incident',t.finalIncident)+
-    row('Corrective action?',t.correctiveAction)+
-    row('Voluntary notes',t.voluntaryNotes)+
-    row('Could Tribute have prevented?',t.preventable)+
-    row('Risk hire at onboarding?',t.riskHire)+
-    row('Ongoing schedule?',t.ongoingSchedule)+
-    row('Tribute Rise level',t.riseLevel)+
-    row('Transportation',t.transportation)+
-    row('Availability type',t.availabilityType)+
-    row('Recorded by',t.author)+
-    row('Submitted',t.submittedAt?new Date(t.submittedAt).toLocaleDateString():null)+
-  '</dl>';
+function nhRows(nh){
+  if(search)nh=nh.filter(function(c){return norm(c.name).indexOf(norm(search))>-1||norm(c.market).indexOf(norm(search))>-1});
+  var h='<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Caregiver</th><th>Market</th><th>Tenure</th><th>Notes</th><th>Last note</th></tr></thead><tbody>';
+  nh.forEach(function(c){
+    var notes=notesStore[c.mnum]||[];var lastN=notes.length?notes[notes.length-1]:null;
+    h+='<tr class="cg-row'+(expanded['n'+c.mnum]?' expanded':'')+'" onclick="toggleNote('+c.mnum+')"><td><span class="exp-arrow">▶</span>'+esc(c.name||'(unnamed)')+'</td>'+
+      '<td>'+esc(c.market||'—')+'</td><td>'+(c.tenureDays!=null?c.tenureDays+'d':'—')+'</td>'+
+      '<td>'+(notes.length?'<span class="bdg bb">'+notes.length+'</span>':'<span class="muted">—</span>')+'</td>'+
+      '<td>'+(lastN?fmtDate(lastN.weekOf):'<span class="muted">none</span>')+'</td></tr>';
+    if(expanded['n'+c.mnum])h+='<tr><td colspan="5" class="detail">'+noteTimeline(c)+'</td></tr>';
+  });
+  return h+'</tbody></table></div>';
 }
-function toggle(id){expanded[id]=!expanded[id];repaint()}
-function sortBy(c){if(sortCol===c)sortDir*=-1;else{sortCol=c;sortDir=c==='termDate'||c==='hiredDate'||c==='tenure'?-1:1}repaint()}
-function repaint(){if(curTab==='roster')document.getElementById('view').innerHTML=renderKPIs()+renderRoster()}
+function noteTimeline(c){
+  var notes=(notesStore[c.mnum]||[]).slice().sort(function(a,b){return (b.weekOf||'').localeCompare(a.weekOf||'')});
+  var h='';
+  notes.forEach(function(n){h+='<div class="note-item"><div class="note-meta">Week of '+esc(n.weekOf)+' · '+esc(n.author)+'</div>'+esc(n.text)+'</div>'});
+  if(!notes.length)h+='<div class="muted" style="margin-bottom:8px">No notes yet.</div>';
+  h+='<div class="note-box"><textarea id="nt'+c.mnum+'" placeholder="This week\'s note for '+esc(c.name)+'…"></textarea>'+
+    '<button class="export-btn" onclick="postNote('+c.mnum+')">Post note</button></div>';
+  return h;
+}
+function toggleNote(m){expanded['n'+m]=!expanded['n'+m];repaint2()}
+function repaint2(){if(curTab==='notes'){var el=document.getElementById('nhList');if(el)el.innerHTML=nhRows(roster.filter(function(c){return c.status==='hired'&&c.tenureDays!=null&&c.tenureDays<=90}).sort(function(a,b){return (a.tenureDays||0)-(b.tenureDays||0)}))}}
+async function postNote(m){
+  var ta=document.getElementById('nt'+m);if(!ta||!ta.value.trim())return;
+  var payload={mnum:m,text:ta.value.trim(),author:myInitials(),weekOf:sundayOf(new Date())};
+  ta.disabled=true;
+  try{
+    var res=await fetch(API+'?endpoint=retention_notes',{method:'POST',headers:Object.assign({'Content-Type':'application/json'},hdrs()),body:JSON.stringify(payload)});
+    if(!res.ok)throw new Error('HTTP '+res.status);
+    if(!notesStore[m])notesStore[m]=[];
+    notesStore[m].push({weekOf:payload.weekOf,text:payload.text,author:payload.author,ts:new Date().toISOString()});
+    repaint2();
+  }catch(e){ta.disabled=false;alert('Save failed: '+e.message)}
+}
 
 // ── Lifecycle ──
 function renderLifecycle(){
@@ -282,73 +369,103 @@ function renderLifecycle(){
   var counts=buckets.map(function(){return 0});var withDates=0;
   terms.forEach(function(t){var d=tenureDays(t);if(d==null||d<0)return;withDates++;for(var i=0;i<buckets.length;i++){if(d>=buckets[i][1]&&d<=buckets[i][2]){counts[i]++;break}}});
   var max=Math.max.apply(null,counts.concat([1]));
-  var h='<div class="banner"><div class="bl">Tenure at termination</div>How long caregivers lasted from hire to termination ('+withDates+' of '+terms.length+' have both dates). Early clusters point at onboarding/fit; later ones at burnout or schedule erosion.</div>';
+  var h='<div class="banner"><div class="bl">Tenure at termination</div>How long caregivers lasted from hire to termination ('+withDates+' with both dates). Early clusters = onboarding/fit; later = burnout or schedule erosion.</div>';
   h+='<div class="fc"><div class="ct">Time to termination</div>';
-  buckets.forEach(function(b,i){
-    var w=Math.round(counts[i]/max*100);
-    var cls=i<2?'r':i<4?'a':'g';
-    h+='<div class="bar-row"><div>'+b[0]+'</div><div class="bar-track"><div class="bar-fill '+cls+'" style="width:'+w+'%"></div></div><div class="bar-val">'+counts[i]+'</div></div>';
-  });
+  buckets.forEach(function(b,i){var w=Math.round(counts[i]/max*100);var cls=i<2?'r':i<4?'a':'g';
+    h+='<div class="bar-row"><div>'+b[0]+'</div><div class="bar-track"><div class="bar-fill '+cls+'" style="width:'+w+'%"></div></div><div class="bar-val">'+counts[i]+'</div></div>';});
   h+='</div>';
-  h+='<div class="muted">Full hire→active→term lifecycle (including still-active caregivers and the bandsProxy 90-day curve) lands when the live roster connection is wired in — this view currently covers terminated caregivers only.</div>';
+  if(roster.length){
+    var active=roster.filter(function(c){return c.status==='hired'});
+    var ab=[0,0,0,0,0,0];active.forEach(function(c){var d=c.tenureDays;if(d==null)return;for(var i=0;i<buckets.length;i++){if(d>=buckets[i][1]&&d<=buckets[i][2]){ab[i]++;break}}});
+    var amax=Math.max.apply(null,ab.concat([1]));
+    h+='<div class="fc"><div class="ct">Active caregivers by tenure ('+active.length+')</div>';
+    buckets.forEach(function(b,i){var w=Math.round(ab[i]/amax*100);h+='<div class="bar-row"><div>'+b[0]+'</div><div class="bar-track"><div class="bar-fill g" style="width:'+w+'%"></div></div><div class="bar-val">'+ab[i]+'</div></div>';});
+    h+='</div>';
+  }
   return h;
 }
 
-// ── Patterns (Why They Leave) ──
+// ── Patterns ──
 function dist(getter){var m={};terms.forEach(function(t){var v=getter(t);if(v==null||v==='')return;v=String(v).trim();m[v]=(m[v]||0)+1});return Object.keys(m).map(function(k){return[k,m[k]]}).sort(function(a,b){return b[1]-a[1]})}
-function barCard(title,pairs,colorFn){
-  if(!pairs.length)return '';
-  var max=pairs[0][1];
-  var h='<div class="fc"><div class="ct">'+title+'</div>';
-  pairs.forEach(function(p){var w=Math.round(p[1]/max*100);h+='<div class="bar-row"><div title="'+esc(p[0])+'">'+esc(p[0].length>34?p[0].slice(0,33)+'…':p[0])+'</div><div class="bar-track"><div class="bar-fill '+(colorFn?colorFn(p[0]):'')+'" style="width:'+w+'%"></div></div><div class="bar-val">'+p[1]+'</div></div>'});
-  return h+'</div>';
-}
+function barCard(title,pairs,colorFn){if(!pairs.length)return '';var max=pairs[0][1];var h='<div class="fc"><div class="ct">'+title+'</div>';
+  pairs.forEach(function(p){var w=Math.round(p[1]/max*100);h+='<div class="bar-row"><div title="'+esc(p[0])+'">'+esc(p[0].length>34?p[0].slice(0,33)+'…':p[0])+'</div><div class="bar-track"><div class="bar-fill '+(colorFn?colorFn(p[0]):'')+'" style="width:'+w+'%"></div></div><div class="bar-val">'+p[1]+'</div></div>'});return h+'</div>';}
 function renderPatterns(){
-  var h='<div class="banner"><div class="bl">Why caregivers leave</div>Categorical breakdowns straight from the termination forms. Claude-surfaced themes from the free-text incident notes arrive in the Insights tab.</div>';
+  var h='<div class="banner"><div class="bl">Why caregivers leave</div>Categorical breakdowns from the termination forms. Claude-surfaced root causes are in the Insights tab.</div>';
   h+=barCard('Termination type',dist(function(t){return t.termType}),function(k){return /involunt/i.test(k)?'r':'g'});
   h+=barCard('Tribute standard violated',dist(function(t){return t.standardViolated}),function(){return 'r'});
   h+=barCard('By market',dist(function(t){return t.market}),function(){return 'b'});
   h+=barCard('Risk hire at onboarding',dist(function(t){return t.riskHire}),function(k){return /^y/i.test(k)?'a':'g'});
   h+=barCard('Transportation to visits',dist(function(t){return t.transportation}),function(){return 'b'});
-  h+=barCard('Tribute Rise level',dist(function(t){return t.riseLevel}),function(){return 'b'});
   return h;
 }
 
-// ── At-Risk (Phase scaffold) ──
-function renderAtRisk(){
-  var risk=terms.filter(isRiskHire).length, invol=terms.filter(isInvol).length, n=terms.length;
-  var topStd=dist(function(t){return t.standardViolated}).slice(0,3);
-  var h='<div class="banner w" style="border-left-color:var(--amber)"><div class="bl" style="color:var(--amber)">What we know so far</div>'+
-    'Live at-risk scoring needs the active-caregiver roster (caregiver_hours / bandsProxy) + the call-outreach CSV + Claude scoring — those land in the next phases. Meanwhile, the risk signals learned from past terminations:</div>';
-  h+='<div class="kg">'+
-    kpi('Involuntary share',n?Math.round(invol/n*100)+'%':'—','of all exits','r')+
-    kpi('Were risk-hires',n?Math.round(risk/n*100)+'%':'—','flagged at onboarding','a')+
-    kpi('Top violated standard',topStd[0]?topStd[0][1]:'—',topStd[0]?topStd[0][0]:'—','b')+
-  '</div>';
-  h+='<div class="scaffold"><div class="big">🎯</div>The watchlist ranks <b>active</b> caregivers by these signals (risk-hire flag, low outreach count, tenure band, schedule erosion). It activates once the active roster + call CSV are connected.</div>';
-  return h;
-}
-
-// ── Insights (Claude — Phase scaffold) ──
+// ── Insights (Claude) ──
 function renderInsights(){
-  return '<div class="banner"><div class="bl">Claude insights</div>Precomputed termination-pattern themes and per-caregiver risk narratives, generated by the claudeProxy batch job and cached. This tab reads those cached results.</div>'+
-    '<div class="scaffold"><div class="big">🧠</div>No cached insights yet. Once the Claude batch job runs over the termination notes, this tab shows the surfaced themes (e.g. recurring root causes in the free-text incident fields) and a plain-language risk summary per active caregiver.</div>';
+  if(!insights)return '<div class="loading"><div class="spin"></div>Loading Claude insights…</div>';
+  if(insights.error)return '<div class="err">'+esc(insights.error)+'</div>';
+  var vv=insights.voluntary_vs_involuntary||{};
+  var h='<div class="banner"><div class="bl">Claude insights</div>Root-cause themes extracted from the free-text termination notes by Claude ('+(insights.basedOn||0)+' records). '+
+    '<button class="btn2" style="margin-left:8px" onclick="loadInsights(true)">↻ Regenerate</button></div>';
+  if(insights.summary)h+='<div class="fc"><div class="ct">Summary</div><div style="font-size:13px;line-height:1.6">'+esc(insights.summary)+'</div></div>';
+  if(vv.voluntary_pct!=null)h+='<div class="kg">'+kpi('Voluntary',vv.voluntary_pct+'%','caregiver choice','b')+kpi('Involuntary',vv.involuntary_pct+'%','agency decision','r')+'</div>';
+  var themes=insights.themes||[];
+  if(themes.length){var max=Math.max.apply(null,themes.map(function(t){return t.count||0}).concat([1]));
+    h+='<div class="fc"><div class="ct">Root-cause themes</div>';
+    themes.forEach(function(t){var w=Math.round((t.count||0)/max*100);
+      h+='<div style="margin-bottom:12px"><div class="bar-row"><div title="'+esc(t.theme)+'">'+esc((t.theme||'').slice(0,44))+'</div><div class="bar-track"><div class="bar-fill r" style="width:'+w+'%"></div></div><div class="bar-val">'+(t.count||0)+'</div></div>'+
+        (t.early_warning?'<div class="muted" style="margin-left:0;padding-left:0"><b>Early warning:</b> '+esc(t.early_warning)+'</div>':'')+'</div>';});
+    h+='</div>';}
+  var levers=insights.top_preventable_levers||[];
+  if(levers.length){h+='<div class="fc"><div class="ct">Top preventable levers</div><ul style="margin-left:18px;font-size:12px;line-height:1.6">'+levers.map(function(l){return '<li>'+esc(l)+'</li>'}).join('')+'</ul></div>';}
+  return h;
+}
+
+// ── Call Data (CSV upload + phone match) ──
+function renderCalls(){
+  var h='<div class="banner"><div class="bl">Call / outreach data</div>Upload your call-log CSV. Phone numbers are matched to caregivers (via roster) to count outreaches per person — never leaves your browser, feeds the At-Risk watchlist.</div>';
+  h+='<div class="upload-card'+(callIndex?' loaded':'')+'"><input type="file" accept=".csv" onchange="onCallCSV(this.files[0])">'+
+    '<div style="font-size:24px">📞</div><div style="font-weight:600;margin:6px 0">'+(callIndex?'Loaded — click to replace':'Drop / choose call-log CSV')+'</div>'+
+    '<div class="muted">Expects columns: Call Type, Direction, From, To, Answered, Time</div></div>';
+  if(callIndex){
+    var mnums=Object.keys(callIndex),totalCalls=0,matched=mnums.length;
+    mnums.forEach(function(m){totalCalls+=callIndex[m].total});
+    h+='<div class="kg">'+kpi('Caregivers matched',matched,'phone → roster','b')+kpi('Calls matched',totalCalls,'to caregivers','')+
+      kpi('Unmatched rows',callIndex._unmatched||0,'no roster phone','a')+'</div>';
+    h+='<div class="muted">Outreach counts now show on the At-Risk tab (format: outbound→answered✓).</div>';
+  }
+  return h;
+}
+function onCallCSV(file){
+  if(!file)return;
+  if(!roster.length){alert('Roster still loading — try again in a moment.');return}
+  var phoneToMnum={};roster.forEach(function(c){if(c.phone&&c.phone.length===10)phoneToMnum[c.phone]=c.mnum});
+  Papa.parse(file,{header:true,skipEmptyLines:true,complete:function(res){
+    var idx={},unmatched=0;
+    res.data.forEach(function(row){
+      var ct=(row['Call Type']||'').toLowerCase();
+      var ext=ct.indexOf('inbound')>-1?row['From']:row['To']; // caregiver side
+      var p=last10(ext);if(p.length!==10)return;
+      var m=phoneToMnum[p];if(m==null){unmatched++;return}
+      if(!idx[m])idx[m]={outbound:0,inbound:0,answered:0,total:0,lastCall:null};
+      var e=idx[m];e.total++;
+      if(ct.indexOf('inbound')>-1)e.inbound++;else e.outbound++;
+      if(/^y/i.test(row['Answered']||''))e.answered++;
+      if(row['Time']&&(!e.lastCall||row['Time']>e.lastCall))e.lastCall=row['Time'];
+    });
+    idx._unmatched=unmatched;callIndex=idx;setStatus();render();
+  }});
 }
 
 // ── Export ──
 function exportCSV(){
   var cols=['name','market','hiredDate','termDate','tenureDays','termType','standardViolated','priorIncidents','correctiveAction','riskHire','riseLevel','transportation','finalIncident','preventable','author'];
   var rows=rosterRows().map(function(t){var o={};cols.forEach(function(c){o[c]=c==='tenureDays'?tenureDays(t):t[c]});return o});
-  var csv=Papa.unparse(rows);
-  var blob=new Blob([csv],{type:'text/csv'});var a=document.createElement('a');
+  var blob=new Blob([Papa.unparse(rows)],{type:'text/csv'});var a=document.createElement('a');
   a.href=URL.createObjectURL(blob);a.download='caregiver_terminations_'+new Date().toISOString().slice(0,10)+'.csv';a.click();
 }
 
 // ── Boot ──
-(function(){
-  var saved=null;try{saved=sessionStorage.getItem('tribute_retention_key')}catch(e){}
-  if(saved){GATE_KEY=saved;loadAll(false,false)}
-})();
+(function(){var saved=null;try{saved=sessionStorage.getItem('tribute_retention_key')}catch(e){}if(saved){GATE_KEY=saved;loadAll(false,false)}})();
 </script>
 </body>
 </html>
