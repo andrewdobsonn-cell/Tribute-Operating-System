@@ -133,7 +133,7 @@ tr.cg-row{cursor:pointer}
 // ── CONFIG — runtime-fetched data only; no PII or secrets in this file ──
 var API='https://tribute-api-prod-bkc4hfcwf3f2f6bf.centralus-01.azurewebsites.net/api/vivProxy';
 var GATE_KEY=null;
-var terms=[], roster=[], rosterByMnum={}, insights=null, callIndex=null, notesStore={};
+var terms=[], roster=[], rosterByMnum={}, insights=null, callIndex=null, callMeta=null, notesStore={};
 var curTab='roster';
 var sortCol='termDate', sortDir=-1, search='', fType='';
 var expanded={};
@@ -198,11 +198,13 @@ async function loadAll(force,fromGate){
     if(!res.ok)throw new Error('HTTP '+res.status);
     var d=await res.json();showApp();
     terms=[];(d.forms||[]).forEach(function(f){(f.submissions||[]).forEach(function(s){terms.push(s)})});
-    render();loadRoster(force);loadNotes();
+    render();loadRoster(force);loadNotes();loadCalls();
   }catch(e){if(fromGate){document.getElementById('gateErr').textContent='Error: '+e.message;return}document.getElementById('view').innerHTML='<div class="err">Failed to load: '+esc(e.message)+'</div>'}
 }
 async function loadRoster(force){try{var res=await fetch(API+'?endpoint=retention_roster'+(force?'&_t='+Date.now():''),{headers:hdrs()});if(!res.ok)return;var d=await res.json();roster=d.caregivers||[];rosterByMnum={};roster.forEach(function(c){if(c.mnum!=null)rosterByMnum[c.mnum]=c});renderFilterBar();setStatus();if(curTab==='atrisk'||curTab==='notes'||curTab==='lifecycle')render()}catch(e){}}
 async function loadNotes(){try{var res=await fetch(API+'?endpoint=retention_notes',{headers:hdrs()});if(!res.ok)return;var d=await res.json();notesStore=d.notes||{};if(curTab==='notes')render()}catch(e){}}
+async function loadCalls(){try{var res=await fetch(API+'?endpoint=retention_calls',{headers:hdrs()});if(!res.ok)return;var d=await res.json();if(d.counts&&Object.keys(d.counts).length){callIndex=d.counts;callMeta=d.meta||{};setStatus();if(curTab==='atrisk'||curTab==='calls')render()}}catch(e){}}
+async function saveCalls(){if(!callIndex)return;var btn=document.getElementById('saveCallsBtn');if(btn){btn.disabled=true;btn.textContent='Saving…'}try{var res=await fetch(API+'?endpoint=retention_calls',{method:'POST',headers:Object.assign({'Content-Type':'application/json'},hdrs()),body:JSON.stringify({counts:callIndex,meta:callMeta||{}})});if(!res.ok)throw new Error('HTTP '+res.status);var d=await res.json();callMeta=d.meta||callMeta||{};render()}catch(e){alert('Save failed: '+e.message);if(btn){btn.disabled=false;btn.textContent='Save to server'}}}
 async function loadInsights(force){var v=document.getElementById('view');v.innerHTML='<div class="loading"><div class="spin"></div>'+(force?'Regenerating':'Loading')+' Claude insights…</div>';try{var res=await fetch(API+'?endpoint=termination_insights'+(force?'&regenerate=1':''),{headers:hdrs()});insights=await res.json();render()}catch(e){v.innerHTML='<div class="err">Insights failed: '+esc(e.message)+'</div>'}}
 function setStatus(){var sl=document.getElementById('statusLine');if(!sl)return;var active=roster.filter(function(c){return c.status==='hired'}).length;sl.innerHTML='<span class="dot"></span>'+terms.length+' terminations · '+(roster.length?active+' active · ':'')+(callIndex?'calls matched · ':'')+new Date().toLocaleTimeString()}
 
@@ -395,10 +397,16 @@ function renderInsights(){
 
 // ── Call Data (CSV upload + phone match) ──
 function renderCalls(){
-  var h='<div class="banner"><div class="bl">Call / outreach data</div>Upload your call-log CSV. Phone numbers are matched to caregivers (via roster) to count outreaches per person — never leaves your browser, feeds the At-Risk watchlist.</div>';
-  h+='<div class="upload-card'+(callIndex?' loaded':'')+'"><input type="file" accept=".csv" onchange="onCallCSV(this.files[0])"><div style="font-size:24px">📞</div><div style="font-weight:600;margin:6px 0">'+(callIndex?'Loaded — click to replace':'Drop / choose call-log CSV')+'</div><div class="muted">Expects columns: Call Type, Direction, From, To, Answered, Time</div></div>';
-  if(callIndex){var mnums=Object.keys(callIndex).filter(function(k){return k!=='_unmatched'}),totalCalls=0;mnums.forEach(function(m){totalCalls+=callIndex[m].total});
-    h+='<div class="kg">'+kpi('Caregivers matched',mnums.length,'phone → roster','b')+kpi('Calls matched',totalCalls,'to caregivers','')+kpi('Unmatched rows',callIndex._unmatched||0,'no roster phone','a')+'</div><div class="muted">Outreach counts now show on the At-Risk tab (outbound→answered✓).</div>'}
+  var h='<div class="banner"><div class="bl">Call / outreach data</div>Upload your call-log CSV. Phone numbers are matched to caregivers <b>in your browser</b> (the raw call log never leaves it) — only the per-caregiver counts are saved to the server, so the whole team sees outreach without re-uploading.</div>';
+  h+='<div class="upload-card'+(callIndex?' loaded':'')+'"><input type="file" accept=".csv" onchange="onCallCSV(this.files[0])"><div style="font-size:24px">📞</div><div style="font-weight:600;margin:6px 0">'+(callIndex?'Loaded — click to upload a newer export':'Drop / choose call-log CSV')+'</div><div class="muted">Expects columns: Call Type, Direction, From, To, Answered, Time</div></div>';
+  if(callIndex){
+    var mnums=Object.keys(callIndex),totalCalls=0;mnums.forEach(function(m){totalCalls+=callIndex[m].total||0});
+    var meta=callMeta||{},saved=meta.savedAt;
+    h+='<div class="kg">'+kpi('Caregivers matched',mnums.length,'phone → roster','b')+kpi('Calls matched',totalCalls,'to caregivers','')+kpi('Unmatched rows',meta.unmatched||0,'no roster phone','a')+'</div>';
+    h+='<div class="toolbar"><button class="export-btn" id="saveCallsBtn" onclick="saveCalls()">'+(saved?'Update saved counts':'Save to server')+'</button>'+
+      '<span class="muted">'+(saved?'Last saved '+new Date(saved).toLocaleString()+(meta.savedBy?' by '+esc(meta.savedBy):''):'Not saved yet — session-only until you save')+'</span></div>';
+    h+='<div class="muted">Outreach shows on the At-Risk tab (outbound→answered✓).</div>';
+  }
   return h;
 }
 function onCallCSV(file){
@@ -416,7 +424,7 @@ function onCallCSV(file){
       if(/^y/i.test(row['Answered']||''))e.answered++;
       if(row['Time']&&(!e.lastCall||row['Time']>e.lastCall))e.lastCall=row['Time'];
     });
-    idx._unmatched=unmatched;callIndex=idx;setStatus();render();
+    callIndex=idx;callMeta={rows:res.data.length,matched:Object.keys(idx).length,unmatched:unmatched,savedAt:null,savedBy:myInitials()};setStatus();render();
   }});
 }
 
