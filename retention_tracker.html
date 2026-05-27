@@ -270,16 +270,24 @@ async function loadHours(){
 }
 function _sundayNAgo(n){var d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()-d.getDay()-7*n);return d}
 function _fmtD(d){return d.toISOString().slice(0,10)}
-async function loadHoursWindow(n){
-  hrWindowLoading=true;render();
-  var weeks=[];for(var i=0;i<n;i++){var s=_sundayNAgo(i),e=new Date(s);e.setDate(s.getDate()+6);weeks.push([_fmtD(s),_fmtD(e)])}
-  try{
-    var results=await Promise.all(weeks.map(function(w){return fetch(API+'?endpoint=caregiver_hours&startDate='+w[0]+'&endDate='+w[1]).then(function(r){return r.ok?r.json():{caregivers:[]}}).catch(function(){return{caregivers:[]}})}));
-    hoursWeeks={};
-    results.forEach(function(d,idx){(d.caregivers||[]).forEach(function(c){if(!hoursWeeks[c.id])hoursWeeks[c.id]=[];hoursWeeks[c.id].push({week:weeks[idx][0],scheduled:c.scheduledHrs||0})})});
-    hrWindowLoaded=n;
-  }catch(e){}
-  hrWindowLoading=false;render();
+// Fetch the last N *completed* weeks (skip current partial week) of caregiver_hours,
+// staggered 200ms apart like the caregiver_hours dashboard's DH-Over-Time view so we
+// don't overload the proxy on uncached historical weeks. Auto-runs when Hours opens.
+function loadHoursWindow(n){
+  if(hrWindowLoading)return;
+  hrWindowLoading=true; if(curTab==='hours')render();
+  var weeks=[];
+  for(var i=1;i<=n;i++){var s=_sundayNAgo(i),e=new Date(s);e.setDate(s.getDate()+6);weeks.push([_fmtD(s),_fmtD(e)])}
+  var done=0, acc={};
+  weeks.forEach(function(w,idx){
+    setTimeout(function(){
+      fetch(API+'?endpoint=caregiver_hours&startDate='+w[0]+'&endDate='+w[1])
+        .then(function(r){return r.ok?r.json():{caregivers:[]}})
+        .then(function(d){(d.caregivers||[]).forEach(function(c){if(c.id){if(!acc[c.id])acc[c.id]=[];acc[c.id].push({week:w[0],scheduled:c.scheduledHrs||0})}});})
+        .catch(function(){})
+        .finally(function(){done++;if(done===weeks.length){hoursWeeks=acc;hrWindowLoaded=n;hrWindowLoading=false;if(curTab==='hours')render();}});
+    }, idx*200);
+  });
 }
 async function loadEngagement(){try{var res=await fetch(API+'?endpoint=engagement',{headers:hdrs()});if(!res.ok)return;var d=await res.json();engByPhone={};(d.caregivers||[]).forEach(function(e){if(e.phone)engByPhone[e.phone]=e});if((d.caregivers||[]).length){setStatus();if(curTab==='atrisk')render()}}catch(e){}}
 function engFor(c){return c&&c.phone?engByPhone[c.phone]:null}
@@ -451,13 +459,14 @@ async function postNote(m){
 function renderHours(){
   if(!roster.length)return '<div class="loading"><div class="spin"></div>Loading roster…</div>';
   if(!hoursLoaded)return '<div class="loading"><div class="spin"></div>Loading current-week hours…</div>';
+  if(!hrWindowLoaded&&!hrWindowLoading)loadHoursWindow(8);  // auto-load tenure avg on open
   var active=scopedRoster().filter(function(c){return c.status==='hired'});
   var withH=active.filter(function(c){return hoursFor(c)});
   var totDes=withH.reduce(function(s,c){return s+(hoursFor(c).desired||0)},0);
   var totSch=withH.reduce(function(s,c){return s+(hoursFor(c).scheduled||0)},0);
   var under=withH.filter(function(c){var h=hoursFor(c);return (h.scheduled+(h.pto||0))<h.desired}).length;
   var h='<div class="banner"><div class="bl">Hours — desired vs received</div>Current week (Sun–Sat) scheduled billable hours vs each caregiver\'s desired hours. A persistent gap (fewer hours than wanted) is a leading retention risk and feeds the At-Risk score. '+
-    (hrWindowLoaded?('<b>Avg/wk</b> = mean weekly hours over the last '+hrWindowLoaded+' weeks (tenure-aware).'):'<button class="btn2" onclick="loadHoursWindow(8)"'+(hrWindowLoading?' disabled':'')+'>'+(hrWindowLoading?'Loading 8-week average…':'Load 8-week tenure average')+'</button>')+'</div>';
+    (hrWindowLoading?'<b>Avg/wk</b> — loading 8 completed weeks (uncached weeks recompute, ~30–60s)…':hrWindowLoaded?('<b>Avg/wk</b> = mean weekly scheduled hours over the last '+hrWindowLoaded+' completed weeks, tenure-aware. <button class="btn2" onclick="hrWindowLoaded=0;loadHoursWindow(8)">↻ reload</button>'):'')+'</div>';
   h+='<div class="kg">'+kpi('Active w/ hours',withH.length,'in scope','')+kpi('Desired',Math.round(totDes)+'h','this week','b')+kpi('Scheduled',Math.round(totSch)+'h','this week','g')+kpi('Fill rate',totDes?Math.round(totSch/totDes*100)+'%':'—','scheduled/desired','a')+kpi('Under-scheduled',under,'below desired','r')+'</div>';
   h+='<div class="tbl-wrap"><table class="tbl"><thead>'+sortHeader(HR_COLS,hrSort,'hrSortBy')+'</thead><tbody>';
   sortRows(withH,HR_COLS,hrSort).slice(0,600).forEach(function(c){var hh=hoursFor(c),a=avgWeekly(c),gap=hh.scheduled+(hh.pto||0)-hh.desired;
