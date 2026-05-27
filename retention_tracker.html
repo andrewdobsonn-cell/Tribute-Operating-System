@@ -227,8 +227,9 @@ function inScopeCG(c){
   if(gMarket){ if(c.market){ if(c.market!==gMarket)return false } else { var ms=MARKET_STATE[gMarket]; if(ms&&c.state!==ms)return false } }
   return true;
 }
-function scopedTerms(){return terms.filter(inScopeTerm)}
-function scopedRoster(){return roster.filter(inScopeCG)}
+function matchSearch(fields){if(!search)return true;return norm(fields.filter(Boolean).join(' ')).indexOf(norm(search))>-1}
+function scopedTerms(){return terms.filter(function(t){return inScopeTerm(t)&&matchSearch([t.name,t.market,t.mce,t.termType,t.standardViolated,t.finalIncident])})}
+function scopedRoster(){return roster.filter(function(c){return inScopeCG(c)&&matchSearch([c.name,c.market,c.state,c.mce])})}
 function uniqSorted(arr){var s={};arr.forEach(function(v){if(v!=null&&v!=='')s[v]=1});return Object.keys(s).sort()}
 function allStates(){return uniqSorted(terms.map(function(t){return t.state}).concat(roster.map(function(c){return c.state})))}
 function allMarkets(){var m=uniqSorted(terms.map(function(t){return t.market}).concat(roster.map(function(c){return c.market})));if(gState)m=m.filter(function(x){return MARKET_STATE[x]===gState});return m}
@@ -244,7 +245,8 @@ function renderFilterBar(){
     '<select onchange="setGlobal(\'market\',this.value)"><option value="">All markets</option>'+selOpts(allMarkets(),gMarket)+'</select>'+
     '<select onchange="setGlobal(\'mce\',this.value)"><option value="">All MCEs</option>'+selOpts(allMCEs(),gMCE)+'</select>'+
     '<button class="btn2" onclick="clearGlobal()">'+(active?'✕ Clear → company-wide':'Company-wide')+'</button>'+
-    (active?'<span class="muted">'+[gState,gMarket,gMCE].filter(Boolean).join(' · ')+'</span>':'');
+    (active?'<span class="muted">'+[gState,gMarket,gMCE].filter(Boolean).join(' · ')+'</span>':'')+
+    '<input id="gsearch" placeholder="Search name / market / MCE / reason…" value="'+esc(search)+'" oninput="search=this.value;renderView()" style="flex:1;min-width:200px;padding:6px 10px;font-size:12px;border:.5px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text)">';
 }
 
 // ── Load ──
@@ -307,8 +309,9 @@ function setStatus(){var sl=document.getElementById('statusLine');if(!sl)return;
 
 // ── Tabs ──
 function setTab(t,el){curTab=t;document.querySelectorAll('.ntab').forEach(function(x){x.classList.remove('on')});el.classList.add('on');if(t==='insights'&&!insights){loadInsights(false);return}render()}
-function render(){
-  var v=document.getElementById('view');setStatus();renderFilterBar();
+function render(){setStatus();renderFilterBar();renderView()}
+function renderView(){
+  var v=document.getElementById('view');
   if(curTab==='roster'){if(!terms.length){v.innerHTML='<div class="loading">No termination records.</div>';return}v.innerHTML=renderKPIs()+renderRoster()}
   else if(curTab==='atrisk')v.innerHTML=renderAtRisk();
   else if(curTab==='notes')v.innerHTML=renderNotes();
@@ -337,7 +340,6 @@ function types(){var s={};terms.forEach(function(t){if(t.termType)s[t.termType]=
 function rosterRows(){
   var rows=scopedTerms().filter(function(t){
     if(fType&&t.termType!==fType)return false;
-    if(search){var hay=norm([t.name,t.market,t.mce,t.termType,t.standardViolated,t.finalIncident].join(' '));if(hay.indexOf(norm(search))<0)return false}
     return true;
   });
   rows.sort(function(a,b){var x,y;
@@ -351,8 +353,7 @@ function rosterRows(){
 function renderRoster(){
   var rows=rosterRows();
   var tOpts='<option value="">All types</option>'+types().map(function(t){return '<option'+(t===fType?' selected':'')+'>'+esc(t)+'</option>'}).join('');
-  var h='<div class="toolbar"><input class="srch" placeholder="Search name, market, MCE, reason, incident…" value="'+esc(search)+'" oninput="search=this.value;repaint()">'+
-    '<select onchange="fType=this.value;repaint()">'+tOpts+'</select>'+
+  var h='<div class="toolbar"><select onchange="fType=this.value;repaint()">'+tOpts+'</select>'+
     '<button class="export-btn" onclick="exportCSV()">Export CSV</button><span class="muted">'+rows.length+' shown</span></div>';
   h+='<div class="tbl-wrap"><table class="tbl"><thead><tr>'+th('Caregiver','name')+th('Market','market')+th('MCE','mce')+th('Hired','hiredDate')+th('Termed','termDate')+th('Tenure','tenure')+th('Outreach','outreach')+th('Type','termType')+th('Risk','riskHire')+'</tr></thead><tbody>';
   rows.forEach(function(t){
@@ -423,11 +424,10 @@ function renderNotes(){
   if(!roster.length)return '<div class="loading"><div class="spin"></div>Loading new-hire roster…</div>';
   var nh=newHires();
   var h='<div class="banner"><div class="bl">Weekly new-hire notes</div>Post a weekly note on each caregiver in their first 90 days — notes accumulate into a per-caregiver timeline (nothing is overwritten). Set your initials top-right. '+nh.length+' in scope.</div>';
-  h+='<div class="toolbar"><input class="srch" placeholder="Search new hires…" value="'+esc(search)+'" oninput="search=this.value;repaint2()"></div><div id="nhList">'+nhRows(nh)+'</div>';
+  h+='<div id="nhList">'+nhRows(nh)+'</div>';
   return h;
 }
 function nhRows(nh){
-  if(search)nh=nh.filter(function(c){return norm(c.name).indexOf(norm(search))>-1||norm(c.mce).indexOf(norm(search))>-1});
   nh=sortRows(nh,NH_COLS,nhSort);
   var h='<div class="tbl-wrap"><table class="tbl"><thead>'+sortHeader(NH_COLS,nhSort,'nhSortBy')+'</thead><tbody>';
   nh.forEach(function(c){
