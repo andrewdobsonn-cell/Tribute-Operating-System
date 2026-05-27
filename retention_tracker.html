@@ -477,8 +477,13 @@ function renderRejections(){
   if(!rejInsights&&!rejInsightsLoading)loadRejInsights(false);
   h+='<div class="fc"><div class="ct">Claude — why are they declining? <button class="btn2" onclick="loadRejInsights(true)">↻ regenerate</button></div>';
   if(rejInsightsLoading)h+='<div class="muted">Analyzing decline patterns…</div>';
-  else if(rejInsights&&rejInsights.summary&&rejInsights.summary.indexOf('analysis failed')<0)h+='<div style="font-size:13px;line-height:1.6">'+esc(rejInsights.summary)+'</div>'+
-    ((rejInsights.recommendations&&rejInsights.recommendations.length)?'<div class="ct" style="margin-top:10px">Recommendations</div><ul style="margin-left:18px;font-size:12px;line-height:1.6">'+rejInsights.recommendations.map(function(r){return '<li>'+esc(r)+'</li>'}).join('')+'</ul>':'');
+  else if(rejInsights&&rejInsights.summary&&rejInsights.summary.indexOf('analysis failed')<0){
+    function ulist(t,arr,fmt){return (arr&&arr.length)?'<div class="ct" style="margin-top:12px">'+t+'</div><ul style="margin-left:18px;font-size:12px;line-height:1.6">'+arr.map(fmt).join('')+'</ul>':''}
+    h+='<div style="font-size:13px;line-height:1.6">'+esc(rejInsights.summary)+'</div>';
+    h+=ulist('Likely reasons they decline',rejInsights.likely_reasons,function(r){return '<li>'+esc(r)+'</li>'});
+    h+=ulist('Patterns',rejInsights.patterns,function(p){return '<li><b>'+esc(p.pattern||'')+'</b>'+(p.evidence?' — '+esc(p.evidence):'')+'</li>'});
+    h+=ulist('Recommendations',rejInsights.recommendations,function(r){return '<li>'+esc(r)+'</li>'});
+  }
   else h+='<div class="muted">No analysis yet.</div>';
   var hasBuckets=rejInsights&&((rejInsights.byType&&rejInsights.byType.length)||(rejInsights.byPay&&rejInsights.byPay.length)||(rejInsights.byDow&&rejInsights.byDow.length));
   if(rejInsights&&!hasBuckets)h+='<div class="muted" style="margin-top:8px">Per-pattern breakdowns (by visit type / day / pay band) are still empty in the call-intel data — they fill in once its profile-recompute pipeline tags call outcomes. Analysis above is from overall acceptance + decliner tone.</div>';
