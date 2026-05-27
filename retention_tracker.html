@@ -116,6 +116,7 @@ tr.cg-row{cursor:pointer}
   <div class="nav-tabs" id="navTabs">
     <div class="ntab on" data-tab="roster"    onclick="setTab('roster',this)">Terminated</div>
     <div class="ntab"     data-tab="atrisk"    onclick="setTab('atrisk',this)">At-Risk</div>
+    <div class="ntab"     data-tab="rejections" onclick="setTab('rejections',this)">Rejections</div>
     <div class="ntab"     data-tab="notes"     onclick="setTab('notes',this)">New-Hire Notes</div>
     <div class="ntab"     data-tab="hours"     onclick="setTab('hours',this)">Hours</div>
     <div class="ntab"     data-tab="lifecycle" onclick="setTab('lifecycle',this)">Lifecycle</div>
@@ -136,6 +137,7 @@ var API='https://tribute-api-prod-bkc4hfcwf3f2f6bf.centralus-01.azurewebsites.ne
 var GATE_KEY=null;
 var terms=[], roster=[], rosterByMnum={}, insights=null, callIndex=null, callMeta=null, notesStore={};
 var engByPhone={};                         // call-intel SMS/communication signals (by phone last10)
+var rejInsights=null, rejInsightsLoading=false;  // Claude visit-rejection analysis
 var hoursById={}, hoursLoaded=false;      // current-week desired/scheduled per caregiver (by Viv id)
 var hoursWeeks={}, hrWindowLoaded=0, hrWindowLoading=false;  // multi-week scheduled series for tenure avg
 var curTab='roster';
@@ -215,6 +217,18 @@ var HR_COLS=[
   {col:'differential',label:'Gap',type:'num',val:function(c){var h=hoursFor(c);return h?(h.scheduled+(h.pto||0)-h.desired):0}}
 ];
 function hrSortBy(col){toggleSort(hrSort,col,HR_COLS);render()}
+
+var rejSort={col:'rate',dir:1}; // lowest acceptance first
+var REJ_COLS=[
+  {col:'name',label:'Caregiver',type:'str',val:function(c){return c.name}},
+  {col:'market',label:'Market',type:'str',val:function(c){return c.market}},
+  {col:'mce',label:'MCE',type:'str',val:function(c){return c.mce}},
+  {col:'offered',label:'Offered',type:'num',val:function(c){var e=engFor(c);return e?(e.offered||0):-1}},
+  {col:'accepted',label:'Accepted',type:'num',val:function(c){var e=engFor(c);return e?(e.accepted||0):-1}},
+  {col:'rate',label:'Accept %',type:'num',val:function(c){var e=engFor(c);return e&&e.acceptance_rate!=null?e.acceptance_rate:-1}},
+  {col:'lastDeclined',label:'Last declined',type:'date',val:function(c){var e=engFor(c);return e?e.last_declined:null}}
+];
+function rejSortBy(col){toggleSort(rejSort,col,REJ_COLS);render()}
 function saveInitials(){try{localStorage.setItem('tribute_init',document.getElementById('initials').value)}catch(e){}}
 function loadInitials(){try{var v=localStorage.getItem('tribute_init');if(v)document.getElementById('initials').value=v}catch(e){}}
 function myInitials(){return (document.getElementById('initials').value||'??').trim().toUpperCase().slice(0,12)}
@@ -314,6 +328,7 @@ function renderView(){
   var v=document.getElementById('view');
   if(curTab==='roster'){if(!terms.length){v.innerHTML='<div class="loading">No termination records.</div>';return}v.innerHTML=renderKPIs()+renderRoster()}
   else if(curTab==='atrisk')v.innerHTML=renderAtRisk();
+  else if(curTab==='rejections')v.innerHTML=renderRejections();
   else if(curTab==='notes')v.innerHTML=renderNotes();
   else if(curTab==='hours')v.innerHTML=renderHours();
   else if(curTab==='lifecycle')v.innerHTML=renderKPIs()+renderLifecycle();
@@ -405,12 +420,20 @@ function riskScore(c){
   if(desired<=0)return null;  // non-PRN with no desired hours → not on the watchlist
   var ratio=scheduled/desired;
   var contactNote=!everContacted?'never called or texted':(contactDays!=null&&contactDays>30?'no contact '+contactDays+'d':null);
-  if(in90&&scheduled<=0&&!everContacted){reasons.push('First 90 days · 0 hrs · never called or texted');return R('Critical',100);}
-  if(scheduled<=0){reasons.push((in90?'First 90 days · ':'')+'getting 0 of '+Math.round(desired)+'h desired');if(contactNote)reasons.push(contactNote);return R('High',82);}
-  if(ratio<0.5){reasons.push('Under 50% of desired ('+Math.round(scheduled)+'/'+Math.round(desired)+'h)'+(in90?' · first 90 days':''));if(contactNote)reasons.push(contactNote);return R('High',70);}
-  if(ratio<0.75){reasons.push('50–75% of desired ('+Math.round(scheduled)+'/'+Math.round(desired)+'h)');return R('Medium',40);}
-  reasons.push(Math.round(ratio*100)+'% of desired ('+Math.round(scheduled)+'/'+Math.round(desired)+'h)');
-  return R('Low',12);
+  var res;
+  if(in90&&scheduled<=0&&!everContacted){reasons.push('First 90 days · 0 hrs · never called or texted');res=R('Critical',100);}
+  else if(scheduled<=0){reasons.push((in90?'First 90 days · ':'')+'getting 0 of '+Math.round(desired)+'h desired');if(contactNote)reasons.push(contactNote);res=R('High',82);}
+  else if(ratio<0.5){reasons.push('Under 50% of desired ('+Math.round(scheduled)+'/'+Math.round(desired)+'h)'+(in90?' · first 90 days':''));if(contactNote)reasons.push(contactNote);res=R('High',70);}
+  else if(ratio<0.75){reasons.push('50–75% of desired ('+Math.round(scheduled)+'/'+Math.round(desired)+'h)');res=R('Medium',40);}
+  else{reasons.push(Math.round(ratio*100)+'% of desired ('+Math.round(scheduled)+'/'+Math.round(desired)+'h)');res=R('Low',12);}
+  // turning down offered visits (within availability) escalates risk
+  if(e&&(e.offered||0)>=3&&e.acceptance_rate!=null&&e.acceptance_rate<0.45){
+    reasons.push('Declines ~'+Math.round((1-e.acceptance_rate)*100)+'% of offered visits');
+    res.score+=15;
+    if(res.level==='Low'){res.level='Medium';res.score=Math.max(res.score,42);}
+    else if(res.level==='Medium'){res.level='High';res.score=Math.max(res.score,72);}
+  }
+  return res;
 }
 function renderAtRisk(){
   if(!roster.length)return '<div class="loading"><div class="spin"></div>Loading active roster…</div>';
@@ -432,6 +455,42 @@ function renderAtRisk(){
     h+='<tr><td>'+esc(c.name||'(unnamed)')+(c.prn?' <span class="bdg bb">PRN</span>':'')+'</td><td class="l">'+esc(c.state||'—')+'</td><td class="l">'+esc(c.mce||'—')+'</td><td>'+(c.tenureDays!=null?c.tenureDays+'d':'—')+'</td>'+
       '<td>'+(c.lastBooking?fmtDate(c.lastBooking):'<span class="bdg br">never</span>')+'</td><td>'+hoursStr(c)+'</td><td>'+(ci?ci.outbound+'→'+ci.answered+'✓':'<span class="muted">—</span>')+'</td>'+
       '<td>'+engTexts(c)+'</td><td><span class="bdg '+band+'">'+esc(c._level)+'</span></td><td class="reasons">'+c._reasons.map(function(r){return '<span>'+esc(r)+'</span>'}).join('')+'</td></tr>';
+  });
+  return h+'</tbody></table></div>';
+}
+
+// ── Rejections (visit offers declined; scoped active caregivers + Claude "why") ──
+function loadRejInsights(force){
+  if(rejInsightsLoading)return; rejInsightsLoading=true; if(curTab==='rejections')render();
+  fetch(API+'?endpoint=rejection_insights'+(force?'&regenerate=1':''),{headers:hdrs()})
+    .then(function(r){return r.json()}).then(function(d){rejInsights=d;rejInsightsLoading=false;if(curTab==='rejections')render()})
+    .catch(function(){rejInsightsLoading=false;if(curTab==='rejections')render()});
+}
+function renderRejections(){
+  if(!roster.length)return '<div class="loading"><div class="spin"></div>Loading roster…</div>';
+  var active=scopedRoster().filter(function(c){return c.status==='hired'});
+  var withOffers=active.filter(function(c){var e=engFor(c);return e&&(e.offered||0)>0});
+  var totOff=0,totAcc=0; withOffers.forEach(function(c){var e=engFor(c);totOff+=e.offered||0;totAcc+=e.accepted||0;});
+  var low=withOffers.filter(function(c){var e=engFor(c);return (e.offered||0)>=3&&e.acceptance_rate!=null&&e.acceptance_rate<0.5;}).length;
+  var h='<div class="banner"><div class="bl">Visit offers & rejections</div>Who is being offered visits and turning them down — a leading signal of an hours, location, pay, or availability mismatch. '+(withOffers.length?'':'No offer data for caregivers in scope.')+'</div>';
+  h+='<div class="kg">'+kpi('With offers',withOffers.length,'in scope','')+kpi('Acceptance',totOff?Math.round(100*totAcc/totOff)+'%':'—',totAcc+'/'+totOff+' offered','a')+kpi('Frequent decliners',low,'<50% accepted','r')+'</div>';
+  if(!rejInsights&&!rejInsightsLoading)loadRejInsights(false);
+  h+='<div class="fc"><div class="ct">Claude — why are they declining? <button class="btn2" onclick="loadRejInsights(true)">↻ regenerate</button></div>';
+  if(rejInsightsLoading)h+='<div class="muted">Analyzing decline patterns…</div>';
+  else if(rejInsights&&rejInsights.summary&&rejInsights.summary.indexOf('analysis failed')<0)h+='<div style="font-size:13px;line-height:1.6">'+esc(rejInsights.summary)+'</div>'+
+    ((rejInsights.recommendations&&rejInsights.recommendations.length)?'<div class="ct" style="margin-top:10px">Recommendations</div><ul style="margin-left:18px;font-size:12px;line-height:1.6">'+rejInsights.recommendations.map(function(r){return '<li>'+esc(r)+'</li>'}).join('')+'</ul>':'');
+  else h+='<div class="muted">No analysis yet.</div>';
+  var hasBuckets=rejInsights&&((rejInsights.byType&&rejInsights.byType.length)||(rejInsights.byPay&&rejInsights.byPay.length)||(rejInsights.byDow&&rejInsights.byDow.length));
+  if(rejInsights&&!hasBuckets)h+='<div class="muted" style="margin-top:8px">Per-pattern breakdowns (by visit type / day / pay band) are still empty in the call-intel data — they fill in once its profile-recompute pipeline tags call outcomes. Analysis above is from overall acceptance + decliner tone.</div>';
+  h+='</div>';
+  if(hasBuckets){
+    function bcard(t,arr){if(!arr||!arr.length)return '';var s='<div class="fc"><div class="ct">'+t+'</div>';arr.forEach(function(b){var w=Math.round((b.rate||0)*100);s+='<div class="bar-row"><div title="'+esc(b.bucket)+'">'+esc(String(b.bucket).slice(0,30))+'</div><div class="bar-track"><div class="bar-fill '+(w<50?'r':w<75?'a':'g')+'" style="width:'+w+'%"></div></div><div class="bar-val">'+w+'% ('+b.accepted+'/'+b.offered+')</div></div>';});return s+'</div>';}
+    h+=bcard('Acceptance by visit type',rejInsights.byType)+bcard('By day of week',rejInsights.byDow)+bcard('By pay band',rejInsights.byPay);
+  }
+  var rows=sortRows(withOffers,REJ_COLS,rejSort);
+  h+='<div class="tbl-wrap"><table class="tbl"><thead>'+sortHeader(REJ_COLS,rejSort,'rejSortBy')+'</thead><tbody>';
+  rows.slice(0,500).forEach(function(c){var e=engFor(c);var rate=e.acceptance_rate;var band=(rate!=null&&rate<0.5)?'br':(rate!=null&&rate<0.75)?'ba':'bg';
+    h+='<tr><td>'+esc(c.name||'(unnamed)')+(c.prn?' <span class="bdg bb">PRN</span>':'')+'</td><td class="l">'+esc(c.market||'—')+'</td><td class="l">'+esc(c.mce||'—')+'</td><td>'+(e.offered||0)+'</td><td>'+(e.accepted||0)+'</td><td><span class="bdg '+band+'">'+(rate!=null?Math.round(rate*100)+'%':'—')+'</span></td><td>'+(e.last_declined?fmtDate(e.last_declined):'—')+'</td></tr>';
   });
   return h+'</tbody></table></div>';
 }
