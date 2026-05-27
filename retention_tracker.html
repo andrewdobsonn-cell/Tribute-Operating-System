@@ -479,19 +479,27 @@ function whyPrompt(c){
   return L.join('\n');
 }
 function analyzeWhy(c){
-  var k=c.mnum; if(cgWhy[k])return; cgWhy[k]={loading:true};
-  var sys='You are a home-care retention analyst. In 2–3 sentences, explain why THIS caregiver is likely declining visits / at risk based only on the signals given, then suggest one concrete next action. No preamble, no caveats about limited data.';
-  fetch(CLAUDE,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:400,system:sys,messages:[{role:'user',content:'Caregiver signals:\n'+whyPrompt(c)+'\n\nWhy is this caregiver likely declining / at risk, and what should we do?'}]})})
-    .then(function(r){return r.json()}).then(function(d){cgWhy[k]={text:(d.content&&d.content[0]&&d.content[0].text)||'(no response)'};repaintRej()})
-    .catch(function(e){cgWhy[k]={text:'Analysis failed: '+e.message};repaintRej()});
-  repaintRej();
+  var k=c.mnum; if(cgWhy[k])return; cgWhy[k]={loading:true}; repaintRej();
+  fetch(API+'?endpoint=caregiver_calls&phone='+encodeURIComponent(c.phone||''),{headers:hdrs()})
+    .then(function(r){return r.ok?r.json():{calls:[]}}).catch(function(){return {calls:[]}})
+    .then(function(cd){
+      var calls=(cd&&cd.calls)||[]; cgWhy[k]={loading:true,calls:calls}; repaintRej();
+      var callText=calls.length?calls.map(function(x){return '- '+((x.started_at||'').slice(0,10))+' ['+(x.outcome||'?')+', '+(x.direction||'')+']: '+((x.summary||'')).slice(0,500);}).join('\n'):'(no analyzed calls on file)';
+      var sys='You are a home-care retention analyst. Using the signals AND the recent call summaries, explain in 2–4 sentences why this caregiver is declining visits / at risk — cite specifics from the calls — then give one concrete next action. No preamble.';
+      var content='Signals:\n'+whyPrompt(c)+'\n\nRecent analyzed calls (date [outcome, direction]: summary):\n'+callText+'\n\nWhy is this caregiver declining / at risk, and what should we do?';
+      return fetch(CLAUDE,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:500,system:sys,messages:[{role:'user',content:content}]})})
+        .then(function(r){return r.json()}).then(function(d){cgWhy[k]={text:(d.content&&d.content[0]&&d.content[0].text)||'(no response)',calls:calls};repaintRej();});
+    })
+    .catch(function(e){cgWhy[k]={text:'Analysis failed: '+e.message};repaintRej();});
 }
 function toggleRej(m){expanded['r'+m]=!expanded['r'+m];if(expanded['r'+m]){var c=rosterByMnum[m];if(c&&!cgWhy[m])analyzeWhy(c);}repaintRej();}
 function rejDetail(c){
-  var w=cgWhy[c.mnum];
+  var w=cgWhy[c.mnum]||{};
   var sig='<div class="muted" style="margin-bottom:8px">'+esc(whyPrompt(c).replace(/\n/g,'  ·  '))+'</div>';
-  var why=w?(w.loading?'<div class="muted">Analyzing why… </div>':'<div style="font-size:13px;line-height:1.6"><b>Why (Claude):</b> '+esc(w.text)+'</div>'):'';
-  return sig+why;
+  var why=w.text?'<div style="font-size:13px;line-height:1.6;margin-bottom:10px"><b>Why (Claude):</b> '+esc(w.text)+'</div>':(w.loading?'<div class="muted">Pulling calls &amp; analyzing…</div>':'');
+  var calls=w.calls||[];
+  var callsHtml=calls.length?'<div class="ct">Recent calls ('+calls.length+')</div>'+calls.slice(0,8).map(function(x){return '<div class="note-item"><div class="note-meta">'+esc((x.started_at||'').slice(0,10))+' · '+esc(x.outcome||'—')+' · '+esc(x.direction||'')+'</div>'+esc(x.summary||'(no summary)')+'</div>';}).join(''):(w.loading?'':'<div class="muted">No analyzed calls on file.</div>');
+  return sig+why+callsHtml;
 }
 function repaintRej(){if(curTab==='rejections')document.getElementById('view').innerHTML=renderRejections();}
 function renderRejections(){
