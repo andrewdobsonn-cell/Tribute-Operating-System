@@ -197,6 +197,7 @@ var NH_COLS=[
   {col:'mce',label:'MCE',type:'str',val:function(c){return c.mce}},
   {col:'tenureDays',label:'Tenure',type:'num',val:function(c){return c.tenureDays}},
   {col:'outreach',label:'Outreach',type:'num',val:function(c){return outreachVal(c.mnum)}},
+  {col:'texts',label:'Texts',type:'num',val:function(c){var e=engFor(c);return e?((e.inbound||0)+(e.outbound||0)):-1}},
   {col:'notes',label:'Notes',type:'num',val:function(c){return (notesStore[c.mnum]||[]).length}},
   {col:'lastNote',label:'Last note',type:'date',val:function(c){var n=notesStore[c.mnum]||[];return n.length?n[n.length-1].weekOf:null}}
 ];
@@ -433,9 +434,9 @@ function nhRows(nh){
     var notes=notesStore[c.mnum]||[];var lastN=notes.length?notes[notes.length-1]:null;
     h+='<tr class="cg-row'+(expanded['n'+c.mnum]?' expanded':'')+'" onclick="toggleNote('+c.mnum+')"><td><span class="exp-arrow">▶</span>'+esc(c.name||'(unnamed)')+'</td>'+
       '<td class="l">'+esc(c.state||'—')+'</td><td class="l">'+esc(c.mce||'—')+'</td><td>'+(c.tenureDays!=null?c.tenureDays+'d':'—')+'</td>'+
-      '<td>'+outreachStr(c.mnum)+'</td>'+
+      '<td>'+outreachStr(c.mnum)+'</td><td>'+engTexts(c)+'</td>'+
       '<td>'+(notes.length?'<span class="bdg bb">'+notes.length+'</span>':'<span class="muted">—</span>')+'</td><td>'+(lastN?fmtDate(lastN.weekOf):'<span class="muted">none</span>')+'</td></tr>';
-    if(expanded['n'+c.mnum])h+='<tr><td colspan="7" class="detail">'+noteTimeline(c)+'</td></tr>';
+    if(expanded['n'+c.mnum])h+='<tr><td colspan="8" class="detail">'+noteTimeline(c)+'</td></tr>';
   });
   return h+'</tbody></table></div>';
 }
