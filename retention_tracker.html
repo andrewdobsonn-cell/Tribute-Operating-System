@@ -135,6 +135,7 @@ tr.cg-row{cursor:pointer}
 var API='https://tribute-api-prod-bkc4hfcwf3f2f6bf.centralus-01.azurewebsites.net/api/vivProxy';
 var GATE_KEY=null;
 var terms=[], roster=[], rosterByMnum={}, insights=null, callIndex=null, callMeta=null, notesStore={};
+var engByPhone={};                         // call-intel SMS/communication signals (by phone last10)
 var hoursById={}, hoursLoaded=false;      // current-week desired/scheduled per caregiver (by Viv id)
 var hoursWeeks={}, hrWindowLoaded=0, hrWindowLoading=false;  // multi-week scheduled series for tenure avg
 var curTab='roster';
@@ -183,6 +184,7 @@ var AR_COLS=[
   {col:'lastBooking',label:'Last booking',type:'date',val:function(r){return r.lastBooking}},
   {col:'hours',label:'Sched/Desired',type:'num',val:function(r){var h=hoursFor(r);return h?h.scheduled:-1}},
   {col:'outreach',label:'Outreach',type:'num',val:function(r){var ci=callIndex&&callIndex[r.mnum];return ci?ci.outbound:-1}},
+  {col:'texts',label:'Texts',type:'num',val:function(r){var e=engFor(r);return e?((e.inbound||0)+(e.outbound||0)):-1}},
   {col:'_score',label:'Risk',type:'num',val:function(r){return r._score}},
   {col:'reasons',label:'Why',type:'num',val:function(r){return r._reasons.length}}
 ];
@@ -254,7 +256,7 @@ async function loadAll(force,fromGate){
     if(!res.ok)throw new Error('HTTP '+res.status);
     var d=await res.json();showApp();
     terms=[];(d.forms||[]).forEach(function(f){(f.submissions||[]).forEach(function(s){terms.push(s)})});
-    render();loadRoster(force);loadNotes();loadCalls();loadHours();
+    render();loadRoster(force);loadNotes();loadCalls();loadHours();loadEngagement();
   }catch(e){if(fromGate){document.getElementById('gateErr').textContent='Error: '+e.message;return}document.getElementById('view').innerHTML='<div class="err">Failed to load: '+esc(e.message)+'</div>'}
 }
 async function loadRoster(force){try{var res=await fetch(API+'?endpoint=retention_roster'+(force?'&_t='+Date.now():''),{headers:hdrs()});if(!res.ok)return;var d=await res.json();roster=d.caregivers||[];rosterByMnum={};roster.forEach(function(c){if(c.mnum!=null)rosterByMnum[c.mnum]=c});renderFilterBar();setStatus();if(curTab==='atrisk'||curTab==='notes'||curTab==='lifecycle')render()}catch(e){}}
@@ -279,6 +281,10 @@ async function loadHoursWindow(n){
   }catch(e){}
   hrWindowLoading=false;render();
 }
+async function loadEngagement(){try{var res=await fetch(API+'?endpoint=engagement',{headers:hdrs()});if(!res.ok)return;var d=await res.json();engByPhone={};(d.caregivers||[]).forEach(function(e){if(e.phone)engByPhone[e.phone]=e});if((d.caregivers||[]).length){setStatus();if(curTab==='atrisk')render()}}catch(e){}}
+function engFor(c){return c&&c.phone?engByPhone[c.phone]:null}
+function engDetail(c){var e=engFor(c);if(!e)return null;return (e.inbound||0)+' in / '+(e.outbound||0)+' out'+(e.tone?' · tone: '+e.tone:'')+(e.responsiveness?' · '+e.responsiveness:'')+(e.last_contact?' · last '+fmtDate(e.last_contact):'')}
+function engTexts(c){var e=engFor(c);return e?((e.inbound||0)+'↔'+(e.outbound||0)):'<span class="muted">—</span>'}
 function hoursFor(c){return c&&c.id?hoursById[c.id]:null}
 function hoursStr(c){var h=hoursFor(c);if(!h)return '<span class="muted">—</span>';var got=h.scheduled+(h.pto||0),gap=h.desired-got;return (Math.round(h.scheduled)||0)+'/'+(Math.round(h.desired)||0)+'h'+(gap>0.5?' <span class="bdg br">−'+Math.round(gap)+'</span>':'')}
 function avgWeekly(c){ // tenure-aware avg over loaded window
@@ -353,7 +359,7 @@ function renderRoster(){
 }
 function th(label,col){var a=sortCol===col?(sortDir>0?' ▲':' ▼'):'';var cls=(col==='name'||col==='market'||col==='mce'||col==='termType')?' class="l"':'';return '<th'+cls+' onclick="sortBy(\''+col+'\')">'+label+a+'</th>'}
 function detailHTML(t){function r(l,v){return v?'<dt>'+l+'</dt><dd>'+esc(v)+'</dd>':''}
-  return '<dl>'+r('Market (raw)',t.marketRaw)+r('State',t.state)+r('MCE / assignee',t.mce)+r('Outreach (calls)',outreachDetail(t.mnum))+r('Standard violated',t.standardViolated)+r('Prior incidents?',t.priorIncidents)+r('Final incident',t.finalIncident)+
+  return '<dl>'+r('Market (raw)',t.marketRaw)+r('State',t.state)+r('MCE / assignee',t.mce)+r('Outreach (calls)',outreachDetail(t.mnum))+r('Texts (SMS)',engDetail(t))+r('Standard violated',t.standardViolated)+r('Prior incidents?',t.priorIncidents)+r('Final incident',t.finalIncident)+
     r('Corrective action?',t.correctiveAction)+r('Voluntary notes',t.voluntaryNotes)+r('Could Tribute have prevented?',t.preventable)+
     r('Risk hire at onboarding?',t.riskHire)+r('Ongoing schedule?',t.ongoingSchedule)+r('Tribute Rise level',t.riseLevel)+
     r('Transportation',t.transportation)+r('Availability type',t.availabilityType)+r('Recorded by',t.author)+'</dl>';}
@@ -376,6 +382,10 @@ function riskScore(c){
   if(h&&h.desired>0){var got=h.scheduled+(h.pto||0);
     if(got<=0){score+=2;reasons.push('0 of '+Math.round(h.desired)+'h desired')}
     else if(got<h.desired*0.5){score+=1;reasons.push('Under-scheduled '+Math.round(got)+'/'+Math.round(h.desired)+'h')}}
+  var e=engFor(c);
+  if(e){var tone=(e.tone||'').toLowerCase();
+    if(tone.indexOf('withdrawn')>-1||tone.indexOf('frustrated')>-1){score+=1;reasons.push('Texts: '+e.tone)}
+    if((e.outbound||0)>=3&&(e.inbound||0)===0){score+=1;reasons.push('No text replies')}}
   return {score:score,reasons:reasons};
 }
 function renderAtRisk(){
@@ -392,7 +402,7 @@ function renderAtRisk(){
     var ci=callIndex&&callIndex[c.mnum];var band=c._score>=4?'br':c._score>=2?'ba':'bg';
     h+='<tr><td>'+esc(c.name||'(unnamed)')+'</td><td class="l">'+esc(c.state||'—')+'</td><td class="l">'+esc(c.mce||'—')+'</td><td>'+(c.tenureDays!=null?c.tenureDays+'d':'—')+'</td>'+
       '<td>'+(c.lastBooking?fmtDate(c.lastBooking):'<span class="bdg br">never</span>')+'</td><td>'+hoursStr(c)+'</td><td>'+(ci?ci.outbound+'→'+ci.answered+'✓':'<span class="muted">—</span>')+'</td>'+
-      '<td><span class="bdg '+band+'">'+c._score+'</span></td><td class="reasons">'+c._reasons.map(function(r){return '<span>'+esc(r)+'</span>'}).join('')+'</td></tr>';
+      '<td>'+engTexts(c)+'</td><td><span class="bdg '+band+'">'+c._score+'</span></td><td class="reasons">'+c._reasons.map(function(r){return '<span>'+esc(r)+'</span>'}).join('')+'</td></tr>';
   });
   return h+'</tbody></table></div>';
 }
