@@ -292,14 +292,20 @@ async function loadAll(force,fromGate){
     render();loadRoster(force);loadNotes();loadCalls();loadHours();loadEngagement();
   }catch(e){if(fromGate){document.getElementById('gateErr').textContent='Error: '+e.message;return}document.getElementById('view').innerHTML='<div class="err">Failed to load: '+esc(e.message)+'</div>'}
 }
-async function loadRoster(force){try{var res=await fetch(API+'?endpoint=retention_roster'+(force?'&_t='+Date.now():''),{headers:hdrs()});if(!res.ok)return;var d=await res.json();roster=d.caregivers||[];rosterByMnum={};roster.forEach(function(c){if(c.mnum!=null)rosterByMnum[c.mnum]=c});renderFilterBar();setStatus();render()}catch(e){}}
+async function loadRoster(force){try{var res=await fetch(API+'?endpoint=retention_roster'+(force?'&_t='+Date.now():''),{headers:hdrs()});if(!res.ok)return;var d=await res.json();roster=d.caregivers||[];rosterByMnum={};roster.forEach(function(c){if(c.mnum!=null)rosterByMnum[c.mnum]=c});enrichRosterMarkets();renderFilterBar();setStatus();render()}catch(e){}}
 async function loadNotes(){try{var res=await fetch(API+'?endpoint=retention_notes',{headers:hdrs()});if(!res.ok)return;var d=await res.json();notesStore=d.notes||{};if(curTab==='notes')render()}catch(e){}}
 async function loadCalls(){try{var res=await fetch(API+'?endpoint=retention_calls',{headers:hdrs()});if(!res.ok)return;var d=await res.json();if(d.counts&&Object.keys(d.counts).length){callIndex=d.counts;callMeta=d.meta||{};setStatus();if(curTab==='atrisk'||curTab==='calls')render()}}catch(e){}}
 async function loadHours(){
   try{var res=await fetch(API+'?endpoint=caregiver_hours',{});if(!res.ok)return;var d=await res.json();
-    hoursById={};(d.caregivers||[]).forEach(function(c){hoursById[c.id]={desired:c.desiredHrs||0,scheduled:c.scheduledHrs||0,pto:c.ptoHrs||0,differential:c.differential||0,happiness:c.happiness}});
-    hoursLoaded=true;setStatus();if(curTab==='hours'||curTab==='atrisk')render();
+    hoursById={};(d.caregivers||[]).forEach(function(c){hoursById[c.id]={desired:c.desiredHrs||0,scheduled:c.scheduledHrs||0,pto:c.ptoHrs||0,differential:c.differential||0,happiness:c.happiness,market:c.market};});
+    hoursLoaded=true;enrichRosterMarkets();setStatus();render();
   }catch(e){}
+}
+// The roster's `gcity` is state-level only — enrich with visit-derived market from caregiver_hours.
+function enrichRosterMarkets(){
+  if(!roster.length||!hoursLoaded)return;
+  roster.forEach(function(c){var h=hoursById[c.id]; if(h&&h.market&&!c.market)c.market=h.market;});
+  if(rosterByMnum){Object.keys(rosterByMnum).forEach(function(m){var c=rosterByMnum[m],h=hoursById[c.id]; if(h&&h.market&&!c.market)c.market=h.market;});}
 }
 function _sundayNAgo(n){var d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()-d.getDay()-7*n);return d}
 function _fmtD(d){return d.toISOString().slice(0,10)}
@@ -577,7 +583,7 @@ function renderRejections(){
   var rows=sortRows(withOffers,REJ_COLS,rejSort);
   h+='<div class="tbl-wrap"><table class="tbl"><thead>'+sortHeader(REJ_COLS,rejSort,'rejSortBy')+'</thead><tbody>';
   rows.slice(0,500).forEach(function(c){var e=engFor(c);var rate=e.acceptance_rate;var band=(rate!=null&&rate<0.5)?'br':(rate!=null&&rate<0.75)?'ba':'bg';var op=expanded['r'+c.mnum];
-    h+='<tr class="cg-row'+(op?' expanded':'')+'" onclick="toggleRej('+c.mnum+')"><td><span class="exp-arrow">▶</span>'+cgLink(c.id,c.name)+(c.prn?' <span class="bdg bb">PRN</span>':'')+'</td><td class="l">'+esc(c.market||'—')+'</td><td class="l">'+esc(c.mce||'—')+'</td><td>'+(e.offered||0)+'</td><td>'+(e.accepted||0)+'</td><td><span class="bdg '+band+'">'+(rate!=null?Math.round(rate*100)+'%':'—')+'</span></td><td>'+(e.last_declined?fmtDate(e.last_declined):'—')+'</td></tr>';
+    h+='<tr class="cg-row'+(op?' expanded':'')+'" onclick="toggleRej('+c.mnum+')"><td><span class="exp-arrow">▶</span>'+cgLink(c.id,c.name)+(c.prn?' <span class="bdg bb">PRN</span>':'')+'</td><td class="l">'+esc(c.market||c.state||'—')+'</td><td class="l">'+esc(c.mce||'—')+'</td><td>'+(e.offered||0)+'</td><td>'+(e.accepted||0)+'</td><td><span class="bdg '+band+'">'+(rate!=null?Math.round(rate*100)+'%':'—')+'</span></td><td>'+(e.last_declined?fmtDate(e.last_declined):'—')+'</td></tr>';
     if(op)h+='<tr><td colspan="7" class="detail">'+rejDetail(c)+'</td></tr>';
   });
   return h+'</tbody></table></div>';
