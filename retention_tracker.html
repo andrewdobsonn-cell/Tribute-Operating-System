@@ -156,6 +156,10 @@ function hdrs(){return {'X-Retention-Key':GATE_KEY}}
 // ── Utils ──
 function esc(s){if(s==null)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
 function norm(s){return(s||'').toLowerCase().trim()}
+// Link a caregiver name to their Viv profile (new tab); stopPropagation so it
+// doesn't also toggle an expandable row. id = caregiver Viv _id.
+function cgLink(id,label){var t=esc(label||'(unnamed)');return id?'<a href="https://tribute.mavencare.com/caregivers/'+encodeURIComponent(id)+'" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="color:var(--blue);text-decoration:none">'+t+' ↗</a>':t;}
+function cgLinkByMnum(mnum,label){return cgLink((rosterByMnum[mnum]||{}).id,label);}
 function parseDate(s){if(!s)return null;var m=String(s).match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);if(m)return new Date(+m[3],+m[1]-1,+m[2]);var d=new Date(s);return isNaN(d)?null:d}
 function daysSince(s){var d=parseDate(s);return d?Math.round((Date.now()-d)/86400000):null}
 function tenureDays(t){if(t.tenureDays!=null)return t.tenureDays;var h=parseDate(t.hiredDate),x=parseDate(t.termDate);if(!h)return null;return Math.round(((x||new Date())-h)/86400000)}
@@ -277,7 +281,7 @@ async function loadAll(force,fromGate){
     render();loadRoster(force);loadNotes();loadCalls();loadHours();loadEngagement();
   }catch(e){if(fromGate){document.getElementById('gateErr').textContent='Error: '+e.message;return}document.getElementById('view').innerHTML='<div class="err">Failed to load: '+esc(e.message)+'</div>'}
 }
-async function loadRoster(force){try{var res=await fetch(API+'?endpoint=retention_roster'+(force?'&_t='+Date.now():''),{headers:hdrs()});if(!res.ok)return;var d=await res.json();roster=d.caregivers||[];rosterByMnum={};roster.forEach(function(c){if(c.mnum!=null)rosterByMnum[c.mnum]=c});renderFilterBar();setStatus();if(curTab==='atrisk'||curTab==='notes'||curTab==='lifecycle')render()}catch(e){}}
+async function loadRoster(force){try{var res=await fetch(API+'?endpoint=retention_roster'+(force?'&_t='+Date.now():''),{headers:hdrs()});if(!res.ok)return;var d=await res.json();roster=d.caregivers||[];rosterByMnum={};roster.forEach(function(c){if(c.mnum!=null)rosterByMnum[c.mnum]=c});renderFilterBar();setStatus();render()}catch(e){}}
 async function loadNotes(){try{var res=await fetch(API+'?endpoint=retention_notes',{headers:hdrs()});if(!res.ok)return;var d=await res.json();notesStore=d.notes||{};if(curTab==='notes')render()}catch(e){}}
 async function loadCalls(){try{var res=await fetch(API+'?endpoint=retention_calls',{headers:hdrs()});if(!res.ok)return;var d=await res.json();if(d.counts&&Object.keys(d.counts).length){callIndex=d.counts;callMeta=d.meta||{};setStatus();if(curTab==='atrisk'||curTab==='calls')render()}}catch(e){}}
 async function loadHours(){
@@ -375,7 +379,7 @@ function renderRoster(){
   rows.forEach(function(t){
     var td=tenureDays(t);
     var typeBadge=t.termType?'<span class="bdg '+(isInvol(t)?'br':'bg')+'">'+esc(t.termType)+'</span>':'—';
-    h+='<tr class="cg-row'+(expanded[t.id]?' expanded':'')+'" onclick="toggle(\''+t.id+'\')"><td><span class="exp-arrow">▶</span>'+esc(t.name||'(unnamed)')+'</td>'+
+    h+='<tr class="cg-row'+(expanded[t.id]?' expanded':'')+'" onclick="toggle(\''+t.id+'\')"><td><span class="exp-arrow">▶</span>'+cgLinkByMnum(t.mnum,t.name)+'</td>'+
       '<td class="l">'+esc(t.market||t.marketRaw||'—')+'</td><td class="l">'+esc(t.mce||'—')+'</td><td>'+fmtDate(t.hiredDate)+'</td><td>'+fmtDate(t.termDate)+'</td><td>'+(td!=null?td+'d':'—')+'</td>'+
       '<td>'+outreachStr(t.mnum)+'</td>'+
       '<td>'+typeBadge+'</td><td>'+(isRiskHire(t)?'<span class="bdg ba">Yes</span>':'<span class="muted">—</span>')+'</td></tr>';
@@ -462,7 +466,7 @@ function renderAtRisk(){
   shown.slice(0,500).forEach(function(c){
     var ci=callIndex&&callIndex[c.mnum];
     var band=(c._level==='Critical'||c._level==='High')?'br':c._level==='Medium'?'ba':'bg';
-    h+='<tr><td>'+esc(c.name||'(unnamed)')+(c.prn?' <span class="bdg bb">PRN</span>':'')+((c._flags&&c._flags.length)?' <span title="'+esc(c._flags.join('  ·  '))+'">🚩</span>':'')+'</td><td class="l">'+esc(c.state||'—')+'</td><td class="l">'+esc(c.mce||'—')+'</td><td>'+(c.tenureDays!=null?c.tenureDays+'d':'—')+'</td>'+
+    h+='<tr><td>'+cgLink(c.id,c.name)+(c.prn?' <span class="bdg bb">PRN</span>':'')+((c._flags&&c._flags.length)?' <span title="'+esc(c._flags.join('  ·  '))+'">🚩</span>':'')+'</td><td class="l">'+esc(c.state||'—')+'</td><td class="l">'+esc(c.mce||'—')+'</td><td>'+(c.tenureDays!=null?c.tenureDays+'d':'—')+'</td>'+
       '<td>'+(c.lastBooking?fmtDate(c.lastBooking):'<span class="bdg br">never</span>')+'</td><td>'+hoursStr(c)+'</td><td>'+(ci?ci.outbound+'→'+ci.answered+'✓':'<span class="muted">—</span>')+'</td>'+
       '<td>'+engTexts(c)+'</td><td><span class="bdg '+band+'">'+esc(c._level)+'</span></td><td class="reasons">'+c._reasons.map(function(r){return '<span>'+esc(r)+'</span>'}).join('')+'</td></tr>';
   });
@@ -540,7 +544,7 @@ function renderRejections(){
   var rows=sortRows(withOffers,REJ_COLS,rejSort);
   h+='<div class="tbl-wrap"><table class="tbl"><thead>'+sortHeader(REJ_COLS,rejSort,'rejSortBy')+'</thead><tbody>';
   rows.slice(0,500).forEach(function(c){var e=engFor(c);var rate=e.acceptance_rate;var band=(rate!=null&&rate<0.5)?'br':(rate!=null&&rate<0.75)?'ba':'bg';var op=expanded['r'+c.mnum];
-    h+='<tr class="cg-row'+(op?' expanded':'')+'" onclick="toggleRej('+c.mnum+')"><td><span class="exp-arrow">▶</span>'+esc(c.name||'(unnamed)')+(c.prn?' <span class="bdg bb">PRN</span>':'')+'</td><td class="l">'+esc(c.market||'—')+'</td><td class="l">'+esc(c.mce||'—')+'</td><td>'+(e.offered||0)+'</td><td>'+(e.accepted||0)+'</td><td><span class="bdg '+band+'">'+(rate!=null?Math.round(rate*100)+'%':'—')+'</span></td><td>'+(e.last_declined?fmtDate(e.last_declined):'—')+'</td></tr>';
+    h+='<tr class="cg-row'+(op?' expanded':'')+'" onclick="toggleRej('+c.mnum+')"><td><span class="exp-arrow">▶</span>'+cgLink(c.id,c.name)+(c.prn?' <span class="bdg bb">PRN</span>':'')+'</td><td class="l">'+esc(c.market||'—')+'</td><td class="l">'+esc(c.mce||'—')+'</td><td>'+(e.offered||0)+'</td><td>'+(e.accepted||0)+'</td><td><span class="bdg '+band+'">'+(rate!=null?Math.round(rate*100)+'%':'—')+'</span></td><td>'+(e.last_declined?fmtDate(e.last_declined):'—')+'</td></tr>';
     if(op)h+='<tr><td colspan="7" class="detail">'+rejDetail(c)+'</td></tr>';
   });
   return h+'</tbody></table></div>';
@@ -561,7 +565,7 @@ function nhRows(nh){
   var h='<div class="tbl-wrap"><table class="tbl"><thead>'+sortHeader(NH_COLS,nhSort,'nhSortBy')+'</thead><tbody>';
   nh.forEach(function(c){
     var notes=notesStore[c.mnum]||[];var lastN=notes.length?notes[notes.length-1]:null;
-    h+='<tr class="cg-row'+(expanded['n'+c.mnum]?' expanded':'')+'" onclick="toggleNote('+c.mnum+')"><td><span class="exp-arrow">▶</span>'+esc(c.name||'(unnamed)')+'</td>'+
+    h+='<tr class="cg-row'+(expanded['n'+c.mnum]?' expanded':'')+'" onclick="toggleNote('+c.mnum+')"><td><span class="exp-arrow">▶</span>'+cgLink(c.id,c.name)+'</td>'+
       '<td class="l">'+esc(c.state||'—')+'</td><td class="l">'+esc(c.mce||'—')+'</td><td>'+(c.tenureDays!=null?c.tenureDays+'d':'—')+'</td>'+
       '<td>'+outreachStr(c.mnum)+'</td><td>'+engTexts(c)+'</td>'+
       '<td>'+(notes.length?'<span class="bdg bb">'+notes.length+'</span>':'<span class="muted">—</span>')+'</td><td>'+(lastN?fmtDate(lastN.weekOf):'<span class="muted">none</span>')+'</td></tr>';
@@ -600,7 +604,7 @@ function renderHours(){
   h+='<div class="kg">'+kpi('Active w/ hours',withH.length,'in scope','')+kpi('Desired',Math.round(totDes)+'h','this week','b')+kpi('Scheduled',Math.round(totSch)+'h','this week','g')+kpi('Fill rate',totDes?Math.round(totSch/totDes*100)+'%':'—','scheduled/desired','a')+kpi('Under-scheduled',under,'below desired','r')+'</div>';
   h+='<div class="tbl-wrap"><table class="tbl"><thead>'+sortHeader(HR_COLS,hrSort,'hrSortBy')+'</thead><tbody>';
   sortRows(withH,HR_COLS,hrSort).slice(0,600).forEach(function(c){var hh=hoursFor(c),a=avgWeekly(c),gap=hh.scheduled+(hh.pto||0)-hh.desired;
-    h+='<tr><td>'+esc(c.name||'(unnamed)')+'</td><td class="l">'+esc(c.state||'—')+'</td><td class="l">'+esc(c.mce||'—')+'</td><td>'+(c.tenureDays!=null?c.tenureDays+'d':'—')+'</td>'+
+    h+='<tr><td>'+cgLink(c.id,c.name)+'</td><td class="l">'+esc(c.state||'—')+'</td><td class="l">'+esc(c.mce||'—')+'</td><td>'+(c.tenureDays!=null?c.tenureDays+'d':'—')+'</td>'+
       '<td>'+Math.round(hh.desired)+'h</td><td>'+Math.round(hh.scheduled)+'h</td><td>'+(a==null?'<span class="muted">—</span>':Math.round(a)+'h')+'</td>'+
       '<td><span class="bdg '+(gap>=-0.5?'bg':gap>=-(hh.desired*0.5)?'ba':'br')+'">'+(gap>0?'+':'')+Math.round(gap)+'h</span></td></tr>';
   });
