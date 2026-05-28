@@ -156,6 +156,17 @@ function hdrs(){return {'X-Retention-Key':GATE_KEY}}
 // ── Utils ──
 function esc(s){if(s==null)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
 function norm(s){return(s||'').toLowerCase().trim()}
+
+// Staff → team mapping. Matches caller `Name` on CSV calls and `scheduler_name`
+// on call-intel records. Robust to case/spacing/apostrophes via normName.
+function normName(s){return String(s||'').toLowerCase().replace(/[^a-z0-9]/g,'');}
+var STAFF_TEAM={};
+['Andrew Dobson:Scheduling','Megan Stewart:Scheduling','Haley MacBain:Scheduling','Meghan Daley:Scheduling','Jemima Amissah:Scheduling','Patricia Huerta:Scheduling','Jennifer Robinson:Scheduling',
+ 'Khadijah Bangura:Caregiver Excellence','Alisha Harvin:Caregiver Excellence','Shanaye Stone:Caregiver Excellence','Jillian Brown:Caregiver Excellence','Brianna Rodriguez:Caregiver Excellence','Shaina Powers:Caregiver Excellence',
+ 'Courtney Chaulk:Client Solutions','Jen Kulig:Client Solutions','Chelsea Hancock:Client Solutions','Tracy DuBois:Client Solutions','Emily Willson:Client Solutions','Ramya Ramakrishna:Client Solutions','Sam Noren:Client Solutions','Michelle Hejduk:Client Solutions','Rachel Kruger:Client Solutions','Jada Powers:Client Solutions','Tina Merklinger:Client Solutions','Brenda Kruger:Client Solutions',
+ "Holly Sledzinksi:Hiring","Tom O'Brien:Hiring",'Jeanine Desatnick:Hiring','Awet Tesfahun:Hiring','Kyra White:Hiring'
+].forEach(function(p){var i=p.lastIndexOf(':');STAFF_TEAM[normName(p.slice(0,i))]=p.slice(i+1);});
+function staffTeam(name){return name?(STAFF_TEAM[normName(name)]||null):null;}
 // Link a caregiver name to their Viv profile (new tab); stopPropagation so it
 // doesn't also toggle an expandable row. id = caregiver Viv _id.
 function cgLink(id,label){var t=esc(label||'(unnamed)');return id?'<a href="https://tribute.mavencare.com/caregivers/'+encodeURIComponent(id)+'" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="color:var(--blue);text-decoration:none">'+t+' ↗</a>':t;}
@@ -500,6 +511,7 @@ function whyPrompt(c){
   if(e.tone||e.responsiveness)L.push('Text tone: '+(e.tone||'?')+', responsiveness: '+(e.responsiveness||'?'));
   if(e.inbound!=null)L.push('Texts: '+(e.inbound||0)+' inbound / '+(e.outbound||0)+' outbound');
   if(ci)L.push('Calls: '+ci.outbound+' outbound, '+ci.answered+' answered'+(ci.lastCall?', last '+ci.lastCall:''));
+  if(ci&&ci.byTeam){var ts=Object.keys(ci.byTeam).filter(function(t){return ci.byTeam[t]>0&&t!=='Unknown'}).sort(function(a,b){return ci.byTeam[b]-ci.byTeam[a]}); if(ts.length) L.push('Calls by team: '+ts.map(function(t){return t+' '+ci.byTeam[t]}).join(', '));}
   L.push('Market/state: '+(c.market||c.state||'unknown'));
   return L.join('\n');
 }
@@ -521,10 +533,19 @@ function toggleRej(m){expanded['r'+m]=!expanded['r'+m];if(expanded['r'+m]){var c
 function rejDetail(c){
   var w=cgWhy[c.mnum]||{};
   var sig='<div class="muted" style="margin-bottom:8px">'+esc(whyPrompt(c).replace(/\n/g,'  ·  '))+'</div>';
+  // Per-caregiver "called by team" breakdown from the CSV byTeam.
+  var ci=callIndex&&callIndex[c.mnum], teamBd='';
+  if(ci&&ci.byTeam){
+    var ts=Object.keys(ci.byTeam).filter(function(t){return ci.byTeam[t]>0}).sort(function(a,b){return ci.byTeam[b]-ci.byTeam[a]});
+    if(ts.length)teamBd='<div style="font-size:12px;margin-bottom:8px"><b>Called by team:</b> '+ts.map(function(t){return esc(t)+' '+ci.byTeam[t]}).join(' · ')+'</div>';
+  }
   var why=w.text?'<div style="font-size:13px;line-height:1.6;margin-bottom:10px"><b>Why (Claude):</b> '+esc(w.text)+'</div>':(w.loading?'<div class="muted">Pulling calls &amp; analyzing…</div>':'');
   var calls=w.calls||[];
-  var callsHtml=calls.length?'<div class="ct">Recent calls ('+calls.length+')</div>'+calls.slice(0,8).map(function(x){return '<div class="note-item"><div class="note-meta">'+esc((x.started_at||'').slice(0,10))+' · '+esc(x.outcome||'—')+' · '+esc(x.direction||'')+'</div>'+esc(x.summary||'(no summary)')+'</div>';}).join(''):(w.loading?'':'<div class="muted">No analyzed calls on file.</div>');
-  return sig+why+callsHtml;
+  var callsHtml=calls.length?'<div class="ct">Recent calls ('+calls.length+')</div>'+calls.slice(0,8).map(function(x){
+    var sch=x.scheduler_name||'', st=staffTeam(sch);
+    return '<div class="note-item"><div class="note-meta">'+esc((x.started_at||'').slice(0,10))+' · '+esc(x.outcome||'—')+' · '+esc(x.direction||'')+(sch?' · '+esc(sch)+(st?' <span class="bdg bb">'+esc(st)+'</span>':''):'')+'</div>'+esc(x.summary||'(no summary)')+'</div>';
+  }).join(''):(w.loading?'':'<div class="muted">No analyzed calls on file.</div>');
+  return sig+teamBd+why+callsHtml;
 }
 function repaintRej(){if(curTab==='rejections')document.getElementById('view').innerHTML=renderRejections();}
 function renderRejections(){
@@ -692,6 +713,14 @@ function renderCalls(){
     h+='<div class="toolbar"><button class="export-btn" id="saveCallsBtn" onclick="saveCalls()">'+(saved?'Update saved counts':'Save to server')+'</button>'+
       '<span class="muted">'+(saved?'Last saved '+new Date(saved).toLocaleString()+(meta.savedBy?' by '+esc(meta.savedBy):''):'Not saved yet — session-only until you save')+'</span></div>';
     h+='<div class="muted">Outreach shows on the At-Risk tab (outbound→answered✓).</div>';
+    var bt=meta.byTeam;
+    if(bt){
+      var teams=Object.keys(bt).filter(function(t){return bt[t]>0}).sort(function(a,b){return bt[b]-bt[a]});
+      if(teams.length){
+        var tot=teams.reduce(function(s,t){return s+bt[t]},0);
+        h+='<div class="fc"><div class="ct">Calls by staff team</div>'+teams.map(function(t){var w=Math.round(bt[t]/tot*100);return '<div class="bar-row"><div>'+esc(t)+'</div><div class="bar-track"><div class="bar-fill '+(t==='Unknown'?'a':'b')+'" style="width:'+w+'%"></div></div><div class="bar-val">'+bt[t]+' ('+w+'%)</div></div>';}).join('')+(bt.Unknown?'<div class="muted" style="margin-top:6px">"Unknown" = caller name not in the staff list (e.g., new hire, typo, or office line).</div>':'')+'</div>';
+      }
+    }
   }
   return h;
 }
@@ -706,15 +735,17 @@ function onCallCSV(file){
       var ext=isInb?row['From']:row['To'];
       var p=last10(ext);if(p.length!==10)return;
       var m=phoneToMnum[p];if(m==null){unmatched++;return}
-      if(!idx[m])idx[m]={outbound:0,inbound:0,answered:0,total:0,lastCall:null,_outDays:{}};
+      if(!idx[m])idx[m]={outbound:0,inbound:0,answered:0,total:0,lastCall:null,_outDays:{},byTeam:{}};
       var e=idx[m];e.total++;
       if(isInb)e.inbound++; else {e.outbound++; var day=(row['Time']||'').slice(0,8); if(day)e._outDays[day]=1;} // distinct outbound call days
       if(/^y/i.test(row['Answered']||''))e.answered++;
       if(row['Time']&&(!e.lastCall||row['Time']>e.lastCall))e.lastCall=row['Time'];
+      var team=staffTeam(row['Name'])||'Unknown';
+      e.byTeam[team]=(e.byTeam[team]||0)+1;
     });
-    // collapse outbound-day set to a count (sets don't serialize); for the "called multiple days, no callback" flag
     Object.keys(idx).forEach(function(m){idx[m].days=Object.keys(idx[m]._outDays||{}).length;delete idx[m]._outDays;});
-    callIndex=idx;callMeta={rows:res.data.length,matched:Object.keys(idx).length,unmatched:unmatched,savedAt:null,savedBy:myInitials()};setStatus();render();
+    var orgTeam={}; Object.keys(idx).forEach(function(m){var bt=idx[m].byTeam||{};Object.keys(bt).forEach(function(t){orgTeam[t]=(orgTeam[t]||0)+bt[t];});});
+    callIndex=idx;callMeta={rows:res.data.length,matched:Object.keys(idx).length,unmatched:unmatched,savedAt:null,savedBy:myInitials(),byTeam:orgTeam};setStatus();render();
   }});
 }
 
