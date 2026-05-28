@@ -418,8 +418,15 @@ function interventionFlags(c){
     f.push('Declines visits within availability ('+Math.round(e.accept_within_avail*100)+'% of '+e.offered_within_avail+')');
   else if(e&&(e.offered||0)>=3&&e.acceptance_rate!=null&&e.acceptance_rate<0.5)
     f.push('Declining offered visits ('+Math.round(e.acceptance_rate*100)+'% of '+e.offered+' accepted)');
-  if(ci&&(ci.outbound||0)>=3&&(ci.answered||0)===0)
-    f.push('Not answering calls ('+ci.outbound+' attempts, 0 answered)');
+  // Flag 2: called on 2+ distinct days AND no callback (no answered outbound, no inbound call).
+  // Falls back to "3+ attempts, 0 answered" for old saved counts without the `days` field
+  // (re-upload + Save the call CSV to get day-precision).
+  if(ci&&(ci.answered||0)===0&&(ci.inbound||0)===0){
+    if(ci.days!=null && ci.days>=2)
+      f.push('Called '+ci.days+' day'+(ci.days>1?'s':'')+', no callback (0 answered, 0 inbound)');
+    else if(ci.days==null && (ci.outbound||0)>=3)
+      f.push('Not answering calls ('+ci.outbound+' attempts, 0 answered) — re-upload CSV for day-precision');
+  }
   if(e&&(e.outbound||0)>=3&&(e.inbound||0)===0)
     f.push('Not replying to texts ('+e.outbound+' sent, 0 replies)');
   return f;
@@ -464,7 +471,7 @@ function renderAtRisk(){
   var med=scored.filter(function(c){return c._level==='Medium'}).length;
   var shown=sortRows(scored.filter(function(c){return arShowAll||c._score>=40}),AR_COLS,arSort); // default Medium+
   var h='<div class="banner w"><div class="bl w">At-risk watchlist — '+active.length+' active</div>'+
-    '<b>Scoring:</b> <span class="bdg br">Critical</span> first 90 days · 0 hrs · never called/texted &nbsp; <span class="bdg br">High</span> getting 0 or &lt;50% of desired hours &nbsp; <span class="bdg ba">Medium</span> 50–75% of desired &nbsp; <span class="bdg bg">Low</span> 75%+. PRN: low unless no work 30d+ (High if also no call/text). Caregivers with no desired hours (non-PRN) are excluded.<br><b>🚩 Intervention flags</b> (any flag → at least High): declining offered visits (within-availability once that data populates) · not answering calls (3+ attempts, 0 answered) · not replying to texts (3+ sent, 0 replies).</div>';
+    '<b>Scoring:</b> <span class="bdg br">Critical</span> first 90 days · 0 hrs · never called/texted &nbsp; <span class="bdg br">High</span> getting 0 or &lt;50% of desired hours &nbsp; <span class="bdg ba">Medium</span> 50–75% of desired &nbsp; <span class="bdg bg">Low</span> 75%+. PRN: low unless no work 30d+ (High if also no call/text). Caregivers with no desired hours (non-PRN) are excluded.<br><b>🚩 Intervention flags</b> (any flag → at least High): declining offered visits (within-availability once that data populates) · called on 2+ days with no callback (0 answered, 0 inbound) · not replying to texts (3+ sent, 0 replies).</div>';
   h+='<div class="kg">'+kpi('Active',active.length,'in scope','')+kpi('Critical',crit,'first-90 · 0h · no contact','r')+kpi('High',high,'0 or <50% of desired','r')+kpi('Medium',med,'50–75% of desired','a')+kpi('🚩 Flagged',scored.filter(function(c){return c._flags&&c._flags.length}).length,'intervention triggers','r')+'</div>';
   h+='<div class="toolbar"><button class="btn2" onclick="arShowAll=!arShowAll;render()">'+(arShowAll?'● Showing all (incl. low) — click for Medium+ only':'○ Show all active (incl. low risk)')+'</button><span class="muted">'+shown.length+' shown</span></div>';
   h+='<div class="tbl-wrap"><table class="tbl"><thead>'+sortHeader(AR_COLS,arSort,'arSortBy')+'</thead><tbody>';
@@ -695,14 +702,18 @@ function onCallCSV(file){
     var idx={},unmatched=0;
     res.data.forEach(function(row){
       var ct=(row['Call Type']||'').toLowerCase();
-      var ext=ct.indexOf('inbound')>-1?row['From']:row['To'];
+      var isInb=ct.indexOf('inbound')>-1;
+      var ext=isInb?row['From']:row['To'];
       var p=last10(ext);if(p.length!==10)return;
       var m=phoneToMnum[p];if(m==null){unmatched++;return}
-      if(!idx[m])idx[m]={outbound:0,inbound:0,answered:0,total:0,lastCall:null};
-      var e=idx[m];e.total++;if(ct.indexOf('inbound')>-1)e.inbound++;else e.outbound++;
+      if(!idx[m])idx[m]={outbound:0,inbound:0,answered:0,total:0,lastCall:null,_outDays:{}};
+      var e=idx[m];e.total++;
+      if(isInb)e.inbound++; else {e.outbound++; var day=(row['Time']||'').slice(0,8); if(day)e._outDays[day]=1;} // distinct outbound call days
       if(/^y/i.test(row['Answered']||''))e.answered++;
       if(row['Time']&&(!e.lastCall||row['Time']>e.lastCall))e.lastCall=row['Time'];
     });
+    // collapse outbound-day set to a count (sets don't serialize); for the "called multiple days, no callback" flag
+    Object.keys(idx).forEach(function(m){idx[m].days=Object.keys(idx[m]._outDays||{}).length;delete idx[m]._outDays;});
     callIndex=idx;callMeta={rows:res.data.length,matched:Object.keys(idx).length,unmatched:unmatched,savedAt:null,savedBy:myInitials()};setStatus();render();
   }});
 }
