@@ -143,7 +143,7 @@ var hoursById={}, hoursLoaded=false;      // current-week desired/scheduled per 
 var hoursWeeks={}, hrWindowLoaded=0, hrWindowLoading=false, hrWindowProgress=0, hrWindowTotal=0;  // multi-week scheduled series for historical avg
 var curTab='roster';
 var sortCol='termDate', sortDir=-1, search='', fType='';
-var expanded={}, arShowAll=false;
+var expanded={}, arShowAll=false, arFlaggedOnly=false;
 // Global page filters (the "sort the whole page by …" controls)
 var gState='', gMarket='', gMCE='';
 var MARKET_STATE={'Boston':'Massachusetts','MetroWest Boston':'Massachusetts','South of Boston':'Massachusetts','North of Boston':'Massachusetts','Baltimore':'Maryland','Annapolis':'Maryland','Bethesda':'Maryland','Chicago':'Illinois','Northern Virginia':'Virginia'};
@@ -203,6 +203,7 @@ var AR_COLS=[
   {col:'hours',label:'Sched/Desired',type:'num',val:function(r){var h=hoursFor(r);return h?h.scheduled:-1}},
   {col:'outreach',label:'Outreach',type:'num',val:function(r){var ci=callIndex&&callIndex[r.mnum];return ci?ci.outbound:-1}},
   {col:'texts',label:'Texts',type:'num',val:function(r){var e=engFor(r);return e?((e.inbound||0)+(e.outbound||0)):-1}},
+  {col:'flagCount',label:'🚩',type:'num',val:function(r){return (r._flags||[]).length}},
   {col:'_score',label:'Risk',type:'num',val:function(r){return r._score}},
   {col:'reasons',label:'Why',type:'num',val:function(r){return r._reasons.length}}
 ];
@@ -486,18 +487,20 @@ function renderAtRisk(){
   var crit=scored.filter(function(c){return c._level==='Critical'}).length;
   var high=scored.filter(function(c){return c._level==='High'}).length;
   var med=scored.filter(function(c){return c._level==='Medium'}).length;
-  var shown=sortRows(scored.filter(function(c){return arShowAll||c._score>=40}),AR_COLS,arSort); // default Medium+
+  var shown=sortRows(scored.filter(function(c){return (arShowAll||c._score>=40)&&(!arFlaggedOnly||(c._flags&&c._flags.length))}),AR_COLS,arSort); // default Medium+; Flagged-only narrows further
   var h='<div class="banner w"><div class="bl w">At-risk watchlist — '+active.length+' active</div>'+
     '<b>Scoring:</b> <span class="bdg br">Critical</span> first 90 days · 0 hrs · never called/texted &nbsp; <span class="bdg br">High</span> getting 0 or &lt;50% of desired hours &nbsp; <span class="bdg ba">Medium</span> 50–75% of desired &nbsp; <span class="bdg bg">Low</span> 75%+. PRN: low unless no work 30d+ (High if also no call/text). Caregivers with no desired hours (non-PRN) are excluded.<br><b>🚩 Intervention flags</b> (any flag → at least High): declining offered visits (within-availability once that data populates) · called on 2+ days with no callback (0 answered, 0 inbound) · not replying to texts (3+ sent, 0 replies).</div>';
   h+='<div class="kg">'+kpi('Active',active.length,'in scope','')+kpi('Critical',crit,'first-90 · 0h · no contact','r')+kpi('High',high,'0 or <50% of desired','r')+kpi('Medium',med,'50–75% of desired','a')+kpi('🚩 Flagged',scored.filter(function(c){return c._flags&&c._flags.length}).length,'intervention triggers','r')+'</div>';
-  h+='<div class="toolbar"><button class="btn2" onclick="arShowAll=!arShowAll;render()">'+(arShowAll?'● Showing all (incl. low) — click for Medium+ only':'○ Show all active (incl. low risk)')+'</button><span class="muted">'+shown.length+' shown</span></div>';
+  h+='<div class="toolbar"><button class="btn2" onclick="arShowAll=!arShowAll;render()">'+(arShowAll?'● Showing all (incl. low) — click for Medium+ only':'○ Show all active (incl. low risk)')+'</button>'+
+    '<button class="btn2" onclick="arFlaggedOnly=!arFlaggedOnly;render()">'+(arFlaggedOnly?'● Flagged only — click to clear':'🚩 Flagged only')+'</button>'+
+    '<span class="muted">'+shown.length+' shown</span></div>';
   h+='<div class="tbl-wrap"><table class="tbl"><thead>'+sortHeader(AR_COLS,arSort,'arSortBy')+'</thead><tbody>';
   shown.slice(0,500).forEach(function(c){
     var ci=callIndex&&callIndex[c.mnum];
     var band=(c._level==='Critical'||c._level==='High')?'br':c._level==='Medium'?'ba':'bg';
     h+='<tr><td>'+cgLink(c.id,c.name)+(c.prn?' <span class="bdg bb">PRN</span>':'')+((c._flags&&c._flags.length)?' <span title="'+esc(c._flags.join('  ·  '))+'">🚩</span>':'')+'</td><td class="l">'+esc(c.state||'—')+'</td><td class="l">'+esc(c.mce||'—')+'</td><td>'+(c.tenureDays!=null?c.tenureDays+'d':'—')+'</td>'+
       '<td>'+(c.lastBooking?fmtDate(c.lastBooking):'<span class="bdg br">never</span>')+'</td><td>'+hoursStr(c)+'</td><td>'+(ci?ci.outbound+'→'+ci.answered+'✓':'<span class="muted">—</span>')+'</td>'+
-      '<td>'+engTexts(c)+'</td><td><span class="bdg '+band+'">'+esc(c._level)+'</span></td><td class="reasons">'+c._reasons.map(function(r){return '<span>'+esc(r)+'</span>'}).join('')+'</td></tr>';
+      '<td>'+engTexts(c)+'</td><td>'+((c._flags&&c._flags.length)?'<span class="bdg br">'+c._flags.length+'</span>':'<span class="muted">—</span>')+'</td><td><span class="bdg '+band+'">'+esc(c._level)+'</span></td><td class="reasons">'+c._reasons.map(function(r){return '<span>'+esc(r)+'</span>'}).join('')+'</td></tr>';
   });
   return h+'</tbody></table></div>';
 }
