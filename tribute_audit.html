@@ -188,6 +188,10 @@ function updateWeekInfo() {
   }
 
   const startDate = new Date(dateInput.value + 'T00:00:00');
+  if (startDate.getDay() !== 0) {            // pay week begins Sunday — snap back to it
+    startDate.setDate(startDate.getDate() - startDate.getDay());
+    dateInput.value = startDate.toISOString().split('T')[0];
+  }
   const endDate = new Date(startDate);
   endDate.setDate(endDate.getDate() + 6);
 
@@ -970,6 +974,90 @@ function startOver() {
   initializeDatePicker();
 }
 
+// ── EXPENSE DOUBLE-CHARGE DETECTION ──────────────────────────────────────────
+// Pulls the Expenses dataset (mileage / parking / tolls / supplies) for the week
+// and flags the same visit billed twice for the same expense category.
+async function fetchExpenses(startStr, endStr) {
+  const body = { path:'/api/dataset-reports/run/expenses', method:'POST', payload:{
+    filterGroups:[{filters:[{fieldPath:'booking.nTime.s',type:'DATE',
+      subType:'booking.nTime.timezone.timeZoneId',operator:'BETWEEN',
+      value:`${startStr}T00:00:00.000Z`,additionalValue:`${endStr}T23:59:59.999Z`}],
+      operator:'AND',subGroups:[]}],
+    fieldPaths:[
+      {fieldPath:'caregiver.id',fieldType:'LINKED_ENTITY'},
+      {fieldPath:'booking.cid',fieldType:'LINKED_ENTITY'},
+      {fieldPath:'status',fieldType:'ENUM'},
+      {fieldPath:'pay.category',fieldType:'ATTRIBUTE'},
+      {fieldPath:'chargeExpenseToClient',fieldType:'BOOLEAN'},
+      {fieldPath:'total',fieldType:'NUMBER'},
+      {fieldPath:'chargeTotal',fieldType:'NUMBER'},
+      {fieldPath:'booking.nTime.s',fieldType:'DATE'},
+      {fieldPath:'booking.bookingType',fieldType:'ATTRIBUTE_TEXT'},
+      {fieldPath:'description',fieldType:'STRING'}],
+    groupBy:[], groupedFields:[], skip:0, limit:2000
+  }};
+  const res = await fetch('https://tribute-api-prod-bkc4hfcwf3f2f6bf.centralus-01.azurewebsites.net/api/vivProxy?endpoint=viv_raw', {
+    method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)
+  });
+  if (!res.ok) throw new Error('expense fetch '+res.status);
+  const d = await res.json();
+  return (d && d.results) || [];
+}
+
+function detectDoubleCharges(expenses) {
+  const LIVE = new Set(['Processed','Approved']);           // only money that actually pays/bills
+  const norm = s => (s||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+  const groups = {};
+  expenses.forEach(r => {
+    if (!LIVE.has(r.status)) return;                        // Cancelled/Denied already voided
+    const bid  = r.booking && r.booking.id;
+    const cgid = r.caregiver && r.caregiver.id;
+    const cat  = (r.pay && r.pay.category && r.pay.category.text) || 'Expense';
+    const dIso = ((r.booking && r.booking.nTime && r.booking.nTime.s) || '').slice(0,10);
+    // group by visit+category; fall back to caregiver+day+category for booking-less expenses
+    const key = bid ? `b|${bid}|${cat}` : `c|${cgid}|${dIso}|${cat}`;
+    (groups[key] = groups[key] || []).push(r);
+  });
+  const rows = [];
+  Object.values(groups).forEach(g => {
+    if (g.length < 2) return;
+    // identical amount entered 2+ times on one visit = high-confidence duplicate
+    const byAmt = {};
+    g.forEach(r => { const a = Math.round((r.total||0)*100)/100; (byAmt[a]=byAmt[a]||[]).push(r); });
+    const hasSameAmtDup = Object.values(byAmt).some(v => v.length >= 2);
+    // identical (non-blank) description repeated = likely the same trip re-entered
+    const descs = g.map(r => norm(r.description));
+    const allSameDesc = descs[0] !== '' && descs.every(d => d === descs[0]);
+    if (!hasSameAmtDup && !allSameDesc) return;             // different amounts + different desc = separate errands, not a dup
+    const r0 = g[0], bk = r0.booking || {};
+    const total = g.reduce((s,r)=>s+(r.total||0),0);
+    const amts  = [...new Set(g.map(r=>`$${(r.total||0).toFixed(2)}`))];
+    const amtLabel = amts.length===1 ? `${amts[0]} ×${g.length}` : amts.join(' + ');
+    const chg = g.filter(r=>r.chargeExpenseToClient);
+    const chgTot = chg.reduce((s,r)=>s+(r.chargeTotal||0),0);
+    const billed = chg.length===0 ? 'No'
+      : chg.length===g.length ? `Yes — $${chgTot.toFixed(2)}`
+      : `Partial — $${chgTot.toFixed(2)}`;
+    rows.push({
+      'Caregiver': `${(r0.caregiver&&r0.caregiver.fn)||''} ${(r0.caregiver&&r0.caregiver.ln)||''}`.trim(),
+      'Client': `${bk.cfn||''} ${bk.cln||''}`.trim() || '—',
+      'Market': bk.gcity||'',
+      'Date': ((bk.nTime&&bk.nTime.s)||'').slice(0,10),
+      'Category': (r0.pay&&r0.pay.category&&r0.pay.category.text)||'',
+      'Lines': String(g.length),
+      'Amounts': amtLabel,
+      'Total Paid': `$${total.toFixed(2)}`,
+      'Billed to Client': billed,
+      'Action': hasSameAmtDup ? 'Remove duplicate line' : 'Review — possible duplicate',
+      severity: hasSameAmtDup ? 'error' : 'warn',
+      geo: bk.gcity||'', _bid: bk.id||'',
+      _cgid:(r0.caregiver&&r0.caregiver.id)||'', _cid: bk.cid||''
+    });
+  });
+  rows.sort((a,b)=> (a.severity==='error'?0:1) - (b.severity==='error'?0:1));
+  return rows;
+}
+
 // ── MAIN RUNNER ────────────────────────────────────────────────────────────
 async function runDashboard() {
   const dateInput = document.getElementById('week-start-date');
@@ -984,8 +1072,11 @@ async function runDashboard() {
   const logLine = t => { log.innerHTML += t+'<br>'; };
 
   try {
-    // Parse dates
+    // Parse dates — snap to the Sunday that begins the pay week so the window
+    // can't be misaligned (a non-Sunday start would drop a Sunday call-out and
+    // pull in the next week's Sunday work).
     const startDate = new Date(dateInput.value + 'T00:00:00');
+    startDate.setDate(startDate.getDate() - startDate.getDay());
     const endDate = new Date(startDate);
     endDate.setDate(endDate.getDate() + 6);
 
@@ -1069,6 +1160,15 @@ async function runDashboard() {
     }
     logLine(`Uber client-paid rides this week: ${uberClientRows.length}`);
 
+    // Fetch expense line-items for the week and detect double-charges (non-blocking)
+    let dupExpenseRows = [];
+    try {
+      const expenses = await fetchExpenses(startStr, endStr);
+      logLine(`Expense line-items this week: ${expenses.length}`);
+      dupExpenseRows = detectDoubleCharges(expenses);
+      logLine(`Duplicate-expense flags: ${dupExpenseRows.length}`);
+    } catch(e) { logLine('Expense fetch failed (non-fatal): '+e.message); }
+
     logLine('Running detection modules...');
     const sections = [
       {id:'ts',       name:'TS Admin Time',          icon:'🛡️', red:true,
@@ -1103,6 +1203,10 @@ async function runDashboard() {
        desc:'Uber rides expensed to clients (expense code pattern "{Market}- Client"). Confirm these are billed on the next client invoice.',
        data:uberClientRows,
        cols:['Date','Market','Caregiver','Client','Pickup','Drop-off','Amount','Action']},
+      {id:'dup_exp',  name:'Duplicate Expenses',      icon:'🧾', red:true,
+       desc:'Same visit billed two or more times for the same expense category (mileage, parking, tolls, supplies). Red = identical amount entered more than once on one visit — likely a true double-pay/double-charge; yellow = identical description repeated — eyeball before removing. Cancelled/Denied lines are ignored. Recurring per-visit expenses (same trip on different visits) are NOT flagged.',
+       data:dupExpenseRows,
+       cols:['Caregiver','Client','Market','Date','Category','Lines','Amounts','Total Paid','Billed to Client','Action']},
       {id:'rate',     name:'Rate Type Errors',        icon:'💰',
        desc:'Bonus or RFH visits incorrectly set to Hourly instead of Shift.',
        data:detectRateType(bookings),
