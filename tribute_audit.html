@@ -263,6 +263,11 @@ const ABSENCE_VT = new Set(['Time Off','PTO - New','Sick Time','Turn Down']);
 const BONUS_VT = new Set([...EXCLUDE_VT].filter(v=>v.includes('Bonus')));
 const SHIFT_REQ = new Set([...BONUS_VT,'RFH $500','RFH $700','RFH $200','RFH $300','RFH']);
 const TRAINING_VT = new Set(['Training','Unpaid Training','Office Meeting','Orientation','Client Training']);
+// Flat incentive pay (bonuses, RFH) + reimbursements: paid, but NOT hours toward
+// the TS guarantee. Everything else with payable hours (client visits, office
+// meetings, travel time, paid trainings, supervisory visits, TS Admin Time) DOES
+// count toward the guarantee per the offer ("all paid hours count").
+const FLAT_PAY_VT = new Set([...SHIFT_REQ, 'Expense Reimbursement']);
 const MKT_TAG = {'boston':'Boston','nob':'North of Boston','north-of-boston':'North of Boston',
   'mwb':'MetroWest Boston','metrowest-boston':'MetroWest Boston','sob':'South of Boston',
   'chicago':'Chicago','annapolis':'Annapolis','baltimore':'Baltimore','bethesda':'Bethesda','bel-air':'Bel-Air'};
@@ -367,9 +372,15 @@ function detectTS(bookings, tagLookup, tempUnavail, callOuts, startDate) {
       if (iso) (absenceDates[cgid] = absenceDates[cgid] || new Set()).add(iso);
       return;
     }
-    const isWorked = (vt === 'TS Admin Time') || (!EXCLUDE_VT.has(vt) && !b._is_office);
-    if (isWorked && b._pay_h > 0) {
+    // All paid hours count toward the guarantee — client visits, TS Admin Time,
+    // AND paid office meetings / travel time / trainings / supervisory visits.
+    // Exclude only flat incentive pay (bonuses, RFH) and expense reimbursements.
+    if (!FLAT_PAY_VT.has(vt) && b._pay_h > 0) {
       workedH[cgid] = (workedH[cgid]||0) + b._pay_h;
+    }
+    // Actual client-visit work drives the weekend commitment and the call-out
+    // "worked that day" exclusion — a meeting/training doesn't fulfill a committed shift.
+    if (!EXCLUDE_VT.has(vt) && !b._is_office && b._pay_h > 0) {
       const dow = etDow(b._start);
       if (dow === 0 || dow === 6) workedWknd[cgid] = true;
       const witer = etDateISO(b._start);
