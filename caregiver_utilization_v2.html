@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Caregiver Utilization — Tribute OS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--orange:#E8541A;--orange-dark:#C4441A;--orange-light:#F47A4A;--orange-pale:#FDF2ED;--orange-50:#FEF8F5;--charcoal:#2C2C2C;--charcoal-mid:#4A4A4A;--gray-text:#6B6B6B;--gray-light:#9B9B9B;--gray-100:#F5F5F5;--gray-200:#EBEBEB;--gray-300:#D8D8D8;--white:#FFFFFF;--cream:#FAFAF8;--green:#3DAA7A;--green-light:#E2EFDA;--red:#E05252;--navy:#0F2647;--slate:#44546A;--shadow-sm:0 1px 4px rgba(44,44,44,0.06),0 1px 2px rgba(44,44,44,0.04);--shadow-md:0 4px 20px rgba(44,44,44,0.09),0 2px 6px rgba(44,44,44,0.05);--r:10px;--rl:14px;--prn-bg:#EEE0CC;--prn-fg:#654321;--pto-bg:#E4DEF2;--pto-fg:#4B3278;--orange-fill:#FCE4D6;--yellow-fill:#FFF2CC;--blue-fill:#DAE3F3;--green-fill:#E2EFDA}
+body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--charcoal);min-height:100vh;font-size:13px;line-height:1.5}
+
+.topbar{background:var(--white);border-bottom:1px solid var(--gray-200);padding:0 48px;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:100;box-shadow:var(--shadow-sm)}
+.topbar-brand{display:flex;align-items:baseline}
+.topbar-tribute{font-family:'DM Serif Display',Georgia,serif;font-size:22px;color:var(--orange)}
+.topbar-os{font-size:11px;font-weight:600;color:var(--gray-light);margin-left:6px;letter-spacing:1.5px;text-transform:uppercase}
+.topbar-right{display:flex;align-items:center;gap:16px}
+.topbar-link{font-size:13px;color:var(--gray-text);text-decoration:none;font-weight:500}
+.topbar-link:hover{color:var(--orange)}
+
+.hero{padding:40px 48px 0;max-width:1600px;margin:0 auto}
+.hero-eyebrow{font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--orange);margin-bottom:6px}
+.hero-title{font-family:'DM Serif Display',Georgia,serif;font-size:32px;color:var(--charcoal);margin-bottom:4px}
+.hero-subtitle{font-size:14px;color:var(--gray-text);max-width:650px}
+
+.upload-section{max-width:1600px;margin:24px auto 0;padding:0 48px}
+.upload-grid{display:grid;grid-template-columns:1fr 1fr auto;gap:16px;align-items:end}
+.upload-box{background:var(--white);border:2px dashed var(--gray-300);border-radius:var(--rl);padding:20px;text-align:center;cursor:pointer;transition:border-color .2s}
+.upload-box:hover{border-color:var(--orange)}
+.upload-box.loaded{border-color:var(--green);border-style:solid}
+.upload-box label{display:block;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--gray-text);margin-bottom:6px}
+.upload-box .fn{font-size:13px;color:var(--charcoal);font-weight:600}
+.upload-box .fh{font-size:11px;color:var(--gray-light);margin-top:3px}
+.upload-box input[type=file]{display:none}
+.btn-run{padding:14px 28px;background:var(--orange);color:var(--white);border:none;border-radius:var(--r);font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;transition:background .15s}
+.btn-run:hover{background:var(--orange-dark)}
+.btn-run:disabled{background:var(--gray-300);cursor:not-allowed}
+
+.stats-strip{display:none;gap:0;margin:24px auto 0;border-radius:var(--rl);overflow:hidden;box-shadow:var(--shadow-md);max-width:1600px;padding:0 48px}
+.stats-strip.show{display:flex}
+.stat-card{flex:1;background:var(--orange);padding:16px 20px;text-align:center;border-right:1px solid rgba(255,255,255,0.15)}
+.stat-card:last-child{border-right:none}
+.stat-label{font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:rgba(255,255,255,0.75);margin-bottom:2px}
+.stat-value{font-family:'DM Serif Display',Georgia,serif;font-size:24px;color:var(--white)}
+
+.content{max-width:1600px;margin:0 auto;padding:24px 48px 64px;display:none}
+.content.show{display:block}
+
+.filter-bar{display:flex;gap:14px;align-items:flex-end;margin-bottom:20px;flex-wrap:wrap}
+.filter-group{display:flex;flex-direction:column;gap:3px}
+.filter-group label{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--gray-text)}
+.filter-group select{padding:7px 28px 7px 10px;border:1px solid var(--gray-300);border-radius:7px;font-size:12px;font-family:inherit;background:var(--white);color:var(--charcoal);cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg width='10' height='6' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%236B6B6B'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center}
+
+.tab-bar{display:flex;gap:2px;margin-bottom:20px;flex-wrap:wrap;border-bottom:2px solid var(--gray-200)}
+.tab-btn{padding:8px 14px;font-size:12px;font-weight:600;color:var(--gray-text);background:none;border:none;border-bottom:2px solid transparent;margin-bottom:-2px;cursor:pointer;font-family:inherit;transition:all .15s}
+.tab-btn:hover{color:var(--charcoal)}
+.tab-btn.active{color:var(--orange);border-bottom-color:var(--orange)}
+
+.tc{background:var(--white);border-radius:var(--rl);box-shadow:var(--shadow-sm);overflow:hidden;margin-bottom:20px}
+.tt{padding:14px 18px;font-size:14px;font-weight:700;color:var(--white);background:var(--navy)}
+.ts{overflow-x:auto;max-height:78vh;overflow-y:auto}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{background:var(--slate);color:var(--white);font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.4px;padding:8px 10px;text-align:center;position:sticky;top:0;z-index:10;white-space:nowrap;cursor:pointer;user-select:none}
+th:hover{background:#556b85}
+th.al{text-align:left}
+th .si{font-size:8px;margin-left:3px;opacity:.6}
+td{padding:6px 10px;border-bottom:1px solid var(--gray-200);text-align:center;white-space:nowrap}
+td.al{text-align:left}
+td.wr{white-space:normal;max-width:200px;overflow:hidden;text-overflow:ellipsis}
+
+.ov{background:var(--navy);color:#fff;font-weight:700}
+.ov td{color:#fff;border-bottom:1px solid rgba(255,255,255,.15)}
+.ov:hover td{background:var(--navy)}
+.lh{background:var(--green-fill)}.on{background:var(--orange-fill)}.sh{background:var(--yellow-fill)}.li{background:var(--blue-fill)}
+.prn{background:var(--prn-bg);font-style:italic}.prn td{color:var(--prn-fg)}
+.pto{background:var(--pto-bg);font-style:italic}.pto td{color:var(--pto-fg)}
+.sp td{padding:3px;border:none;background:var(--cream)}.sp:hover td{background:var(--cream)}
+.av-ov td{background:#1A3A6E;color:#fff}.av-ov:hover td{background:#1A3A6E}
+.av-sub td{background:#F8FAFC;color:#475569}
+.un-ov td{background:#2C4A7C;color:#fff}.un-ov:hover td{background:#2C4A7C}
+.un-sub td{background:#FFF7ED;color:#92400E}
+.dr{background:#FFC7C3!important;font-weight:600}.dy{background:#FFF2CC!important}.dg{background:#E2EFDA!important}
+.ts-g{background:var(--green-fill)}.ts-b{background:var(--blue-fill)}.ts-y{background:var(--yellow-fill)}.ts-o{background:var(--orange-fill)}
+.gap-hi{background:var(--orange-fill)}
+.badge{display:inline-block;padding:1px 8px;border-radius:20px;font-size:10px;font-weight:600}
+.b-lh{background:var(--green-fill);color:#2d5a1e}.b-on{background:var(--orange-fill);color:#8b4513}.b-sh{background:var(--yellow-fill);color:#8b6914}.b-li{background:var(--blue-fill);color:#1e3a5f}
+.uz{background:var(--yellow-fill)}.uo{background:var(--orange-fill)}
+.tp{display:none}.tp.active{display:block}
+.empty{text-align:center;padding:40px 20px;color:var(--gray-light)}
+.processing{text-align:center;padding:60px;color:var(--gray-text)}
+.spin{width:28px;height:28px;border:3px solid var(--gray-200);border-top-color:var(--orange);border-radius:50%;animation:spin .6s linear infinite;margin:0 auto 12px}
+@keyframes spin{to{transform:rotate(360deg)}}
+#upload-meta{margin-top:10px;font-size:12px;color:var(--gray-text);display:none}
+
+/* Dashboard */
+.dash-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:16px}
+.dash-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+.dash-kpi{background:var(--white);border-radius:var(--r);padding:20px;text-align:center;box-shadow:var(--shadow-sm)}
+.dash-kpi .kl{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--gray-text);margin-bottom:4px}
+.dash-kpi .kv{font-family:'DM Serif Display',Georgia,serif;font-size:28px;color:var(--charcoal)}
+.dash-kpi .ks{font-size:11px;color:var(--gray-light);margin-top:2px}
+.heatmap-cell{padding:6px 10px;text-align:center;font-size:12px;font-weight:600;border:1px solid var(--gray-200)}
+.hm-low{background:#FEE2E2;color:#991B1B}
+.hm-med{background:#FEF3C7;color:#92400E}
+.hm-good{background:#D1FAE5;color:#065F46}
+.hm-high{background:#DBEAFE;color:#1E40AF}
+.hm-full{background:#E0E7FF;color:#3730A3}
+.hm-none{background:var(--gray-100);color:var(--gray-light)}
+.alert-row{background:var(--orange-fill)}
+</style>
+</head>
+<body>
+<div class="topbar"><div class="topbar-brand"><span class="topbar-tribute">Tribute</span><span class="topbar-os">Operating System</span></div><div class="topbar-right"><a href="index.html" class="topbar-link">Dashboard</a></div></div>
+<div class="hero"><div class="hero-eyebrow">Workforce Analytics</div><h1 class="hero-title">Caregiver Utilization</h1><p class="hero-subtitle">Live data from Viv — select any week to view utilization metrics.</p></div>
+<div id="upload-meta" style="display:none"></div>
+<div class="stats-strip" id="stats-strip">
+<div class="stat-card"><div class="stat-label">Active</div><div class="stat-value" id="k-active">—</div></div>
+<div class="stat-card"><div class="stat-label">Util %</div><div class="stat-value" id="k-util">—</div></div>
+<div class="stat-card"><div class="stat-label">Adj Capacity</div><div class="stat-value" id="k-cap">—</div></div>
+<div class="stat-card"><div class="stat-label">Hrs Worked</div><div class="stat-value" id="k-wrk">—</div></div>
+<div class="stat-card"><div class="stat-label">PRN</div><div class="stat-value" id="k-prn">—</div></div>
+<div class="stat-card"><div class="stat-label">On PTO</div><div class="stat-value" id="k-pto">—</div></div>
+</div>
+<div class="content" id="content">
+<div class="filter-bar">
+<div class="filter-group"><label>Week</label><div style="display:flex;gap:4px;align-items:center"><button id="wk-prev" style="padding:5px 10px;border:1px solid var(--gray-300);border-radius:6px;background:var(--white);cursor:pointer;font-size:14px;font-family:inherit" title="Previous week">◀</button><select id="f-wk" style="min-width:200px"><option value="">Loading...</option></select><button id="wk-next" style="padding:5px 10px;border:1px solid var(--gray-300);border-radius:6px;background:var(--white);cursor:pointer;font-size:14px;font-family:inherit" title="Next week">▶</button><input type="date" id="wk-pick" style="padding:5px 8px;border:1px solid var(--gray-300);border-radius:6px;font-size:11px;font-family:inherit;color:var(--gray-text)" title="Jump to any week"></div></div>
+<div class="filter-group"><label>State</label><select id="f-st"><option value="">All States</option></select></div>
+<div class="filter-group"><label>Market</label><select id="f-mk"><option value="">All Markets</option></select></div>
+<div class="filter-group"><label>Service Type</label><select id="f-tp"><option value="">All Types</option><option value="0">Long Hours</option><option value="1">Overnight</option><option value="2">Short Hours</option><option value="3">Live-In</option></select></div>
+</div>
+<div class="tab-bar">
+<button class="tab-btn active" data-t="dash">Dashboard</button>
+<button class="tab-btn" data-t="det">Caregiver Detail</button>
+<button class="tab-btn" data-t="mkt">Market Summary</button>
+<button class="tab-btn" data-t="sta">State Summary</button>
+<button class="tab-btn" data-t="day">Day Breakdown</button>
+<button class="tab-btn" data-t="ros">Caregiver Roster</button>
+<button class="tab-btn" data-t="ts">TS Admin</button>
+<button class="tab-btn" data-t="tv">Travel Time</button>
+<button class="tab-btn" data-t="lho">Long Hrs &amp; ON</button>
+<button class="tab-btn" data-t="smx">Shift Mix</button>
+<button class="tab-btn" data-t="nh">New Hires</button>
+</div>
+<div id="p-dash" class="tp active"></div>
+<div id="p-det" class="tp"></div>
+<div id="p-mkt" class="tp"></div>
+<div id="p-sta" class="tp"></div>
+<div id="p-day" class="tp"></div>
+<div id="p-ros" class="tp"></div>
+<div id="p-ts" class="tp"></div>
+<div id="p-tv" class="tp"></div>
+<div id="p-lho" class="tp"></div>
+<div id="p-smx" class="tp"></div>
+<div id="p-nh" class="tp"></div>
+</div>
+
+<script>
+const API='https://tribute-api-prod-bkc4hfcwf3f2f6bf.centralus-01.azurewebsites.net/api/vivProxy';
+const MKT_TAGS=["Boston","NOB","North-of-Boston","MWB","SOB","Chicago","Annapolis","Baltimore","Bethesda","Bel-Air"];
+const MKT_NAMES=["Boston","North of Boston","North of Boston","MetroWest Boston","South of Boston","Chicago","Annapolis","Baltimore","Bethesda","Bel-Air"];
+const MKT_PRI=["North-of-Boston","NOB","MWB","SOB","Bethesda","Annapolis","Baltimore","Bel-Air","Chicago","Boston"];
+const MKT_ORDER=["Boston","North of Boston","MetroWest Boston","South of Boston","Chicago","Annapolis","Baltimore","Bethesda","Bel-Air","Unknown"];
+const ST_ORDER=["Massachusetts","Illinois","Maryland","Unknown"];
+const STATE_MAP={"Boston":"Massachusetts","North of Boston":"Massachusetts","MetroWest Boston":"Massachusetts","South of Boston":"Massachusetts","Chicago":"Illinois","Annapolis":"Maryland","Baltimore":"Maryland","Bethesda":"Maryland","Bel-Air":"Maryland"};
+const EX_NOTES=new Set(["office associate","office associate - test","office associate/prn caregiver"]);
+const ABSENCE_T=new Set(["Time Off","PTO - New","Sick Time","Turn Down"]);
+const EXCLUDE_T=new Set(["Expense Reimbursement","Bonus 1 Year (Ann)","Bonus 2&3 Year (Ann)","Bonus 4 Year (Ann)","Bonus 5 - 9 Year (Ann)"]);
+const TYPE_NAMES=["Long Hours","Overnight","Short Hours","Live-In"];
+const DAY_NAMES=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+const DAY_ABBREVS=["Su","Mo","Tu","We","Th","Fr","Sa"];
+const DAY_MAP={su:0,sun:0,sunday:0,mo:1,mon:1,monday:1,m:1,tu:2,tue:2,tuesday:2,t:2,we:3,wed:3,wednesday:3,w:3,th:4,thu:4,thursday:4,fr:5,fri:5,friday:5,f:5,sa:6,sat:6,saturday:6};
+const DAY_PAT=/(?:Su|Sun|Sunday|Mo|Mon|Monday|Tu|Tue|Tuesday|We|Wed|Wednesday|Th|Thu|Thursday|Fr|Fri|Friday|Sa|Sat|Saturday|M|T|W|F)/gi;
+
+let ACTIVE=[],PRN_R=[],PTO_R=[],TRAVEL=[],SCHED_RAW=[];
+let CURRENT_WEEK_KEY='';
+
+// ── Week helpers (Sunday–Saturday weeks) ──
+function getWeekStart(d){const dt=new Date(d);dt.setDate(dt.getDate()-dt.getDay());dt.setHours(0,0,0,0);return dt}
+function fmtWeekKey(d){const s=getWeekStart(d);return s.getFullYear()+'-'+String(s.getMonth()+1).padStart(2,'0')+'-'+String(s.getDate()).padStart(2,'0')}
+function weekLabel(weekKey){
+  const wk=new Date(weekKey+'T12:00:00');const today=new Date();
+  const thisStart=getWeekStart(today);const diff=Math.round((wk-thisStart)/(7*86400000));
+  const sat=new Date(wk);sat.setDate(sat.getDate()+6);
+  const range=(wk.getMonth()+1)+'/'+wk.getDate()+' – '+(sat.getMonth()+1)+'/'+sat.getDate();
+  if(diff===0)return'This Week ('+range+')';
+  if(diff===-1)return'Last Week ('+range+')';
+  if(diff===1)return'Next Week ('+range+')';
+  if(diff===-2)return'2 Weeks Ago ('+range+')';
+  if(diff===2)return'2 Weeks Out ('+range+')';
+  return'Week of '+range;
+}
+function detectWeekFromSchedule(dfSc){
+  const dates={};
+  for(const row of dfSc){
+    const st=row['Scheduled Start Time']||'';if(!st)continue;
+    const d=new Date(st);if(isNaN(d))continue;
+    const wk=fmtWeekKey(d);dates[wk]=(dates[wk]||0)+1;
+  }
+  let best='',bestN=0;
+  for(const k in dates){if(dates[k]>bestN){bestN=dates[k];best=k}}
+  return best||fmtWeekKey(new Date());
+}
+
+// ── Week navigation ──
+document.getElementById('wk-prev').addEventListener('click',function(){
+  var cur=CURRENT_WEEK_KEY||fmtWeekKey(new Date());
+  var d=new Date(cur+'T12:00:00');d.setDate(d.getDate()-7);
+  var wk=fmtWeekKey(d);loadLiveWeek(wk);
+});
+document.getElementById('wk-next').addEventListener('click',function(){
+  var cur=CURRENT_WEEK_KEY||fmtWeekKey(new Date());
+  var d=new Date(cur+'T12:00:00');d.setDate(d.getDate()+7);
+  var wk=fmtWeekKey(d);loadLiveWeek(wk);
+});
+document.getElementById('wk-pick').addEventListener('change',function(){
+  if(this.value){var wk=fmtWeekKey(new Date(this.value+'T12:00:00'));loadLiveWeek(wk);}
+});
+
+// ── Tabs ──
+document.querySelectorAll('.tab-btn').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.tab-btn').forEach(x=>x.classList.remove('active'));document.querySelectorAll('.tp').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.getElementById('p-'+b.dataset.t).classList.add('active')}));
+const fWk=document.getElementById('f-wk'),fSt=document.getElementById('f-st'),fMk=document.getElementById('f-mk'),fTp=document.getElementById('f-tp');
+[fSt,fMk,fTp].forEach(f=>f.addEventListener('change',renderAll));
+fWk.addEventListener('change',function(){if(fWk.value&&fWk.value!==CURRENT_WEEK_KEY)loadLiveWeek(fWk.value)});
+
+// ── Sorting ──
+function addSort(tableEl){
+  const ths=tableEl.querySelectorAll('th');
+  ths.forEach((th,ci)=>{
+    th.innerHTML+=`<span class="si">▼</span>`;
+    th.addEventListener('click',()=>{
+      const tbody=tableEl.querySelector('tbody');if(!tbody)return;
+      const rows=Array.from(tbody.querySelectorAll('tr')).filter(r=>!r.classList.contains('sp')&&!r.classList.contains('av-ov')&&!r.classList.contains('av-sub')&&!r.classList.contains('un-ov')&&!r.classList.contains('un-sub'));
+      const asc=th.dataset.dir!=='asc';th.dataset.dir=asc?'asc':'desc';
+      ths.forEach(t=>{const s=t.querySelector('.si');if(s)s.textContent='▼'});
+      const si=th.querySelector('.si');if(si)si.textContent=asc?'▲':'▼';
+      rows.sort((a,b)=>{
+        let av=(a.children[ci]||{}).textContent||'';
+        let bv=(b.children[ci]||{}).textContent||'';
+        const an=parseFloat(av.replace(/[,%]/g,'')),bn=parseFloat(bv.replace(/[,%]/g,''));
+        if(!isNaN(an)&&!isNaN(bn))return asc?an-bn:bn-an;
+        return asc?av.localeCompare(bv):bv.localeCompare(av);
+      });
+      rows.forEach(r=>tbody.appendChild(r));
+    });
+  });
+}
+
+// ── Helpers ──
+function P(v){return v!=null&&!isNaN(v)?(v*100).toFixed(1)+'%':'—'}
+function H(v){return v!=null&&!isNaN(v)?v.toFixed(1):'—'}
+function E(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function RC(i){return['lh','on','sh','li'][i]||''}
+function BC(i){return['b-lh','b-on','b-sh','b-li'][i]||''}
+function fmtPhone(p){if(!p)return'';const d=p.replace(/\D/g,'');if(d.length===10)return'('+d.slice(0,3)+') '+d.slice(3,6)+'-'+d.slice(6);if(d.length===11&&d[0]==='1')return'('+d.slice(1,4)+') '+d.slice(4,7)+'-'+d.slice(7);return p}
+function fmtTime(d){if(!(d instanceof Date)||isNaN(d))return'';let h=d.getHours(),m=d.getMinutes(),ap=h>=12?'PM':'AM';h=h%12||12;return h+':'+(m<10?'0':'')+m+' '+ap}
+function fmtDate(d){if(!(d instanceof Date)||isNaN(d))return'';return(d.getMonth()+1)+'/'+d.getDate()+'/'+d.getFullYear()}
+function getMarket(tags){const tl=tags.toLowerCase();for(const tag of MKT_PRI){if(tl.includes(tag.toLowerCase())){const idx=MKT_TAGS.findIndex(t=>t.toLowerCase()===tag.toLowerCase());return MKT_NAMES[idx]}}return'Unknown'}
+function getState(mkt){return STATE_MAP[mkt]||'Unknown'}
+function tagHasMarket(tags){const tl=tags.toLowerCase();return MKT_TAGS.some(t=>tl.includes(t.toLowerCase()))}
+
+// ── CSV Parser ──
+function parseCSV(text){const rows=[];let cur='',inQ=false,row=[],i=0;text=text.replace(/\r\n/g,'\n').replace(/\r/g,'\n');while(i<text.length){const c=text[i];if(inQ){if(c==='"'){if(text[i+1]==='"'){cur+='"';i+=2}else{inQ=false;i++}}else{cur+=c;i++}}else{if(c==='"'){inQ=true;i++}else if(c===','){row.push(cur);cur='';i++}else if(c==='\n'){row.push(cur);rows.push(row);row=[];cur='';i++}else{cur+=c;i++}}}if(cur||row.length)row.push(cur),rows.push(row);if(!rows.length)return[];const hdrs=rows[0].map(h=>h.trim());return rows.slice(1).map(r=>{const o={};hdrs.forEach((h,i)=>o[h]=(r[i]||'').trim());return o})}
+async function readFile(f){return new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res(e.target.result);r.onerror=rej;r.readAsText(f)})}
+
+// ── Normalize caregiver CSV column names ──
+function normalizeCgColumns(rows){
+  const map={'Caregiver - First Name':'First Name','Caregiver - Last Name':'Last Name'};
+  return rows.map(r=>{const o={...r};for(const[from,to]of Object.entries(map)){if(from in o&&!(to in o)){o[to]=o[from]}}return o});
+}
+
+// ── Filter caregivers active during a given week ──
+function filterActiveForWeek(rows,weekKey){
+  if(!weekKey)return rows;
+  const mon=new Date(weekKey+'T00:00:00');
+  const sun=new Date(mon);sun.setDate(sun.getDate()+6);sun.setHours(23,59,59,999);
+  return rows.filter(r=>{
+    // Parse hire date — must be hired on or before end of week
+    const hdStr=(r['Date Hired']||'').trim();
+    if(hdStr){const hd=new Date(hdStr);if(!isNaN(hd)&&hd>sun)return false}
+    // Currently hired caregivers always pass (re-hires have old TermDate)
+    const status=(r['Status']||'').trim().toLowerCase();
+    if(status==='hired')return true;
+    // Terminated caregivers — include if terminated ON or AFTER Monday of week
+    const tdStr=(r['Terminated Date']||'').trim();
+    if(!tdStr)return status!=='terminated';
+    const td=new Date(tdStr);
+    if(isNaN(td))return false;
+    return td>=mon;
+  });
+}
+
+// ── Notes Parsing ──
+function parseAvailDays(notes,section){const result={};let nC=notes,nL=notes.toLowerCase();const tsPat=/ts\s*\d+\s*/gi;nC=nC.replace(tsPat,'');nL=nC.toLowerCase();if(section==='Any'){let m;DAY_PAT.lastIndex=0;while((m=DAY_PAT.exec(nC))!==null){const d=DAY_MAP[m[0].toLowerCase()];if(d!==undefined&&!(d in result))result[d]=1.0}return result}const kwMap={'Long Hours':['long hour days','long hours days'],'Overnight':['overnight days','overnights'],'Short Hours':['short hour days','short hours days']};const kws=kwMap[section]||[];let secStart=-1;for(const kw of kws){const i=nL.indexOf(kw);if(i>=0){secStart=i;break}}if(secStart<0)return result;const eqIdx=nC.indexOf('=',secStart);if(eqIdx<0)return result;let nextSec=nC.length;for(const kw of['long hour','overnight','short hour','live-in','live in']){const n=nL.indexOf(kw,secStart+1);if(n>secStart&&n<nextSec)nextSec=n}const seg=nC.substring(eqIdx+1,nextSec);const dayKeys=Object.keys(DAY_MAP).join('|');const eodPat=new RegExp('e/o\\s+('+dayKeys+')','gi');let m;while((m=eodPat.exec(seg))!==null){const d=DAY_MAP[m[1].toLowerCase()];if(d!==undefined)result[d]=0.5}DAY_PAT.lastIndex=0;while((m=DAY_PAT.exec(seg))!==null){const d=DAY_MAP[m[0].toLowerCase()];if(d!==undefined&&!(d in result)){const pre=seg.substring(0,m.index).trim().toLowerCase();result[d]=pre.endsWith('e/o')?0.5:1.0}}return result}
+function ptFromNotes(notes){const nl=notes.toLowerCase();if(nl.includes('live-in')||nl.includes('live in'))return 3;if(nl.includes('long hour'))return 0;if(nl.includes('overnight'))return 1;return 2}
+function parseDaysStr(notes,section){const days=parseAvailDays(notes,section);return Object.keys(days).map(Number).sort((a,b)=>a-b).map(d=>DAY_ABBREVS[d]).join(', ')}
+
+// ── Visit Classification ──
+function classifyVisit(startTime,sh,ap){const hr=startTime instanceof Date?startTime.getHours():0;if(sh===24||(hr===0&&sh>=12))return 3;if(hr>=18&&hr<=23&&ap<16)return 1;if(hr>=6&&hr<=12&&ap>=8)return 0;return 2}
+function getDayIdx(dt){if(!(dt instanceof Date)||isNaN(dt))return -1;return dt.getDay()}
+
+// ── Process Schedule ──
+function processSchedule(dfSc){
+  const typeHrs={},typeVis={},dayTypeHrs={},ptoDayFlags={},ptoDayHrs={},cancelledHrs={},payableHrs={},billedHrs={};
+  const g4=()=>[0,0,0,0],g7b=()=>[false,false,false,false,false,false,false],g7n=()=>[0,0,0,0,0,0,0],g7x4=()=>[g4(),g4(),g4(),g4(),g4(),g4(),g4()];
+  for(const row of dfSc){
+    const cid=(row['Caregiver-Id']||'').trim();if(!cid)continue;
+    const vt=(row['Visit Type']||'').trim();
+    const cancelled=(row['Cancelled']||'').trim().toLowerCase()==='yes';
+    let startTime=null;const stStr=row['Scheduled Start Time']||'';if(stStr){startTime=new Date(stStr);if(isNaN(startTime))startTime=null}
+    const dayIdx=startTime?getDayIdx(startTime):-1;
+    const sh=parseFloat(row['Scheduled Hours'])||0;
+    const apRaw=row['Adjusted Payable Hours'];
+    let ap=(apRaw!==''&&apRaw!=null&&!isNaN(apRaw))?parseFloat(apRaw):sh;
+    const bh=parseFloat(row['Billing Hours']||row['Billed Hours']||0)||0;
+    if(!typeHrs[cid]){typeHrs[cid]=g4();typeVis[cid]=g4();dayTypeHrs[cid]=g7x4();ptoDayFlags[cid]=g7b();ptoDayHrs[cid]=g7n();cancelledHrs[cid]=0;payableHrs[cid]=0;billedHrs[cid]=0}
+    if(ABSENCE_T.has(vt)){if(dayIdx>=0){ptoDayFlags[cid][dayIdx]=true;ptoDayHrs[cid][dayIdx]+=Math.min(sh,10)}}
+    else if(!EXCLUDE_T.has(vt)&&vt!=='Travel Time'){
+      const cat=classifyVisit(startTime,sh,ap);
+      if(cancelled){const cAp=(apRaw!==''&&apRaw!=null&&!isNaN(apRaw)&&parseFloat(apRaw)>0)?parseFloat(apRaw):0;cancelledHrs[cid]+=cAp;ap=cAp}
+      if(ap>0){typeHrs[cid][cat]+=ap;typeVis[cid][cat]+=1;if(dayIdx>=0)dayTypeHrs[cid][dayIdx][cat]+=ap;payableHrs[cid]+=ap;billedHrs[cid]+=bh}
+    }
+  }
+  return{typeHrs,typeVis,dayTypeHrs,ptoDayFlags,ptoDayHrs,cancelledHrs,payableHrs,billedHrs};
+}
+
+// ── Process Caregivers ──
+function processCaregivers(dfCg,sched){
+  const{typeHrs,typeVis,dayTypeHrs,ptoDayFlags,ptoDayHrs,cancelledHrs,payableHrs,billedHrs}=sched;
+  const activeRows=[],prnRows=[],ptoRows=[];
+  for(const row of dfCg){
+    const notes=(row['Caregiver Availability Notes']||'').trim();const tags=(row['Tags']||'').trim();const cgId=(row['Caregiver-Id']||'').trim();
+    if(EX_NOTES.has(notes.toLowerCase()))continue;
+    if(!tagHasMarket(tags)&&['unset','','nan'].includes(notes.toLowerCase()))continue;
+    if(tags.toLowerCase().includes('prn'))continue;
+    const mkt=getMarket(tags);const state=getState(mkt);
+    let desiredRaw=row['Caregiver Availability Hours Per Week'];let desired=0;
+    if(desiredRaw&&desiredRaw!=='Unset'&&desiredRaw!==''){const v=parseFloat(desiredRaw);if(!isNaN(v))desired=v}
+    const cgTH=typeHrs[cgId]||[0,0,0,0],cgTV=typeVis[cgId]||[0,0,0,0];
+    const cgDT=dayTypeHrs[cgId]||[[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]];
+    const cgPF=ptoDayFlags[cgId]||[false,false,false,false,false,false,false];
+    const cgPH=ptoDayHrs[cgId]||[0,0,0,0,0,0,0];
+    const cgCan=cancelledHrs[cgId]||0;
+    const cgPay=payableHrs[cgId]||0;
+    const cgBil=billedHrs[cgId]||0;
+    let worked=cgTH.reduce((a,b)=>a+b,0);const maxVis=Math.max(...cgTV);
+    let primType;if(maxVis>0)primType=cgTV.indexOf(maxVis);else primType=worked===0?ptFromNotes(notes):2;
+    if(primType===3){let liW=0;for(let d=0;d<7;d++){const ld=cgDT[d][3];if(ld>0)liW+=Math.min(ld*1.5,24)}worked=worked-cgTH[3]+liW}
+    const nl=notes.toLowerCase();const isLI=nl.includes('live-in')||nl.includes('live in');
+    const hasHourly=nl.includes('long hour')||nl.includes('overnight')||nl.includes('short hour');const isMixed=isLI&&hasHourly;
+    if(worked===0&&isMixed&&primType===3){if(nl.includes('long hour'))primType=0;else if(nl.includes('overnight'))primType=1;else primType=2}
+    let ptName=TYPE_NAMES[primType];let availDays,dailyRate;
+    if(isLI&&primType===3){availDays={};for(let d=0;d<7;d++)availDays[d]=1.0;dailyRate=24;ptName='Live-In'}
+    else if(isLI&&isMixed&&primType!==3){if(nl.includes('long hour')){availDays=parseAvailDays(notes,'Long Hours');ptName='Live-In / Long Hours'}else{availDays=parseAvailDays(notes,'Overnight');ptName='Live-In / Overnight'}dailyRate=12}
+    else if(isLI&&!isMixed&&primType!==3){availDays={};dailyRate=0}
+    else if(primType===0){availDays=parseAvailDays(notes,'Long Hours');dailyRate=12}
+    else if(primType===1){availDays=parseAvailDays(notes,'Overnight');dailyRate=12}
+    else{availDays=parseAvailDays(notes,'Any');dailyRate=0}
+    let remainW=0;for(const d in availDays)if(!cgPF[d])remainW+=availDays[d];
+    let adjCap,capReason='';
+    if(isLI&&!isMixed&&primType!==3){adjCap=worked;capReason='LI non-primary'}
+    else if(dailyRate>0){const maxAch=remainW*dailyRate;adjCap=Math.max(Math.min(maxAch,desired),worked);capReason=adjCap===worked&&worked>0?'Floor=worked':adjCap===maxAch?'Avail×rate':'Desired'}
+    else{adjCap=Math.max(desired,worked);capReason=adjCap===worked&&worked>desired?'Floor=worked':'Desired'}
+    adjCap=Math.max(adjCap,0);const util=adjCap>0?worked/adjCap:null;
+    const dayCap=[0,0,0,0,0,0,0],dayWorked=[0,0,0,0,0,0,0],dayAvail=[0,0,0,0,0,0,0];
+    if(dailyRate>0){for(let d=0;d<7;d++){const wt=availDays[d]||0;if(wt>0&&!cgPF[d]){dayCap[d]=dailyRate*wt;dayAvail[d]=wt}dayWorked[d]=cgDT[d][primType]}for(let d=0;d<7;d++)if(dayCap[d]===0&&dayWorked[d]>0){dayCap[d]=dailyRate;dayAvail[d]=1.0}}
+    const tcPto=cgPH.reduce((s,v)=>s+Math.min(v,10),0);
+    let tsType=0;if(tags.toLowerCase().includes('tributesecure')){const tm=notes.match(/\bTS\s*(\d+)\b/i);tsType=tm?parseInt(tm[1],10):30}
+    const anyDays=parseAvailDays(notes,'Any');const dayDisplay=[];
+    for(let d=0;d<7;d++){const wt=availDays[d]||0;if(wt===0.5)dayDisplay.push('e/o');else if(d in anyDays)dayDisplay.push('Y');else if(isLI)dayDisplay.push('Live-In');else dayDisplay.push('N')}
+    const visits=cgTV.reduce((a,b)=>a+b,0);
+    const hireDate=(row['Date Hired']||row['Hire Date']||'').trim();
+    let daysSinceHire=null;
+    if(hireDate){const hd=new Date(hireDate);if(!isNaN(hd))daysSinceHire=Math.floor((Date.now()-hd.getTime())/(86400000))}
+    // Overtime: worked > desired and desired > 0
+    const isOT=desired>0&&worked>desired;
+    const base={cgNum:row['Caregiver Number']||'',first:row['First Name']||'',last:row['Last Name']||'',
+      market:mkt,state,status:row['Status']||'',desig:row['Designation']||'',
+      svcType:ptName,desired,adjCap,capReason,worked,visits,util,
+      payable:cgPay,billed:cgBil,cancelled:cgCan,
+      ldDays:parseDaysStr(notes,'Long Hours'),odDays:parseDaysStr(notes,'Overnight'),sdDays:parseDaysStr(notes,'Short Hours'),
+      isLI:isLI?'Yes':'No',dayDisp:dayDisplay,notes,tags,hr:row['HR Assignee Name']||'',
+      phone:row['Phone Number']||'',
+      primType,dayCap,dayWorked,dayAvail,tsType,ptoHrs:tcPto,cgId,
+      typeHrs:cgTH,typeVis:cgTV,dayTypeHrs:cgDT,
+      hireDate,daysSinceHire,isOT};
+    if(desired>0&&adjCap===0&&worked===0)ptoRows.push({...base,svcType:ptName});
+    else if(desired===0&&worked>0)prnRows.push({...base,svcType:'PRN Worked'});
+    else if(desired>0||worked>0)activeRows.push(base);
+  }
+  return{activeRows,prnRows,ptoRows};
+}
+
+// ── Travel Gaps ──
+function processTravelGaps(dfSc){
+  const excludeVT=new Set(['Time Off','PTO - New','Sick Time','Turn Down','Orientation','Training','Unpaid Training','Office Meeting','Leadership Development','Shadow Visit','Home Visit','Bonus 5 - 9 Year (Ann)','Bonus 2&3 Year (Ann)','Bonus 10 - 14 Year (Ann)','Expense Reimbursement','Travel Time']);
+  const visits=[],ttE=[];
+  for(const row of dfSc){const vt=(row['Visit Type']||'').trim();const cid=(row['Caregiver-Id']||'').trim();if(!cid)continue;const s=new Date(row['Scheduled Start Time']||'');const e=new Date(row['Scheduled End Time']||'');if(isNaN(s)||isNaN(e))continue;const can=(row['Cancelled']||'').trim().toLowerCase()==='yes';if(vt==='Travel Time'){ttE.push({cid,date:s.toDateString(),start:s,end:e});continue}if(can||excludeVT.has(vt))continue;const cf=(row['Client First Name']||'').trim();if(cf==='Office'||cf==='Office Training')continue;visits.push({cid,date:s.toDateString(),start:s,end:e,mkt:(row['Located In']||'').trim(),cgName:((row['Caregiver First Name']||'')+' '+(row['Caregiver Last Name']||'')).trim(),client:((row['Client First Name']||'')+' '+(row['Client Last Name']||'')).trim()})}
+  visits.sort((a,b)=>a.cid.localeCompare(b.cid)||a.date.localeCompare(b.date)||a.start-b.start);
+  const gaps=[];
+  for(let i=0;i<visits.length-1;i++){const a=visits[i],b=visits[i+1];if(a.cid!==b.cid||a.date!==b.date)continue;const gm=(b.start-a.end)/60000;if(gm<=0||gm>120)continue;let cov=false;for(const tt of ttE){if(tt.cid!==a.cid||tt.date!==a.date)continue;if(tt.start>=a.end&&tt.start<b.start){cov=true;break}}if(cov)continue;let gs='Unknown';const mn=a.mkt;if(['Boston','North of Boston','MetroWest Boston','Metro West Boston','South of Boston'].includes(mn))gs='Massachusetts';else if(mn==='Chicago')gs='Illinois';else if(['Baltimore','Annapolis','Bethesda','Bel-Air'].includes(mn))gs='Maryland';const dow=getDayIdx(a.start);gaps.push({cgName:a.cgName,mkt:mn,state:gs,day:dow>=0?DAY_NAMES[dow]:'',date:a.start,gapStart:a.end,gapEnd:b.start,gapHrs:gm/60,pair:a.client+' → '+b.client})}
+  return gaps;
+}
+
+// ── Get the 3 relevant weeks: last, this, next ──
+function getRelevantWeeks(){
+  const today=new Date();
+  const thisStart=getWeekStart(today);
+  const lastStart=new Date(thisStart);lastStart.setDate(lastStart.getDate()-7);
+  const nextStart=new Date(thisStart);nextStart.setDate(nextStart.getDate()+7);
+  return[fmtWeekKey(lastStart),fmtWeekKey(thisStart),fmtWeekKey(nextStart)];
+}
+
+// ── Filter schedule rows to a specific week ──
+function filterScheduleByWeek(dfSc,weekKey){
+  const sun=new Date(weekKey+'T00:00:00');
+  const sat=new Date(sun);sat.setDate(sat.getDate()+6);sat.setHours(23,59,59,999);
+  return dfSc.filter(row=>{
+    const st=row['Scheduled Start Time']||'';if(!st)return false;
+    const d=new Date(st);if(isNaN(d))return false;
+    return d>=sun&&d<=sat;
+  });
+}
+
+// ── Auto-load on page load ──
+(function(){
+  var thisWeek=fmtWeekKey(new Date());
+  loadLiveWeek(thisWeek);
+})();
+function popFilters(){const states=new Set(),markets=new Set();[...ACTIVE,...PRN_R,...PTO_R].forEach(r=>{states.add(r.state);markets.add(r.market)});fSt.innerHTML='<option value="">All States</option>';fMk.innerHTML='<option value="">All Markets</option>';ST_ORDER.forEach(s=>{if(states.has(s)){const o=document.createElement('option');o.value=s;o.textContent=s;fSt.appendChild(o)}});MKT_ORDER.forEach(m=>{if(markets.has(m)){const o=document.createElement('option');o.value=m;o.textContent=m;fMk.appendChild(o)}})}
+function showMeta(ts,cn,sn){const d=new Date(ts);document.getElementById('upload-meta').innerHTML='Data published <strong>'+d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'})+' at '+d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})+'</strong> — '+cn+' + '+sn;document.getElementById('upload-meta').style.display='block'}
+
+// ── Week loading (live API) ──
+function updateWeekDropdown(weekKey){
+  fWk.innerHTML='';
+  var weeks=getRelevantWeeks();
+  // Add the selected week if not in the standard 3
+  if(weeks.indexOf(weekKey)<0)weeks.push(weekKey);
+  weeks.sort().reverse();
+  for(var i=0;i<weeks.length;i++){var o=document.createElement('option');o.value=weeks[i];o.textContent=weekLabel(weeks[i]);fWk.appendChild(o)}
+  fWk.value=weekKey;
+}
+async function loadLiveWeek(weekKey){
+  CURRENT_WEEK_KEY=weekKey;
+  updateWeekDropdown(weekKey);
+  document.getElementById('content').classList.add('show');
+  document.getElementById('stats-strip').classList.add('show');
+  document.querySelectorAll('.tp').forEach(function(p){p.innerHTML='<div class="processing"><div class="spin"></div>Loading from Viv...</div>'});
+  try{
+    var resp=await fetch(API+'?endpoint=utilization_live&week='+encodeURIComponent(weekKey));
+    var d=await resp.json();
+    if(!d.caregivers||!d.schedule){document.querySelectorAll('.tp').forEach(function(p){p.innerHTML='<div class="empty">No data for this week</div>'});return}
+    // Process raw data through existing pipeline
+    var dfCg=filterActiveForWeek(d.caregivers,weekKey);
+    var dfSc=d.schedule;
+    SCHED_RAW=dfSc;
+    var sched=processSchedule(dfSc);
+    var result=processCaregivers(dfCg,sched);
+    var travel=processTravelGaps(dfSc);
+    ACTIVE=result.activeRows;PRN_R=result.prnRows;PTO_R=result.ptoRows;TRAVEL=travel;
+    showMeta(d.generatedAt||new Date().toISOString(),'Viv Report Builder','Viv Schedule API');
+    popFilters();renderAll();
+  }catch(e){
+    console.error('[utilization_live]',e);
+    document.querySelectorAll('.tp').forEach(function(p){p.innerHTML='<div class="empty">Error loading data: '+e.message+'</div>'});
+  }
+}
+async function loadWeek(weekKey){return loadLiveWeek(weekKey);}
+
+// ═════════════════════════════════════════════════════════════
+// RENDER
+// ═════════════════════════════════════════════════════════════
+function renderAll(){updateKPIs();renderDashboard();renderDetail();renderSummary('mkt','market',MKT_ORDER,'Market Summary','Market/State');renderSummary('sta','state',ST_ORDER,'State Summary','State');renderDayBreakdown();renderRoster();renderTS();renderTravel();renderLHO();renderShiftMix();renderNewHires()}
+
+function updateKPIs(){
+  let r=ACTIVE;const s=fSt.value,m=fMk.value,t=fTp.value;
+  if(s)r=r.filter(c=>c.state===s);if(m)r=r.filter(c=>c.market===m);if(t!=='')r=r.filter(c=>c.primType===parseInt(t));
+  const cap=r.reduce((s,x)=>s+x.adjCap,0),wrk=r.reduce((s,x)=>s+Math.min(x.worked,x.adjCap>0?x.adjCap:x.worked),0);
+  let pr=PRN_R,pt=PTO_R;if(s){pr=pr.filter(c=>c.state===s);pt=pt.filter(c=>c.state===s)}if(m){pr=pr.filter(c=>c.market===m);pt=pt.filter(c=>c.market===m)}
+  document.getElementById('k-active').textContent=r.length;document.getElementById('k-util').textContent=P(cap>0?wrk/cap:0);
+  document.getElementById('k-cap').textContent=H(cap);document.getElementById('k-wrk').textContent=H(r.reduce((s,x)=>s+x.worked,0));
+  document.getElementById('k-prn').textContent=pr.length;document.getElementById('k-pto').textContent=pt.length;
+}
+
+// ── Dashboard (matching Excel Dashboard tab) ──
+function renderDashboard(){
+  const cap=ACTIVE.reduce((s,r)=>s+r.adjCap,0);
+  const wrk=ACTIVE.reduce((s,r)=>s+Math.min(r.worked,r.adjCap>0?r.adjCap:r.worked),0);
+  const util=cap>0?wrk/cap:0;
+  let h='<div class="dash-kpis">';
+  h+='<div class="dash-kpi"><div class="kl">Active Caregivers</div><div class="kv">'+ACTIVE.length+'</div><div class="ks">this week</div></div>';
+  h+='<div class="dash-kpi"><div class="kl">PRN Worked</div><div class="kv">'+PRN_R.length+'</div><div class="ks">this week</div></div>';
+  h+='<div class="dash-kpi"><div class="kl">On PTO</div><div class="kv">'+PTO_R.length+'</div><div class="ks">this week</div></div>';
+  h+='<div class="dash-kpi"><div class="kl">Overall Util %</div><div class="kv">'+P(util)+'</div><div class="ks">this week</div></div>';
+  h+='</div>';
+  // Market Utilization Heatmap
+  h+='<div class="dash-grid"><div>';
+  h+='<div class="tc"><div class="tt">Market Utilization Heatmap</div><div class="ts"><table><thead><tr><th class="al">Market</th><th>Overall</th><th>Long Hours</th><th>Overnight</th><th>Short Hours</th><th>Live-In</th></tr></thead><tbody>';
+  for(const mkt of MKT_ORDER){
+    const rows=ACTIVE.filter(r=>r.market===mkt);if(!rows.length)continue;
+    h+='<tr><td class="al">'+mkt+'</td>';
+    // Overall util
+    const oCap=rows.reduce((s,r)=>s+r.adjCap,0),oWc=rows.reduce((s,r)=>s+(r.adjCap>0?Math.min(r.worked,r.adjCap):r.worked),0);
+    h+='<td class="heatmap-cell '+hmCls(oCap>0?oWc/oCap:null)+'">'+P(oCap>0?oWc/oCap:null)+'</td>';
+    for(let ti=0;ti<4;ti++){
+      const tr=rows.filter(r=>r.primType===ti);
+      if(!tr.length){h+='<td class="heatmap-cell hm-none">—</td>';continue}
+      const tCap=tr.reduce((s,r)=>s+r.adjCap,0),tWc=tr.reduce((s,r)=>s+(r.adjCap>0?Math.min(r.worked,r.adjCap):r.worked),0);
+      const tU=tCap>0?tWc/tCap:null;
+      h+='<td class="heatmap-cell '+hmCls(tU)+'">'+P(tU)+'</td>';
+    }
+    h+='</tr>';
+  }
+  h+='<tr><td colspan="6" style="font-size:10px;color:var(--gray-text);padding:8px"><strong>Legend:</strong> ';
+  h+='<span class="heatmap-cell hm-low" style="display:inline-block;padding:2px 8px;margin:0 4px">&lt;50%</span>';
+  h+='<span class="heatmap-cell hm-med" style="display:inline-block;padding:2px 8px;margin:0 4px">50-74%</span>';
+  h+='<span class="heatmap-cell hm-good" style="display:inline-block;padding:2px 8px;margin:0 4px">75-89%</span>';
+  h+='<span class="heatmap-cell hm-high" style="display:inline-block;padding:2px 8px;margin:0 4px">90-99%</span>';
+  h+='<span class="heatmap-cell hm-full" style="display:inline-block;padding:2px 8px;margin:0 4px">100%+</span>';
+  h+='</td></tr>';
+  h+='</tbody></table></div></div></div>';
+  // State Utilization + Capacity Alerts
+  h+='<div>';
+  h+='<div class="tc"><div class="tt">State Utilization</div><div class="ts"><table><thead><tr><th class="al">State</th><th>Util %</th><th>Headcount</th><th>Hrs Worked</th><th>Adj Cap</th></tr></thead><tbody>';
+  for(const st of ST_ORDER){
+    const rows=ACTIVE.filter(r=>r.state===st);if(!rows.length)continue;
+    const sCap=rows.reduce((s,r)=>s+r.adjCap,0),sWc=rows.reduce((s,r)=>s+(r.adjCap>0?Math.min(r.worked,r.adjCap):r.worked),0);
+    const sU=sCap>0?sWc/sCap:null;
+    h+='<tr><td class="al">'+st+'</td><td class="heatmap-cell '+hmCls(sU)+'">'+P(sU)+'</td><td>'+rows.length+'</td><td>'+H(rows.reduce((s,r)=>s+r.worked,0))+'</td><td>'+H(sCap)+'</td></tr>';
+  }
+  h+='</tbody></table></div></div>';
+  // Capacity Alerts (90%+ util)
+  h+='<div class="tc" style="margin-top:16px"><div class="tt">Capacity Alerts (90%+ Util)</div><div class="ts"><table><thead><tr><th class="al">Market</th><th>Service Type</th><th>Util %</th><th>Count</th><th>Capacity</th></tr></thead><tbody>';
+  let hasAlert=false;
+  for(const mkt of MKT_ORDER){
+    const rows=ACTIVE.filter(r=>r.market===mkt);if(!rows.length)continue;
+    // Check overall
+    const oCap=rows.reduce((s,r)=>s+r.adjCap,0),oWc=rows.reduce((s,r)=>s+(r.adjCap>0?Math.min(r.worked,r.adjCap):r.worked),0);
+    const oU=oCap>0?oWc/oCap:0;
+    if(oU>=0.9){hasAlert=true;h+='<tr class="alert-row"><td class="al">'+mkt+'</td><td>Overall</td><td>'+P(oU)+'</td><td>'+rows.length+'</td><td>'+H(oCap)+'</td></tr>'}
+    for(let ti=0;ti<4;ti++){const tr=rows.filter(r=>r.primType===ti);if(!tr.length)continue;
+      const tCap=tr.reduce((s,r)=>s+r.adjCap,0),tWc=tr.reduce((s,r)=>s+(r.adjCap>0?Math.min(r.worked,r.adjCap):r.worked),0);
+      const tU=tCap>0?tWc/tCap:0;
+      if(tU>=0.9){hasAlert=true;h+='<tr class="alert-row"><td class="al">'+mkt+'</td><td>'+TYPE_NAMES[ti]+'</td><td>'+P(tU)+'</td><td>'+tr.length+'</td><td>'+H(tCap)+'</td></tr>'}}
+  }
+  if(!hasAlert)h+='<tr><td colspan="5" class="empty">No capacity alerts</td></tr>';
+  h+='</tbody></table></div></div>';
+  h+='</div></div>';
+  document.getElementById('p-dash').innerHTML=h;
+}
+function hmCls(v){if(v==null)return'hm-none';if(v>=1)return'hm-full';if(v>=.9)return'hm-high';if(v>=.75)return'hm-good';if(v>=.5)return'hm-med';return'hm-low'}
+
+// ── Caregiver Detail (28 cols matching Excel) ──
+function renderDetail(){
+  const s=fSt.value,m=fMk.value,t=fTp.value;
+  let rows=[...ACTIVE];if(s)rows=rows.filter(c=>c.state===s);if(m)rows=rows.filter(c=>c.market===m);if(t!=='')rows=rows.filter(c=>c.primType===parseInt(t));
+  let pr=[...PRN_R];if(s)pr=pr.filter(c=>c.state===s);if(m)pr=pr.filter(c=>c.market===m);
+  const mo=x=>{const i=MKT_ORDER.indexOf(x.market);return i>=0?i:99};
+  rows.sort((a,b)=>mo(a)-mo(b)||a.last.localeCompare(b.last));pr.sort((a,b)=>mo(a)-mo(b)||a.last.localeCompare(b.last));
+  const hdrs=['CG#','First Name','Last Name','Market','State','Status','Desig','Service Type','Desired Hrs','Adj Capacity','Capacity Reason','Hrs Worked','Visits','Util %','LH Days','ON Days','SH Days','Live-In','Sun','Mon','Tue','Wed','Thu','Fri','Sat','Notes','Tags','HR Assignee'];
+  let h='<div class="tc"><div class="tt">Caregiver Utilization Report — Caregiver Detail</div><div class="ts"><table id="tbl-det"><thead><tr>';
+  hdrs.forEach(c=>h+='<th'+(c.length>5?' class="al"':'')+'>'+c+'</th>');
+  h+='</tr></thead><tbody>';
+  for(const r of rows)h+=detRow(r,false);
+  for(const r of pr)h+=detRow(r,true);
+  if(!rows.length&&!pr.length)h+='<tr><td colspan="28" class="empty">No caregivers match filters</td></tr>';
+  h+='</tbody></table></div></div>';
+  document.getElementById('p-det').innerHTML=h;addSort(document.getElementById('tbl-det'));
+}
+function detRow(r,isPRN){
+  const cls=isPRN?'prn':'';let uCls='';if(!isPRN){if(r.util===0||r.util==null)uCls='uz';else if(r.util>1)uCls='uo'}
+  return'<tr class="'+cls+'"><td>'+r.cgNum+'</td><td class="al">'+E(r.first)+'</td><td class="al">'+E(r.last)+'</td><td>'+r.market+'</td><td>'+r.state+'</td><td>'+r.status+'</td><td>'+r.desig+'</td><td><span class="badge '+BC(r.primType)+'">'+r.svcType+'</span></td><td>'+H(r.desired)+'</td><td>'+H(r.adjCap)+'</td><td>'+E(r.capReason)+'</td><td>'+H(r.worked)+'</td><td>'+r.visits+'</td><td class="'+uCls+'">'+P(isPRN?null:r.util)+'</td><td>'+r.ldDays+'</td><td>'+r.odDays+'</td><td>'+r.sdDays+'</td><td>'+r.isLI+'</td>'+r.dayDisp.map(d=>'<td>'+d+'</td>').join('')+'<td class="al wr" title="'+E(r.notes)+'">'+E(r.notes)+'</td><td class="al wr" title="'+E(r.tags)+'">'+E(r.tags)+'</td><td class="al">'+E(r.hr)+'</td></tr>';
+}
+
+// ── Market/State Summary (12 cols matching Excel) ──
+function renderSummary(pid,keyField,orderList,title,label){
+  const s=fSt.value,m=fMk.value,t=fTp.value;
+  const hdrs=[label,'Service Type','Count','Desired Hrs','Adj Capacity','Hrs Worked','Hrs Payable','Hrs Billed','Util %','Over 100%','Zero Util','# Working'];
+  let h='<div class="tc"><div class="tt">Caregiver Utilization Report — '+title+'</div><div class="ts"><table id="tbl-'+pid+'"><thead><tr>';
+  hdrs.forEach(c=>h+='<th'+(c===label||c==='Service Type'?' class="al"':'')+'>'+c+'</th>');
+  h+='</tr></thead><tbody>';
+  let order=[...orderList];
+  if(keyField==='market'&&s)order=order.filter(k=>getState(k)===s);
+  if(keyField==='market'&&m)order=[m];
+  if(keyField==='state'&&s)order=[s];
+  for(const key of order){
+    let rows=ACTIVE.filter(r=>r[keyField]===key);if(keyField==='state'&&m)rows=rows.filter(r=>r.market===m);if(!rows.length)continue;
+    const cnt=rows.length,des=rows.reduce((s,r)=>s+r.desired,0),cap=rows.reduce((s,r)=>s+r.adjCap,0);
+    const wrk=rows.reduce((s,r)=>s+r.worked,0),pay=rows.reduce((s,r)=>s+(r.payable||0),0),bil=rows.reduce((s,r)=>s+(r.billed||0),0);
+    const wc=rows.reduce((s,r)=>s+(r.adjCap>0?Math.min(r.worked,r.adjCap):r.worked),0);
+    const util=cap>0?wc/cap:null,ov=rows.filter(r=>r.adjCap>0&&r.worked>r.adjCap).length,zr=rows.filter(r=>r.adjCap>0&&r.worked===0).length;
+    h+=sRow(key,'Active Caregivers',cnt,des,cap,wrk,pay,bil,util,ov,zr,'ov');
+    for(let ti=0;ti<4;ti++){if(t!==''&&parseInt(t)!==ti)continue;const tr=rows.filter(r=>r.primType===ti);if(!tr.length)continue;
+      const tc=tr.length,td=tr.reduce((s,r)=>s+r.desired,0),tca=tr.reduce((s,r)=>s+r.adjCap,0),tw=tr.reduce((s,r)=>s+r.worked,0),tp2=tr.reduce((s,r)=>s+(r.payable||0),0),tb=tr.reduce((s,r)=>s+(r.billed||0),0);
+      const twc=tr.reduce((s,r)=>s+(r.adjCap>0?Math.min(r.worked,r.adjCap):r.worked),0);
+      h+=sRow('','  '+TYPE_NAMES[ti],tc,td,tca,tw,tp2,tb,tca>0?twc/tca:null,tr.filter(r=>r.adjCap>0&&r.worked>r.adjCap).length,tr.filter(r=>r.adjCap>0&&r.worked===0).length,RC(ti))}
+    let prnR=PRN_R.filter(r=>r[keyField]===key);if(keyField==='state'&&m)prnR=prnR.filter(r=>r.market===m);
+    h+=sRow('','  PRN Worked',prnR.length,0,0,prnR.reduce((s,r)=>s+r.worked,0),0,0,null,0,0,'prn');
+    let ptoR=PTO_R.filter(r=>r[keyField]===key);if(keyField==='state'&&m)ptoR=ptoR.filter(r=>r.market===m);
+    if(ptoR.length){const tc=[0,0,0,0];ptoR.forEach(r=>tc[r.primType]++);const parts=[];if(tc[0])parts.push(tc[0]+' LH');if(tc[1])parts.push(tc[1]+' ON');if(tc[2])parts.push(tc[2]+' SH');if(tc[3])parts.push(tc[3]+' LI');
+      h+='<tr class="pto"><td></td><td class="al">  On PTO</td><td>'+ptoR.length+'</td><td colspan="9" class="al">'+parts.join(', ')+'</td></tr>'}
+    h+='<tr class="sp"><td colspan="12"></td></tr>';
+  }
+  h+='</tbody></table></div></div>';document.getElementById('p-'+pid).innerHTML=h;
+}
+function sRow(key,svc,cnt,des,cap,wrk,pay,bil,util,ov,zr,cls){return'<tr class="'+cls+'"><td class="al">'+key+'</td><td class="al">'+svc+'</td><td>'+cnt+'</td><td>'+H(des)+'</td><td>'+H(cap)+'</td><td>'+H(wrk)+'</td><td>'+H(pay)+'</td><td>'+H(bil)+'</td><td>'+P(util)+'</td><td>'+ov+'</td><td>'+zr+'</td><td>'+(cnt-zr)+'</td></tr>'}
+
+// ── Day Breakdown ──
+function renderDayBreakdown(){
+  const s=fSt.value,m=fMk.value;
+  let h='<div class="tc"><div class="tt">Day Breakdown by Market</div><div class="ts"><table><thead><tr><th class="al">Market</th><th class="al">Service Type</th><th>Metric</th>';
+  ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].forEach(d=>h+='<th>'+d+'</th>');h+='</tr></thead><tbody>';
+  const dayTypes=[0,1,3];let order=m?[m]:(s?MKT_ORDER.filter(k=>getState(k)===s):MKT_ORDER);
+  for(const mkt of order){const mR=ACTIVE.filter(c=>c.market===mkt);if(!mR.some(r=>dayTypes.includes(r.primType)))continue;
+    const oc=[0,0,0,0,0,0,0],ow=[0,0,0,0,0,0,0],oa=[0,0,0,0,0,0,0];
+    mR.forEach(r=>{if(!dayTypes.includes(r.primType))return;for(let d=0;d<7;d++){oc[d]+=r.dayCap[d];ow[d]+=r.dayWorked[d];if(r.dayCap[d]>0)oa[d]+=r.dayAvail[d]}});
+    h+=dayBlk(mkt,'Overall',oc,ow,oa,true,'ov',mR,-1,dayTypes);
+    for(const ti of dayTypes){const tR=mR.filter(r=>r.primType===ti);if(!tR.length)continue;const tc=[0,0,0,0,0,0,0],tw=[0,0,0,0,0,0,0],ta=[0,0,0,0,0,0,0];tR.forEach(r=>{for(let d=0;d<7;d++){tc[d]+=r.dayCap[d];tw[d]+=r.dayWorked[d];if(r.dayCap[d]>0)ta[d]+=r.dayAvail[d]}});h+=dayBlk('','  '+TYPE_NAMES[ti],tc,tw,ta,false,RC(ti),mR,ti,dayTypes)}
+    h+='<tr class="sp"><td colspan="10"></td></tr>';}
+  h+='</tbody></table></div></div>';document.getElementById('p-day').innerHTML=h;
+}
+function dayBlk(key,svc,cap,wrk,avail,isOv,cls,allR,tf,dayTypes){
+  let h='<tr class="'+cls+'"><td class="al">'+key+'</td><td class="al">'+svc+'</td><td><strong>Util %</strong></td>';
+  for(let d=0;d<7;d++){if(cap[d]>0){let u=wrk[d]/cap[d];if(u>1)u=1;let dc='';if(!isOv){if(u>=.95)dc='dr';else if(u>=.85)dc='dy';else dc='dg'}h+='<td class="'+dc+'">'+(u*100).toFixed(1)+'%</td>'}else h+='<td>—</td>'}h+='</tr>';
+  h+='<tr class="'+(isOv?'av-ov':'av-sub')+'"><td class="al">'+key+'</td><td></td><td>Total Scheduled</td>';for(let d=0;d<7;d++)h+='<td>'+avail[d].toFixed(1)+'</td>';h+='</tr>';
+  h+='<tr class="'+(isOv?'un-ov':'un-sub')+'"><td class="al">'+key+'</td><td></td><td># Unused</td>';
+  for(let d=0;d<7;d++){let un=0;allR.forEach(r=>{const inS=tf===-1?dayTypes.includes(r.primType):(r.primType===tf);if(inS&&r.dayAvail[d]>0&&r.dayWorked[d]===0)un+=r.dayAvail[d]});h+='<td>'+(un>0?un.toFixed(1):'')+'</td>'}h+='</tr>';return h;
+}
+
+// ── Caregiver Roster ──
+function renderRoster(){
+  const s=fSt.value,m=fMk.value;
+  // Build filter controls
+  let h='<div style="display:flex;gap:14px;align-items:flex-end;margin-bottom:16px;flex-wrap:wrap">';
+  h+='<div class="filter-group"><label>Day</label><select id="ros-day"><option value="">All Days</option>';
+  DAY_NAMES.forEach((dn,i)=>h+='<option value="'+i+'">'+dn+'</option>');
+  h+='</select></div>';
+  h+='<div class="filter-group"><label>Service Type</label><select id="ros-type"><option value="">All Types</option><option value="0">Long Hours</option><option value="1">Overnight</option><option value="3">Live-In</option></select></div>';
+  h+='<div id="ros-count" style="font-size:13px;color:var(--gray-text);padding:8px 0"></div>';
+  h+='</div>';
+  h+='<div class="tc"><div class="tt">Available Caregivers — Not Scheduled</div><div class="ts"><table id="tbl-ros"><thead><tr>';
+  const hdrs=['Caregiver','Phone','State','Market','Day','Service Type','Adj Capacity','Hrs Worked (Week)','Week Util %'];
+  hdrs.forEach(c=>h+='<th'+(c==='Caregiver'||c==='Phone'?' class="al"':'')+'>'+c+'</th>');
+  h+='</tr></thead><tbody id="ros-body"></tbody></table></div></div>';
+  document.getElementById('p-ros').innerHTML=h;
+  // Wire up filters
+  document.getElementById('ros-day').addEventListener('change',fillRoster);
+  document.getElementById('ros-type').addEventListener('change',fillRoster);
+  fillRoster();
+}
+function fillRoster(){
+  const s=fSt.value,m=fMk.value;
+  const dayF=document.getElementById('ros-day').value;
+  const typeF=document.getElementById('ros-type').value;
+  const typeOrder=typeF!==''?[parseInt(typeF)]:[0,1,3];
+  const days=dayF!==''?[parseInt(dayF)]:[0,1,2,3,4,5,6];
+  const order=m?[m]:(s?MKT_ORDER.filter(k=>getState(k)===s):MKT_ORDER);
+  const rows=[];
+  for(const mkt of order){
+    const mR=ACTIVE.filter(c=>c.market===mkt&&typeOrder.includes(c.primType));if(!mR.length)continue;
+    const mSt=getState(mkt);
+    for(const d of days){
+      for(const t of typeOrder){
+        const tR=mR.filter(r=>r.primType===t&&r.dayAvail[d]>0&&r.dayWorked[d]===0);
+        for(const r of tR)rows.push({r,mSt,mkt,d,t});
+      }
+    }
+  }
+  let h='';
+  for(const{r,mSt,mkt,d,t}of rows){
+    h+='<tr class="'+RC(t)+'"><td class="al">'+E(r.first)+' '+E(r.last)+'</td><td class="al">'+fmtPhone(r.phone)+'</td><td>'+mSt+'</td><td>'+mkt+'</td><td>'+DAY_NAMES[d]+'</td><td><span class="badge '+BC(t)+'">'+TYPE_NAMES[t]+'</span></td><td>'+H(r.adjCap)+'</td><td>'+H(r.worked)+'</td><td>'+P(r.util)+'</td></tr>';
+  }
+  if(!rows.length)h='<tr><td colspan="9" class="empty">No available caregivers for this selection</td></tr>';
+  document.getElementById('ros-body').innerHTML=h;
+  document.getElementById('ros-count').textContent=rows.length+' caregiver'+(rows.length!==1?'s':'')+' available';
+  addSort(document.getElementById('tbl-ros'));
+}
+
+// ── TS Admin (12 cols matching Excel) ──
+function renderTS(){
+  const s=fSt.value,m=fMk.value;let tsRows=ACTIVE.filter(r=>r.tsType>0);
+  if(s)tsRows=tsRows.filter(r=>r.state===s);if(m)tsRows=tsRows.filter(r=>r.market===m);
+  const hdrs=['Caregiver','Market','State','Type','Threshold','Avail Days','Desired Hrs','Adj Capacity','Hrs Worked','PTO Hrs (capped)','Cancelled Hrs','Admin Payout'];
+  let h='<div class="tc"><div class="tt">TS Admin Tracker</div><div class="ts"><table id="tbl-ts"><thead><tr>';
+  hdrs.forEach(c=>h+='<th'+(c==='Caregiver'?' class="al"':'')+'>'+c+'</th>');h+='</tr></thead><tbody>';
+  for(const r of tsRows){const thr=r.tsType,pto=r.ptoHrs,wrk=r.worked,can=r.cancelled||0;const payout=Math.max(0,thr-wrk-pto);
+    let adC=0;r.dayAvail.forEach(v=>{if(v>0)adC++});const minD=thr===30?3:4;
+    let rc=thr===30?'ts-b':'ts-g';if(payout>0){rc=payout>=thr*.5?'ts-o':'ts-y'}
+    h+='<tr class="'+rc+'"><td class="al">'+E(r.first)+' '+E(r.last)+'</td><td>'+r.market+'</td><td>'+r.state+'</td><td>TS'+thr+'</td><td>'+thr+'</td><td>'+adC+' of '+minD+'+ req</td><td>'+H(r.desired)+'</td><td>'+H(r.adjCap)+'</td><td>'+H(wrk)+'</td><td>'+H(pto)+'</td><td>'+H(can)+'</td><td'+(payout>0?' style="font-weight:700"':'')+'>'+H(payout)+'</td></tr>'}
+  if(!tsRows.length)h+='<tr><td colspan="12" class="empty">No TributeSecure caregivers found</td></tr>';
+  h+='</tbody></table></div></div>';document.getElementById('p-ts').innerHTML=h;addSort(document.getElementById('tbl-ts'));
+}
+
+// ── Travel Time (9 cols matching Excel) ──
+function renderTravel(){
+  const s=fSt.value,m=fMk.value;let gaps=TRAVEL;if(s)gaps=gaps.filter(g=>g.state===s);if(m)gaps=gaps.filter(g=>g.mkt===m);
+  let h='<div class="tc"><div class="tt">Missing Travel Time</div><div class="ts"><table id="tbl-tv"><thead><tr>';
+  ['Caregiver','Market','State','Day','Date','Gap Start','Gap End','Gap (hrs)','Between Clients'].forEach(c=>h+='<th'+(c==='Caregiver'||c==='Between Clients'?' class="al"':'')+'>'+c+'</th>');
+  h+='</tr></thead><tbody>';
+  for(const g of gaps){h+='<tr class="'+(g.gapHrs>1?'gap-hi':'')+'"><td class="al">'+E(g.cgName)+'</td><td>'+g.mkt+'</td><td>'+g.state+'</td><td>'+g.day+'</td><td>'+fmtDate(g.date)+'</td><td>'+fmtTime(g.gapStart)+'</td><td>'+fmtTime(g.gapEnd)+'</td><td>'+g.gapHrs.toFixed(2)+'</td><td class="al">'+E(g.pair)+'</td></tr>'}
+  if(!gaps.length)h+='<tr><td colspan="9" class="empty">No missing travel time gaps found</td></tr>';
+  h+='</tbody></table></div></div>';document.getElementById('p-tv').innerHTML=h;addSort(document.getElementById('tbl-tv'));
+}
+
+// ── Long Hours & Overnights (matching Excel) ──
+function renderLHO(){
+  const s=fSt.value,m=fMk.value;
+  let rows=ACTIVE.filter(r=>r.primType===0||r.primType===1);
+  if(s)rows=rows.filter(r=>r.state===s);if(m)rows=rows.filter(r=>r.market===m);
+  // Only include those with actual worked hours
+  rows=rows.filter(r=>r.worked>0);
+  const hdrs=['CG#','First Name','Last Name','Market','State','Shift Type','Hrs Worked','Visits','Su','Mo','Tu','We','Th','Fr','Sa'];
+  let h='<div class="tc"><div class="tt">Long Hours &amp; Overnight Shifts</div><div class="ts"><table id="tbl-lho"><thead><tr>';
+  hdrs.forEach(c=>h+='<th'+(c==='First Name'||c==='Last Name'?' class="al"':'')+'>'+c+'</th>');h+='</tr></thead><tbody>';
+  for(const r of rows){
+    // Determine if mixed LH/ON
+    const hasLH=r.typeHrs[0]>0,hasON=r.typeHrs[1]>0;
+    const shiftType=hasLH&&hasON?'Long Hours / Overnight':TYPE_NAMES[r.primType];
+    h+='<tr class="'+RC(r.primType)+'"><td>'+r.cgNum+'</td><td class="al">'+E(r.first)+'</td><td class="al">'+E(r.last)+'</td><td>'+r.market+'</td><td>'+r.state+'</td><td><span class="badge '+BC(r.primType)+'">'+shiftType+'</span></td><td>'+H(r.worked)+'</td><td>'+r.visits+'</td>';
+    for(let d=0;d<7;d++){const dh=r.dayTypeHrs[d][r.primType];h+='<td>'+(dh>0?dh.toFixed(0):'—')+'</td>'}
+    h+='</tr>';
+  }
+  if(!rows.length)h+='<tr><td colspan="15" class="empty">No long hours/overnight shifts</td></tr>';
+  h+='</tbody></table></div></div>';document.getElementById('p-lho').innerHTML=h;addSort(document.getElementById('tbl-lho'));
+}
+
+// ── Shift Mix (matching Excel) ──
+function renderShiftMix(){
+  const s=fSt.value,m=fMk.value;
+  // LH/ON caregivers who also worked short hours
+  let rows=ACTIVE.filter(r=>(r.primType===0||r.primType===1)&&r.typeHrs[2]>0);
+  if(s)rows=rows.filter(r=>r.state===s);if(m)rows=rows.filter(r=>r.market===m);
+  const hdrs=['CG#','First Name','Last Name','Availability Notes','Market','State','Noted Type','Short Days','Wkly Hrs Cannibalized','Long Hrs','ON Hrs','Short Hrs','Total Hrs','Su','Mo','Tu','We','Th','Fr','Sa'];
+  let h='<div class="tc"><div class="tt">Shift Mix — Long/ON CGs Working Short Shifts</div><div class="ts"><table id="tbl-smx"><thead><tr>';
+  hdrs.forEach(c=>h+='<th'+(c==='First Name'||c==='Last Name'||c==='Availability Notes'?' class="al"':'')+'>'+c+'</th>');h+='</tr></thead><tbody>';
+  for(const r of rows){
+    // Find which days have short hours
+    const shortDays=[];for(let d=0;d<7;d++)if(r.dayTypeHrs[d][2]>0)shortDays.push(DAY_ABBREVS[d]);
+    const totalHrs=r.typeHrs.reduce((a,b)=>a+b,0);
+    h+='<tr><td>'+r.cgNum+'</td><td class="al">'+E(r.first)+'</td><td class="al">'+E(r.last)+'</td><td class="al wr" title="'+E(r.notes)+'">'+E(r.notes)+'</td><td>'+r.market+'</td><td>'+r.state+'</td><td><span class="badge '+BC(r.primType)+'">'+TYPE_NAMES[r.primType]+'</span></td><td>'+shortDays.join(', ')+'</td><td>'+H(r.typeHrs[2])+'</td><td>'+H(r.typeHrs[0])+'</td><td>'+H(r.typeHrs[1])+'</td><td>'+H(r.typeHrs[2])+'</td><td>'+H(totalHrs)+'</td>';
+    for(let d=0;d<7;d++){const sh=r.dayTypeHrs[d][2];h+='<td>'+(sh>0?'S:'+sh.toFixed(1):'—')+'</td>'}
+    h+='</tr>';
+  }
+  if(!rows.length)h+='<tr><td colspan="20" class="empty">No shift mix issues found</td></tr>';
+  h+='</tbody></table></div></div>';document.getElementById('p-smx').innerHTML=h;addSort(document.getElementById('tbl-smx'));
+}
+
+// ── New Hires (90 Days, matching Excel) ──
+function renderNewHires(){
+  const s=fSt.value,m=fMk.value;
+  let rows=ACTIVE.filter(r=>r.daysSinceHire!=null&&r.daysSinceHire>=0&&r.daysSinceHire<=90);
+  if(s)rows=rows.filter(r=>r.state===s);if(m)rows=rows.filter(r=>r.market===m);
+  rows.sort((a,b)=>(a.daysSinceHire||0)-(b.daysSinceHire||0));
+  const hdrs=['CG#','First Name','Last Name','Market','State','Date Hired','Days Since Hire','Service Type','Desired Hrs','Adj Capacity','Hrs Worked','Util %'];
+  let h='<div class="tc"><div class="tt">New Hires — First 90 Days</div><div class="ts"><table id="tbl-nh"><thead><tr>';
+  hdrs.forEach(c=>h+='<th'+(c==='First Name'||c==='Last Name'?' class="al"':'')+'>'+c+'</th>');h+='</tr></thead><tbody>';
+  for(const r of rows){
+    h+='<tr><td>'+r.cgNum+'</td><td class="al">'+E(r.first)+'</td><td class="al">'+E(r.last)+'</td><td>'+r.market+'</td><td>'+r.state+'</td><td>'+E(r.hireDate)+'</td><td>'+r.daysSinceHire+'</td><td><span class="badge '+BC(r.primType)+'">'+r.svcType+'</span></td><td>'+H(r.desired)+'</td><td>'+H(r.adjCap)+'</td><td>'+H(r.worked)+'</td><td>'+P(r.util)+'</td></tr>';
+  }
+  if(!rows.length)h+='<tr><td colspan="12" class="empty">No new hires in the last 90 days</td></tr>';
+  h+='</tbody></table></div></div>';document.getElementById('p-nh').innerHTML=h;addSort(document.getElementById('tbl-nh'));
+}
+</script>
+</body>
+</html>

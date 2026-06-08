@@ -1,0 +1,1411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Availability Analyzer — Tribute OS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--orange:#E8541A;--orange-dark:#C4441A;--orange-light:#F47A4A;--orange-pale:#FDF2ED;--orange-50:#FEF8F5;--charcoal:#2C2C2C;--charcoal-mid:#4A4A4A;--gray-text:#6B6B6B;--gray-light:#9B9B9B;--gray-100:#F5F5F5;--gray-200:#EBEBEB;--gray-300:#D8D8D8;--white:#FFFFFF;--cream:#FAFAF8;--green:#3DAA7A;--green-light:#dcfce7;--red:#E05252;--red-light:#fee2e2;--purple:#7c3aed;--purple-light:#ede9fe;--cyan:#0891b2;--cyan-light:#cffafe;--amber:#d97706;--amber-light:#fef3c7;--blue:#2563eb;--blue-light:#dbeafe;--shadow-sm:0 1px 4px rgba(44,44,44,0.06),0 1px 2px rgba(44,44,44,0.04);--shadow-md:0 4px 20px rgba(44,44,44,0.09),0 2px 6px rgba(44,44,44,0.05);--r:10px;--rl:14px}
+html{scroll-behavior:smooth}
+body{font-family:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;background:var(--cream);color:var(--charcoal);min-height:100vh;font-size:14px;line-height:1.6;-webkit-font-smoothing:antialiased}
+
+.topbar{background:var(--white);border-bottom:1px solid var(--gray-200);padding:0 48px;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:100;box-shadow:var(--shadow-sm)}
+.topbar-brand{display:flex;align-items:baseline}
+.topbar-tribute{font-family:'DM Serif Display',Georgia,serif;font-size:22px;color:var(--orange)}
+.topbar-sub{font-size:11px;color:var(--gray-text);margin-left:4px}
+.topbar-right{display:flex;align-items:center;gap:16px}
+.topbar-live{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--gray-text)}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 2.5s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+.hero{background:var(--white);padding:36px 48px 32px;border-bottom:1px solid var(--gray-200);position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;top:0;left:0;width:4px;height:100%;background:var(--orange)}
+.hero-eyebrow{font-size:10px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--orange);margin-bottom:8px;padding-left:20px}
+.hero-title{font-family:'DM Serif Display',Georgia,serif;font-size:34px;color:var(--charcoal);line-height:1.1;letter-spacing:-.025em;margin-bottom:8px;padding-left:20px}
+.hero-title span{color:var(--orange);font-style:italic}
+.hero-sub{font-size:14px;font-weight:300;color:var(--gray-text);padding-left:20px;max-width:700px}
+
+.stats-strip{background:var(--orange);padding:12px 48px;display:flex;gap:36px;flex-wrap:wrap}
+.stat-item{display:flex;flex-direction:column;gap:2px}
+.stat-label{font-size:9px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,0.65)}
+.stat-value{font-size:20px;font-weight:500;color:var(--white);font-variant-numeric:tabular-nums}
+
+.main{padding:28px 48px;max-width:1600px;margin:0 auto}
+
+/* MODE TABS */
+.mode-tabs{display:flex;gap:4px;margin-bottom:20px}
+.mode-tab{background:var(--white);border:1px solid var(--gray-200);border-radius:8px;padding:12px 24px;font-size:13px;font-weight:600;color:var(--gray-text);cursor:pointer;transition:all .15s}
+.mode-tab:hover{border-color:var(--orange-light);color:var(--charcoal)}
+.mode-tab.active{background:var(--orange-50);border-color:var(--orange);color:var(--orange)}
+
+/* BROWSE MODE */
+.filter-bar{background:var(--white);border:1px solid var(--gray-200);border-radius:var(--rl);padding:16px 20px;margin-bottom:20px;box-shadow:var(--shadow-sm);display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end}
+.filter-group{display:flex;flex-direction:column;gap:4px;min-width:120px}
+.filter-group label{font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--gray-light)}
+.filter-group select,.filter-group input{background:var(--gray-100);border:1px solid var(--gray-200);border-radius:6px;padding:7px 10px;font-family:inherit;font-size:12px;color:var(--charcoal);outline:none;transition:border-color .15s}
+.filter-group select:focus,.filter-group input:focus{border-color:var(--orange)}
+.filter-sep{width:1px;height:36px;background:var(--gray-200);align-self:flex-end;margin-bottom:4px}
+.pref-filters{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+.pref-chip{display:flex;align-items:center;gap:6px;background:var(--gray-100);border:1px solid var(--gray-200);border-radius:8px;padding:6px 10px}
+.pref-chip-icon{font-size:16px}
+.pref-chip select{background:transparent;border:none;font-family:inherit;font-size:11px;font-weight:600;color:var(--charcoal);outline:none;cursor:pointer}
+
+.day-tabs{display:flex;gap:4px;margin-bottom:20px;flex-wrap:wrap}
+.day-tab{background:var(--white);border:1px solid var(--gray-200);border-radius:8px;padding:10px 18px;cursor:pointer;transition:all .15s;text-align:center;min-width:80px}
+.day-tab:hover{border-color:var(--orange-light)}
+.day-tab.active{background:var(--orange-50);border-color:var(--orange)}
+.day-tab-name{font-size:12px;font-weight:700;color:var(--charcoal)}
+.day-tab-count{font-size:10px;color:var(--gray-light);margin-top:2px}
+.day-tab.active .day-tab-name{color:var(--orange)}
+
+.type-section{margin-bottom:24px}
+.type-header{display:flex;align-items:center;gap:10px;margin-bottom:10px;padding-bottom:8px;border-bottom:2px solid var(--gray-200)}
+.type-badge{display:inline-flex;align-items:center;gap:5px;padding:5px 14px;border-radius:6px;font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase}
+.type-badge.overnight{background:var(--purple-light);color:var(--purple)}
+.type-badge.long-hours{background:var(--amber-light);color:var(--amber)}
+.type-badge.short-hours{background:var(--blue-light);color:var(--blue)}
+.type-badge.live-in{background:var(--cyan-light);color:var(--cyan)}
+.type-count{font-size:12px;color:var(--gray-light)}
+
+.cg-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px}
+.cg-card{background:var(--white);border:1px solid var(--gray-200);border-radius:var(--r);padding:11px 14px;transition:all .12s;cursor:default;position:relative}
+.cg-card:hover{border-color:var(--orange-light);box-shadow:var(--shadow-sm);transform:translateY(-1px)}
+.cg-card.overnight{border-left:3px solid var(--purple)}
+.cg-card.long-hours{border-left:3px solid var(--amber)}
+.cg-card.short-hours{border-left:3px solid var(--blue)}
+.cg-card.live-in{border-left:3px solid var(--cyan)}
+.cg-card-name{font-size:13px;font-weight:600;color:var(--charcoal)}
+.cg-card-row{display:flex;align-items:center;gap:8px;margin-top:3px;flex-wrap:wrap}
+.cg-card-market{font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--gray-text)}
+.cg-card-hrs{font-size:10px;color:var(--gray-light)}
+.cg-card-days{font-size:10px;color:var(--green);font-weight:600}
+.cg-card-prefs{display:flex;gap:3px;margin-top:4px}
+.pref-dot{width:18px;height:18px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:9px}
+.pref-dot.yes{background:var(--green-light)}
+.pref-dot.no{background:var(--red-light)}
+.pref-dot.unknown{background:var(--gray-100)}
+
+/* FIND CARE TEAM MODE */
+.finder-panel{background:var(--white);border:1px solid var(--gray-200);border-radius:var(--rl);padding:24px 28px;margin-bottom:24px;box-shadow:var(--shadow-sm)}
+.finder-title{font-family:'DM Serif Display',Georgia,serif;font-size:20px;color:var(--charcoal);margin-bottom:4px}
+.finder-sub{font-size:12px;color:var(--gray-light);margin-bottom:16px}
+.finder-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+@media(max-width:900px){.finder-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:600px){.finder-grid{grid-template-columns:1fr}}
+.finder-field{display:flex;flex-direction:column;gap:4px}
+.finder-field label{font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--gray-light)}
+.finder-field input,.finder-field select{background:var(--gray-100);border:1px solid var(--gray-200);border-radius:6px;padding:9px 12px;font-family:inherit;font-size:13px;color:var(--charcoal);outline:none;transition:border-color .15s}
+.finder-field input:focus,.finder-field select:focus{border-color:var(--orange)}
+
+.finder-days{grid-column:1/-1;display:flex;flex-direction:column;gap:6px}
+.finder-days label{font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--gray-light)}
+.finder-days-grid{display:flex;gap:6px;flex-wrap:wrap}
+.finder-day-btn{padding:8px 16px;border:1px solid var(--gray-200);border-radius:6px;font-size:12px;font-weight:600;color:var(--gray-text);cursor:pointer;transition:all .12s;background:var(--white)}
+.finder-day-btn:hover{border-color:var(--orange-light)}
+.finder-day-btn.selected{background:var(--orange);border-color:var(--orange);color:var(--white)}
+
+.finder-prefs{grid-column:1/-1;display:flex;gap:12px;flex-wrap:wrap;padding-top:8px;border-top:1px solid var(--gray-100);margin-top:4px}
+.finder-pref{display:flex;align-items:center;gap:6px;cursor:pointer}
+.finder-pref input[type=checkbox]{width:16px;height:16px;accent-color:var(--orange)}
+.finder-pref-label{font-size:12px;font-weight:500;color:var(--charcoal)}
+
+.finder-actions{grid-column:1/-1;display:flex;gap:10px;padding-top:12px}
+.finder-btn{background:var(--orange);color:var(--white);border:none;border-radius:8px;padding:12px 28px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s}
+.finder-btn:hover{background:var(--orange-dark);transform:translateY(-1px);box-shadow:var(--shadow-md)}
+.finder-btn-clear{background:var(--white);color:var(--gray-text);border:1px solid var(--gray-200);border-radius:8px;padding:12px 20px;font-family:inherit;font-size:13px;font-weight:500;cursor:pointer;transition:all .15s}
+.finder-btn-clear:hover{border-color:var(--red);color:var(--red)}
+
+/* RESULTS */
+.results-header{display:flex;align-items:baseline;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+.results-title{font-family:'DM Serif Display',Georgia,serif;font-size:22px;color:var(--charcoal)}
+.results-count{font-size:13px;color:var(--gray-light)}
+.results-sort{margin-left:auto;display:flex;align-items:center;gap:6px}
+.results-sort label{font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--gray-light)}
+.results-sort select{background:var(--gray-100);border:1px solid var(--gray-200);border-radius:6px;padding:5px 8px;font-family:inherit;font-size:11px;color:var(--charcoal);outline:none}
+
+.result-card{background:var(--white);border:1px solid var(--gray-200);border-radius:var(--rl);padding:16px 20px;margin-bottom:8px;transition:all .12s;display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center}
+.result-card:hover{border-color:var(--orange-light);box-shadow:var(--shadow-sm)}
+.result-left{display:flex;flex-direction:column;gap:4px}
+.result-name{font-size:15px;font-weight:600;color:var(--charcoal)}
+.result-meta{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.result-market{font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--gray-text)}
+.result-type-badge{font-size:9px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:3px 8px;border-radius:4px}
+.result-type-badge.overnight{background:var(--purple-light);color:var(--purple)}
+.result-type-badge.long-hours{background:var(--amber-light);color:var(--amber)}
+.result-type-badge.short-hours{background:var(--blue-light);color:var(--blue)}
+.result-type-badge.live-in{background:var(--cyan-light);color:var(--cyan)}
+.result-days{font-size:11px;color:var(--green);font-weight:600}
+.result-match{font-size:10px;color:var(--gray-light)}
+.result-prefs{display:flex;gap:4px}
+.result-right{display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+.result-score{font-size:22px;font-weight:700;color:var(--orange)}
+.result-score-label{font-size:9px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--gray-light)}
+
+/* SMART STACKER */
+.stacker-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:20px}
+.stacker-kpi{background:var(--white);border:1px solid var(--gray-200);border-radius:var(--r);padding:14px 16px}
+.stacker-kpi-label{font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--gray-light);margin-bottom:4px}
+.stacker-kpi-value{font-size:22px;font-weight:600;color:var(--charcoal)}
+.stacker-kpi-sub{font-size:10px;color:var(--gray-light);margin-top:3px}
+
+.stacker-card{background:var(--white);border:1px solid var(--gray-200);border-radius:var(--rl);padding:18px 20px;margin-bottom:10px;transition:all .12s}
+.stacker-card:hover{border-color:var(--orange-light);box-shadow:var(--shadow-sm)}
+.stacker-card.fit{border-left:4px solid var(--green)}
+.stacker-card.tight{border-left:4px solid var(--amber)}
+
+.stacker-card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px}
+.stacker-card-name{font-size:15px;font-weight:600;color:var(--charcoal)}
+.stacker-card-badge{font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:3px 10px;border-radius:6px}
+.stacker-card-badge.fit{background:var(--green-light);color:#166534}
+.stacker-card-badge.tight{background:var(--amber-light);color:#92400e}
+
+.stacker-card-meta{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--gray-text);margin-bottom:12px}
+.stacker-card-meta strong{color:var(--charcoal)}
+
+.stacker-timeline{position:relative;height:36px;background:var(--gray-100);border-radius:6px;overflow:visible;margin-bottom:8px}
+.stacker-tl-visit{position:absolute;top:4px;height:18px;background:var(--blue-light);border:1px solid rgba(37,99,235,0.3);border-radius:3px;font-size:8px;color:var(--blue);display:flex;align-items:center;justify-content:center;overflow:hidden;white-space:nowrap;padding:0 3px;cursor:pointer;z-index:1}
+.stacker-tl-visit:hover{z-index:10;background:var(--blue);color:#fff;border-color:var(--blue);box-shadow:0 2px 8px rgba(37,99,235,0.35)}
+.stacker-tl-tooltip{position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:var(--charcoal);color:#fff;font-size:11px;padding:8px 12px;border-radius:6px;white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .15s;z-index:100;box-shadow:0 4px 12px rgba(0,0,0,0.25);line-height:1.5}
+.stacker-tl-tooltip::after{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);border:5px solid transparent;border-top-color:var(--charcoal)}
+.stacker-tl-visit:hover .stacker-tl-tooltip{opacity:1}
+.stacker-tl-gap{position:absolute;top:2px;height:22px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;cursor:pointer;z-index:2}
+.stacker-tl-gap:hover{z-index:10;box-shadow:0 2px 8px rgba(0,0,0,0.2)}
+.stacker-tl-gap .stacker-tl-tooltip{bottom:calc(100% + 6px)}
+.stacker-tl-gap:hover .stacker-tl-tooltip{opacity:1}
+.stacker-tl-gap.fit{background:rgba(61,170,122,0.2);border:1.5px dashed var(--green);color:#166534}
+.stacker-tl-gap.tight{background:rgba(217,119,6,0.2);border:1.5px dashed var(--amber);color:#92400e}
+.stacker-tl-labels{display:flex;justify-content:space-between;font-size:9px;color:var(--gray-light);margin-top:2px}
+
+.stacker-drive{display:flex;gap:20px;flex-wrap:wrap;font-size:11px;color:var(--gray-text);margin-top:6px}
+.stacker-drive-item{display:flex;align-items:center;gap:4px}
+.stacker-drive-item strong{color:var(--charcoal)}
+
+.loading-screen{display:flex;align-items:center;justify-content:center;min-height:400px;flex-direction:column;gap:16px}
+.spinner{width:28px;height:28px;border:3px solid var(--gray-200);border-top-color:var(--orange);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-text{font-size:13px;color:var(--gray-light)}
+.error-msg{background:var(--red-light);border:1px solid #fca5a5;border-radius:var(--r);padding:16px 20px;color:#991b1b;font-size:13px}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-brand">
+    <span class="topbar-tribute">Tribute</span>
+    <span class="topbar-sub">Availability Analyzer</span>
+  </div>
+  <div class="topbar-right">
+    <div class="topbar-live"><div class="live-dot"></div>Live · Viv Technologies</div>
+  </div>
+</div>
+
+<div class="hero">
+  <div class="hero-eyebrow">Care Team Staffing</div>
+  <h1 class="hero-title">Who can join a <span>care team</span>?</h1>
+  <p class="hero-sub">Browse available caregivers by day and type, or enter a new client's needs to get ranked care team recommendations.</p>
+</div>
+
+<div class="stats-strip">
+  <div class="stat-item"><div class="stat-label">Available Caregivers</div><div class="stat-value" id="statAvailable">—</div></div>
+  <div class="stat-item"><div class="stat-label">Overnight</div><div class="stat-value" id="statOvernight">—</div></div>
+  <div class="stat-item"><div class="stat-label">Long Hours</div><div class="stat-value" id="statLong">—</div></div>
+  <div class="stat-item"><div class="stat-label">Short Hours</div><div class="stat-value" id="statShort">—</div></div>
+  <div class="stat-item"><div class="stat-label">Live-In</div><div class="stat-value" id="statLiveIn">—</div></div>
+</div>
+
+<div class="main">
+  <div id="loadingScreen" class="loading-screen">
+    <div class="spinner"></div>
+    <div class="loading-text">Pulling caregiver schedules from Viv...</div>
+  </div>
+  <div id="errorBox" class="error-msg" style="display:none"></div>
+
+  <div id="appContent" style="display:none">
+    <!-- MODE TABS -->
+    <div class="mode-tabs">
+      <div class="mode-tab active" onclick="setMode('browse',this)">Browse Availability</div>
+      <div class="mode-tab" onclick="setMode('finder',this)">Find Care Team</div>
+      <div class="mode-tab" onclick="setMode('stacker',this)">Smart Stacker</div>
+    </div>
+
+    <!-- ====== BROWSE MODE ====== -->
+    <div id="browseMode">
+      <div class="filter-bar">
+        <div class="filter-group"><label>State</label><select id="filterState"><option value="All">All</option></select></div>
+        <div class="filter-group"><label>Market</label><select id="filterMarket"><option value="All">All</option></select></div>
+        <div class="filter-group"><label>Type</label><select id="filterType"><option value="All">All Types</option><option value="Overnight">Overnight</option><option value="Long Hours">Long Hours</option><option value="Short Hours">Short Hours</option><option value="Live-In">Live-In</option></select></div>
+        <div class="filter-group"><label>Notes Search</label><input type="text" id="filterNotes" placeholder="Search notes..."></div>
+        <div class="filter-sep"></div>
+        <div class="pref-filters">
+          <div class="pref-chip"><span class="pref-chip-icon">🚗</span><select id="filterDrives"><option value="All">All</option><option value="Yes">Drives</option><option value="No">No</option></select></div>
+          <div class="pref-chip"><span class="pref-chip-icon">🐕</span><select id="filterDogs"><option value="All">All</option><option value="Yes">OK</option><option value="No">No</option></select></div>
+          <div class="pref-chip"><span class="pref-chip-icon">🐈</span><select id="filterCats"><option value="All">All</option><option value="Yes">OK</option><option value="No">No</option></select></div>
+          <div class="pref-chip"><span class="pref-chip-icon">🚬</span><select id="filterSmoke"><option value="All">All</option><option value="Yes">OK</option><option value="No">No</option></select></div>
+        </div>
+      </div>
+      <div class="day-tabs" id="dayTabs"></div>
+      <div id="dayContent"></div>
+    </div>
+
+    <!-- ====== FIND CARE TEAM MODE ====== -->
+    <div id="finderMode" style="display:none">
+      <div class="finder-panel">
+        <div class="finder-title">New Client Details</div>
+        <div class="finder-sub">Enter the client's needs and we'll rank available caregivers by best match</div>
+        <div class="finder-grid">
+          <div class="finder-field" style="grid-column:1/-1">
+            <label>Client Address</label>
+            <input type="text" id="finderAddress" placeholder="e.g. 123 Main St, Boston MA 02101">
+          </div>
+          <div class="finder-field">
+            <label>State</label>
+            <select id="finderState">
+              <option value="">Select state...</option>
+              <option value="Massachusetts">Massachusetts</option>
+              <option value="Maryland">Maryland</option>
+              <option value="Illinois">Illinois</option>
+            </select>
+          </div>
+          <div class="finder-field" style="grid-column:span 2">
+            <label>Service Types Needed (select all that apply)</label>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:2px">
+              <label class="finder-pref"><input type="checkbox" id="finderTypeOvernight"><span class="finder-pref-label">Overnight</span></label>
+              <label class="finder-pref"><input type="checkbox" id="finderTypeLong"><span class="finder-pref-label">Long Hours</span></label>
+              <label class="finder-pref"><input type="checkbox" id="finderTypeShort"><span class="finder-pref-label">Short Hours</span></label>
+              <label class="finder-pref"><input type="checkbox" id="finderTypeLiveIn"><span class="finder-pref-label">Live-In</span></label>
+            </div>
+          </div>
+
+          <div class="finder-days">
+            <label>Requested Schedule (select days needed)</label>
+            <div class="finder-days-grid">
+              <div class="finder-day-btn" onclick="toggleFinderDay(0,this)">Sun</div>
+              <div class="finder-day-btn" onclick="toggleFinderDay(1,this)">Mon</div>
+              <div class="finder-day-btn" onclick="toggleFinderDay(2,this)">Tue</div>
+              <div class="finder-day-btn" onclick="toggleFinderDay(3,this)">Wed</div>
+              <div class="finder-day-btn" onclick="toggleFinderDay(4,this)">Thu</div>
+              <div class="finder-day-btn" onclick="toggleFinderDay(5,this)">Fri</div>
+              <div class="finder-day-btn" onclick="toggleFinderDay(6,this)">Sat</div>
+            </div>
+          </div>
+
+          <div class="finder-prefs">
+            <label class="finder-pref"><input type="checkbox" id="finderMale"><span class="finder-pref-label">Requesting Male Caregiver</span></label>
+            <label class="finder-pref"><input type="checkbox" id="finderFemale"><span class="finder-pref-label">Requesting Female Caregiver</span></label>
+            <label class="finder-pref"><input type="checkbox" id="finderDogs"><span class="finder-pref-label">Client Has Dogs</span></label>
+            <label class="finder-pref"><input type="checkbox" id="finderCats"><span class="finder-pref-label">Client Has Cats</span></label>
+            <label class="finder-pref"><input type="checkbox" id="finderParking"><span class="finder-pref-label">Parking Available</span></label>
+            <label class="finder-pref"><input type="checkbox" id="finderNeedsDriver"><span class="finder-pref-label">Client Requires Driver</span></label>
+          </div>
+
+          <div class="finder-actions">
+            <button class="finder-btn" onclick="runFinder()">Find Care Team</button>
+            <button class="finder-btn-clear" onclick="clearFinder()">Clear</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="finderResults"></div>
+    </div>
+
+    <!-- ====== SMART STACKER MODE ====== -->
+    <div id="stackerMode" style="display:none">
+      <div class="finder-panel">
+        <div class="finder-title">Smart Stacker</div>
+        <div class="finder-sub">Find caregivers with a gap in their schedule that fits a new visit — factoring in real drive time</div>
+        <div class="finder-grid">
+          <div class="finder-field" style="grid-column:1/-1">
+            <label>New Client Address</label>
+            <input type="text" id="stackerAddress" placeholder="e.g. 123 Main St, Boston MA 02101">
+          </div>
+          <div class="finder-field">
+            <label>Date</label>
+            <input type="date" id="stackerDate">
+          </div>
+          <div class="finder-field">
+            <label>Earliest Start</label>
+            <input type="time" id="stackerTimeStart" value="09:00">
+          </div>
+          <div class="finder-field">
+            <label>Latest Start</label>
+            <input type="time" id="stackerTimeEnd" value="17:00">
+          </div>
+          <div class="finder-field">
+            <label>Visit Duration (min)</label>
+            <input type="number" id="stackerDuration" value="90" min="15" step="15">
+          </div>
+          <div class="finder-field">
+            <label>State</label>
+            <select id="stackerState">
+              <option value="">All States</option>
+              <option value="Massachusetts">Massachusetts</option>
+              <option value="Maryland">Maryland</option>
+              <option value="Illinois">Illinois</option>
+            </select>
+          </div>
+          <div class="finder-field">
+            <label>Max Drive (min each way)</label>
+            <input type="number" id="stackerMaxDrive" value="30" min="5" step="5">
+          </div>
+          <div class="finder-field">
+            <label>Max Weekly Hours</label>
+            <input type="number" id="stackerMaxHours" value="25" min="0" step="1" title="Only show caregivers currently working fewer than this many hours per week">
+          </div>
+          <div class="finder-days" style="border-top:none;padding-top:0">
+            <label>Advanced</label>
+            <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center">
+              <div class="finder-field" style="min-width:auto">
+                <label>Buffer (min)</label>
+                <input type="number" id="stackerBuffer" value="10" min="0" step="5" style="width:70px">
+              </div>
+            </div>
+          </div>
+          <div class="finder-actions">
+            <button class="finder-btn" onclick="runStacker()">Find Stackable Gaps</button>
+            <button class="finder-btn-clear" onclick="clearStacker()">Clear</button>
+          </div>
+        </div>
+      </div>
+      <div id="stackerResults"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+var API='https://tribute-api-prod-bkc4hfcwf3f2f6bf.centralus-01.azurewebsites.net/api/vivProxy';
+var allEntries=[];
+var genderMap={};  // name -> gender
+var selectedDay=null;
+var finderDays=new Set();
+var currentMode='browse';
+var finderSort='score'; // 'score' or 'distance'
+var lastFinderCandidates=[];
+var DAYS=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+var TYPES=['Overnight','Long Hours','Short Hours','Live-In'];
+var TYPE_CSS={'Overnight':'overnight','Long Hours':'long-hours','Short Hours':'short-hours','Live-In':'live-in'};
+
+var DAY_MAP={'su':0,'sun':0,'sunday':0,'m':1,'mo':1,'mon':1,'monday':1,'t':2,'tu':2,'tue':2,'tues':2,'tuesday':2,'w':3,'we':3,'wed':3,'wednesday':3,'th':4,'thu':4,'thur':4,'thurs':4,'thursday':4,'f':5,'fr':5,'fri':5,'friday':5,'sa':6,'sat':6,'saturday':6};
+
+function parseDays(str){
+  var days=new Set();
+  var tokens=str.replace(/e\/o\s*/gi,'').split(/[,;\s]+/);
+  tokens.forEach(function(t){
+    var tl=t.toLowerCase().replace(/[^a-z]/g,'');
+    if(DAY_MAP[tl]!==undefined)days.add(DAY_MAP[tl]);
+  });
+  return Array.from(days);
+}
+
+function parseAvailNotes(notes){
+  if(!notes)return [];
+  var entries=[];
+  var typePattern=/((?:TS\d+\s+)?(?:Overnight|Long\s*[Hh]our(?:\s*[Dd]ay)?|Short\s*[Hh]our(?:\s*[Dd]ay)?|Live[\s-]?[Ii]n)s?)[\s:=]+([^;]*?)(?=(?:(?:TS\d+\s+)?(?:Overnight|Long\s*[Hh]our|Short\s*[Hh]our|Live[\s-]?[Ii]n))|$)/gi;
+  var match;
+  while((match=typePattern.exec(notes))!==null){
+    var rawType=match[1].trim();
+    var rawDays=match[2].trim();
+    var type='Short Hours';
+    var rtl=rawType.toLowerCase();
+    if(rtl.includes('overnight'))type='Overnight';
+    else if(rtl.includes('long'))type='Long Hours';
+    else if(rtl.includes('short'))type='Short Hours';
+    else if(rtl.includes('live'))type='Live-In';
+    var days=parseDays(rawDays);
+    if(days.length>0)entries.push({type:type,days:days});
+  }
+  if(entries.length===0){
+    var nl=notes.toLowerCase().trim();
+    if(nl==='live-in'||nl==='live in'){
+      entries.push({type:'Live-In',days:[0,1,2,3,4,5,6]});
+    }
+  }
+  return entries;
+}
+
+async function loadData(){
+  try{
+    // Fetch all three endpoints in parallel
+    var [supplyRes, cgRes, recurRes]=await Promise.all([
+      fetch(API+'?endpoint=caregiver_supply'),
+      fetch(API+'?endpoint=caregivers'),
+      fetch(API+'?endpoint=recurring_days')
+    ]);
+    if(!supplyRes.ok)throw new Error('Supply API returned '+supplyRes.status);
+    var supplyData=await supplyRes.json();
+    var raw=supplyData.caregivers||[];
+
+    // Build recurring days map (cgid -> array of DOWs with ongoing visits)
+    // Also build time-off map (cgid -> array of DOWs with PTO/sick 2+ weeks out)
+    var recurringMap={};
+    var timeOffMap={};
+    if(recurRes.ok){
+      var recurData=await recurRes.json();
+      recurringMap=recurData.recurringDays||{};
+      timeOffMap=recurData.timeOffDays||{};
+    }
+
+    // Build gender map from caregivers endpoint
+    if(cgRes.ok){
+      var cgData=await cgRes.json();
+      (cgData.caregivers||[]).forEach(function(c){
+        var name=((c.fn||'')+' '+(c.ln||'')).trim();
+        if(name&&c.gender)genderMap[name.toLowerCase()]=c.gender.toLowerCase();
+      });
+    }
+
+    allEntries=[];
+    raw.filter(function(cg){return cg.status==='hired';}).forEach(function(cg){
+      // Use recurring days + time-off days to determine unavailable DOWs
+      var recurDays=recurringMap[cg.id]||[];
+      var toDays=timeOffMap[cg.id]||[];
+      var busyDOW=new Set([...recurDays,...toDays]);
+      var notes=cg.availNotes||'';
+      var parsed=parseAvailNotes(notes);
+      if(parsed.length===0)return;
+
+      var env=cg.environment||{};
+      var pets=env.pets||{};
+      var smoking=env.smoking||{};
+      var drivesClients=normPref(cg.driveClients||'');
+      var worksDogs=pets.dogs?normBool(pets.dogs.ok):normBool(pets.ok);
+      var worksCats=pets.cats?normBool(pets.cats.ok):normBool(pets.ok);
+      var smokingOk=normBool(smoking.ok);
+      var gender=genderMap[(cg.name||'').toLowerCase()]||'';
+
+      parsed.forEach(function(block){
+        var openDays=block.days.filter(function(d){return !busyDOW.has(d);});
+        if(openDays.length===0)return;
+        allEntries.push({
+          name:cg.name||'',
+          id:cg.id||'',
+          phone:cg.phone||'',
+          market:cg.market||'Unknown',
+          state:cg.state||'Unknown',
+          type:block.type,
+          statedDays:block.days,
+          openDays:openDays,
+          desiredHrs:cg.desiredHrs||0,
+          notes:notes,
+          drivesClients:drivesClients,
+          worksDogs:worksDogs,
+          worksCats:worksCats,
+          smokingOk:smokingOk,
+          gender:gender,
+          lat:cg.lat||null,
+          lng:cg.lng||null
+        });
+      });
+    });
+
+    allEntries.sort(function(a,b){return a.name.localeCompare(b.name);});
+
+    // Populate filters
+    var states=['All',...new Set(allEntries.map(function(c){return c.state;}).filter(Boolean))].sort();
+    var markets=['All',...new Set(allEntries.map(function(c){return c.market;}).filter(Boolean))].sort();
+    populateSelect('filterState',states);
+    populateSelect('filterMarket',markets);
+
+    // Populate finder state from available data
+    var finderStates=new Set(allEntries.map(function(e){return e.state;}).filter(Boolean));
+    var finderStateEl=document.getElementById('finderState');
+    finderStateEl.innerHTML='<option value="">Select state...</option>'+Array.from(finderStates).sort().map(function(s){return '<option value="'+s+'">'+s+'</option>';}).join('');
+
+    // Stats
+    var uniqueNames=new Set(allEntries.map(function(e){return e.name;}));
+    document.getElementById('statAvailable').textContent=uniqueNames.size;
+    document.getElementById('statOvernight').textContent=new Set(allEntries.filter(function(e){return e.type==='Overnight';}).map(function(e){return e.name;})).size;
+    document.getElementById('statLong').textContent=new Set(allEntries.filter(function(e){return e.type==='Long Hours';}).map(function(e){return e.name;})).size;
+    document.getElementById('statShort').textContent=new Set(allEntries.filter(function(e){return e.type==='Short Hours';}).map(function(e){return e.name;})).size;
+    document.getElementById('statLiveIn').textContent=new Set(allEntries.filter(function(e){return e.type==='Live-In';}).map(function(e){return e.name;})).size;
+
+    document.getElementById('loadingScreen').style.display='none';
+    document.getElementById('appContent').style.display='block';
+    render();
+  }catch(err){
+    document.getElementById('loadingScreen').style.display='none';
+    document.getElementById('errorBox').style.display='block';
+    document.getElementById('errorBox').textContent='Error loading data: '+err.message;
+  }
+}
+
+function normPref(val){
+  if(!val)return '';
+  var v=String(val).toLowerCase().trim();
+  if(v==='yes'||v==='y'||v==='true')return 'yes';
+  if(v==='no'||v==='n'||v==='false')return 'no';
+  if(v==='pending')return 'pending';
+  return '';
+}
+function normBool(val){
+  if(val===true)return 'yes';
+  if(val===false)return 'no';
+  return '';
+}
+function populateSelect(id,options){
+  var el=document.getElementById(id);
+  el.innerHTML=options.map(function(o){return '<option value="'+o+'">'+o+'</option>';}).join('');
+}
+
+// ====== MODE SWITCHING ======
+function setMode(mode,el){
+  currentMode=mode;
+  document.querySelectorAll('.mode-tab').forEach(function(t){t.classList.remove('active');});
+  if(el)el.classList.add('active');
+  document.getElementById('browseMode').style.display=mode==='browse'?'block':'none';
+  document.getElementById('finderMode').style.display=mode==='finder'?'block':'none';
+  document.getElementById('stackerMode').style.display=mode==='stacker'?'block':'none';
+  if(mode==='stacker'&&!document.getElementById('stackerDate').value){
+    // Default to tomorrow
+    var tmrw=new Date();tmrw.setDate(tmrw.getDate()+1);
+    document.getElementById('stackerDate').value=tmrw.toISOString().split('T')[0];
+  }
+}
+
+// ====== BROWSE MODE ======
+function getFiltered(){
+  var state=document.getElementById('filterState').value;
+  var market=document.getElementById('filterMarket').value;
+  var type=document.getElementById('filterType').value;
+  var notes=document.getElementById('filterNotes').value.toLowerCase();
+  var drives=document.getElementById('filterDrives').value;
+  var dogs=document.getElementById('filterDogs').value;
+  var cats=document.getElementById('filterCats').value;
+  var smoke=document.getElementById('filterSmoke').value;
+  return allEntries.filter(function(e){
+    if(state!=='All'&&e.state!==state)return false;
+    if(market!=='All'&&e.market!==market)return false;
+    if(type!=='All'&&e.type!==type)return false;
+    if(notes&&e.notes.toLowerCase().indexOf(notes)===-1)return false;
+    if(drives==='Yes'&&e.drivesClients!=='yes')return false;
+    if(drives==='No'&&e.drivesClients!=='no')return false;
+    if(dogs==='Yes'&&e.worksDogs!=='yes')return false;
+    if(dogs==='No'&&e.worksDogs!=='no')return false;
+    if(cats==='Yes'&&e.worksCats!=='yes')return false;
+    if(cats==='No'&&e.worksCats!=='no')return false;
+    if(smoke==='Yes'&&e.smokingOk!=='yes')return false;
+    if(smoke==='No'&&e.smokingOk!=='no')return false;
+    return true;
+  });
+}
+
+function render(){
+  var filtered=getFiltered();
+  renderDayTabs(filtered);
+  var html='';
+  if(selectedDay!==null){
+    var showing=filtered.filter(function(e){return e.openDays.indexOf(selectedDay)>=0;});
+    html+=renderTypeGroups(showing);
+  } else {
+    for(var d=0;d<7;d++){
+      var dayEntries=filtered.filter(function(e){return e.openDays.indexOf(d)>=0;});
+      if(dayEntries.length>0){
+        html+='<div style="margin-bottom:32px">';
+        html+='<div style="font-family:DM Serif Display,Georgia,serif;font-size:24px;color:var(--charcoal);margin-bottom:12px;padding-bottom:6px;border-bottom:2px solid var(--orange)">'+DAYS[d]+'<span style="font-family:DM Sans;font-size:13px;color:var(--gray-light);margin-left:10px;font-weight:400">'+dayEntries.length+' available</span></div>';
+        html+=renderTypeGroups(dayEntries);
+        html+='</div>';
+      }
+    }
+  }
+  if(!html)html='<div style="text-align:center;padding:40px;color:var(--gray-light)">No caregivers match your filters</div>';
+  document.getElementById('dayContent').innerHTML=html;
+}
+
+function renderDayTabs(filtered){
+  var html='<div class="day-tab'+(selectedDay===null?' active':'')+'" onclick="selectDay(null)"><div class="day-tab-name">All Days</div><div class="day-tab-count">'+new Set(filtered.map(function(e){return e.name;})).size+' caregivers</div></div>';
+  for(var d=0;d<7;d++){
+    var dayEntries=filtered.filter(function(e){return e.openDays.indexOf(d)>=0;});
+    html+='<div class="day-tab'+(selectedDay===d?' active':'')+'" onclick="selectDay('+d+')"><div class="day-tab-name">'+DAYS[d]+'</div><div class="day-tab-count">'+new Set(dayEntries.map(function(e){return e.name;})).size+' avail</div></div>';
+  }
+  document.getElementById('dayTabs').innerHTML=html;
+}
+
+function renderTypeGroups(entries){
+  var html='';
+  TYPES.forEach(function(type){
+    var typeEntries=entries.filter(function(e){return e.type===type;});
+    if(typeEntries.length===0)return;
+    var css=TYPE_CSS[type];
+    html+='<div class="type-section"><div class="type-header"><div class="type-badge '+css+'">'+type+'</div><span class="type-count">'+typeEntries.length+'</span></div>';
+    html+='<div class="cg-grid">';
+    typeEntries.forEach(function(e){
+      var openDayNames=e.openDays.map(function(d){return DAYS[d].slice(0,3);}).join(', ');
+      html+='<div class="cg-card '+css+'"><div class="cg-card-name">'+(e.id?'<a href="https://tribute.mavencare.com/caregivers/'+esc(e.id)+'/dashboard/summary" target="_blank" style="color:inherit;text-decoration:none;border-bottom:1px dashed var(--gray-300)">'+esc(e.name)+'</a>':esc(e.name))+'</div>';
+      html+='<div class="cg-card-row"><span class="cg-card-market">'+esc(e.market)+'</span><span class="cg-card-hrs">'+e.desiredHrs+'h desired</span>';
+      if(e.phone)html+='<span class="cg-card-hrs"><a href="tel:'+esc(e.phone)+'" style="color:var(--orange);text-decoration:none">'+esc(e.phone)+'</a></span>';
+      html+='</div>';
+      html+='<div class="cg-card-row"><span class="cg-card-days">Open: '+openDayNames+'</span></div>';
+      html+='<div class="cg-card-prefs">'+prefDot('🚗',e.drivesClients,'Drives')+prefDot('🐕',e.worksDogs,'Dogs')+prefDot('🐈',e.worksCats,'Cats')+prefDot('🚬',e.smokingOk,'Smoking')+'</div>';
+      html+='</div>';
+    });
+    html+='</div></div>';
+  });
+  return html;
+}
+
+function selectDay(day){selectedDay=day;render();}
+
+// ====== FIND CARE TEAM MODE ======
+function toggleFinderDay(day,el){
+  if(finderDays.has(day)){finderDays.delete(day);el.classList.remove('selected');}
+  else{finderDays.add(day);el.classList.add('selected');}
+}
+
+function clearFinder(){
+  document.getElementById('finderAddress').value='';
+  document.getElementById('finderState').value='';
+  document.getElementById('finderTypeOvernight').checked=false;
+  document.getElementById('finderTypeLong').checked=false;
+  document.getElementById('finderTypeShort').checked=false;
+  document.getElementById('finderTypeLiveIn').checked=false;
+  document.getElementById('finderMale').checked=false;
+  document.getElementById('finderFemale').checked=false;
+  document.getElementById('finderDogs').checked=false;
+  document.getElementById('finderCats').checked=false;
+  document.getElementById('finderParking').checked=false;
+  document.getElementById('finderNeedsDriver').checked=false;
+  finderDays.clear();
+  document.querySelectorAll('.finder-day-btn').forEach(function(b){b.classList.remove('selected');});
+  document.getElementById('finderResults').innerHTML='';
+}
+
+// Geocode an address using OpenStreetMap Nominatim
+async function geocodeAddress(addr){
+  if(!addr)return null;
+  try{
+    var res=await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q='+encodeURIComponent(addr));
+    var data=await res.json();
+    if(data&&data.length>0)return{lat:parseFloat(data[0].lat),lng:parseFloat(data[0].lon)};
+  }catch(e){}
+  return null;
+}
+
+// Haversine distance in miles (fallback only)
+function distanceMiles(lat1,lng1,lat2,lng2){
+  var R=3959;
+  var dLat=(lat2-lat1)*Math.PI/180;
+  var dLng=(lng2-lng1)*Math.PI/180;
+  var a=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)*Math.sin(dLng/2);
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+
+// OpenRouteService matrix via API proxy (returns miles and seconds)
+async function orsMatrix(locations, sources, destinations){
+  var res=await fetch(API+'?endpoint=distance_matrix',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({locations:locations,sources:sources,destinations:destinations,metrics:['distance','duration']})
+  });
+  return await res.json();
+}
+
+// Known market center coordinates for distance estimation
+var MARKET_COORDS={
+  'Boston':{lat:42.3601,lng:-71.0589},
+  'MetroWest Boston':{lat:42.2793,lng:-71.4162},
+  'North of Boston':{lat:42.5279,lng:-70.9286},
+  'South of Boston':{lat:42.2043,lng:-71.0018},
+  'Chicago':{lat:41.8781,lng:-87.6298},
+  'Baltimore':{lat:39.2904,lng:-76.6122},
+  'Annapolis':{lat:38.9784,lng:-76.4922},
+  'Bethesda':{lat:38.9847,lng:-77.0947}
+};
+
+async function runFinder(){
+  var address=document.getElementById('finderAddress').value.trim();
+  var state=document.getElementById('finderState').value;
+  var needOvernight=document.getElementById('finderTypeOvernight').checked;
+  var needLong=document.getElementById('finderTypeLong').checked;
+  var needShort=document.getElementById('finderTypeShort').checked;
+  var needLiveIn=document.getElementById('finderTypeLiveIn').checked;
+  var needMale=document.getElementById('finderMale').checked;
+  var needFemale=document.getElementById('finderFemale').checked;
+  var hasDogs=document.getElementById('finderDogs').checked;
+  var hasCats=document.getElementById('finderCats').checked;
+  var hasParking=document.getElementById('finderParking').checked;
+  var needsDriver=document.getElementById('finderNeedsDriver').checked;
+  var requestedDays=Array.from(finderDays);
+
+  // Build list of acceptable types
+  var acceptedTypes=[];
+  if(needOvernight)acceptedTypes.push('Overnight');
+  if(needLong)acceptedTypes.push('Long Hours');
+  if(needShort)acceptedTypes.push('Short Hours');
+  if(needLiveIn)acceptedTypes.push('Live-In');
+  // If none selected, accept all
+  var filterByType=acceptedTypes.length>0;
+
+  // Auto-detect state from address if not manually selected
+  if(!state&&address){
+    var addrLower=address.toLowerCase();
+    if(addrLower.includes('massachusetts')||addrLower.includes(', ma')||addrLower.includes(' ma '))state='Massachusetts';
+    else if(addrLower.includes('maryland')||addrLower.includes(', md')||addrLower.includes(' md '))state='Maryland';
+    else if(addrLower.includes('illinois')||addrLower.includes(', il')||addrLower.includes(' il '))state='Illinois';
+    else if(addrLower.includes('virginia')||addrLower.includes(', va')||addrLower.includes(' va '))state='Virginia';
+    if(state)document.getElementById('finderState').value=state;
+  }
+
+  // Show loading state
+  document.getElementById('finderResults').innerHTML='<div style="text-align:center;padding:30px;color:var(--gray-light)"><div class="spinner" style="margin:0 auto 10px"></div>Searching'+(address?' and calculating driving distances...':'...')+'</div>';
+
+  // Geocode client address for distance calculation
+  var clientCoords=null;
+  if(address){
+    clientCoords=await geocodeAddress(address);
+  }
+
+  // Filter candidates — STRICT state filtering
+  var candidates=allEntries.filter(function(e){
+    // State filter is REQUIRED — only show caregivers in same state
+    if(state&&e.state!==state)return false;
+    // Service type filter
+    if(filterByType&&acceptedTypes.indexOf(e.type)===-1)return false;
+    // Gender filter
+    if(needMale&&e.gender!=='male')return false;
+    if(needFemale&&e.gender!=='female')return false;
+    // Dogs - must be OK with dogs
+    if(hasDogs&&e.worksDogs==='no')return false;
+    // Cats - must be OK with cats
+    if(hasCats&&e.worksCats==='no')return false;
+    // Needs driver - must drive clients
+    if(needsDriver&&e.drivesClients!=='yes')return false;
+    // Must have at least one requested day open
+    if(requestedDays.length>0){
+      var hasOverlap=requestedDays.some(function(d){return e.openDays.indexOf(d)>=0;});
+      if(!hasOverlap)return false;
+    }
+    return true;
+  });
+
+  // Calculate driving distance for each candidate using OSRM
+  if(clientCoords){
+    // Build list of caregiver coordinates (use actual lat/lng or fall back to market center)
+    var coordsList=candidates.map(function(e){
+      if(e.lat&&e.lng)return{lat:e.lat,lng:e.lng};
+      var mc=MARKET_COORDS[e.market];
+      return mc?{lat:mc.lat,lng:mc.lng}:null;
+    });
+
+    // Use OSRM Table API for efficient batch distance calculation
+    // Split into chunks of 49 (ORS max 50 locations including source)
+    var CHUNK=49;
+    var distances=new Array(candidates.length).fill(null);
+    for(var ci=0;ci<candidates.length;ci+=CHUNK){
+      var chunk=coordsList.slice(ci,ci+CHUNK);
+      var locs=[[clientCoords.lng,clientCoords.lat]];
+      var validIndices=[];
+      chunk.forEach(function(cg,j){
+        if(cg){validIndices.push(ci+j);locs.push([cg.lng,cg.lat]);}
+      });
+      if(validIndices.length===0)continue;
+      var destIdx=validIndices.map(function(_,i){return i+1;});
+      try{
+        var data=await orsMatrix(locs,[0],destIdx);
+        if(data.distances&&data.distances[0]){
+          var dists=data.distances[0];
+          validIndices.forEach(function(origIdx,di){
+            if(di<dists.length&&dists[di]!==null){
+              distances[origIdx]=Math.round(dists[di]); // already in miles
+            }
+          });
+        }
+      }catch(ex){}
+    }
+    candidates.forEach(function(e,i){
+      e._distance=distances[i]||null;
+      e._distApprox=false;
+      // Fallback to Haversine if OSRM failed
+      if(e._distance===null&&coordsList[i]){
+        e._distance=Math.round(distanceMiles(clientCoords.lat,clientCoords.lng,coordsList[i].lat,coordsList[i].lng));
+        e._distApprox=true;
+      }
+    });
+  } else {
+    candidates.forEach(function(e){e._distance=null;});
+  }
+
+  // Score each candidate
+  candidates.forEach(function(e){
+    var score=0;
+
+    // Schedule overlap (most important): how many requested days can they cover?
+    if(requestedDays.length>0){
+      var overlap=requestedDays.filter(function(d){return e.openDays.indexOf(d)>=0;}).length;
+      score+=overlap*30;
+      if(overlap===requestedDays.length)score+=20;
+    } else {
+      score+=e.openDays.length*10;
+    }
+
+    // Distance score — closer is better
+    if(e._distance!==null){
+      if(e._distance<=10)score+=30;
+      else if(e._distance<=20)score+=20;
+      else if(e._distance<=30)score+=10;
+      else if(e._distance<=50)score+=5;
+      // Penalty for far away
+      if(e._distance>50)score-=10;
+    }
+
+    // Preference bonuses
+    if(hasDogs&&e.worksDogs==='yes')score+=5;
+    if(hasCats&&e.worksCats==='yes')score+=5;
+    if(needsDriver&&e.drivesClients==='yes')score+=10;
+    if(needMale&&e.gender==='male')score+=10;
+    if(needFemale&&e.gender==='female')score+=10;
+
+    e._score=score;
+    e._overlap=requestedDays.length>0?requestedDays.filter(function(d){return e.openDays.indexOf(d)>=0;}).length:e.openDays.length;
+  });
+
+  // Store candidates for re-sorting
+  lastFinderCandidates=candidates;
+  finderSort='score';
+  renderFinderResults(state);
+}
+
+function renderFinderResults(state){
+  var candidates=lastFinderCandidates.slice();
+  var requestedDays=Array.from(finderDays);
+
+  // Sort based on current preference
+  if(finderSort==='distance'){
+    candidates.sort(function(a,b){
+      // Null distances go to bottom
+      if(a._distance===null&&b._distance===null)return b._score-a._score;
+      if(a._distance===null)return 1;
+      if(b._distance===null)return -1;
+      if(a._distance!==b._distance)return a._distance-b._distance;
+      return b._score-a._score;
+    });
+  } else {
+    candidates.sort(function(a,b){
+      if(b._score!==a._score)return b._score-a._score;
+      if(a._distance!==null&&b._distance!==null)return a._distance-b._distance;
+      return 0;
+    });
+  }
+
+  // Render results
+  var html='';
+  if(candidates.length===0){
+    html='<div style="text-align:center;padding:40px;color:var(--gray-light)">No caregivers match these criteria'+(state?' in '+state:'')+'. Try relaxing some filters.</div>';
+  } else {
+    html+='<div class="results-header"><div class="results-title">Care Team Recommendations</div><div class="results-count">'+candidates.length+' matches'+(state?' in '+state:'')+'</div>';
+    html+='<div class="results-sort"><label>Sort by</label><select onchange="finderSort=this.value;renderFinderResults(\''+esc(state||'')+'\')"><option value="score"'+(finderSort==='score'?' selected':'')+'>Best Match</option><option value="distance"'+(finderSort==='distance'?' selected':'')+'>Distance (closest)</option></select></div>';
+    html+='</div>';
+    candidates.forEach(function(e){
+      var css=TYPE_CSS[e.type];
+      var matchDays=requestedDays.length>0?requestedDays.filter(function(d){return e.openDays.indexOf(d)>=0;}).map(function(d){return DAYS[d].slice(0,3);}).join(', '):e.openDays.map(function(d){return DAYS[d].slice(0,3);}).join(', ');
+      var coverageText=requestedDays.length>0?(e._overlap+'/'+requestedDays.length+' days covered'):(e.openDays.length+' open days');
+
+      html+='<div class="result-card"><div class="result-left">';
+      html+='<div class="result-name">'+(e.id?'<a href="https://tribute.mavencare.com/caregivers/'+esc(e.id)+'/dashboard/summary" target="_blank" style="color:inherit;text-decoration:none;border-bottom:1px dashed var(--gray-300)">'+esc(e.name)+'</a>':esc(e.name))+'</div>';
+      html+='<div class="result-meta">';
+      html+='<span class="result-market">'+esc(e.market)+'</span>';
+      html+='<span class="result-type-badge '+css+'">'+e.type+'</span>';
+      if(e.gender)html+='<span style="font-size:10px;color:var(--gray-light)">'+e.gender+'</span>';
+      if(e.phone)html+='<span style="font-size:10px"><a href="tel:'+esc(e.phone)+'" style="color:var(--orange);text-decoration:none">'+esc(e.phone)+'</a></span>';
+      if(e._distance!==null)html+='<span style="font-size:10px;font-weight:600;color:'+(e._distance<=15?'var(--green)':e._distance<=30?'var(--amber)':'var(--red)')+'">'+(e._distApprox?'~':'')+e._distance+' mi'+(e._distApprox?'':' drive')+'</span>';
+      html+='</div>';
+      html+='<div class="result-meta"><span class="result-days">Available: '+matchDays+'</span><span class="result-match">'+coverageText+'</span></div>';
+      html+='<div class="result-prefs">'+prefDot('🚗',e.drivesClients,'Drives')+prefDot('🐕',e.worksDogs,'Dogs')+prefDot('🐈',e.worksCats,'Cats')+prefDot('🚬',e.smokingOk,'Smoking')+'</div>';
+      html+='</div>';
+      html+='<div class="result-right"><div class="result-score">'+e._score+'</div><div class="result-score-label">Match</div></div>';
+      html+='</div>';
+    });
+  }
+  document.getElementById('finderResults').innerHTML=html;
+}
+
+// ====== HELPERS ======
+function prefDot(icon,val,label){
+  if(val==='yes')return '<span class="pref-dot yes" title="'+label+': Yes">'+icon+'</span>';
+  if(val==='no')return '<span class="pref-dot no" title="'+label+': No">'+icon+'</span>';
+  return '<span class="pref-dot unknown" title="'+label+': Unknown">'+icon+'</span>';
+}
+function esc(s){
+  if(!s)return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// Wire browse filters
+['filterState','filterMarket','filterType','filterDrives','filterDogs','filterCats','filterSmoke'].forEach(function(id){
+  document.getElementById(id).addEventListener('change',function(){
+    if(id==='filterState'){
+      var state=document.getElementById('filterState').value;
+      var markets=['All'];
+      allEntries.forEach(function(c){if((state==='All'||c.state===state)&&markets.indexOf(c.market)===-1)markets.push(c.market);});
+      markets.sort();populateSelect('filterMarket',markets);
+    }
+    render();
+  });
+});
+document.getElementById('filterNotes').addEventListener('input',render);
+
+// ====== SMART STACKER ======
+var stackerSort='drive'; // 'drive','slack','earliest'
+var lastStackerResults=[];
+
+function clearStacker(){
+  document.getElementById('stackerAddress').value='';
+  document.getElementById('stackerDuration').value='90';
+  document.getElementById('stackerBuffer').value='10';
+  document.getElementById('stackerMaxDrive').value='30';
+  document.getElementById('stackerMaxHours').value='25';
+  document.getElementById('stackerTimeStart').value='09:00';
+  document.getElementById('stackerTimeEnd').value='17:00';
+  document.getElementById('stackerState').value='';
+  document.getElementById('stackerResults').innerHTML='';
+  lastStackerResults=[];
+}
+
+async function runStacker(){
+  var address=document.getElementById('stackerAddress').value.trim();
+  var dateStr=document.getElementById('stackerDate').value;
+  var timeStart=document.getElementById('stackerTimeStart').value;
+  var timeEnd=document.getElementById('stackerTimeEnd').value;
+  var duration=parseInt(document.getElementById('stackerDuration').value)||90;
+  var buffer=parseInt(document.getElementById('stackerBuffer').value)||10;
+  var maxDrive=parseInt(document.getElementById('stackerMaxDrive').value)||30;
+  var maxHours=parseInt(document.getElementById('stackerMaxHours').value)||25;
+  var stateFilter=document.getElementById('stackerState').value;
+
+  if(!dateStr){alert('Please select a date');return;}
+
+  // Auto-detect state from address
+  if(!stateFilter&&address){
+    var al=address.toLowerCase();
+    if(al.includes(', ma')||al.includes('massachusetts'))stateFilter='Massachusetts';
+    else if(al.includes(', md')||al.includes('maryland'))stateFilter='Maryland';
+    else if(al.includes(', il')||al.includes('illinois'))stateFilter='Illinois';
+    if(stateFilter)document.getElementById('stackerState').value=stateFilter;
+  }
+
+  var resultsEl=document.getElementById('stackerResults');
+  resultsEl.innerHTML='<div style="text-align:center;padding:30px;color:var(--gray-light)"><div class="spinner" style="margin:0 auto 10px"></div>Loading caregiver schedules and calculating gaps...</div>';
+
+  // Geocode client address
+  var clientCoords=null;
+  if(address){clientCoords=await geocodeAddress(address);}
+
+  // Fetch visit schedules from API
+  var scheduleData=null;
+  try{
+    var res=await fetch(API+'?endpoint=stacker_visits&date='+dateStr);
+    if(!res.ok)throw new Error('HTTP '+res.status);
+    scheduleData=await res.json();
+  }catch(e){
+    resultsEl.innerHTML='<div class="error-msg">Error loading schedules: '+e.message+'</div>';
+    return;
+  }
+
+  var targetDOW=new Date(dateStr+'T12:00:00').getDay();
+  var durationHrs=duration/60;
+  var bufferHrs=buffer/60;
+  var maxDriveHrs=maxDrive/60;
+
+  // Parse time window
+  var windowStart=parseTimeToHrs(timeStart);
+  var windowEnd=parseTimeToHrs(timeEnd);
+
+  var caregivers=scheduleData.caregivers||{};
+  var matches=[];
+
+  // Build lookup of availability pool entries by name and ID for enrichment
+  var availByName={};
+  var availById={};
+  allEntries.forEach(function(e){
+    if(!availByName[e.name])availByName[e.name]=e;
+    if(e.id&&!availById[e.id])availById[e.id]=e;
+  });
+
+  // Build a unified candidate list from TWO sources:
+  // 1. stacker_visits API — caregivers with visits this week (has schedule data)
+  // 2. Availability pool — caregivers marked available (may have 0 visits)
+  var candidateList=[]; // {cgid2, cg2 (nullable), avail (nullable)}
+  var seen={};
+
+  // Source 1: All caregivers from visit data
+  var cgIds=Object.keys(caregivers);
+  for(var ci2=0;ci2<cgIds.length;ci2++){
+    var id1=cgIds[ci2];
+    var c1=caregivers[id1];
+    if(stateFilter&&c1.state!==stateFilter)continue;
+    var wh1=0;
+    var hasLiveIn=false;
+    c1.visits.forEach(function(v){
+      wh1+=v.scheduledHrs||0;
+      if(v.scheduledHrs>=20)hasLiveIn=true; // 20+ hr shifts = live-in
+    });
+    if(hasLiveIn)continue; // Skip live-in caregivers entirely
+    if(wh1>=maxHours)continue;
+    var av1=availById[id1]||availByName[c1.name]||null;
+    candidateList.push({cgid2:id1,cg2:c1,avail:av1,weeklyHrs:wh1});
+    seen[id1]=true;
+    if(c1.name)seen[c1.name]=true;
+  }
+
+  // Source 2: Availability pool caregivers with 0 hours (not in visit data)
+  allEntries.forEach(function(e){
+    if(seen[e.id]||seen[e.name])return;
+    if(stateFilter&&e.state!==stateFilter)return;
+    if(e.openDays.indexOf(targetDOW)<0)return;
+    candidateList.push({cgid2:e.id||'',cg2:null,avail:e,weeklyHrs:0});
+    if(e.id)seen[e.id]=true;
+    seen[e.name]=true;
+  });
+
+  console.log('[Smart Stacker] candidates: '+candidateList.length+' total ('+
+    candidateList.filter(function(c){return c.cg2!==null;}).length+' from visit data, '+
+    candidateList.filter(function(c){return c.cg2===null;}).length+' from avail pool)');
+
+  // Process each candidate
+  for(var ai=0;ai<candidateList.length;ai++){
+    var cand=candidateList[ai];
+    var cgid2=cand.cgid2;
+    var cg2=cand.cg2;
+    var avail=cand.avail;
+    var weeklyHrs=cand.weeklyHrs;
+
+    // Get visits for this specific date
+    var dayVisits=[];
+    if(cg2){
+      cg2.visits.forEach(function(v){
+        if(v.date===dateStr)dayVisits.push(v);
+      });
+      dayVisits.sort(function(a,b){return new Date(a.startTime)-new Date(b.startTime);});
+    }
+
+    // Enforce 16h daily max — skip if adding this visit would exceed it
+    var dayHrs=0;
+    dayVisits.forEach(function(v){dayHrs+=v.scheduledHrs||0;});
+    if(dayHrs+durationHrs>16)continue;
+
+    // Build candidate gaps
+    var gaps=[];
+    var dayStartHr=6; // 6am default day start
+    var dayEndHr=22;   // 10pm default day end
+
+    if(dayVisits.length===0){
+      // Fully open day — single large gap
+      gaps.push({
+        gapStartHr:dayStartHr,gapEndHr:dayEndHr,
+        prevClient:null,prevEndTime:null,prevMarket:null,prevLat:null,prevLng:null,
+        nextClient:null,nextStartTime:null,nextMarket:null,nextLat:null,nextLng:null,
+        isFirst:true,isLast:true
+      });
+    } else {
+      // Gap before first visit
+      var firstStart=toHrs(dayVisits[0].startTime);
+      if(firstStart>dayStartHr){
+        gaps.push({
+          gapStartHr:dayStartHr,gapEndHr:firstStart,
+          prevClient:null,prevEndTime:null,prevMarket:null,prevLat:null,prevLng:null,
+          nextClient:dayVisits[0].client,nextStartTime:dayVisits[0].startTime,nextMarket:dayVisits[0].market,
+          nextLat:dayVisits[0].clientLat||null,nextLng:dayVisits[0].clientLng||null,
+          isFirst:true,isLast:false
+        });
+      }
+      // Gaps between visits
+      for(var vi=0;vi<dayVisits.length-1;vi++){
+        var vEnd=toHrs(dayVisits[vi].endTime);
+        var vNextStart=toHrs(dayVisits[vi+1].startTime);
+        if(vNextStart>vEnd){
+          gaps.push({
+            gapStartHr:vEnd,gapEndHr:vNextStart,
+            prevClient:dayVisits[vi].client,prevEndTime:dayVisits[vi].endTime,prevMarket:dayVisits[vi].market,
+            prevLat:dayVisits[vi].clientLat||null,prevLng:dayVisits[vi].clientLng||null,
+            nextClient:dayVisits[vi+1].client,nextStartTime:dayVisits[vi+1].startTime,nextMarket:dayVisits[vi+1].market,
+            nextLat:dayVisits[vi+1].clientLat||null,nextLng:dayVisits[vi+1].clientLng||null,
+            isFirst:false,isLast:false
+          });
+        }
+      }
+      // Gap after last visit
+      var lastEnd=toHrs(dayVisits[dayVisits.length-1].endTime);
+      if(lastEnd<dayEndHr){
+        gaps.push({
+          gapStartHr:lastEnd,gapEndHr:dayEndHr,
+          prevClient:dayVisits[dayVisits.length-1].client,prevEndTime:dayVisits[dayVisits.length-1].endTime,prevMarket:dayVisits[dayVisits.length-1].market,
+          prevLat:dayVisits[dayVisits.length-1].clientLat||null,prevLng:dayVisits[dayVisits.length-1].clientLng||null,
+          nextClient:null,nextStartTime:null,nextMarket:null,nextLat:null,nextLng:null,
+          isFirst:false,isLast:true
+        });
+      }
+    }
+
+    // Evaluate each gap against the time window
+    var bestGap=null;
+    for(var gi=0;gi<gaps.length;gi++){
+      var g=gaps[gi];
+      // Intersect with requested time window
+      var effStart=Math.max(g.gapStartHr,windowStart);
+      var effEnd=Math.min(g.gapEndHr,windowEnd+durationHrs);
+      var gapDuration=effEnd-effStart;
+      if(gapDuration<durationHrs)continue;
+
+      // Drive time estimates (will be refined with OSRM below)
+      var driveIn=g.isFirst?0:0.25;  // default 15 min placeholder
+      var driveOut=g.isLast?0:0.25;
+      var required=driveIn+bufferHrs+durationHrs+bufferHrs+driveOut;
+      var slack=gapDuration-required;
+      if(slack<0)continue;
+
+      var fit=slack>=0.25?'fit':'tight';
+      if(!bestGap||slack>bestGap.slack){
+        bestGap={
+          gapStartHr:effStart,gapEndHr:effEnd,gapDuration:gapDuration,
+          driveIn:driveIn,driveOut:driveOut,slack:slack,fit:fit,
+          prevClient:g.prevClient,nextClient:g.nextClient,
+          prevMarket:g.prevMarket,nextMarket:g.nextMarket,
+          prevLat:g.prevLat,prevLng:g.prevLng,
+          nextLat:g.nextLat,nextLng:g.nextLng,
+          isFirst:g.isFirst,isLast:g.isLast,
+          visitStartHr:effStart+driveIn+bufferHrs
+        };
+      }
+    }
+
+    if(!bestGap)continue;
+
+    // Get caregiver home coords
+    var cgHomeLat=(cg2&&cg2.homeLat)||null,cgHomeLng=(cg2&&cg2.homeLng)||null;
+    if(!cgHomeLat&&avail&&avail.lat){cgHomeLat=avail.lat;cgHomeLng=avail.lng;}
+    // Fall back to market center
+    var cgMarket=(cg2&&cg2.market)||(avail&&avail.market)||'Unknown';
+    if(!cgHomeLat&&MARKET_COORDS[cgMarket]){
+      cgHomeLat=MARKET_COORDS[cgMarket].lat;
+      cgHomeLng=MARKET_COORDS[cgMarket].lng;
+    }
+
+    matches.push({
+      name:(cg2&&cg2.name)||(avail&&avail.name)||'',
+      id:cgid2,
+      market:cgMarket,
+      state:(cg2&&cg2.state)||(avail&&avail.state)||'',
+      type:avail?avail.type:'',
+      phone:(avail&&avail.phone)||'',
+      desiredHrs:avail?avail.desiredHrs:0,
+      weeklyHrs:Math.round(weeklyHrs*10)/10,
+      dayVisits:dayVisits,
+      gap:bestGap,
+      homeLat:cgHomeLat,
+      homeLng:cgHomeLng,
+      _distance:null,
+      _driveMin:null
+    });
+  }
+
+  var withVisits=matches.filter(function(m){return m.dayVisits.length>0;}).length;
+  console.log('[Smart Stacker] matches: '+matches.length+' total, '+withVisits+' with existing visits on '+dateStr);
+
+  // Calculate real drive times via OpenRouteService batch matrix
+  if(clientCoords&&matches.length>0){
+    // Determine origin/destination coords per match
+    matches.forEach(function(m){
+      var g=m.gap;
+      if(g.isFirst){m._fromLat=m.homeLat;m._fromLng=m.homeLng;}
+      else if(g.prevLat&&g.prevLng){m._fromLat=g.prevLat;m._fromLng=g.prevLng;}
+      else{m._fromLat=m.homeLat;m._fromLng=m.homeLng;}
+      if(!g.isLast&&g.nextLat&&g.nextLng){m._toLat=g.nextLat;m._toLng=g.nextLng;}
+      else{m._toLat=null;m._toLng=null;}
+    });
+
+    // Batch driveIn: origins → new client
+    var CHUNK=49;
+    for(var ci=0;ci<matches.length;ci+=CHUNK){
+      var chunk=matches.slice(ci,ci+CHUNK);
+      var locs=[[clientCoords.lng,clientCoords.lat]];
+      var inIdx=[];
+      chunk.forEach(function(m,j){
+        if(m._fromLat&&m._fromLng){inIdx.push(ci+j);locs.push([m._fromLng,m._fromLat]);}
+      });
+      if(inIdx.length>0){
+        try{
+          var srcIdx=inIdx.map(function(_,i){return i+1;});
+          var dataIn=await orsMatrix(locs,srcIdx,[0]);
+          if(dataIn.durations&&dataIn.distances){
+            inIdx.forEach(function(origIdx,ri){
+              var dur=dataIn.durations[ri]&&dataIn.durations[ri][0];
+              var dist=dataIn.distances[ri]&&dataIn.distances[ri][0];
+              if(dur!=null){
+                matches[origIdx].gap.driveIn=dur/3600; // seconds→hours
+                matches[origIdx]._distance=Math.round(dist); // already miles
+                matches[origIdx]._driveMin=Math.round(dur/60);
+              }
+            });
+          }
+        }catch(e){}
+      }
+    }
+
+    // Batch driveOut: new client → next visit locations
+    for(var ci=0;ci<matches.length;ci+=CHUNK){
+      var chunk=matches.slice(ci,ci+CHUNK);
+      var locs=[[clientCoords.lng,clientCoords.lat]];
+      var outIdx=[];
+      chunk.forEach(function(m,j){
+        if(m._toLat&&m._toLng){outIdx.push(ci+j);locs.push([m._toLng,m._toLat]);}
+      });
+      if(outIdx.length>0){
+        try{
+          var destIdx=outIdx.map(function(_,i){return i+1;});
+          var dataOut=await orsMatrix(locs,[0],destIdx);
+          if(dataOut.durations&&dataOut.durations[0]){
+            var durs=dataOut.durations[0];
+            outIdx.forEach(function(origIdx,di){
+              if(durs[di]!=null){matches[origIdx].gap.driveOut=durs[di]/3600;}
+            });
+          }
+        }catch(e){}
+      }
+    }
+
+    // Recalculate slack/fit with real drive times, then filter
+    matches.forEach(function(m){
+      var g=m.gap;
+      if(g.isFirst&&!m._fromLat)g.driveIn=0;
+      if(g.isLast)g.driveOut=0;
+      var required=g.driveIn+bufferHrs+durationHrs+bufferHrs+g.driveOut;
+      g.slack=g.gapDuration-required;
+      g.fit=g.slack>=0.25?'fit':(g.slack>=0?'tight':'nofit');
+      g.visitStartHr=g.gapStartHr+g.driveIn+bufferHrs;
+    });
+    matches=matches.filter(function(m){
+      if(m.gap.fit==='nofit'||m.gap.slack<0)return false;
+      if(m._driveMin!==null&&m._driveMin>maxDrive)return false;
+      return true;
+    });
+  }
+
+  lastStackerResults=matches;
+  stackerSort='drive';
+  renderStackerResults(dateStr,duration,buffer,address);
+}
+
+function parseTimeToHrs(t){var p=t.split(':');return parseInt(p[0])+(parseInt(p[1]||0)/60);}
+function toHrs(isoStr){var d=new Date(isoStr);return d.getHours()+d.getMinutes()/60;}
+function fmtHr(h){var hr=Math.floor(h);var mn=Math.round((h-hr)*60);var ampm=hr>=12?'PM':'AM';var h12=hr%12||12;return h12+':'+(mn<10?'0':'')+mn+ampm;}
+
+function renderStackerResults(dateStr,duration,buffer,address){
+  var matches=lastStackerResults.slice();
+  // Sort
+  if(stackerSort==='drive'){
+    matches.sort(function(a,b){
+      if(a._distance===null&&b._distance===null)return b.gap.slack-a.gap.slack;
+      if(a._distance===null)return 1;
+      if(b._distance===null)return -1;
+      return a._distance-b._distance;
+    });
+  } else if(stackerSort==='slack'){
+    matches.sort(function(a,b){return b.gap.slack-a.gap.slack;});
+  } else if(stackerSort==='earliest'){
+    matches.sort(function(a,b){return a.gap.gapStartHr-b.gap.gapStartHr;});
+  } else if(stackerSort==='hours'){
+    matches.sort(function(a,b){return a.weeklyHrs-b.weeklyHrs;});
+  }
+
+  var fitCount=matches.filter(function(m){return m.gap.fit==='fit';}).length;
+  var tightCount=matches.filter(function(m){return m.gap.fit==='tight';}).length;
+  var dateLabel=new Date(dateStr+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'});
+
+  var html='';
+  html+='<div class="stacker-kpis">';
+  html+='<div class="stacker-kpi"><div class="stacker-kpi-label">Total Matches</div><div class="stacker-kpi-value" style="color:var(--orange)">'+matches.length+'</div><div class="stacker-kpi-sub">caregivers with gaps</div></div>';
+  html+='<div class="stacker-kpi"><div class="stacker-kpi-label">Clean Fit</div><div class="stacker-kpi-value" style="color:var(--green)">'+fitCount+'</div><div class="stacker-kpi-sub">15+ min slack</div></div>';
+  html+='<div class="stacker-kpi"><div class="stacker-kpi-label">Tight Fit</div><div class="stacker-kpi-value" style="color:var(--amber)">'+tightCount+'</div><div class="stacker-kpi-sub">&lt;15 min slack</div></div>';
+  var avgHrs=matches.length?Math.round(matches.reduce(function(s,m){return s+m.weeklyHrs;},0)/matches.length*10)/10:0;
+  html+='<div class="stacker-kpi"><div class="stacker-kpi-label">Avg Weekly Hrs</div><div class="stacker-kpi-value" style="color:var(--blue)">'+avgHrs+'</div><div class="stacker-kpi-sub">short-hour caregivers</div></div>';
+  html+='<div class="stacker-kpi"><div class="stacker-kpi-label">Date</div><div class="stacker-kpi-value" style="font-size:16px">'+dateLabel+'</div><div class="stacker-kpi-sub">'+duration+' min visit + '+buffer+' min buffer</div></div>';
+  html+='</div>';
+
+  if(matches.length===0){
+    html+='<div style="text-align:center;padding:40px;color:var(--gray-light)">No caregivers with stackable gaps found for this date and time window. Try widening the time window or increasing max drive time.</div>';
+    document.getElementById('stackerResults').innerHTML=html;
+    return;
+  }
+
+  // Sort controls
+  html+='<div class="results-header"><div class="results-title">Stackable Gaps</div><div class="results-count">'+matches.length+' matches</div>';
+  html+='<div class="results-sort"><label>Sort by</label><select onchange="stackerSort=this.value;renderStackerResults(\''+dateStr+'\','+duration+','+buffer+',\''+esc(address)+'\')">';
+  html+='<option value="drive"'+(stackerSort==='drive'?' selected':'')+'>Drive Distance</option>';
+  html+='<option value="slack"'+(stackerSort==='slack'?' selected':'')+'>Most Slack</option>';
+  html+='<option value="earliest"'+(stackerSort==='earliest'?' selected':'')+'>Earliest Gap</option>';
+  html+='<option value="hours"'+(stackerSort==='hours'?' selected':'')+'>Fewest Hours</option>';
+  html+='</select></div></div>';
+
+  // Render each match
+  matches.forEach(function(m){
+    var g=m.gap;
+    var css=TYPE_CSS[m.type]||'';
+    html+='<div class="stacker-card '+g.fit+'">';
+    // Header
+    html+='<div class="stacker-card-header">';
+    html+='<div>';
+    html+='<div class="stacker-card-name">'+(m.id?'<a href="https://tribute.mavencare.com/caregivers/'+esc(m.id)+'/dashboard/summary" target="_blank" style="color:inherit;text-decoration:none;border-bottom:1px dashed var(--gray-300)">'+esc(m.name)+'</a>':esc(m.name))+'</div>';
+    html+='<div style="font-size:11px;color:var(--gray-text);margin-top:2px">';
+    html+='<span class="result-type-badge '+css+'" style="margin-right:6px">'+m.type+'</span>';
+    html+=esc(m.market);
+    if(m.phone)html+=' · <a href="tel:'+esc(m.phone)+'" style="color:var(--orange);text-decoration:none">'+esc(m.phone)+'</a>';
+    html+='</div></div>';
+    html+='<div style="text-align:right">';
+    html+='<div class="stacker-card-badge '+g.fit+'">'+(g.fit==='fit'?'Clean Fit':'Tight Fit')+'</div>';
+    if(m._distance!==null)html+='<div style="font-size:12px;font-weight:600;margin-top:4px;color:'+(m._distance<=15?'var(--green)':m._distance<=25?'var(--amber)':'var(--red)')+'">'+m._distance+' mi · '+m._driveMin+' min drive</div>';
+    html+='</div></div>';
+
+    // Meta
+    html+='<div class="stacker-card-meta">';
+    html+='<span>Gap: <strong>'+fmtHr(g.gapStartHr)+' – '+fmtHr(g.gapEndHr)+'</strong></span>';
+    html+='<span>Slack: <strong>'+Math.round(g.slack*60)+' min</strong></span>';
+    html+='<span>Visit at: <strong>'+fmtHr(g.visitStartHr)+'</strong></span>';
+    html+='<span>'+m.dayVisits.length+' visit'+(m.dayVisits.length!==1?'s':'')+' that day</span>';
+    html+='<span>Weekly: <strong>'+m.weeklyHrs+'h</strong>'+(m.desiredHrs?' / '+m.desiredHrs+'h desired':'')+'</span>';
+    html+='</div>';
+
+    // Timeline
+    var tlStart=6,tlEnd=22;
+    var tlRange=tlEnd-tlStart;
+    html+='<div class="stacker-timeline">';
+    // Existing visits
+    m.dayVisits.forEach(function(v){
+      var vs=toHrs(v.startTime);var ve=toHrs(v.endTime);
+      var left=Math.max(0,(vs-tlStart)/tlRange*100);
+      var width=Math.min(100-left,(ve-vs)/tlRange*100);
+      var vHrs=v.scheduledHrs||((ve-vs));
+      html+='<div class="stacker-tl-visit" style="left:'+left+'%;width:'+Math.max(width,2)+'%">';
+      html+='<div class="stacker-tl-tooltip"><strong>'+esc(v.client)+'</strong><br>'+fmtHr(vs)+' – '+fmtHr(ve)+' ('+vHrs.toFixed(1)+'h)'+(v.market?'<br>'+esc(v.market):'')+'</div>';
+      html+=esc(v.client);
+      html+='</div>';
+    });
+    // The gap
+    var gLeft=Math.max(0,(g.visitStartHr-tlStart)/tlRange*100);
+    var gWidth=Math.min(100-gLeft,(duration/60)/tlRange*100);
+    var gEndHr=g.visitStartHr+duration/60;
+    html+='<div class="stacker-tl-gap '+g.fit+'" style="left:'+gLeft+'%;width:'+Math.max(gWidth,3)+'%">';
+    html+='<div class="stacker-tl-tooltip"><strong>Proposed New Visit</strong><br>'+fmtHr(g.visitStartHr)+' – '+fmtHr(gEndHr)+' ('+duration+' min)'+'<br>Drive in: '+Math.round(g.driveIn*60)+'min · Drive out: '+Math.round(g.driveOut*60)+'min'+'<br>Slack: '+Math.round(g.slack*60)+' min</div>';
+    html+='NEW</div>';
+    html+='</div>';
+    html+='<div class="stacker-tl-labels"><span>6AM</span><span>9AM</span><span>12PM</span><span>3PM</span><span>6PM</span><span>9PM</span></div>';
+
+    // Drive details
+    html+='<div class="stacker-drive">';
+    if(g.prevClient)html+='<div class="stacker-drive-item">From: <strong>'+esc(g.prevClient)+'</strong> ('+Math.round(g.driveIn*60)+' min drive)</div>';
+    else html+='<div class="stacker-drive-item">From: <strong>Home / Start of day</strong>'+(m._driveMin!=null?' ('+m._driveMin+' min)':'')+'</div>';
+    if(g.nextClient)html+='<div class="stacker-drive-item">To: <strong>'+esc(g.nextClient)+'</strong> ('+Math.round(g.driveOut*60)+' min drive)</div>';
+    else html+='<div class="stacker-drive-item">To: <strong>End of day</strong></div>';
+    html+='</div>';
+
+    html+='</div>';
+  });
+
+  document.getElementById('stackerResults').innerHTML=html;
+}
+
+loadData();
+</script>
+</body>
+</html>

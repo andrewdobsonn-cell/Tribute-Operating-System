@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Weekly Volume — Validation</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#fff;--bg2:#f7f7f5;--bg3:#ededea;--text:#1a1a18;--text2:#6b6b67;--text3:#9e9c96;--border:rgba(0,0,0,0.09);--border2:rgba(0,0,0,0.16);--green:#1D9E75;--amber:#EF9F27;--red:#E24B4A;--blue:#185FA5;--r:8px}
+@media(prefers-color-scheme:dark){:root{--bg:#1a1a18;--bg2:#232320;--bg3:#2c2c29;--text:#e8e6e0;--text2:#9e9c96;--text3:#6b6b67;--border:rgba(255,255,255,0.09);--border2:rgba(255,255,255,0.16)}}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',monospace;background:var(--bg);color:var(--text);padding:20px;max-width:1400px;margin:0 auto;font-size:13px;line-height:1.5}
+h1{font-size:18px;font-weight:500;margin-bottom:4px}
+.sub{font-size:11px;color:var(--text3);margin-bottom:16px}
+.ctrl{display:flex;gap:10px;margin-bottom:16px;align-items:center;flex-wrap:wrap}
+.ctrl label{font-size:11px;color:var(--text2)}
+.ctrl input,.ctrl button{font-size:12px;padding:6px 12px;border:.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text)}
+.ctrl button{cursor:pointer;font-weight:600}
+.ctrl button:hover{background:var(--text);color:var(--bg)}
+.section{background:var(--bg2);border:.5px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:16px}
+.section h2{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text2);margin-bottom:12px}
+.stat-row{display:flex;gap:20px;flex-wrap:wrap;margin-bottom:12px}
+.stat{background:var(--bg);border-radius:6px;padding:10px 14px;min-width:140px}
+.stat-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:4px}
+.stat-value{font-size:18px;font-weight:500;font-variant-numeric:tabular-nums}
+.stat-sub{font-size:10px;color:var(--text3);margin-top:2px}
+.g{color:var(--green)}.r{color:var(--red)}.b{color:var(--blue)}.a{color:var(--amber)}
+table{width:100%;border-collapse:collapse;font-size:11px}
+th{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text2);padding:6px 8px;border-bottom:1px solid var(--border2);text-align:right;position:sticky;top:0;background:var(--bg2)}
+th:first-child,th:nth-child(2),th:nth-child(3){text-align:left}
+td{padding:5px 8px;border-bottom:.5px solid var(--border);text-align:right;font-variant-numeric:tabular-nums}
+td:first-child,td:nth-child(2),td:nth-child(3){text-align:left}
+tr:hover td{background:var(--bg3)}
+.diff-warn{background:#fcebeb;color:#791f1f;font-weight:600;border-radius:3px;padding:1px 4px}
+.scroll{max-height:600px;overflow:auto;border:.5px solid var(--border);border-radius:var(--r)}
+.loading{text-align:center;padding:40px;color:var(--text3)}
+.agg-tbl td:first-child{font-weight:600}
+.totals-row td{font-weight:700;border-top:2px solid var(--border2)}
+#status{font-size:11px;color:var(--text3);margin-bottom:12px}
+.filter-row{display:flex;gap:8px;margin-bottom:8px;align-items:center}
+.filter-row select{font-size:11px;padding:4px 8px;border:.5px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text)}
+</style>
+</head>
+<body>
+<h1>Weekly Volume — Calculation Validation</h1>
+<div class="sub">Shows every visit and how revenue/hours are calculated. Compare Viv's pre-computed revenue vs manual formula.</div>
+
+<div class="ctrl">
+  <label>Week start (Sunday):</label>
+  <input type="date" id="weekInput" value="">
+  <button onclick="fetchDebug()">Fetch & Validate</button>
+  <span id="status"></span>
+</div>
+
+<div id="output"></div>
+
+<script>
+var API='https://tribute-api-prod-bkc4hfcwf3f2f6bf.centralus-01.azurewebsites.net/api/vivProxy';
+
+// Default to this week's Sunday
+var d=new Date();d.setDate(d.getDate()-d.getDay());
+document.getElementById('weekInput').value=d.toISOString().split('T')[0];
+
+async function fetchDebug(){
+  var week=document.getElementById('weekInput').value;
+  var status=document.getElementById('status');
+  var output=document.getElementById('output');
+  status.textContent='Fetching visit data from Viv for week of '+week+'...';
+  output.innerHTML='<div class="loading">Loading... this may take 1-2 minutes for the first fetch.</div>';
+
+  try{
+    var res=await fetch(API+'?endpoint=weekly_volume&startWeek='+week+'&endWeek='+week+'&debug=true');
+    if(!res.ok)throw new Error('API returned '+res.status);
+    var data=await res.json();
+    status.textContent='Loaded at '+new Date().toLocaleTimeString();
+    renderDebug(data,week);
+  }catch(e){
+    status.textContent='Error: '+e.message;
+    output.innerHTML='<div class="section" style="color:var(--red)">Failed: '+e.message+'</div>';
+  }
+}
+
+function $(v){return v.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function $m(v){return'$'+$(v);}
+
+function renderDebug(data,week){
+  if(!data.debug||!data.debug.length){
+    document.getElementById('output').innerHTML='<div class="section">No data returned</div>';
+    return;
+  }
+  var wk=data.debug[0];
+  var rows=wk.rows;
+  var skipped=wk.skipped;
+  var totalRaw=wk.totalVisitsRaw;
+
+  // Aggregate by geo+shiftType
+  var agg={};
+  var grandHours=0,grandVivRev=0,grandManualRev=0;
+  rows.forEach(function(r){
+    var k=r.geo+'|'+r.shiftType;
+    if(!agg[k])agg[k]={geo:r.geo,shiftType:r.shiftType,hours:0,vivRevenue:0,manualRevenue:0,visits:0};
+    agg[k].hours+=r.billableHours;
+    agg[k].vivRevenue+=r.vivRevenue;
+    agg[k].manualRevenue+=r.manualRevenue;
+    agg[k].visits++;
+    grandHours+=r.billableHours;
+    grandVivRev+=r.vivRevenue;
+    grandManualRev+=r.manualRevenue;
+  });
+  var aggArr=Object.values(agg).sort(function(a,b){return b.vivRevenue-a.vivRevenue;});
+
+  // Converted hours
+  var grandConverted=0;
+  rows.forEach(function(r){
+    grandConverted+=(r.shiftType==='Live-In'?r.billableHours*2/3:r.billableHours);
+  });
+
+  var html='';
+
+  // Summary stats
+  html+='<div class="section"><h2>Week of '+week+' — Summary</h2>';
+  html+='<div class="stat-row">';
+  html+='<div class="stat"><div class="stat-label">Total Visits (raw)</div><div class="stat-value">'+totalRaw.toLocaleString()+'</div></div>';
+  html+='<div class="stat"><div class="stat-label">Billable Visits</div><div class="stat-value b">'+rows.length.toLocaleString()+'</div></div>';
+  html+='<div class="stat"><div class="stat-label">Raw Hours</div><div class="stat-value">'+$(grandHours)+'</div></div>';
+  html+='<div class="stat"><div class="stat-label">Converted Hours</div><div class="stat-value g">'+$(grandConverted)+'</div><div class="stat-sub">Live-In x 2/3</div></div>';
+  html+='<div class="stat"><div class="stat-label">Viv Revenue</div><div class="stat-value b">'+$m(grandVivRev)+'</div><div class="stat-sub">grossMargin.totalRevenue</div></div>';
+  html+='<div class="stat"><div class="stat-label">Manual Revenue</div><div class="stat-value a">'+$m(grandManualRev)+'</div><div class="stat-sub">units x billRate + flat</div></div>';
+  html+='<div class="stat"><div class="stat-label">Revenue Diff</div><div class="stat-value '+(Math.abs(grandVivRev-grandManualRev)<100?'g':'r')+'">'+$m(grandVivRev-grandManualRev)+'</div><div class="stat-sub">Viv - Manual</div></div>';
+  html+='</div>';
+
+  // Skipped breakdown
+  html+='<div class="stat-row">';
+  html+='<div class="stat"><div class="stat-label">Excluded Visit Type</div><div class="stat-value">'+skipped.excludedType+'</div></div>';
+  html+='<div class="stat"><div class="stat-label">Canceled</div><div class="stat-value">'+skipped.canceled+'</div></div>';
+  html+='<div class="stat"><div class="stat-label">Excluded Geo</div><div class="stat-value">'+skipped.excludedGeo+'</div></div>';
+  html+='<div class="stat"><div class="stat-label">Excluded Client</div><div class="stat-value">'+skipped.excludedClient+'</div></div>';
+  html+='<div class="stat"><div class="stat-label">Non-Billable</div><div class="stat-value">'+skipped.nonBillable+'</div></div>';
+  html+='</div></div>';
+
+  // Aggregation by GEO + ShiftType
+  html+='<div class="section"><h2>Aggregation by GEO + Shift Type</h2>';
+  html+='<table class="agg-tbl"><thead><tr><th style="text-align:left">GEO</th><th style="text-align:left">Shift</th><th>Visits</th><th>Hours</th><th>Converted Hrs</th><th>Viv Revenue</th><th>Manual Revenue</th><th>Diff</th></tr></thead><tbody>';
+  aggArr.forEach(function(a){
+    var conv=a.shiftType==='Live-In'?a.hours*2/3:a.hours;
+    var diff=a.vivRevenue-a.manualRevenue;
+    var warn=Math.abs(diff)>50;
+    html+='<tr><td>'+a.geo+'</td><td>'+a.shiftType+'</td><td>'+a.visits+'</td>';
+    html+='<td>'+$(a.hours)+'</td><td>'+$(conv)+'</td>';
+    html+='<td>'+$m(a.vivRevenue)+'</td><td>'+$m(a.manualRevenue)+'</td>';
+    html+='<td'+(warn?' class="diff-warn"':'')+'>'+$m(diff)+'</td></tr>';
+  });
+  html+='<tr class="totals-row"><td>GRAND TOTAL</td><td></td><td>'+rows.length+'</td>';
+  html+='<td>'+$(grandHours)+'</td><td>'+$(grandConverted)+'</td>';
+  html+='<td>'+$m(grandVivRev)+'</td><td>'+$m(grandManualRev)+'</td>';
+  html+='<td>'+$m(grandVivRev-grandManualRev)+'</td></tr>';
+  html+='</tbody></table></div>';
+
+  // Visit-level detail
+  html+='<div class="section"><h2>Visit-Level Detail ('+rows.length+' billable visits)</h2>';
+  html+='<div class="filter-row"><label>Filter GEO:</label><select id="geoFilter" onchange="filterTable()">';
+  html+='<option value="all">All</option>';
+  var geos=Array.from(new Set(rows.map(function(r){return r.geo;}))).sort();
+  geos.forEach(function(g){html+='<option value="'+g+'">'+g+'</option>';});
+  html+='</select>';
+  html+='<label>Shift:</label><select id="shiftFilter" onchange="filterTable()">';
+  html+='<option value="all">All</option><option value="Hourly">Hourly</option><option value="Live-In">Live-In</option>';
+  html+='</select></div>';
+  html+='<div class="scroll"><table id="visitTable"><thead><tr>';
+  html+='<th style="text-align:left">Date</th><th style="text-align:left">GEO</th><th style="text-align:left">Client</th>';
+  html+='<th>Shift</th><th>Rate Type</th><th>Billing ms</th><th>Hours</th>';
+  html+='<th>Client Rate</th><th>Bill Rate</th><th>Flat</th><th>Units</th>';
+  html+='<th>Manual Rev</th><th>Viv Rev</th><th>Diff</th><th>Filled</th>';
+  html+='</tr></thead><tbody>';
+  rows.sort(function(a,b){return a.date.localeCompare(b.date)||a.geo.localeCompare(b.geo);});
+  rows.forEach(function(r){
+    var diff=r.revenueDiff;
+    var warn=Math.abs(diff)>1;
+    html+='<tr data-geo="'+r.geo+'" data-shift="'+r.shiftType+'">';
+    html+='<td>'+r.date+'</td><td>'+r.geo+'</td><td>'+r.client+'</td>';
+    html+='<td>'+r.shiftType+'</td><td>'+r.rateType+'</td>';
+    html+='<td>'+r.billingMs.toLocaleString()+'</td><td>'+$(r.billableHours)+'</td>';
+    html+='<td>'+$m(r.clientRate)+'</td><td>'+$m(r.billRate)+'</td>';
+    html+='<td>'+$m(r.billingFlat)+'</td><td>'+$(r.billingUnits)+'</td>';
+    html+='<td>'+$m(r.manualRevenue)+'</td>';
+    html+='<td style="color:var(--blue)">'+$m(r.vivRevenue)+'</td>';
+    html+='<td'+(warn?' class="diff-warn"':'')+'>'+$m(diff)+'</td>';
+    html+='<td>'+(r.filled?'Yes':'Open')+'</td>';
+    html+='</tr>';
+  });
+  html+='</tbody></table></div></div>';
+
+  // Formula reference
+  html+='<div class="section"><h2>Calculation Reference</h2>';
+  html+='<table style="font-size:12px;max-width:800px"><tbody>';
+  html+='<tr><td style="padding:6px 12px;font-weight:600;width:200px">billableHours</td><td style="padding:6px 12px">billingMilliseconds / 3,600,000</td></tr>';
+  html+='<tr><td style="padding:6px 12px;font-weight:600">billingUnits</td><td style="padding:6px 12px">if Daily: billableHours / 24, else: billableHours</td></tr>';
+  html+='<tr><td style="padding:6px 12px;font-weight:600">billingFlat</td><td style="padding:6px 12px">sum of accs[].incClient (additional client charges)</td></tr>';
+  html+='<tr><td style="padding:6px 12px;font-weight:600">Manual Revenue</td><td style="padding:6px 12px">(billingUnits x billRate) + billingFlat</td></tr>';
+  html+='<tr><td style="padding:6px 12px;font-weight:600">Viv Revenue</td><td style="padding:6px 12px">queries.grossMargin.totalRevenue (pre-computed by Viv)</td></tr>';
+  html+='<tr><td style="padding:6px 12px;font-weight:600">Converted Hours</td><td style="padding:6px 12px">Live-In hours x 2/3; Hourly hours as-is</td></tr>';
+  html+='<tr><td style="padding:6px 12px;font-weight:600;color:var(--blue)">Dashboard uses</td><td style="padding:6px 12px;color:var(--blue)">Viv Revenue (grossMargin.totalRevenue)</td></tr>';
+  html+='</tbody></table></div>';
+
+  document.getElementById('output').innerHTML=html;
+}
+
+function filterTable(){
+  var geo=document.getElementById('geoFilter').value;
+  var shift=document.getElementById('shiftFilter').value;
+  var rows=document.querySelectorAll('#visitTable tbody tr');
+  rows.forEach(function(r){
+    var geoMatch=geo==='all'||r.getAttribute('data-geo')===geo;
+    var shiftMatch=shift==='all'||r.getAttribute('data-shift')===shift;
+    r.style.display=(geoMatch&&shiftMatch)?'':'none';
+  });
+}
+</script>
+</body>
+</html>

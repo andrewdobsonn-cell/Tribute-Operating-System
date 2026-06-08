@@ -4,84 +4,128 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Caregiver Utilization — Tribute OS</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&family=DM+Serif+Display&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:#0B1120;--bg2:#111827;--bg3:#1E293B;--bg4:#334155;
-  --border:#1E293B;--border2:#334155;
-  --text:#E2E8F0;--text2:#94A3B8;--text3:#64748B;
-  --orange:#E8541A;--orange-light:#F47A4A;
-  --green:#22C55E;--green-bg:rgba(34,197,94,.12);
-  --red:#EF4444;--red-bg:rgba(239,68,68,.12);
-  --yellow:#EAB308;--yellow-bg:rgba(234,179,8,.12);
-  --blue:#3B82F6;--blue-bg:rgba(59,130,246,.12);
-  --purple:#A855F7;--purple-bg:rgba(168,85,247,.12);
+  --orange:#E8541A;--orange-dark:#C4441A;--orange-light:#F47A4A;--orange-pale:#FDF2ED;--orange-50:#FEF8F5;
+  --charcoal:#2C2C2C;--charcoal-mid:#4A4A4A;--gray-text:#6B6B6B;--gray-light:#9B9B9B;
+  --gray-100:#F5F5F5;--gray-200:#EBEBEB;--gray-300:#D8D8D8;--white:#FFFFFF;--cream:#FAFAF8;
+  --green:#3DAA7A;--green-light:#dcfce7;--green-text:#166534;
+  --red:#E05252;--red-light:#fee2e2;--red-text:#991b1b;
+  --yellow:#d97706;--yellow-light:#fef3c7;--yellow-text:#92400e;
+  --blue:#2563eb;--blue-light:#dbeafe;--blue-text:#1e40af;
+  --purple:#7c3aed;--purple-light:#ede9fe;--purple-text:#5b21b6;
+  --cyan:#0891b2;--cyan-light:#cffafe;
   --navy:#0F2647;--slate:#44546A;
-  --r:8px;--rl:12px;
-  --shadow:0 4px 24px rgba(0,0,0,.3);
+  --shadow-sm:0 1px 4px rgba(44,44,44,0.06),0 1px 2px rgba(44,44,44,0.04);
+  --shadow-md:0 4px 20px rgba(44,44,44,0.09),0 2px 6px rgba(44,44,44,0.05);
+  --r:10px;--rl:14px;
 }
 html{scroll-behavior:smooth}
-body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:13px;line-height:1.5;-webkit-font-smoothing:antialiased}
-.topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 32px;display:flex;align-items:center;justify-content:space-between;height:52px;position:sticky;top:0;z-index:100}
-.topbar-brand{display:flex;align-items:baseline;gap:6px}
-.topbar-tribute{font-family:'DM Serif Display',serif;font-size:20px;color:var(--orange);letter-spacing:-.01em}
-.topbar-sub{font-size:11px;color:var(--text3)}
-.topbar-back{color:var(--text2);text-decoration:none;font-size:12px;display:flex;align-items:center;gap:4px;transition:color .2s}
+body{font-family:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;background:var(--cream);color:var(--charcoal);min-height:100vh;font-size:14px;line-height:1.6;-webkit-font-smoothing:antialiased}
+
+.topbar{background:var(--white);border-bottom:1px solid var(--gray-200);padding:0 48px;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:100;box-shadow:var(--shadow-sm)}
+.topbar-brand{display:flex;align-items:baseline}
+.topbar-tribute{font-family:'DM Serif Display',Georgia,serif;font-size:22px;color:var(--orange)}
+.topbar-sub{font-size:11px;color:var(--gray-text);margin-left:4px}
+.topbar-right{display:flex;align-items:center;gap:16px}
+.topbar-back{color:var(--gray-text);text-decoration:none;font-size:12px;font-weight:500;display:flex;align-items:center;gap:4px;transition:color .2s}
 .topbar-back:hover{color:var(--orange)}
+.topbar-live{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--gray-text)}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 2.5s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+.hero{background:var(--white);padding:36px 48px 32px;border-bottom:1px solid var(--gray-200);position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;top:0;left:0;width:4px;height:100%;background:var(--orange)}
+.hero-eyebrow{font-size:10px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--orange);margin-bottom:8px;padding-left:20px}
+.hero-title{font-family:'DM Serif Display',Georgia,serif;font-size:34px;color:var(--charcoal);line-height:1.1;letter-spacing:-.025em;margin-bottom:8px;padding-left:20px}
+.hero-title span{color:var(--orange);font-style:italic}
+.hero-sub{font-size:14px;font-weight:300;color:var(--gray-text);padding-left:20px;max-width:700px}
+
+.stats-strip{background:var(--orange);padding:12px 48px;display:flex;gap:36px;flex-wrap:wrap}
+.stat-item{display:flex;flex-direction:column;gap:2px}
+.stat-label{font-size:9px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,0.65)}
+.stat-value{font-size:20px;font-weight:500;color:var(--white);font-variant-numeric:tabular-nums}
+
 .loading-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:70vh;gap:16px}
-.spinner{width:36px;height:36px;border:3px solid var(--border2);border-top-color:var(--orange);border-radius:50%;animation:spin .8s linear infinite}
+.spinner{width:36px;height:36px;border:3px solid var(--gray-200);border-top-color:var(--orange);border-radius:50%;animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
-.tab-bar{display:flex;gap:2px;background:var(--bg2);border-bottom:1px solid var(--border);padding:0 32px;overflow-x:auto}
-.tab-btn{padding:10px 16px;font-size:12px;font-weight:500;color:var(--text3);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;white-space:nowrap;transition:all .2s}
-.tab-btn:hover{color:var(--text2)}
-.tab-btn.active{color:var(--orange);border-bottom-color:var(--orange)}
-.content{padding:24px 32px;max-width:1600px;margin:0 auto}
-.section{display:none}.section.active{display:block}
-.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:12px;margin-bottom:24px}
-.kpi{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);padding:14px 18px}
-.kpi-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px}
-.kpi-value{font-size:22px;font-weight:600;color:var(--text)}
-.kpi-value.green{color:var(--green)}.kpi-value.red{color:var(--red)}.kpi-value.yellow{color:var(--yellow)}.kpi-value.orange{color:var(--orange)}.kpi-value.blue{color:var(--blue)}
-.kpi-sub{font-size:10px;color:var(--text3);margin-top:2px}
-.table-wrap{overflow-x:auto;background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl)}
+
+.tab-bar{display:flex;gap:4px;padding:16px 48px 0;flex-wrap:wrap}
+.tab-btn{background:var(--white);border:1px solid var(--gray-200);border-radius:8px 8px 0 0;padding:10px 18px;font-size:12px;font-weight:600;color:var(--gray-text);cursor:pointer;white-space:nowrap;transition:all .15s;font-family:inherit;border-bottom:none}
+.tab-btn:hover{border-color:var(--orange-light);color:var(--charcoal)}
+.tab-btn.active{background:var(--white);border-color:var(--orange);color:var(--orange);position:relative}
+
+.content{padding:0 48px 48px;max-width:1600px;margin:0 auto}
+.section{display:none}.section.active{display:block;padding-top:24px}
+
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:24px}
+.kpi{background:var(--white);border:1px solid var(--gray-200);border-radius:var(--rl);padding:16px 20px;box-shadow:var(--shadow-sm)}
+.kpi-label{font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--gray-light);margin-bottom:4px}
+.kpi-value{font-size:24px;font-weight:600;color:var(--charcoal)}
+.kpi-value.green{color:var(--green)}.kpi-value.red{color:var(--red)}.kpi-value.yellow{color:var(--yellow)}.kpi-value.orange{color:var(--orange)}.kpi-value.blue{color:var(--blue)}.kpi-value.purple{color:var(--purple)}
+.kpi-sub{font-size:10px;color:var(--gray-light);margin-top:3px}
+
+.table-wrap{overflow-x:auto;background:var(--white);border:1px solid var(--gray-200);border-radius:var(--rl);box-shadow:var(--shadow-sm)}
 table{width:100%;border-collapse:collapse;font-size:12px}
-thead th{background:var(--bg3);color:var(--text2);font-weight:500;padding:10px 12px;text-align:left;position:sticky;top:0;border-bottom:1px solid var(--border2);cursor:pointer;user-select:none;white-space:nowrap}
-thead th:hover{color:var(--text)}
+thead th{background:var(--gray-100);color:var(--gray-text);font-weight:600;font-size:10px;letter-spacing:.05em;text-transform:uppercase;padding:10px 12px;text-align:left;position:sticky;top:0;border-bottom:1px solid var(--gray-200);cursor:pointer;user-select:none;white-space:nowrap}
+thead th:hover{color:var(--charcoal)}
 thead th.sorted-asc::after{content:' \u25B2';color:var(--orange)}
 thead th.sorted-desc::after{content:' \u25BC';color:var(--orange)}
-tbody td{padding:8px 12px;border-bottom:1px solid var(--border);color:var(--text);white-space:nowrap}
-tbody tr:hover{background:rgba(255,255,255,.03)}
+tbody td{padding:9px 12px;border-bottom:1px solid var(--gray-100);color:var(--charcoal);white-space:nowrap;font-size:13px}
+tbody tr:hover{background:var(--orange-50)}
+tbody tr:nth-child(even){background:var(--gray-100)}
+tbody tr:nth-child(even):hover{background:var(--orange-50)}
+
 .util-bar{display:flex;align-items:center;gap:6px}
-.util-track{width:70px;height:6px;background:var(--bg);border-radius:3px;overflow:hidden;flex-shrink:0}
+.util-track{width:70px;height:6px;background:var(--gray-200);border-radius:3px;overflow:hidden;flex-shrink:0}
 .util-fill{height:100%;border-radius:3px}
-.util-pct{font-size:11px;font-weight:500;min-width:36px}
+.util-pct{font-size:11px;font-weight:600;min-width:36px}
 .u-green .util-fill{background:var(--green)}.u-green .util-pct{color:var(--green)}
 .u-yellow .util-fill{background:var(--yellow)}.u-yellow .util-pct{color:var(--yellow)}
 .u-red .util-fill{background:var(--red)}.u-red .util-pct{color:var(--red)}
 .u-over .util-fill{background:var(--orange)}.u-over .util-pct{color:var(--orange)}
-.type-badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:500;white-space:nowrap}
-.type-long{background:var(--green-bg);color:var(--green)}
-.type-overnight{background:rgba(249,115,22,.12);color:#F97316}
-.type-short{background:var(--yellow-bg);color:var(--yellow)}
-.type-livein{background:var(--blue-bg);color:var(--blue)}
-.filter-bar{display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;align-items:center}
-.filter-bar select,.filter-bar input{background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:6px 10px;border-radius:var(--r);font-size:12px;font-family:inherit}
-.filter-bar select:focus,.filter-bar input:focus{outline:none;border-color:var(--orange)}
-.fl{font-size:11px;color:var(--text3);margin-right:-8px}
-.ts{font-size:11px;color:var(--text3);margin-bottom:12px}
-.sev-alert{color:var(--red);font-weight:600}.sev-warning{color:var(--orange)}.sev-info{color:var(--text2)}
-.gap-low{color:var(--text2)}.gap-med{color:var(--yellow)}.gap-high{color:var(--orange);font-weight:600}
-.payout-ok{color:var(--green)}.payout-warn{color:var(--yellow);font-weight:600}.payout-high{color:var(--orange);font-weight:700}
-.hm-cell{padding:6px;text-align:center;border-radius:4px;font-weight:600;font-size:11px}
-@media(max-width:900px){.content{padding:16px}.tab-bar,.topbar{padding:0 16px}.kpi-row{grid-template-columns:repeat(2,1fr)}}
+
+.type-badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:6px;font-size:10px;font-weight:700;letter-spacing:.03em;white-space:nowrap}
+.type-long{background:var(--yellow-light);color:var(--yellow-text)}
+.type-overnight{background:var(--purple-light);color:var(--purple-text)}
+.type-short{background:var(--blue-light);color:var(--blue-text)}
+.type-livein{background:var(--cyan-light);color:var(--cyan)}
+
+.filter-bar{background:var(--white);border:1px solid var(--gray-200);border-radius:var(--rl);padding:14px 20px;margin-bottom:16px;box-shadow:var(--shadow-sm);display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end}
+.filter-group{display:flex;flex-direction:column;gap:4px;min-width:110px}
+.filter-group label,.fl{font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--gray-light)}
+.filter-group select,.filter-group input,.filter-bar select,.filter-bar input{background:var(--gray-100);border:1px solid var(--gray-200);border-radius:6px;padding:7px 10px;font-family:inherit;font-size:12px;color:var(--charcoal);outline:none;transition:border-color .15s}
+.filter-group select:focus,.filter-group input:focus,.filter-bar select:focus,.filter-bar input:focus{border-color:var(--orange)}
+.fl{margin-right:-6px;align-self:center}
+
+.ts{font-size:12px;color:var(--gray-light);margin-bottom:16px;font-weight:500}
+.sev-alert{color:var(--red);font-weight:700}.sev-warning{color:var(--orange);font-weight:600}.sev-info{color:var(--gray-text)}
+.gap-low{color:var(--gray-text)}.gap-med{color:var(--yellow);font-weight:600}.gap-high{color:var(--orange);font-weight:700}
+.payout-ok{color:var(--green)}.payout-warn{color:var(--yellow);font-weight:600}.payout-high{color:var(--red);font-weight:700}
+
+@media(max-width:900px){.content,.tab-bar,.topbar,.hero,.stats-strip{padding-left:16px;padding-right:16px}.kpi-row{grid-template-columns:repeat(2,1fr)}.hero-title{font-size:24px}}
 </style>
 </head>
 <body>
 <div class="topbar">
   <div class="topbar-brand"><span class="topbar-tribute">Tribute</span><span class="topbar-sub">Caregiver Utilization</span></div>
-  <a href="index.html" class="topbar-back">&larr; Back to Dashboard</a>
+  <div class="topbar-right">
+    <div class="topbar-live"><div class="live-dot"></div>Live Data</div>
+    <a href="index.html" class="topbar-back">&larr; Back to Dashboard</a>
+  </div>
 </div>
+<div class="hero">
+  <div class="hero-eyebrow">Workforce Analytics</div>
+  <div class="hero-title">Caregiver <span>Utilization</span></div>
+  <div class="hero-sub">Real-time utilization tracking across all markets, matching the original report methodology with adjusted capacity and capped utilization calculations.</div>
+</div>
+<div id="stats-strip" class="stats-strip" style="display:none"></div>
+<div id="loading" class="loading-wrap"><div class="spinner"></div><div style="color:var(--gray-text);font-size:13px">Loading utilization data...</div></div>
+<div id="app" style="display:none">
 <div class="tab-bar">
   <button class="tab-btn active" data-tab="dash">Dashboard</button>
   <button class="tab-btn" data-tab="market">Market Summary</button>
@@ -96,8 +140,7 @@ tbody tr:hover{background:rgba(255,255,255,.03)}
   <button class="tab-btn" data-tab="newhires">New Hires 90 Days</button>
   <button class="tab-btn" data-tab="validation">Validation</button>
 </div>
-<div id="loading" class="loading-wrap"><div class="spinner"></div><div style="color:var(--text2);font-size:13px">Loading utilization data...</div></div>
-<div id="app" class="content" style="display:none">
+<div class="content">
   <div id="tab-dash" class="section active"></div>
   <div id="tab-market" class="section"></div>
   <div id="tab-state" class="section"></div>
@@ -111,14 +154,14 @@ tbody tr:hover{background:rgba(255,255,255,.03)}
   <div id="tab-newhires" class="section"></div>
   <div id="tab-validation" class="section"></div>
 </div>
+</div>
 <script>
 (function(){
 'use strict';
 var API='https://tribute-api-prod-bkc4hfcwf3f2f6bf.centralus-01.azurewebsites.net/api/vivProxy';
 var MKT_ORDER=['Boston','North of Boston','MetroWest Boston','South of Boston','Chicago','Annapolis','Baltimore','Bethesda'];
-var D;  // full data object from proxy
+var D;
 
-// ── Helpers ──
 function $(s,p){return(p||document).querySelector(s);}
 function $$(s,p){return Array.from((p||document).querySelectorAll(s));}
 function fmt(n,d){return n==null?'—':Number(n).toLocaleString(undefined,{minimumFractionDigits:d||0,maximumFractionDigits:d||0});}
@@ -126,17 +169,17 @@ function fmtPct(n){return n==null?'—':fmt(n,1)+'%';}
 function fmtDol(n){return n==null?'—':'$'+fmt(n,0);}
 function utilClass(p){return p>110?'u-over':p>=80?'u-green':p>=50?'u-yellow':'u-red';}
 function utilBar(p){
+  if(p==null)return '—';
   var cls=utilClass(p);
   return '<div class="util-bar '+cls+'"><div class="util-track"><div class="util-fill" style="width:'+Math.min(p,100)+'%"></div></div><span class="util-pct">'+fmtPct(p)+'</span></div>';
 }
 function typeBadge(t){
-  var m={'Long Hours':'type-long','Overnight':'type-overnight','Short Hours':'type-short','Live-In':'type-livein','Hourly':'type-short'};
+  var m={'Long Hours':'type-long','Overnight':'type-overnight','Short Hours':'type-short','Live-In':'type-livein','Hourly':'type-short','Live-In / Long Hours':'type-long','Live-In / Overnight':'type-overnight','PRN Worked':'type-short'};
   return '<span class="type-badge '+(m[t]||'type-short')+'">'+t+'</span>';
 }
 function gapClass(h){return h>=1.5?'gap-high':h>=0.5?'gap-med':'gap-low';}
 function payoutClass(h){return h>=15?'payout-high':h>=5?'payout-warn':'payout-ok';}
 
-// ── Sortable Table Builder ──
 function buildTable(container, columns, rows, opts){
   opts=opts||{};
   var sortCol=opts.defaultSort||0, sortAsc=opts.defaultAsc!==undefined?opts.defaultAsc:true;
@@ -148,7 +191,6 @@ function buildTable(container, columns, rows, opts){
   var tbody=document.createElement('tbody');
   tbl.appendChild(thead);tbl.appendChild(tbody);wrapper.appendChild(tbl);
   container.appendChild(wrapper);
-
   function render(){
     var sorted=rows.slice().sort(function(a,b){
       var av=columns[sortCol].val?columns[sortCol].val(a):a[columns[sortCol].key];
@@ -159,19 +201,16 @@ function buildTable(container, columns, rows, opts){
       if(typeof bv==='string')bv=bv.toLowerCase();
       return sortAsc?(av>bv?1:av<bv?-1:0):(av<bv?1:av>bv?-1:0);
     });
-    // Header
     thead.innerHTML='<tr>'+columns.map(function(c,i){
       var cls=i===sortCol?(sortAsc?'sorted-asc':'sorted-desc'):'';
       return '<th class="'+cls+'" data-ci="'+i+'">'+c.label+'</th>';
     }).join('')+'</tr>';
-    // Body
     tbody.innerHTML=sorted.map(function(row){
       return '<tr>'+columns.map(function(c){
         var v=c.render?c.render(row):(row[c.key]!=null?row[c.key]:'—');
         return '<td>'+v+'</td>';
       }).join('')+'</tr>';
     }).join('');
-    // Click handlers
     $$('th',thead).forEach(function(th){
       th.onclick=function(){
         var ci=parseInt(th.dataset.ci);
@@ -185,12 +224,10 @@ function buildTable(container, columns, rows, opts){
   return {render:render,setRows:function(r){rows=r;render();}};
 }
 
-// ── KPI Card ──
 function kpi(label,value,cls,sub){
   return '<div class="kpi"><div class="kpi-label">'+label+'</div><div class="kpi-value '+(cls||'')+'">'+value+'</div>'+(sub?'<div class="kpi-sub">'+sub+'</div>':'')+'</div>';
 }
 
-// ── Tab Switching ──
 $$('.tab-btn').forEach(function(btn){
   btn.onclick=function(){
     $$('.tab-btn').forEach(function(b){b.classList.remove('active');});
@@ -201,11 +238,22 @@ $$('.tab-btn').forEach(function(btn){
   };
 });
 
-// ── Fetch & Render ──
 fetch(API+'?endpoint=utilization_report').then(function(r){return r.json();}).then(function(data){
   D=data;
   $('#loading').style.display='none';
   $('#app').style.display='block';
+  // Stats strip
+  var s=D.summary;
+  var strip=$('#stats-strip');
+  strip.style.display='flex';
+  strip.innerHTML=
+    '<div class="stat-item"><div class="stat-label">Overall Util</div><div class="stat-value">'+fmtPct(s.overallUtilPct)+'</div></div>'+
+    '<div class="stat-item"><div class="stat-label">Active CGs</div><div class="stat-value">'+fmt(s.activeCount||s.activeCaregivers)+'</div></div>'+
+    '<div class="stat-item"><div class="stat-label">Adj Capacity</div><div class="stat-value">'+fmt(s.totalAdjCap||0,0)+'</div></div>'+
+    '<div class="stat-item"><div class="stat-label">Hrs Worked</div><div class="stat-value">'+fmt(s.totalWorkedHrs||0,0)+'</div></div>'+
+    '<div class="stat-item"><div class="stat-label">Revenue</div><div class="stat-value">'+fmtDol(s.totalRevenue)+'</div></div>'+
+    '<div class="stat-item"><div class="stat-label">Gross Margin</div><div class="stat-value">'+fmt(s.grossMarginPct,1)+'%</div></div>'+
+    '<div class="stat-item"><div class="stat-label">Week Of</div><div class="stat-value">'+D.weekOf+'</div></div>';
   renderDashboard();
   renderMarketSummary();
   renderStateSummary();
@@ -225,13 +273,12 @@ fetch(API+'?endpoint=utilization_report').then(function(r){return r.json();}).th
 // ── DASHBOARD ──
 function renderDashboard(){
   var el=$('#tab-dash');var s=D.summary;
-  el.innerHTML='<div class="ts">Week of '+D.weekOf+' to '+D.weekEnd+' | Generated '+new Date(D.generatedAt).toLocaleString()+'</div>';
+  el.innerHTML='<div class="ts">Week of '+D.weekOf+' to '+D.weekEnd+' &middot; Generated '+new Date(D.generatedAt).toLocaleString()+'</div>';
   el.innerHTML+='<div class="kpi-row">'+
-    kpi('Active Caregivers',fmt(s.activeCaregivers)+' / '+fmt(s.totalCaregivers),'','of total')+
-    kpi('Overall Utilization',fmtPct(s.overallUtilPct),s.overallUtilPct>=80?'green':s.overallUtilPct>=50?'yellow':'red')+
-    kpi('Total Scheduled',fmt(s.totalScheduledHrs,1)+' hrs','')+
+    kpi('Active Caregivers',fmt(s.activeCaregivers)+' / '+fmt(s.totalCaregivers),'','Active: '+fmt(s.activeCount||0)+' | PRN: '+fmt(s.prnCount||0)+' | PTO: '+fmt(s.ptoCount||0))+
+    kpi('Overall Utilization',fmtPct(s.overallUtilPct),s.overallUtilPct>=80?'green':s.overallUtilPct>=50?'yellow':'red','Adj Cap: '+fmt(s.totalAdjCap||0,1))+
+    kpi('Hrs Worked',fmt(s.totalWorkedHrs||s.totalScheduledHrs,1)+' hrs','','Desired: '+fmt(s.totalDesiredHrs,1))+
     kpi('Total Billed',fmt(s.totalBilledHrs,1)+' hrs','blue')+
-    kpi('Total Payable',fmt(s.totalPayableHrs,1)+' hrs','')+
     kpi('Revenue',fmtDol(s.totalRevenue),'green')+
     kpi('Cost',fmtDol(s.totalCost),'red')+
     kpi('Gross Profit',fmtDol(s.grossProfit),'green',fmt(s.grossMarginPct,1)+'% margin')+
@@ -240,11 +287,11 @@ function renderDashboard(){
     kpi('New Hires (90d)',fmt(s.newHireCount),'blue')+
     kpi('Validation Flags',fmt(s.validationCount),s.validationCount>0?'orange':'green')+
   '</div>';
-  // Market heatmap
-  var h='<div class="table-wrap"><table><thead><tr><th>Market</th><th>Fill Rate</th><th>Billed Hrs</th><th>Payable Hrs</th><th>Revenue</th><th>Gross Margin</th></tr></thead><tbody>';
+  var h='<div class="table-wrap"><table><thead><tr><th>Market</th><th>CGs</th><th>Adj Cap</th><th>Worked</th><th>Util %</th><th>Over 100%</th><th>Zero Util</th><th>Revenue</th><th>Gross Margin</th></tr></thead><tbody>';
   D.marketSummary.sort(function(a,b){return MKT_ORDER.indexOf(a.market)-MKT_ORDER.indexOf(b.market);}).forEach(function(m){
     var gmCls=m.grossMarginPct>=0.4?'green':m.grossMarginPct>=0.3?'yellow':'red';
-    h+='<tr><td><strong>'+m.market+'</strong></td><td>'+fmtPct(m.fillRate*100)+'</td><td>'+fmt(m.billedHrs,1)+'</td><td>'+fmt(m.payableHrs,1)+'</td><td>'+fmtDol(m.revenue)+'</td><td class="'+gmCls+'">'+fmtPct(m.grossMarginPct*100)+'</td></tr>';
+    var uCls=(m.utilPct||0)>=80?'green':(m.utilPct||0)>=50?'yellow':'red';
+    h+='<tr><td><strong>'+m.market+'</strong></td><td>'+fmt(m.cgCount||0)+'</td><td>'+fmt(m.totalAdjCap||0,1)+'</td><td>'+fmt(m.totalWorked||0,1)+'</td><td style="color:var(--'+uCls+');font-weight:600">'+fmtPct(m.utilPct||0)+'</td><td>'+(m.overCount||0)+'</td><td>'+(m.zeroCount||0)+'</td><td>'+fmtDol(m.revenue)+'</td><td style="color:var(--'+gmCls+');font-weight:600">'+fmtPct(m.grossMarginPct*100)+'</td></tr>';
   });
   h+='</tbody></table></div>';
   el.innerHTML+=h;
@@ -254,84 +301,95 @@ function renderDashboard(){
 function renderMarketSummary(){
   var el=$('#tab-market');
   el.innerHTML='<div class="ts">Week of '+D.weekOf+'</div>';
+  var summaryRows=[];
+  D.marketSummary.sort(function(a,b){return MKT_ORDER.indexOf(a.market)-MKT_ORDER.indexOf(b.market);}).forEach(function(m){
+    summaryRows.push({label:m.market,svcType:'Active Caregivers',count:m.cgCount||0,desired:m.totalDesired||0,adjCap:m.totalAdjCap||0,worked:m.totalWorked||0,utilPct:m.utilPct,overCount:m.overCount||0,zeroCount:m.zeroCount||0,workingCount:m.workingCount||0,isOverall:true});
+    if(m.typeBreakdown){m.typeBreakdown.forEach(function(t){
+      summaryRows.push({label:'',svcType:'  '+t.type,count:t.count,desired:t.desired,adjCap:t.adjCap,worked:t.worked,utilPct:t.utilPct,overCount:t.overCount,zeroCount:t.zeroCount,workingCount:t.count-t.zeroCount,isOverall:false});
+    });}
+    if(m.prnCount>0)summaryRows.push({label:'',svcType:'  PRN Worked',count:m.prnCount,desired:0,adjCap:0,worked:m.prnWorked||0,utilPct:null,overCount:0,zeroCount:0,workingCount:m.prnCount,isOverall:false,isPRN:true});
+    if(m.ptoCount>0)summaryRows.push({label:'',svcType:'  On PTO',count:m.ptoCount,desired:0,adjCap:0,worked:0,utilPct:null,overCount:0,zeroCount:0,workingCount:0,isOverall:false,isPTO:true});
+  });
   var cols=[
-    {label:'Market',key:'market'},
-    {label:'State',key:'state'},
-    {label:'Visits',key:'totalVisits'},
-    {label:'Filled',key:'filledVisits'},
-    {label:'Open',key:'openVisits'},
-    {label:'Cancelled',key:'cancelledVisits'},
-    {label:'Fill Rate',key:'fillRate',render:function(r){return fmtPct(r.fillRate*100);}},
-    {label:'Scheduled Hrs',key:'scheduledHrs',render:function(r){return fmt(r.scheduledHrs,1);}},
-    {label:'Billed Hrs',key:'billedHrs',render:function(r){return fmt(r.billedHrs,1);}},
-    {label:'Payable Hrs',key:'payableHrs',render:function(r){return fmt(r.payableHrs,1);}},
-    {label:'Revenue',key:'revenue',render:function(r){return fmtDol(r.revenue);}},
-    {label:'Cost',key:'cost',render:function(r){return fmtDol(r.cost);}},
-    {label:'Gross Profit',key:'grossProfit',render:function(r){return fmtDol(r.grossProfit);}},
-    {label:'Margin %',key:'grossMarginPct',render:function(r){return fmtPct(r.grossMarginPct*100);}},
-    {label:'Avg Bill Rate',key:'avgBillRate',render:function(r){return '$'+fmt(r.avgBillRate,2);}},
-    {label:'Avg Pay Rate',key:'avgPayRate',render:function(r){return '$'+fmt(r.avgPayRate,2);}}
+    {label:'Market',key:'label',render:function(r){return r.isOverall?'<strong>'+r.label+'</strong>':'';}},
+    {label:'Service Type',key:'svcType',render:function(r){return r.isPRN?'<span style="color:#654321;font-weight:600">'+r.svcType+'</span>':r.isPTO?'<span style="color:var(--purple);font-style:italic">'+r.svcType+'</span>':r.isOverall?'<strong>'+r.svcType+'</strong>':r.svcType;}},
+    {label:'Count',key:'count'},
+    {label:'Desired Hrs',key:'desired',render:function(r){return fmt(r.desired,1);}},
+    {label:'Adj Capacity',key:'adjCap',render:function(r){return r.adjCap>0?fmt(r.adjCap,1):'—';}},
+    {label:'Hrs Worked',key:'worked',render:function(r){return fmt(r.worked,1);}},
+    {label:'Util %',key:'utilPct',render:function(r){return r.utilPct!=null?utilBar(r.utilPct):'—';}},
+    {label:'Over 100%',key:'overCount'},
+    {label:'Zero Util',key:'zeroCount'},
+    {label:'# Working',key:'workingCount'}
   ];
-  buildTable(el,cols,D.marketSummary,{defaultSort:0});
+  buildTable(el,cols,summaryRows,{});
 }
 
 // ── STATE SUMMARY ──
 function renderStateSummary(){
   var el=$('#tab-state');
   el.innerHTML='<div class="ts">Week of '+D.weekOf+'</div>';
+  var summaryRows=[];
+  var ST_ORDER=['Massachusetts','Illinois','Maryland'];
+  D.stateSummary.sort(function(a,b){return ST_ORDER.indexOf(a.state)-ST_ORDER.indexOf(b.state);}).forEach(function(s){
+    summaryRows.push({label:s.state,svcType:'Active Caregivers',count:s.cgCount||0,desired:s.totalDesired||0,adjCap:s.totalAdjCap||0,worked:s.totalWorked||0,utilPct:s.utilPct,overCount:s.overCount||0,zeroCount:s.zeroCount||0,workingCount:s.workingCount||0,isOverall:true});
+    if(s.typeBreakdown){s.typeBreakdown.forEach(function(t){
+      summaryRows.push({label:'',svcType:'  '+t.type,count:t.count,desired:t.desired,adjCap:t.adjCap,worked:t.worked,utilPct:t.utilPct,overCount:t.overCount,zeroCount:t.zeroCount,workingCount:t.count-t.zeroCount,isOverall:false});
+    });}
+  });
   var cols=[
-    {label:'State',key:'state'},
-    {label:'Visits',key:'totalVisits'},
-    {label:'Filled',key:'filledVisits'},
-    {label:'Open',key:'openVisits'},
-    {label:'Fill Rate',key:'fillRate',render:function(r){return fmtPct(r.fillRate*100);}},
-    {label:'Scheduled Hrs',key:'scheduledHrs',render:function(r){return fmt(r.scheduledHrs,1);}},
-    {label:'Billed Hrs',key:'billedHrs',render:function(r){return fmt(r.billedHrs,1);}},
-    {label:'Payable Hrs',key:'payableHrs',render:function(r){return fmt(r.payableHrs,1);}},
-    {label:'Revenue',key:'revenue',render:function(r){return fmtDol(r.revenue);}},
-    {label:'Cost',key:'cost',render:function(r){return fmtDol(r.cost);}},
-    {label:'Gross Profit',key:'grossProfit',render:function(r){return fmtDol(r.grossProfit);}},
-    {label:'Margin %',key:'grossMarginPct',render:function(r){return fmtPct(r.grossMarginPct*100);}},
-    {label:'Avg Bill Rate',key:'avgBillRate',render:function(r){return '$'+fmt(r.avgBillRate,2);}},
-    {label:'Avg Pay Rate',key:'avgPayRate',render:function(r){return '$'+fmt(r.avgPayRate,2);}}
+    {label:'State',key:'label',render:function(r){return r.isOverall?'<strong>'+r.label+'</strong>':'';}},
+    {label:'Service Type',key:'svcType',render:function(r){return r.isOverall?'<strong>'+r.svcType+'</strong>':r.svcType;}},
+    {label:'Count',key:'count'},
+    {label:'Desired Hrs',key:'desired',render:function(r){return fmt(r.desired,1);}},
+    {label:'Adj Capacity',key:'adjCap',render:function(r){return r.adjCap>0?fmt(r.adjCap,1):'—';}},
+    {label:'Hrs Worked',key:'worked',render:function(r){return fmt(r.worked,1);}},
+    {label:'Util %',key:'utilPct',render:function(r){return r.utilPct!=null?utilBar(r.utilPct):'—';}},
+    {label:'Over 100%',key:'overCount'},
+    {label:'Zero Util',key:'zeroCount'},
+    {label:'# Working',key:'workingCount'}
   ];
-  buildTable(el,cols,D.stateSummary,{defaultSort:0});
+  buildTable(el,cols,summaryRows,{});
 }
 
 // ── CAREGIVER DETAIL ──
 function renderCaregiverDetail(){
   var el=$('#tab-detail');
-  el.innerHTML='<div class="ts" id="ts-detail">Week of '+D.weekOf+'</div>'+
-    '<div class="filter-bar"><span class="fl">Market</span><select id="flt-mkt"><option value="">All</option></select>'+
-    '<span class="fl">Type</span><select id="flt-type"><option value="">All</option><option value="Long Hours">Long Hrs</option><option value="Overnight">Overnight</option><option value="Short Hours">Short Hrs</option><option value="Live-In">Live-In</option></select>'+
-    '<span class="fl">Search</span><input id="flt-search" placeholder="Name..." style="width:140px">'+
-    '<span class="fl">Show</span><select id="flt-show"><option value="all">All</option><option value="zero">Zero Util</option><option value="over">Over 100%</option><option value="under50">Under 50%</option></select></div>';
-  // Populate market filter
+  el.innerHTML='<div class="ts">Week of '+D.weekOf+'</div>'+
+    '<div class="filter-bar">'+
+    '<div class="filter-group"><label>Market</label><select id="flt-mkt"><option value="">All Markets</option></select></div>'+
+    '<div class="filter-group"><label>Service Type</label><select id="flt-type"><option value="">All Types</option><option value="Long Hours">Long Hours</option><option value="Overnight">Overnight</option><option value="Short Hours">Short Hours</option><option value="Live-In">Live-In</option><option value="PRN">PRN</option></select></div>'+
+    '<div class="filter-group"><label>Search</label><input id="flt-search" placeholder="Name..."></div>'+
+    '<div class="filter-group"><label>Show</label><select id="flt-show"><option value="all">All</option><option value="zero">Zero Util</option><option value="over">Over 100%</option><option value="under50">Under 50%</option></select></div>'+
+    '</div>';
   var mkts={};D.caregiverDetail.forEach(function(c){mkts[c.market]=1;});
   var mktSel=$('#flt-mkt');
   MKT_ORDER.forEach(function(m){if(mkts[m])mktSel.innerHTML+='<option value="'+m+'">'+m+'</option>';});
-
   var cols=[
     {label:'Name',key:'name'},
     {label:'Market',key:'market'},
-    {label:'Type',key:'cgType',render:function(r){return typeBadge(r.cgType);}},
+    {label:'Service Type',key:'svcType',render:function(r){return typeBadge(r.svcType||r.cgType);}},
     {label:'Desired',key:'desiredHrs',render:function(r){return fmt(r.desiredHrs,1);}},
-    {label:'Scheduled',key:'scheduledHrs',render:function(r){return fmt(r.scheduledHrs,1);}},
-    {label:'Billed',key:'billedHrs',render:function(r){return fmt(r.billedHrs,1);}},
-    {label:'Payable',key:'payableHrs',render:function(r){return fmt(r.payableHrs,1);}},
+    {label:'Adj Cap',key:'adjCap',render:function(r){return fmt(r.adjCap,1);}},
+    {label:'Worked',key:'workedHrs',render:function(r){return fmt(r.workedHrs,1);}},
     {label:'Util %',key:'utilPct',render:function(r){return utilBar(r.utilPct);}},
-    {label:'Gap',key:'gap',render:function(r){return r.gap>0?'<span style="color:var(--red)">'+fmt(r.gap,1)+'</span>':'—';}},
+    {label:'Gap',key:'gap',render:function(r){return r.gap>0?'<span style="color:var(--red);font-weight:600">'+fmt(r.gap,1)+'</span>':'—';}},
     {label:'Capacity',key:'capacityReason'},
-    {label:'Long',key:'typeHrs',val:function(r){return r.typeHrs[0];},render:function(r){return r.typeHrs[0]>0?fmt(r.typeHrs[0],1):'—';}},
-    {label:'ON',val:function(r){return r.typeHrs[1];},render:function(r){return r.typeHrs[1]>0?fmt(r.typeHrs[1],1):'—';}},
-    {label:'Short',val:function(r){return r.typeHrs[2];},render:function(r){return r.typeHrs[2]>0?fmt(r.typeHrs[2],1):'—';}},
-    {label:'Live-In',val:function(r){return r.typeHrs[3];},render:function(r){return r.typeHrs[3]>0?fmt(r.typeHrs[3],1):'—';}},
-    {label:'PTO',key:'ptoHrs',render:function(r){return r.ptoHrs>0?'<span style="color:var(--purple)">'+fmt(r.ptoHrs,1)+'</span>':'—';}},
+    {label:'LH Days',key:'ldDays',render:function(r){return r.ldDays||'—';}},
+    {label:'ON Days',key:'odDays',render:function(r){return r.odDays||'—';}},
+    {label:'Live-In',key:'isLI'},
+    {label:'Su',val:function(r){return r.dayDisplay?r.dayDisplay[0]:'';},render:function(r){return r.dayDisplay?r.dayDisplay[0]:'—';}},
+    {label:'Mo',val:function(r){return r.dayDisplay?r.dayDisplay[1]:'';},render:function(r){return r.dayDisplay?r.dayDisplay[1]:'—';}},
+    {label:'Tu',val:function(r){return r.dayDisplay?r.dayDisplay[2]:'';},render:function(r){return r.dayDisplay?r.dayDisplay[2]:'—';}},
+    {label:'We',val:function(r){return r.dayDisplay?r.dayDisplay[3]:'';},render:function(r){return r.dayDisplay?r.dayDisplay[3]:'—';}},
+    {label:'Th',val:function(r){return r.dayDisplay?r.dayDisplay[4]:'';},render:function(r){return r.dayDisplay?r.dayDisplay[4]:'—';}},
+    {label:'Fr',val:function(r){return r.dayDisplay?r.dayDisplay[5]:'';},render:function(r){return r.dayDisplay?r.dayDisplay[5]:'—';}},
+    {label:'Sa',val:function(r){return r.dayDisplay?r.dayDisplay[6]:'';},render:function(r){return r.dayDisplay?r.dayDisplay[6]:'—';}},
+    {label:'PTO',key:'ptoHrs',render:function(r){return r.ptoHrs>0?'<span style="color:var(--purple);font-weight:600">'+fmt(r.ptoHrs,1)+'</span>':'—';}},
     {label:'TS',key:'tsType',render:function(r){return r.tsType>0?'TS'+r.tsType:'—';}},
     {label:'Designation',key:'designation'}
   ];
-  var tbl=buildTable(el,cols,D.caregiverDetail,{defaultSort:7,defaultAsc:true,maxHeight:'65vh'});
-
+  var tbl=buildTable(el,cols,D.caregiverDetail,{defaultSort:6,defaultAsc:true,maxHeight:'65vh'});
   function applyFilters(){
     var mkt=$('#flt-mkt').value;
     var type=$('#flt-type').value;
@@ -339,7 +397,8 @@ function renderCaregiverDetail(){
     var show=$('#flt-show').value;
     var filtered=D.caregiverDetail.filter(function(c){
       if(mkt&&c.market!==mkt)return false;
-      if(type&&c.cgType!==type)return false;
+      if(type==='PRN'){if(!c.isPRN)return false;}
+      else if(type&&(c.svcType||c.cgType).indexOf(type)<0)return false;
       if(search&&c.name.toLowerCase().indexOf(search)<0)return false;
       if(show==='zero'&&c.utilPct>0)return false;
       if(show==='over'&&c.utilPct<=100)return false;
@@ -357,47 +416,62 @@ function renderCaregiverDetail(){
 // ── DAY BREAKDOWN ──
 function renderDayBreakdown(){
   var el=$('#tab-daybreak');
-  el.innerHTML='<div class="ts">Week of '+D.weekOf+'</div>'+
-    '<div class="filter-bar"><span class="fl">Market</span><select id="flt-day-mkt"><option value="">All</option></select></div>';
+  el.innerHTML='<div class="ts">Capacity / Worked / Available / Unused per Day (LH, ON, LI only)</div>'+
+    '<div class="filter-bar">'+
+    '<div class="filter-group"><label>Market</label><select id="flt-day-mkt"><option value="">All Markets</option></select></div>'+
+    '<div class="filter-group"><label>Type</label><select id="flt-day-type"><option value="">All Types</option><option value="Long Hours">Long Hours</option><option value="Overnight">Overnight</option><option value="Live-In">Live-In</option></select></div>'+
+    '</div>';
   var mkts={};D.dayBreakdown.forEach(function(r){mkts[r.market]=1;});
   var sel=$('#flt-day-mkt');
   MKT_ORDER.forEach(function(m){if(mkts[m])sel.innerHTML+='<option value="'+m+'">'+m+'</option>';});
-
   var cols=[
     {label:'Market',key:'market'},
-    {label:'Date',key:'date'},
     {label:'Day',key:'day'},
     {label:'Type',key:'type',render:function(r){return typeBadge(r.type);}},
-    {label:'Total Scheduled',key:'totalScheduled',render:function(r){return fmt(r.totalScheduled,1);}},
-    {label:'Visit Count',key:'visitCount'}
+    {label:'CGs',key:'cgCount'},
+    {label:'Capacity',key:'capacity',render:function(r){return fmt(r.capacity,1);}},
+    {label:'Worked',key:'worked',render:function(r){return fmt(r.worked,1);}},
+    {label:'# Avail',key:'availCount',render:function(r){return fmt(r.availCount,1);}},
+    {label:'# Unused',key:'unusedCount',render:function(r){return r.unusedCount>0?'<span style="color:var(--red);font-weight:700">'+fmt(r.unusedCount,1)+'</span>':'0';}}
   ];
-  var tbl=buildTable(el,cols,D.dayBreakdown,{defaultSort:1});
-  sel.onchange=function(){
-    var m=sel.value;
-    tbl.setRows(m?D.dayBreakdown.filter(function(r){return r.market===m;}):D.dayBreakdown);
-  };
+  var tbl=buildTable(el,cols,D.dayBreakdown,{defaultSort:0});
+  function filterDB(){
+    var m=$('#flt-day-mkt').value;
+    var t=$('#flt-day-type').value;
+    tbl.setRows(D.dayBreakdown.filter(function(r){
+      if(m&&r.market!==m)return false;
+      if(t&&r.type!==t)return false;
+      return true;
+    }));
+  }
+  sel.onchange=filterDB;
+  $('#flt-day-type').onchange=filterDB;
 }
 
 // ── CAREGIVER ROSTER ──
 function renderRoster(){
   var el=$('#tab-roster');
   el.innerHTML='<div class="ts">Week of '+D.weekOf+'</div>'+
-    '<div class="filter-bar"><span class="fl">Market</span><select id="flt-ros-mkt"><option value="">All</option></select></div>';
+    '<div class="filter-bar"><div class="filter-group"><label>Market</label><select id="flt-ros-mkt"><option value="">All Markets</option></select></div></div>';
   var mkts={};D.roster.forEach(function(r){mkts[r.market]=1;});
   var sel=$('#flt-ros-mkt');
   MKT_ORDER.forEach(function(m){if(mkts[m])sel.innerHTML+='<option value="'+m+'">'+m+'</option>';});
-
   var cols=[
     {label:'Name',key:'name'},
     {label:'Market',key:'market'},
-    {label:'State',key:'state'},
     {label:'Designation',key:'designation'},
-    {label:'Type',key:'cgType',render:function(r){return typeBadge(r.cgType);}},
+    {label:'Service Type',key:'svcType',render:function(r){return typeBadge(r.svcType||r.cgType);}},
     {label:'Desired',key:'desiredHrs',render:function(r){return fmt(r.desiredHrs,1);}},
-    {label:'Scheduled',key:'scheduledHrs',render:function(r){return fmt(r.scheduledHrs,1);}},
-    {label:'Billed',key:'billedHrs',render:function(r){return fmt(r.billedHrs,1);}},
-    {label:'Payable',key:'payableHrs',render:function(r){return fmt(r.payableHrs,1);}},
-    {label:'Overtime',key:'overtimeHrs',render:function(r){return r.overtimeHrs>0?'<span style="color:var(--red);font-weight:600">'+fmt(r.overtimeHrs,1)+'</span>':'—';}},
+    {label:'Adj Cap',key:'adjCap',render:function(r){return fmt(r.adjCap||0,1);}},
+    {label:'Worked',key:'workedHrs',render:function(r){return fmt(r.workedHrs||0,1);}},
+    {label:'Util %',key:'utilPct',render:function(r){return utilBar(r.utilPct);}},
+    {label:'Su',val:function(r){return r.dayDisplay?r.dayDisplay[0]:'';},render:function(r){return r.dayDisplay?r.dayDisplay[0]:'—';}},
+    {label:'Mo',val:function(r){return r.dayDisplay?r.dayDisplay[1]:'';},render:function(r){return r.dayDisplay?r.dayDisplay[1]:'—';}},
+    {label:'Tu',val:function(r){return r.dayDisplay?r.dayDisplay[2]:'';},render:function(r){return r.dayDisplay?r.dayDisplay[2]:'—';}},
+    {label:'We',val:function(r){return r.dayDisplay?r.dayDisplay[3]:'';},render:function(r){return r.dayDisplay?r.dayDisplay[3]:'—';}},
+    {label:'Th',val:function(r){return r.dayDisplay?r.dayDisplay[4]:'';},render:function(r){return r.dayDisplay?r.dayDisplay[4]:'—';}},
+    {label:'Fr',val:function(r){return r.dayDisplay?r.dayDisplay[5]:'';},render:function(r){return r.dayDisplay?r.dayDisplay[5]:'—';}},
+    {label:'Sa',val:function(r){return r.dayDisplay?r.dayDisplay[6]:'';},render:function(r){return r.dayDisplay?r.dayDisplay[6]:'—';}},
     {label:'Hire Date',key:'hireDate',render:function(r){return r.hireDate?new Date(r.hireDate).toLocaleDateString():'—';}}
   ];
   var tbl=buildTable(el,cols,D.roster,{defaultSort:6,defaultAsc:false,maxHeight:'65vh'});
@@ -428,7 +502,7 @@ function renderTSAdmin(){
     {label:'Worked',key:'workedHrs',render:function(r){return fmt(r.workedHrs,1);}},
     {label:'PTO',key:'ptoHrs',render:function(r){return r.ptoHrs>0?fmt(r.ptoHrs,1):'—';}},
     {label:'TS Admin Hrs',key:'tsAdminHrs',render:function(r){return r.tsAdminHrs>0?fmt(r.tsAdminHrs,1):'—';}},
-    {label:'Cancelled Hrs',key:'cancelledHrs',render:function(r){return r.cancelledHrs>0?'<span style="color:var(--red)">'+fmt(r.cancelledHrs,1)+'</span>':'—';}},
+    {label:'Cancelled Hrs',key:'cancelledHrs',render:function(r){return r.cancelledHrs>0?'<span style="color:var(--red);font-weight:600">'+fmt(r.cancelledHrs,1)+'</span>':'—';}},
     {label:'Admin Payout',key:'adminPayout',render:function(r){return '<span class="'+payoutClass(r.adminPayout)+'">'+fmt(r.adminPayout,1)+' hrs</span>';}},
     {label:'Pay Rate',key:'payRate',render:function(r){return r.payRate>0?'$'+fmt(r.payRate,2):'—';}},
     {label:'Admin Cost',key:'adminCost',render:function(r){return r.adminCost>0?'<span class="'+payoutClass(r.adminPayout)+'">'+fmtDol(r.adminCost)+'</span>':'—';}},
@@ -440,8 +514,6 @@ function renderTSAdmin(){
 // ── TRAVEL TIME ──
 function renderTravelTime(){
   var el=$('#tab-travel');
-  el.innerHTML='<div class="ts">Week of '+D.weekOf+'</div>'+
-    '<div class="filter-bar"><span class="fl">Market</span><select id="flt-tt-mkt"><option value="">All</option></select></div>';
   var totalGapHrs=D.travelGaps.reduce(function(s,g){return s+g.gapHrs;},0);
   var avgGap=D.travelGaps.length>0?totalGapHrs/D.travelGaps.length:0;
   el.innerHTML='<div class="ts">Week of '+D.weekOf+'</div>'+
@@ -450,11 +522,10 @@ function renderTravelTime(){
     kpi('Total Gap Hours',fmt(totalGapHrs,1)+' hrs','yellow')+
     kpi('Avg Gap',fmt(avgGap*60,0)+' min','')+
     '</div>'+
-    '<div class="filter-bar"><span class="fl">Market</span><select id="flt-tt-mkt"><option value="">All</option></select></div>';
+    '<div class="filter-bar"><div class="filter-group"><label>Market</label><select id="flt-tt-mkt"><option value="">All Markets</option></select></div></div>';
   var mkts={};D.travelGaps.forEach(function(g){mkts[g.market]=1;});
   var sel=$('#flt-tt-mkt');
   MKT_ORDER.forEach(function(m){if(mkts[m])sel.innerHTML+='<option value="'+m+'">'+m+'</option>';});
-
   var cols=[
     {label:'Caregiver',key:'cgName'},
     {label:'Market',key:'market'},
@@ -474,26 +545,21 @@ function renderTravelTime(){
 // ── LONG HOURS & OVERNIGHTS ──
 function renderLHON(){
   var el=$('#tab-lhon');
-  el.innerHTML='<div class="ts">Week of '+D.weekOf+'</div>'+
-    '<div class="filter-bar"><span class="fl">Market</span><select id="flt-lhon-mkt"><option value="">All</option></select>'+
-    '<span class="fl">Type</span><select id="flt-lhon-type"><option value="">All</option><option value="Long Hours">Long Hrs</option><option value="Overnight">Overnight</option></select></div>';
   var mkts={};D.longHoursOvernights.forEach(function(r){mkts[r.market]=1;});
-  var sel=$('#flt-lhon-mkt');
-  MKT_ORDER.forEach(function(m){if(mkts[m])sel.innerHTML+='<option value="'+m+'">'+m+'</option>';});
-
   var totalLH=D.longHoursOvernights.filter(function(r){return r.type==='Long Hours';}).length;
   var totalON=D.longHoursOvernights.filter(function(r){return r.type==='Overnight';}).length;
   el.innerHTML='<div class="ts">Week of '+D.weekOf+'</div>'+
     '<div class="kpi-row">'+
-    kpi('Long Hour Visits',fmt(totalLH),'green')+
-    kpi('Overnight Visits',fmt(totalON),'orange')+
+    kpi('Long Hour Visits',fmt(totalLH),'yellow')+
+    kpi('Overnight Visits',fmt(totalON),'purple')+
     kpi('Total LH/ON Visits',fmt(D.longHoursOvernights.length),'')+
     '</div>'+
-    '<div class="filter-bar"><span class="fl">Market</span><select id="flt-lhon-mkt"><option value="">All</option></select>'+
-    '<span class="fl">Type</span><select id="flt-lhon-type"><option value="">All</option><option value="Long Hours">Long Hrs</option><option value="Overnight">Overnight</option></select></div>';
-  sel=$('#flt-lhon-mkt');
+    '<div class="filter-bar">'+
+    '<div class="filter-group"><label>Market</label><select id="flt-lhon-mkt"><option value="">All Markets</option></select></div>'+
+    '<div class="filter-group"><label>Type</label><select id="flt-lhon-type"><option value="">All</option><option value="Long Hours">Long Hours</option><option value="Overnight">Overnight</option></select></div>'+
+    '</div>';
+  var sel=$('#flt-lhon-mkt');
   MKT_ORDER.forEach(function(m){if(mkts[m])sel.innerHTML+='<option value="'+m+'">'+m+'</option>';});
-
   var cols=[
     {label:'Caregiver',key:'cgName'},
     {label:'Market',key:'market'},
@@ -527,7 +593,7 @@ function renderLHON(){
 function renderShiftMix(){
   var el=$('#tab-shiftmix');
   var totalCann=D.shiftMix.reduce(function(s,c){return s+c.shortShiftHrs;},0);
-  el.innerHTML='<div class="ts">Week of '+D.weekOf+' — LH/ON caregivers working short shifts (cannibalized hours)</div>'+
+  el.innerHTML='<div class="ts">LH/ON caregivers working short shifts (cannibalized hours)</div>'+
     '<div class="kpi-row">'+
     kpi('Affected Caregivers',fmt(D.shiftMix.length),'orange')+
     kpi('Cannibalized Hours',fmt(totalCann,1)+' hrs','red')+
@@ -539,10 +605,10 @@ function renderShiftMix(){
     {label:'Type',key:'cgType',render:function(r){return typeBadge(r.cgType);}},
     {label:'Long Hrs',key:'longHrs',render:function(r){return fmt(r.longHrs,1);}},
     {label:'ON Hrs',key:'overnightHrs',render:function(r){return fmt(r.overnightHrs,1);}},
-    {label:'Short Hrs',key:'shortHrs',render:function(r){return '<span style="color:var(--yellow)">'+fmt(r.shortHrs,1)+'</span>';}},
+    {label:'Short Hrs',key:'shortHrs',render:function(r){return '<span style="color:var(--yellow);font-weight:600">'+fmt(r.shortHrs,1)+'</span>';}},
     {label:'Live-In Hrs',key:'liveInHrs',render:function(r){return fmt(r.liveInHrs,1);}},
     {label:'Short Shifts',key:'shortShiftCount'},
-    {label:'Cannibalized Hrs',key:'shortShiftHrs',render:function(r){return '<span style="color:var(--red);font-weight:600">'+fmt(r.shortShiftHrs,1)+'</span>';}},
+    {label:'Cannibalized Hrs',key:'shortShiftHrs',render:function(r){return '<span style="color:var(--red);font-weight:700">'+fmt(r.shortShiftHrs,1)+'</span>';}},
     {label:'Cannibalized %',key:'cannibalizedPct',render:function(r){return fmtPct(r.cannibalizedPct);}},
     {label:'Total Scheduled',key:'totalScheduled',render:function(r){return fmt(r.totalScheduled,1);}}
   ];
@@ -566,8 +632,8 @@ function renderNewHires(){
     {label:'Designation',key:'designation'},
     {label:'Type',key:'cgType',render:function(r){return typeBadge(r.cgType);}},
     {label:'Desired Hrs',key:'desiredHrs',render:function(r){return fmt(r.desiredHrs,1);}},
-    {label:'Scheduled Hrs',key:'scheduledHrs',render:function(r){return fmt(r.scheduledHrs,1);}},
-    {label:'Billed Hrs',key:'billedHrs',render:function(r){return fmt(r.billedHrs,1);}},
+    {label:'Adj Cap',key:'adjCap',render:function(r){return fmt(r.adjCap||0,1);}},
+    {label:'Worked',key:'workedHrs',render:function(r){return fmt(r.workedHrs||0,1);}},
     {label:'Util %',key:'utilPct',render:function(r){return utilBar(r.utilPct);}},
     {label:'Visits',key:'visitCount'},
     {label:'TS',key:'tsType',render:function(r){return r.tsType>0?'TS'+r.tsType:'—';}}

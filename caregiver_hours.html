@@ -190,20 +190,56 @@ function setView(v,el){
   if(data)render();
 }
 
+function cacheKey(endpoint,start,end){return 'tribute_'+endpoint+'_'+start+'_'+end;}
+
+function getCached(endpoint,start,end){
+  try{
+    var raw=sessionStorage.getItem(cacheKey(endpoint,start,end));
+    if(!raw)return null;
+    var obj=JSON.parse(raw);
+    // Cache valid for 10 minutes
+    if(obj._ts&&Date.now()-obj._ts<600000)return obj.data;
+    sessionStorage.removeItem(cacheKey(endpoint,start,end));
+  }catch(e){}
+  return null;
+}
+
+function setCache(endpoint,start,end,d){
+  try{sessionStorage.setItem(cacheKey(endpoint,start,end),JSON.stringify({data:d,_ts:Date.now()}));}catch(e){}
+}
+
+function applyData(d){
+  data=d;
+  var t=data.totals;
+  document.getElementById('sl').innerHTML='<span class="dot"></span>Live &middot; Viv Technologies &middot; '+new Date().toLocaleTimeString();
+  document.getElementById('hr').innerHTML=fn(t.total)+' caregivers &middot; '+fp(t.goal75pct)+' at 75%+<br><span style="color:var(--text3)">'+curStart+' to '+curEnd+'</span>';
+  document.getElementById('ga').textContent='Week: '+curStart+' \u2014 '+curEnd;
+  populateMCEDropdown();
+  render();
+}
+
 async function fetchData(){
   if(!curStart||!curEnd)return;
+  // Try sessionStorage cache first
+  var cached=getCached('caregiver_hours',curStart,curEnd);
+  if(cached){
+    applyData(cached);
+    document.getElementById('sl').innerHTML='<span class="dot"></span>Cached &middot; refreshing in background...';
+    // Refresh in background
+    fetch(API+'?endpoint=caregiver_hours&startDate='+curStart+'&endDate='+curEnd)
+      .then(function(r){return r.json();})
+      .then(function(d){setCache('caregiver_hours',curStart,curEnd,d);applyData(d);})
+      .catch(function(){});
+    return;
+  }
   document.getElementById('sl').innerHTML='<span class="adot"></span>Loading... (60-90 sec)';
   document.getElementById('ct').innerHTML='<div class="loading"><div class="spin"></div>Loading caregiver hours for '+curStart+' to '+curEnd+'...<br><span style="font-size:11px;color:var(--text3);margin-top:8px;display:block">Pulling caregiver records and visit data.</span></div>';
   try{
     var res=await fetch(API+'?endpoint=caregiver_hours&startDate='+curStart+'&endDate='+curEnd);
     if(!res.ok)throw new Error('HTTP '+res.status);
-    data=await res.json();
-    var t=data.totals;
-    document.getElementById('sl').innerHTML='<span class="dot"></span>Live &middot; Viv Technologies &middot; '+new Date().toLocaleTimeString();
-    document.getElementById('hr').innerHTML=fn(t.total)+' caregivers &middot; '+fp(t.goal75pct)+' at 75%+<br><span style="color:var(--text3)">'+curStart+' to '+curEnd+'</span>';
-    document.getElementById('ga').textContent='Week: '+curStart+' \u2014 '+curEnd;
-    populateMCEDropdown();
-    render();
+    var d=await res.json();
+    setCache('caregiver_hours',curStart,curEnd,d);
+    applyData(d);
   }catch(e){
     document.getElementById('ct').innerHTML='<div class="err">Error: '+e.message+'</div>';
     document.getElementById('sl').innerHTML='<span style="color:var(--red)">\u2bc0</span> Error';
@@ -698,9 +734,9 @@ function renderTributeSecure(){
   var allCgs=getFiltered();
   var tsCgs=allCgs.filter(function(c){return c.tsThreshold>0;});
   var agg=aggregateGroup(tsCgs);
-  var ts40=tsCgs.filter(function(c){return c.tsThreshold===40;});
-  var ts30=tsCgs.filter(function(c){return c.tsThreshold===30;});
-  var ts20=tsCgs.filter(function(c){return c.tsThreshold===20;});
+  var tsByLevel={};
+  tsCgs.forEach(function(c){(tsByLevel[c.tsThreshold]=tsByLevel[c.tsThreshold]||[]).push(c);});
+  var tsLevels=Object.keys(tsByLevel).map(Number).sort(function(a,b){return b-a;});
 
   // Caregivers below threshold (owed hours)
   var belowThreshold=tsCgs.filter(function(c){
@@ -716,8 +752,9 @@ function renderTributeSecure(){
 
   html+='<div class="kg">';
   html+='<div class="kpi"><div class="kl">TS Caregivers</div><div class="kv p">'+fn(tsCgs.length)+'</div><div class="ks">of '+fn(allCgs.length)+' total</div></div>';
-  html+='<div class="kpi"><div class="kl">TS40</div><div class="kv p">'+fn(ts40.length)+'</div><div class="ks">40h guarantee</div></div>';
-  html+='<div class="kpi"><div class="kl">TS30</div><div class="kv p">'+fn(ts30.length)+'</div><div class="ks">30h guarantee</div></div>';
+  tsLevels.forEach(function(lvl){
+    html+='<div class="kpi"><div class="kl">TS'+lvl+'</div><div class="kv p">'+fn(tsByLevel[lvl].length)+'</div><div class="ks">'+lvl+'h guarantee</div></div>';
+  });
   html+='<div class="kpi"><div class="kl">Below Threshold</div><div class="kv '+(belowThreshold.length>0?'r':'g')+'">'+fn(belowThreshold.length)+'</div><div class="ks">'+fn(Math.round(totalOwed))+'h owed</div></div>';
   html+='<div class="kpi"><div class="kl">At 75%+ Desired</div><div class="kv '+(agg.goal75>=0.9?'g':agg.goal75>=0.7?'a':'r')+'">'+fp(agg.goal75)+'</div><div class="ks">of TS caregivers</div></div>';
   html+='</div>';
@@ -790,9 +827,11 @@ function renderList(){
   html+='<select onchange="filterByTS(this.value)" style="font-size:11px;padding:7px 10px;border:.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text);cursor:pointer">';
   html+='<option value="">All TS</option>';
   html+='<option value="any">Tribute Secure only</option>';
-  html+='<option value="40">TS40</option>';
-  html+='<option value="30">TS30</option>';
-  html+='<option value="20">TS20</option>';
+  var allTsLevels={};
+  (data.caregivers||[]).forEach(function(c){if(c.tsThreshold>0)allTsLevels[c.tsThreshold]=true;});
+  Object.keys(allTsLevels).map(Number).sort(function(a,b){return b-a;}).forEach(function(lvl){
+    html+='<option value="'+lvl+'">TS'+lvl+'</option>';
+  });
   html+='</select>';
   html+='<select onchange="filterByBucket(this.value)" style="font-size:11px;padding:7px 10px;border:.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text);cursor:pointer">';
   html+='<option value="">All happiness</option>';
@@ -977,6 +1016,19 @@ function renderBarriers(){
     renderBarriersUI(barriersData);
     return;
   }
+  // Try sessionStorage cache
+  var cached=getCached('performance_barriers',curStart,curEnd);
+  if(cached){
+    cached._period=curStart;
+    barriersData=cached;
+    renderBarriersUI(cached);
+    // Refresh in background
+    fetch(API+'?endpoint=performance_barriers&startDate='+curStart+'&endDate='+curEnd+'&lookback=90')
+      .then(function(r){return r.json();})
+      .then(function(d){d._period=curStart;barriersData=d;setCache('performance_barriers',curStart,curEnd,d);renderBarriersUI(d);})
+      .catch(function(){});
+    return;
+  }
   if(barriersLoading)return;
   barriersLoading=true;
   document.getElementById('ct').innerHTML='<div class="loading"><div class="spin"></div>Loading performance barriers (90-day lookback)...<br><span style="font-size:11px;color:var(--text3);margin-top:8px;display:block">Fetching incident reports and turndown data.</span></div>';
@@ -986,6 +1038,7 @@ function renderBarriers(){
       d._period=curStart;
       barriersData=d;
       barriersLoading=false;
+      setCache('performance_barriers',curStart,curEnd,d);
       renderBarriersUI(d);
     })
     .catch(function(e){
@@ -1072,11 +1125,11 @@ function renderBarriersUI(d){
   var BARRIER_COLORS={'Turndowns':'var(--red)','Communication: Not Responding':'var(--amber)',
     'Reliability: Short Notice Avail Change':'var(--red)','Reliability: Didn\'t Follow Availability':'var(--red)',
     'Flexibility: Won\'t Travel':'var(--amber)','Flexibility: Won\'t See Client in Skill Level':'var(--amber)',
-    'Flexibility: Weekend Commitment Not Met':'var(--amber)','Desired Hours':'var(--purple)'};
+    'Flexibility: Weekend Commitment Not Met':'var(--amber)','Desired Hours':'var(--purple)','Availability Change':'var(--cyan)'};
   var BARRIER_ICONS={'Turndowns':'🚫','Communication: Not Responding':'📵',
     'Reliability: Short Notice Avail Change':'⏰','Reliability: Didn\'t Follow Availability':'📋',
     'Flexibility: Won\'t Travel':'🚗','Flexibility: Won\'t See Client in Skill Level':'🎯',
-    'Flexibility: Weekend Commitment Not Met':'📅','Desired Hours':'📉'};
+    'Flexibility: Weekend Commitment Not Met':'📅','Desired Hours':'📉','Availability Change':'🔄'};
 
   html+='<div class="fc"><div class="ct">Incidents by Category</div>';
   if(filteredTypeSummary.length>0){
@@ -1439,6 +1492,8 @@ function renderDHTrendUI(weekData){
 function forceRefresh() {
   var btn = document.getElementById('forceRefreshBtn');
   if(btn) { btn.textContent = '⟳ Refreshing...'; btn.disabled = true; }
+  // Clear sessionStorage cache
+  try{Object.keys(sessionStorage).forEach(function(k){if(k.indexOf('tribute_')===0)sessionStorage.removeItem(k);});}catch(e){}
   fetch('https://tribute-api-prod-bkc4hfcwf3f2f6bf.centralus-01.azurewebsites.net/api/vivProxy?endpoint=refresh_cache&keys=caregiver_hours')
     .then(function() { window.location.reload(); })
     .catch(function() { window.location.reload(); });
