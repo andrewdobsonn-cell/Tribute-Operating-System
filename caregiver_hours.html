@@ -140,6 +140,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <script>
 var API='https://tribute-api-prod-bkc4hfcwf3f2f6bf.centralus-01.azurewebsites.net/api/vivProxy';
 var data=null,curNav='company',curView='overview',curStart=null,curEnd=null;
+var tsAdminMap={},tsAdminKey=null,tsAdminFetching=null;  // authoritative TS owed (proxy ts_admin), cgid -> row
 var globalMCE='';
 
 var STATE_MARKETS={ma:['Boston','MetroWest Boston','North of Boston','South of Boston'],il:['Chicago'],md:['Baltimore','Annapolis','Bethesda']};
@@ -245,6 +246,24 @@ async function fetchData(){
     document.getElementById('sl').innerHTML='<span style="color:var(--red)">\u2bc0</span> Error';
   }
 }
+
+// Authoritative TS admin-time owed for the current week (shared proxy calc).
+// Async; re-renders the TS view when it lands. Keyed by week to avoid refetch.
+function fetchTsAdmin(){
+  var key=curStart+'|'+curEnd;
+  if(tsAdminKey===key||tsAdminFetching===key)return;   // already loaded / in flight
+  tsAdminFetching=key;
+  fetch(API+'?endpoint=ts_admin&startDate='+curStart+'&endDate='+curEnd)
+    .then(function(r){return r.json();})
+    .then(function(d){
+      tsAdminFetching=null;
+      if((curStart+'|'+curEnd)!==key)return;            // week changed mid-flight
+      var m={}; (d.tsAdmin||[]).forEach(function(r){m[r._cgid]=r;}); tsAdminMap=m; tsAdminKey=key;
+      if(curView==='tributesecure')render();
+    })
+    .catch(function(){ tsAdminFetching=null; });
+}
+function tsOwed(c){ var r=tsAdminMap[c.id]; return r?(parseFloat(r['Hrs Owed'])||0):0; }
 
 // Filter data by current nav selection
 function getFiltered(){
@@ -738,17 +757,17 @@ function renderTributeSecure(){
   tsCgs.forEach(function(c){(tsByLevel[c.tsThreshold]=tsByLevel[c.tsThreshold]||[]).push(c);});
   var tsLevels=Object.keys(tsByLevel).map(Number).sort(function(a,b){return b-a;});
 
-  // Caregivers below threshold (owed hours)
-  var belowThreshold=tsCgs.filter(function(c){
-    var totalAccounted=c.scheduledHrs+c.ptoHrs;
-    return totalAccounted<c.tsThreshold;
-  });
-  var totalOwed=belowThreshold.reduce(function(s,c){return s+Math.max(0,c.tsThreshold-(c.scheduledHrs+c.ptoHrs));},0);
+  // Caregivers below threshold — owed comes from the shared TS calc (proxy ts_admin):
+  // full model (committed days, temp-unavail, call-outs, all paid hours, weekend rule).
+  fetchTsAdmin();
+  var tsReady=(tsAdminKey===(curStart+'|'+curEnd));
+  var belowThreshold=tsCgs.filter(function(c){return tsOwed(c)>0;});
+  var totalOwed=belowThreshold.reduce(function(s,c){return s+tsOwed(c);},0);
 
   var html='';
   html+='<div class="banner"><div class="bl">Tribute Secure &mdash; '+navLabel()+' &mdash; '+curStart+' to '+curEnd+'</div>';
   html+=fn(tsCgs.length)+' caregivers enrolled in Tribute Secure. ';
-  html+=belowThreshold.length+' currently below their guaranteed threshold ('+fn(Math.round(totalOwed))+'h owed).</div>';
+  html+=(tsReady?(belowThreshold.length+' currently below their guaranteed threshold ('+fn(Math.round(totalOwed))+'h owed).'):'<span style="color:var(--text3)">computing admin time from the full TS model…</span>')+'</div>';
 
   html+='<div class="kg">';
   html+='<div class="kpi"><div class="kl">TS Caregivers</div><div class="kv p">'+fn(tsCgs.length)+'</div><div class="ks">of '+fn(allCgs.length)+' total</div></div>';
@@ -769,25 +788,23 @@ function renderTributeSecure(){
   html+='<span style="color:var(--green)">75%+: '+agg.b75+'</span>';
   html+='</div></div>';
 
-  // Below-threshold table
+  // Below-threshold table — breakdown straight from the shared TS calc.
   if(belowThreshold.length>0){
-    belowThreshold.sort(function(a,b){
-      var aOwed=a.tsThreshold-(a.scheduledHrs+a.ptoHrs);
-      var bOwed=b.tsThreshold-(b.scheduledHrs+b.ptoHrs);
-      return bOwed-aOwed;
-    });
+    belowThreshold.sort(function(a,b){return tsOwed(b)-tsOwed(a);});
     html+='<div class="fc"><div class="ct">Below Threshold &mdash; TS Admin Time Needed</div>';
-    html+='<table class="tbl"><thead><tr><th style="text-align:left">Caregiver</th><th style="text-align:left">Market</th><th style="text-align:left">MCE</th><th>Threshold</th><th>Scheduled</th><th>PTO</th><th>Hrs Owed</th></tr></thead><tbody>';
+    html+='<table class="tbl"><thead><tr><th style="text-align:left">Caregiver</th><th style="text-align:left">Market</th><th style="text-align:left">MCE</th><th>Level</th><th>Paid Hrs</th><th>Days Off</th><th>Avail/Req</th><th>Hrs Owed</th><th style="text-align:left">Flags</th></tr></thead><tbody>';
     belowThreshold.forEach(function(c){
-      var owed=Math.max(0,c.tsThreshold-(c.scheduledHrs+c.ptoHrs));
+      var r=tsAdminMap[c.id]||{};
       html+='<tr>';
       html+='<td>'+c.name+'</td>';
       html+='<td style="font-weight:normal;color:var(--text2)">'+c.market+'</td>';
       html+='<td style="font-weight:normal;color:var(--text2)">'+c.assignee+'</td>';
-      html+='<td style="color:var(--purple)">TS'+c.tsThreshold+'</td>';
-      html+='<td>'+fh(c.scheduledHrs)+'</td>';
-      html+='<td style="color:'+(c.ptoHrs>0?'var(--amber)':'var(--text3)')+'">'+( c.ptoHrs>0?fh(c.ptoHrs):'—')+'</td>';
-      html+='<td style="color:var(--red);font-weight:500">'+fh(owed)+'</td>';
+      html+='<td style="color:var(--purple)">'+(r.Level||('TS'+c.tsThreshold))+'</td>';
+      html+='<td>'+(r.Worked||'—')+'</td>';
+      html+='<td style="color:var(--text2)">'+(r['Days Off']||'—')+'</td>';
+      html+='<td style="color:var(--text2)">'+(r['Avail/Req']||'—')+'</td>';
+      html+='<td style="color:var(--red);font-weight:500">'+fh(tsOwed(c))+'</td>';
+      html+='<td style="font-weight:normal;color:var(--text3);font-size:11px">'+(r.Flags&&r.Flags!=='—'?r.Flags:'')+'</td>';
       html+='</tr>';
     });
     html+='</tbody></table></div>';
