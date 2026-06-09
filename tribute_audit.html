@@ -346,148 +346,7 @@ function weekLabel(bookings) {
 }
 
 // ── DETECTION MODULES ──────────────────────────────────────────────────────
-// Tribute Secure admin-time, availability-based model.
-//   required days / per-day / weekend-commitment by level:
-const TS_REQ    = {40:4, 30:3, 20:5, 16:4};
-const TS_PERDAY = {40:10,30:10,20:4, 16:4};
-const TS_WKND   = {40:true,30:true,20:false,16:false};
-const DOW_LTR   = ['Su','Mo','Tu','We','Th','Fr','Sa'];
-function detectTS(bookings, tagLookup, tempUnavail, callOuts, startDate) {
-  tempUnavail = tempUnavail || {}; callOuts = callOuts || {};
-  const workedH = {}, cancelH = {}, cgGeo = {};
-  const absenceDates = {};   // cgid -> Set(ET ISO dates with a Time Off/PTO/Sick booking)
-  const workedWknd = {};     // cgid -> worked a Sat/Sun visit this week
-  const workedDates = {};    // cgid -> Set(ET ISO dates with a worked visit)
-  bookings.forEach(b => {
-    const cgid = b._cgid; if (!cgid) return;
-    if (b._geo) cgGeo[cgid] = b._geo;
-    const vt = b._vt;
-    if (b._cancelled) {
-      if (b._pay_h > 0 && !EXCLUDE_VT.has(vt) && !b._is_office)
-        cancelH[cgid] = (cancelH[cgid]||0) + b._pay_h;
-      return;
-    }
-    if (ABSENCE_VT.has(vt)) {
-      const iso = etDateISO(b._start);
-      if (iso) (absenceDates[cgid] = absenceDates[cgid] || new Set()).add(iso);
-      return;
-    }
-    // All paid hours count toward the guarantee — client visits, TS Admin Time,
-    // AND paid office meetings / travel time / trainings / supervisory visits.
-    // Exclude only flat incentive pay (bonuses, RFH) and expense reimbursements.
-    if (!FLAT_PAY_VT.has(vt) && b._pay_h > 0) {
-      workedH[cgid] = (workedH[cgid]||0) + b._pay_h;
-    }
-    // Actual client-visit work drives the weekend commitment and the call-out
-    // "worked that day" exclusion — a meeting/training doesn't fulfill a committed shift.
-    if (!EXCLUDE_VT.has(vt) && !b._is_office && b._pay_h > 0) {
-      const dow = etDow(b._start);
-      if (dow === 0 || dow === 6) workedWknd[cgid] = true;
-      const witer = etDateISO(b._start);
-      if (witer) (workedDates[cgid] = workedDates[cgid] || new Set()).add(witer);
-    }
-  });
-
-  // The 7 ET calendar dates of this pay week (isoDate matches the booking ET dates).
-  const isoDate = d => d.toISOString().split('T')[0];
-  const weekDays = [];
-  for (let i = 0; i < 7; i++) {
-    const d = new Date(startDate); d.setDate(d.getDate() + i);
-    weekDays.push({ iso: isoDate(d), dow: d.getDay() });
-  }
-
-  const issues = [];
-  Object.entries(tagLookup).forEach(([cgid, info]) => {
-    if (!info.threshold) return;
-    const lvl = info.threshold;
-    const required = TS_REQ[lvl], perDay = TS_PERDAY[lvl], weekendReq = TS_WKND[lvl];
-    if (!required) return; // unknown level — skip rather than miscompute
-    const name = `${info.fn} ${info.ln}`.trim();
-    const geo = cgGeo[cgid] || info.market;
-    const office = MKT_OFFICE[geo] || `Office (${geo})`;
-    const worked = Math.round((workedH[cgid]||0)*100)/100;
-    const cancel = Math.round((cancelH[cgid]||0)*100)/100;
-    const paid = Math.round((worked + cancel)*100)/100; // all paid hours count toward guarantee
-
-    // Day-off sources for this caregiver this week.
-    const absSet = absenceDates[cgid] || new Set();
-    const recs = tempUnavail[cgid] || [];
-    const approvedTemp = new Set(), pendingTemp = new Set();
-    recs.forEach(r => {
-      const dates = expandEtDates(r.start, r.end);
-      const st = (r.status||'').toLowerCase();
-      if (st === 'approved') dates.forEach(d => approvedTemp.add(d));
-      else if (st === 'pending') dates.forEach(d => pendingTemp.add(d));
-    });
-    // Call-out / NCNS service exceptions (single-day). Forfeit a committed day
-    // only if no visit was worked that day. Deduped with temp-unavail/time-off by date.
-    const callOutSet = new Set();
-    (callOuts[cgid] || []).forEach(dt => { const iso = etDateISO(parseTime(dt)); if (iso) callOutSet.add(iso); });
-
-    const committed = new Set(info.committedDays || []);
-    const flags = [];
-    let daysGuarantee, weekendPenalty = 0, availableCount = null;
-    const offDates = [], dblEntry = [], nonCommitted = [], callOutOnly = [];
-
-    if (info.availabilityMissing || committed.size === 0) {
-      // Can't verify committed days — fall back to full guarantee, surface for manual check.
-      daysGuarantee = required * perDay;
-      flags.push('⚠ Availability missing — not day-adjusted');
-    } else {
-      const didWork = workedDates[cgid] || new Set();
-      let forfeited = 0, weekendForfeited = false;
-      weekDays.forEach(({iso, dow}) => {
-        const isCommitted = committed.has(dow);
-        const bookOff = absSet.has(iso);
-        const tempOff = approvedTemp.has(iso);
-        const callOff = callOutSet.has(iso) && !didWork.has(iso); // not scheduled that day
-        const approvedOff = bookOff || tempOff || callOff;
-        if (bookOff && (approvedTemp.has(iso) || pendingTemp.has(iso))) dblEntry.push(iso);
-        if (callOff && !bookOff && !tempOff && isCommitted) callOutOnly.push(iso); // forgot to record time off
-        if (approvedOff && !isCommitted) nonCommitted.push(iso);
-        if (approvedOff && isCommitted) {
-          forfeited++; offDates.push(iso);
-          if (dow === 0 || dow === 6) weekendForfeited = true;
-        }
-      });
-      availableCount = committed.size - forfeited;
-      daysGuarantee = Math.min(availableCount, required) * perDay;
-      if (weekendReq && weekendForfeited && !workedWknd[cgid]) {
-        weekendPenalty = perDay;
-        flags.push('Weekend commitment unmet (−'+perDay+'h)');
-        if (availableCount < required) flags.push('⚠ Review: lost weekend AND below required days');
-      }
-    }
-
-    if (callOutOnly.length)  flags.push('Call-out/NCNS — no time off entered: '+callOutOnly.map(fmtIso).join(', '));
-    if (dblEntry.length)     flags.push('Double-entry: '+dblEntry.map(fmtIso).join(', '));
-    if (nonCommitted.length) flags.push('Off on non-committed day (ignored): '+nonCommitted.map(fmtIso).join(', '));
-    if (pendingTemp.size)    flags.push('Pending unavailability not actioned');
-
-    const guarantee = Math.max(0, Math.round((daysGuarantee - weekendPenalty)*100)/100);
-    const payout = Math.round(Math.max(0, guarantee - paid)*100)/100;
-
-    // Only surface caregivers actually owed TS Admin hours (flags shown on owed rows).
-    if (payout > 0) {
-      issues.push({
-        'Caregiver': name, 'Market': geo, 'Level': `TS${lvl}`,
-        'Committed': [...committed].sort((a,b)=>a-b).map(d=>DOW_LTR[d]).join(' ') || '—',
-        'Worked': paid.toFixed(2),
-        'Days Off': offDates.length ? offDates.map(fmtIso).join(', ') : '—',
-        'Avail/Req': availableCount===null ? '—' : `${availableCount}/${required}`,
-        'Guarantee': guarantee.toFixed(2),
-        'Hrs Owed': payout.toFixed(2),
-        'Client': office,
-        'Flags': flags.join(' · ') || '—',
-        'Action': payout > 0 ? `Create ${payout.toFixed(2)}h TS Admin Time — ${office}` : 'Reconcile — no admin owed',
-        severity: (info.availabilityMissing || dblEntry.length || payout >= guarantee*0.5) ? 'error' : 'warn',
-        geo, _cgid: cgid });
-    }
-  });
-  issues.sort((a,b) => sf(b['Hrs Owed'])-sf(a['Hrs Owed']));
-  return issues;
-}
-function fmtIso(iso) { const p = (iso||'').split('-'); return p.length===3 ? `${p[1]}/${p[2]}` : iso; }
+// TS Admin Time calc moved to the proxy (computeTsAdmin) — single source of truth. Section consumes apiData.tsAdmin.
 
 function detectTravelTime(bookings) {
   const ttExisting = {};
@@ -1184,7 +1043,7 @@ async function runDashboard() {
     const sections = [
       {id:'ts',       name:'TS Admin Time',          icon:'🛡️', red:true,
        desc:'Tribute Secure guarantee vs. paid hours — only caregivers actually owed admin time are listed. Days off (approved Temporary Unavailability, Time Off bookings, OR a call-out/NCNS service exception on an unworked day) on committed availability days reduce the guarantee; a committed weekend taken off costs an extra 10h unless a weekend visit was worked. Flags surface call-outs with no time off entered, double-entries, off-days on non-committed days, pending requests, and missing availability.',
-       data:detectTS(bookings,tagLookup,apiData.tempUnavailability||{},apiData.callOuts||{},startDate),
+       data:(apiData.tsAdmin||[]).filter(r=>parseFloat(r['Hrs Owed'])>0),  // shared calc (proxy computeTsAdmin)
        cols:['Caregiver','Market','Level','Committed','Worked','Days Off','Avail/Req','Guarantee','Hrs Owed','Client','Flags','Action']},
       {id:'tt',       name:'Missing Travel Time',     icon:'🚗',
        desc:'Caregivers with back-to-back visits ≤ 2 hours apart with no Travel Time visit entered.',
