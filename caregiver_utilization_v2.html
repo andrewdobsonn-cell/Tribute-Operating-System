@@ -174,6 +174,7 @@ const DAY_MAP={su:0,sun:0,sunday:0,mo:1,mon:1,monday:1,m:1,tu:2,tue:2,tuesday:2,
 const DAY_PAT=/(?:Su|Sun|Sunday|Mo|Mon|Monday|Tu|Tue|Tuesday|We|Wed|Wednesday|Th|Thu|Thursday|Fr|Fri|Friday|Sa|Sat|Saturday|M|T|W|F)/gi;
 
 let ACTIVE=[],PRN_R=[],PTO_R=[],TRAVEL=[],SCHED_RAW=[];
+let tsAdminMapV2={},tsAdminKeyV2=null;  // authoritative TS owed (proxy ts_admin), cgId -> row
 let CURRENT_WEEK_KEY='';
 
 // ── Week helpers (Sunday–Saturday weeks) ──
@@ -461,12 +462,23 @@ async function loadLiveWeek(weekKey){
     ACTIVE=result.activeRows;PRN_R=result.prnRows;PTO_R=result.ptoRows;TRAVEL=travel;
     showMeta(d.generatedAt||new Date().toISOString(),'Viv Report Builder','Viv Schedule API');
     popFilters();renderAll();
+    fetchTsAdminV2(weekKey);
   }catch(e){
     console.error('[utilization_live]',e);
     document.querySelectorAll('.tp').forEach(function(p){p.innerHTML='<div class="empty">Error loading data: '+e.message+'</div>'});
   }
 }
 async function loadWeek(weekKey){return loadLiveWeek(weekKey);}
+// Authoritative TS admin-time owed for the week (shared proxy calc). Re-renders TS tab when it lands.
+function fetchTsAdminV2(weekKey){
+  if(tsAdminKeyV2===weekKey)return;
+  var s=new Date(weekKey+'T00:00:00'),e=new Date(s);e.setDate(e.getDate()+6);
+  var end=e.toISOString().slice(0,10);
+  fetch(API+'?endpoint=ts_admin&startDate='+weekKey+'&endDate='+end)
+    .then(function(r){return r.json();})
+    .then(function(d){ if(CURRENT_WEEK_KEY!==weekKey)return; var m={}; (d.tsAdmin||[]).forEach(function(r){m[r._cgid]=r;}); tsAdminMapV2=m; tsAdminKeyV2=weekKey; renderTS(); })
+    .catch(function(){});
+}
 
 // ═════════════════════════════════════════════════════════════
 // RENDER
@@ -684,7 +696,7 @@ function renderTS(){
   const hdrs=['Caregiver','Market','State','Type','Threshold','Avail Days','Desired Hrs','Adj Capacity','Hrs Worked','PTO Hrs (capped)','Cancelled Hrs','Admin Payout'];
   let h='<div class="tc"><div class="tt">TS Admin Tracker</div><div class="ts"><table id="tbl-ts"><thead><tr>';
   hdrs.forEach(c=>h+='<th'+(c==='Caregiver'?' class="al"':'')+'>'+c+'</th>');h+='</tr></thead><tbody>';
-  for(const r of tsRows){const thr=r.tsType,pto=r.ptoHrs,wrk=r.worked,can=r.cancelled||0;const payout=Math.max(0,thr-wrk-pto);
+  for(const r of tsRows){const thr=r.tsType,pto=r.ptoHrs,wrk=r.worked,can=r.cancelled||0;const _tsr=tsAdminMapV2[r.cgId];const payout=_tsr?(parseFloat(_tsr['Hrs Owed'])||0):Math.max(0,thr-wrk-pto);
     let adC=0;r.dayAvail.forEach(v=>{if(v>0)adC++});const minD=thr===30?3:4;
     let rc=thr===30?'ts-b':'ts-g';if(payout>0){rc=payout>=thr*.5?'ts-o':'ts-y'}
     h+='<tr class="'+rc+'"><td class="al">'+E(r.first)+' '+E(r.last)+'</td><td>'+r.market+'</td><td>'+r.state+'</td><td>TS'+thr+'</td><td>'+thr+'</td><td>'+adC+' of '+minD+'+ req</td><td>'+H(r.desired)+'</td><td>'+H(r.adjCap)+'</td><td>'+H(wrk)+'</td><td>'+H(pto)+'</td><td>'+H(can)+'</td><td'+(payout>0?' style="font-weight:700"':'')+'>'+H(payout)+'</td></tr>'}
