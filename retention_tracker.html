@@ -773,6 +773,9 @@ function exportCSV(){
 }
 
 // ── Boot ──
+// Accept a key handed off via URL hash (#k=…) by the Caregiver Intelligence
+// Suite shell, then strip it from the address bar.
+(function(){var m=location.hash.match(/[#&]k=([^&]+)/);if(m){try{sessionStorage.setItem('tribute_retention_key',decodeURIComponent(m[1]))}catch(e){}try{history.replaceState(null,'',location.pathname+location.search)}catch(e){}}})();
 (function(){var saved=null;try{saved=sessionStorage.getItem('tribute_retention_key')}catch(e){}if(saved){GATE_KEY=saved;loadAll(false,false)}})();
 </script>
 </body>
