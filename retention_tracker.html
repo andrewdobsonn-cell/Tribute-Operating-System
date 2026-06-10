@@ -4,14 +4,21 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Tribute — Caregiver Retention Tracker</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='13' fill='%23FF671F'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{--bg:#fff;--bg2:#f7f7f5;--bg3:#ededea;--text:#1a1a18;--text2:#6b6b67;--text3:#9e9c96;--border:rgba(0,0,0,0.09);--border2:rgba(0,0,0,0.16);--green:#1D9E75;--amber:#EF9F27;--red:#E24B4A;--blue:#185FA5;--purple:#7B4FBE;--green-bg:#E1F5EE;--amber-bg:#FAEEDA;--red-bg:#FCEBEB;--blue-bg:#E6F1FB;--green-text:#0F6E56;--amber-text:#633806;--red-text:#791F1F;--blue-text:#0C447C;--r:8px;--rl:12px}
-@media(prefers-color-scheme:dark){:root{--bg:#1a1a18;--bg2:#232320;--bg3:#2c2c29;--text:#e8e6e0;--text2:#9e9c96;--text3:#6b6b67;--border:rgba(255,255,255,0.09);--border2:rgba(255,255,255,0.16);--green-bg:#04342C;--amber-bg:#412402;--red-bg:#501313;--blue-bg:#042C53;--green-text:#9FE1CB;--amber-text:#FAC775;--red-text:#F09595;--blue-text:#85B7EB}}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);padding:20px;max-width:1400px;margin:0 auto;font-size:14px;line-height:1.5}
+:root{--bg:#fff;--bg2:#F4F6F9;--bg3:#E8EDF3;--text:#0F1E35;--text2:#5B6B80;--text3:#8E9AAB;--border:rgba(15,30,53,0.09);--border2:rgba(15,30,53,0.18);--green:#14B8A6;--amber:#EF9F27;--red:#E24B4A;--blue:#407EC9;--purple:#AA0061;--orange:#FF671F;--orange-dark:#E25309;--green-bg:#E0F5F1;--amber-bg:#FAEEDA;--red-bg:#FCEBEB;--blue-bg:#ECF3FB;--orange-bg:#FFF1E8;--green-text:#0B6E62;--amber-text:#633806;--red-text:#791F1F;--blue-text:#33659F;--orange-text:#9A3D08;--r:8px;--rl:12px}
+@media(prefers-color-scheme:dark){:root{--bg:#101826;--bg2:#18222F;--bg3:#22303F;--text:#E8ECF2;--text2:#9AA7B8;--text3:#6B7889;--border:rgba(255,255,255,0.09);--border2:rgba(255,255,255,0.16);--green-bg:#04342C;--amber-bg:#412402;--red-bg:#501313;--blue-bg:#0E2A47;--orange-bg:#3A1C0A;--green-text:#9FE1CB;--amber-text:#FAC775;--red-text:#F09595;--blue-text:#9CC2EE;--orange-text:#FFB28A}}
+body{font-family:'Source Sans 3',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);padding:20px;max-width:1400px;margin:0 auto;font-size:14px;line-height:1.5}
 .hdr{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:14px;border-bottom:.5px solid var(--border);margin-bottom:16px;flex-wrap:wrap;gap:10px}
-.logo{font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--text3)}
+body::before{content:"";position:fixed;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#FF671F 70%,#FDDA24);z-index:300}
+.logo{display:flex;align-items:baseline;gap:7px}
+.wordmark{color:var(--orange);font-size:17px;font-weight:700;letter-spacing:-.01em;line-height:1}
+.wordmark-sub{font-size:9px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--text3)}
 .title{font-size:22px;font-weight:500;margin-top:3px}
 .sub{font-size:11px;color:var(--text3);margin-top:2px}
 .dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--green);margin-right:4px;animation:pulse 2s infinite}
@@ -22,7 +29,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .err{background:var(--red-bg);color:var(--red-text);border-radius:var(--r);padding:12px 16px;margin-bottom:16px;font-size:13px}
 .nav-tabs{display:flex;border-bottom:.5px solid var(--border);margin-bottom:12px;overflow-x:auto;align-items:center}
 .ntab{font-size:12px;font-weight:500;color:var(--text2);padding:8px 16px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-.5px;white-space:nowrap;user-select:none}
-.ntab.on{color:var(--text);border-bottom-color:var(--text)}
+.ntab.on{color:var(--text);border-bottom-color:var(--orange);font-weight:600}
 .filter-bar{display:flex;gap:8px;align-items:center;margin-bottom:16px;flex-wrap:wrap;padding:10px 12px;background:var(--bg2);border-radius:var(--r)}
 .filter-bar .fl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3)}
 .filter-bar select{padding:6px 10px;font-size:12px;border:.5px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text)}
@@ -51,8 +58,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .toolbar{display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
 .toolbar input,.toolbar select{padding:6px 10px;font-size:12px;border:.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text)}
 .toolbar .srch{flex:1;min-width:200px}
-.export-btn{padding:6px 14px;font-size:11px;font-weight:600;border:none;border-radius:6px;cursor:pointer;background:var(--blue);color:#fff}
-.export-btn:hover{opacity:.85}
+.export-btn{padding:6px 14px;font-size:11px;font-weight:600;border:none;border-radius:6px;cursor:pointer;background:var(--orange);color:#fff}
+.export-btn:hover{background:var(--orange-dark)}
 .btn2{padding:6px 12px;font-size:11px;font-weight:600;border:.5px solid var(--border2);border-radius:6px;cursor:pointer;background:var(--bg);color:var(--text)}
 .exp-arrow{display:inline-block;width:10px;font-size:10px;color:var(--text3);margin-right:6px;transition:transform .15s}
 tr.expanded .exp-arrow{transform:rotate(90deg);color:var(--text)}
@@ -71,7 +78,7 @@ tr.cg-row{cursor:pointer}
 .gate{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:100}
 .gate-box{width:340px;max-width:90vw;text-align:center}
 .gate-box input{width:100%;padding:10px 12px;font-size:14px;border:.5px solid var(--border2);border-radius:var(--r);background:var(--bg2);color:var(--text);margin:14px 0 10px}
-.gate-box button{width:100%;padding:10px;font-size:13px;font-weight:600;border:none;border-radius:var(--r);background:var(--text);color:var(--bg);cursor:pointer}
+.gate-box button{width:100%;padding:10px;font-size:13px;font-weight:600;border:none;border-radius:var(--r);background:var(--orange);color:#fff;cursor:pointer}
 .gate-err{color:var(--red-text);font-size:12px;margin-top:10px;min-height:16px}
 .scaffold{text-align:center;padding:50px 20px;color:var(--text3);font-size:13px;line-height:1.7}
 .scaffold .big{font-size:30px;margin-bottom:10px}
@@ -91,7 +98,7 @@ tr.cg-row{cursor:pointer}
 
 <div class="gate" id="gate">
   <div class="gate-box">
-    <div class="logo">Tribute Operating System</div>
+    <div class="logo"><span class="wordmark">Tribute</span><span class="wordmark-sub">Operating System</span></div>
     <div class="title" style="font-size:18px">Retention Tracker</div>
     <div class="sub">Contains caregiver HR records. Enter the team password.</div>
     <input type="password" id="gateInput" placeholder="Password" autocomplete="current-password" onkeydown="if(event.key==='Enter')submitGate()">
@@ -103,7 +110,7 @@ tr.cg-row{cursor:pointer}
 <div id="app" style="display:none">
   <div class="hdr">
     <div>
-      <div class="logo">Tribute Operating System</div>
+      <div class="logo"><span class="wordmark">Tribute</span><span class="wordmark-sub">Operating System</span></div>
       <div class="title">Caregiver Retention Tracker</div>
       <div class="sub" id="statusLine"><span class="dot"></span>Loading…</div>
     </div>
