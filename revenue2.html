@@ -75,13 +75,39 @@ const fmtM=m=>{const[y,mo]=m.split('-');return new Date(+y,+mo-1,1).toLocaleStri
 
 (async()=>{
   try{
+    document.getElementById('loading').innerHTML='<div class="spin"></div>Loading both sources… the original-method 2026 months are computed live from raw visits and can take a minute on a cold cache.';
     const [origRes,newRes]=await Promise.all([
       fetch(API+'?endpoint=revenue_trends').then(r=>r.json()),
       fetch(API+'?endpoint=report_builder',{method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify({action:'run',reportId:NEW_REPORT,payload:{limit:1000,skip:0}})}).then(r=>r.json())
     ]);
-    const orig={};   // month → {hours, revenue}
+    const orig={};   // month → {hours, revenue, live?}
     (origRes.company||[]).forEach(r=>{ if(r.month)orig[r.month]={hours:r.hours,revenue:r.revenue}; });
+
+    // The saved original report's window ends 2025-12, so 2026 months are
+    // computed with the original dashboard's other engine: ?endpoint=visits
+    // (same processVisits revenue math), one call per complete month.
+    const nowMs=new Date(); nowMs.setHours(0,0,0,0);
+    const curMonth=nowMs.toISOString().slice(0,7);
+    const lastOrig=Object.keys(orig).sort().pop()||'2025-12';
+    const liveMonths=[];
+    {
+      let d=new Date(lastOrig+'-01T12:00:00'); d.setMonth(d.getMonth()+1);
+      while(d.toISOString().slice(0,7)<curMonth){
+        liveMonths.push(d.toISOString().slice(0,7));
+        d.setMonth(d.getMonth()+1);
+      }
+    }
+    const liveResults=await Promise.all(liveMonths.map(m=>{
+      const start=m+'-01';
+      const end=new Date(+m.slice(0,4),+m.slice(5,7),0).toISOString().slice(0,10); // last day of month
+      return fetch(API+'?endpoint=visits&startDate='+start+'&endDate='+end)
+        .then(r=>r.json()).catch(()=>null);
+    }));
+    liveMonths.forEach((m,i)=>{
+      const t=liveResults[i]&&liveResults[i].totals;
+      if(t)orig[m]={hours:t.billedHours,revenue:t.revenue,live:true};
+    });
     const nw={};     // month → {hours, bill, markets:{name:{hours,bill}}}
     const newRows=newRes.rows||newRes.results||[];
     newRows.forEach(r=>{
@@ -110,7 +136,8 @@ const fmtM=m=>{const[y,mo]=m.split('-');return new Date(+y,+mo-1,1).toLocaleStri
         'The new dataset covers <strong>'+fp(avgShare)+'</strong> of the original\'s revenue on average over '+overlap.length+' complete overlapping months — '+
         'it is the <strong>live-in slice</strong> of the business, not total company revenue. It also extends into <strong>future scheduled months</strong> '+
         '(through '+fmtM(months[months.length-1])+'), which the original does not. To fully replicate the original, the same report would need to include all visit types '+
-        '(or a sibling report for hourly visits).</div>';
+        '(or a sibling report for hourly visits). Note: the saved original report\'s date window ends Dec 2025, so 2026 "original" months here are computed live '+
+        'from raw visits with the original dashboard\'s own revenue math (marked <span class="bdg bg-b">live calc</span>).</div>';
       html+='<div class="kg">';
       html+='<div class="kpi"><div class="kl">Original · '+fmtM(lastM)+'</div><div class="kv b">'+fm(o.revenue)+'</div><div class="ks">'+fn(o.hours)+' billed hrs · all visit types</div></div>';
       html+='<div class="kpi"><div class="kl">New dataset · '+fmtM(lastM)+'</div><div class="kv" style="color:#FF671F">'+fm(n.bill)+'</div><div class="ks">'+fn(n.hours)+' hrs · live-in</div></div>';
@@ -146,7 +173,7 @@ const fmtM=m=>{const[y,mo]=m.split('-');return new Date(+y,+mo-1,1).toLocaleStri
         '<td>'+(n?fm(n.bill):'<span class="muted">—</span>')+'</td>'+
         '<td>'+(n?fn(n.hours):'<span class="muted">—</span>')+'</td>'+
         '<td>'+(o&&n&&o.revenue?fp(n.bill/o.revenue):'<span class="muted">—</span>')+'</td>'+
-        '<td>'+(future?'<span class="bdg bg-a">future</span>':(o&&n?'':'<span class="bdg bg-b">one source</span>'))+'</td></tr>';
+        '<td>'+(future?'<span class="bdg bg-a">future</span>':(o&&o.live?'<span class="bdg bg-b">live calc</span>':(o&&n?'':'<span class="bdg bg-b">one source</span>')))+'</td></tr>';
     });
     html+='</tbody></table></div>';
 
