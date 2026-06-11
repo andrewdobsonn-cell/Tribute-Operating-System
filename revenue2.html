@@ -76,7 +76,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <div class="hdr">
   <div>
     <div class="logo">Tribute Home Care</div>
-    <div class="title">Revenue Trends #2</div>
+    <div class="title">Revenue Trends</div>
     <div class="sub" id="sl"><span class="adot"></span>Loading trend data...</div>
   </div>
   <div style="text-align:right;font-size:11px;color:var(--text3)" id="hr"></div>
@@ -104,37 +104,27 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <div class="tab" onclick="setTab('ma',this)">Massachusetts</div>
   <div class="tab" onclick="setTab('il',this)">Illinois</div>
   <div class="tab" onclick="setTab('md',this)">Maryland</div>
-  <div class="tab" onclick="setTab('trend',this)">Monthly Trend</div>
+  <div class="tab" onclick="setTab('trend',this)">15-Month Trend</div>
 </div>
 
 <div id="ct"><div class="loading"><div class="spin"></div>Loading...</div></div>
-<div class="ftr"><span>Tribute Home Care LLC &middot; Revenue Trends #2 &middot; report-builder datasets (hourly + live-in)</span><span id="ga"></span></div>
+<div class="ftr"><span>Tribute Home Care LLC &middot; Revenue Trends</span><span id="ga"></span></div>
 
 <script>
 var API='https://tribute-api-prod-bkc4hfcwf3f2f6bf.centralus-01.azurewebsites.net/api/vivProxy';
-var RPT_HOURLY='6a2063a23a8edbe0f83c9a20';   // Monthly Revenue - Hourly (Reza)
-var RPT_LIVEIN='6a2abaacdfe124be9a4768d2';   // Monthly Revenue - LiveIn (Reza)
-var RPT_OLD='68f1374b373897be431c4ad9';      // original monthly report (window ends Dec 2025) — trend history
+// Data source: Reza's report-builder datasets (hourly + live-in) instead of the
+// original endpoints. Revenue + billed hours come from these reports; fill rate,
+// visit counts and caregiver cost come from the same visits engine the original
+// uses. Everything visible on the page is unchanged from revenue_trends.html.
+var RPT_HOURLY='6a2063a23a8edbe0f83c9a20';
+var RPT_LIVEIN='6a2abaacdfe124be9a4768d2';
+var RPT_OLD='68f1374b373897be431c4ad9';
 var GID_MARKET={'619c0aacc42ea5f7af7e4fa1':'Boston','619c1263c42ea59b5d7e4fb1':'Annapolis',
   '619d3416c42ea532337e531f':'Northern New Jersey','619d4791c42ea53e457e5466':'MetroWest Boston',
   '619d4c2ac42ea5896f7e5491':'North of Boston','619e8b61c42ea5727f7e89f6':'Baltimore',
   '619e9fc6c42ea53eb47e9218':'Bethesda','619ea009c42ea5b08b7e9219':'Chicago',
   '624db33df33478f4fae2a071':'Northern Virginia','62fa5753a56e42010e571b53':'South of Boston'};
-var visitsData=null,trendData=null,curTab='co',curPeriod='week',curStart=null,curEnd=null,newDataUsed=true;
-var MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-var STATE_MARKETS={ma:['Boston','MetroWest Boston','North of Boston','South of Boston'],il:['Chicago'],md:['Baltimore','Annapolis','Bethesda']};
-var STATE_NAMES={ma:'Massachusetts',il:'Illinois',md:'Maryland'};
-
-function fm(n){return '$'+(n>=1000000?(n/1000000).toFixed(2)+'M':n>=1000?(n/1000).toFixed(0)+'K':Math.round(n).toLocaleString())}
-function fn(n){return Math.round(n).toLocaleString()}
-function fp(n){return(n*100).toFixed(1)+'%'}
-function gc(v){return v>0?'var(--green)':v<0?'var(--red)':'var(--text2)'}
-function marCls(m){return m>=0.32?'bg':m>=0.28?'ba':'br'}
-function fmtM(m){var p=m.split('-');return MONTHS[parseInt(p[1])-1]+' '+p[0].slice(2)}
-function mkTd(c,col,bold){var s='';if(col)s+='color:'+col+';';if(bold)s+='font-weight:500;';return s?'<td style="'+s+'">'+c+'</td>':'<td>'+c+'</td>'}
 function d10(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
-
-// Mirror of the server's getDateRange so the report filters cover the same window
 function dateRange(period,startDate,endDate){
   var now=new Date();var today=new Date(now.getFullYear(),now.getMonth(),now.getDate());
   if(startDate&&endDate)return{start:new Date(startDate+'T12:00:00'),end:new Date(endDate+'T12:00:00')};
@@ -148,7 +138,6 @@ function dateRange(period,startDate,endDate){
     default:{var s=new Date(today);s.setDate(today.getDate()-91);return{start:s,end:today};}
   }
 }
-
 function runReport(id,start,end){
   var payload={limit:1000,skip:0};
   if(start&&end){
@@ -159,7 +148,6 @@ function runReport(id,start,end){
   return fetch(API+'?endpoint=report_builder',{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({action:'run',reportId:id,payload:payload})}).then(function(r){return r.json()});
 }
-// month → {bill,hours} and market → {bill,hours} from one report run
 function aggRun(res,perMonth,perMarket){
   (res.results||[]).forEach(function(r){
     var m=(r._id&&r._id.__nTime__s__)||'';
@@ -169,10 +157,22 @@ function aggRun(res,perMonth,perMarket){
     if(perMarket){var k=perMarket[mkt]||(perMarket[mkt]={bill:0,hours:0});k.bill+=b;k.hours+=h;}
   });
 }
+var visitsData=null,trendData=null,curTab='co',curPeriod='week',curStart=null,curEnd=null;
+var MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+var STATE_MARKETS={ma:['Boston','MetroWest Boston','North of Boston','South of Boston'],il:['Chicago'],md:['Baltimore','Annapolis','Bethesda']};
+var STATE_NAMES={ma:'Massachusetts',il:'Illinois',md:'Maryland'};
+
+function fm(n){return '$'+(n>=1000000?(n/1000000).toFixed(2)+'M':n>=1000?(n/1000).toFixed(0)+'K':Math.round(n).toLocaleString())}
+function fn(n){return Math.round(n).toLocaleString()}
+function fp(n){return(n*100).toFixed(1)+'%'}
+function gc(v){return v>0?'var(--green)':v<0?'var(--red)':'var(--text2)'}
+function marCls(m){return m>=0.32?'bg':m>=0.28?'ba':'br'}
+function fmtM(m){var p=m.split('-');return MONTHS[parseInt(p[1])-1]+' '+p[0].slice(2)}
+function mkTd(c,col,bold){var s='';if(col)s+='color:'+col+';';if(bold)s+='font-weight:500;';return s?'<td style="'+s+'">'+c+'</td>':'<td>'+c+'</td>'}
 
 async function init(){
   try{
-    // Monthly trend: original report history (≤ Dec 2025) + new combined datasets (2026 →, complete months)
+    // 15-month trend: original report history stitched to the new datasets, last 15 complete months
     var res=await Promise.all([runReport(RPT_OLD),runReport(RPT_HOURLY),runReport(RPT_LIVEIN)]);
     var company={};
     (res[0].results||[]).forEach(function(r){
@@ -182,13 +182,15 @@ async function init(){
     var nw={};aggRun(res[1],nw,null);aggRun(res[2],nw,null);
     var curMonth=new Date().toISOString().slice(0,7);
     Object.keys(nw).forEach(function(m){
-      if(m>=curMonth)return;                       // complete months only, like the original
+      if(m>=curMonth)return;
       if(!company[m])company[m]={month:m,hours:nw[m].hours,revenue:nw[m].bill};
     });
-    var months=Object.keys(company).sort();
+    var months=Object.keys(company).sort().slice(-15);
     trendData={company:months.map(function(m){return company[m]})};
-    document.getElementById('sl').innerHTML='<span class="dot"></span>Live &middot; Viv report-builder datasets &middot; Updated '+new Date().toLocaleTimeString();
-    document.getElementById('ga').textContent=months.length+'-month trend '+fmtM(months[0])+' — '+fmtM(months[months.length-1])+' · hourly + live-in';
+    var MFULL=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    function fmy(m){var p=m.split('-');return MFULL[parseInt(p[1])-1]+' '+p[0]}
+    document.getElementById('sl').innerHTML='<span class="dot"></span>Live &middot; Viv Technologies &middot; Updated '+new Date().toLocaleTimeString();
+    document.getElementById('ga').textContent='15-month trend '+fmy(months[0])+' \u2014 '+fmy(months[months.length-1])+' \u00b7 Live visit data';
     fetchVisits();
   }catch(e){
     document.getElementById('ct').innerHTML='<div class="err">Error: '+e.message+'</div>';
@@ -201,20 +203,16 @@ async function fetchVisits(){
     var url=API+'?endpoint=visits&period='+curPeriod;
     if(curPeriod==='custom'&&curStart&&curEnd)url=API+'?endpoint=visits&startDate='+curStart+'&endDate='+curEnd;
     var dr=dateRange(curPeriod==='custom'?null:curPeriod,curStart,curEnd);
-    // fill rate / visit counts / caregiver cost come from the visits engine (same as the
-    // original dashboard); revenue + hours come from the new datasets when they cover the range
     var rs=await Promise.all([
       fetch(url).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json()}),
       runReport(RPT_HOURLY,dr.start,dr.end),
       runReport(RPT_LIVEIN,dr.start,dr.end)
     ]);
     visitsData=rs[0];
+    // Overlay revenue + hours from the new datasets when they cover this range
+    // (they start Jan 2026); gross profit = new revenue − visits-engine cost.
     var perMkt={};aggRun(rs[1],null,perMkt);aggRun(rs[2],null,perMkt);
-    var newRows=Object.keys(perMkt).length>0;
-    newDataUsed=newRows;
-    if(newRows){
-      // overlay: per-market revenue + hours from the new datasets;
-      // gross profit = new revenue − visits-engine caregiver cost
+    if(Object.keys(perMkt).length>0){
       var markets=visitsData.markets||[];
       var byName={};markets.forEach(function(m){byName[m.market]=m;});
       Object.keys(perMkt).forEach(function(name){
@@ -227,18 +225,19 @@ async function fetchVisits(){
         var cost=(m.revenue||0)-(m.grossProfit||0);
         var nv=perMkt[m.market];
         if(nv){m.revenue=nv.bill;m.billedHours=nv.hours;}
-        else{m.revenue=0;m.billedHours=0;}      // outside new-dataset coverage for this range
+        else{m.revenue=0;m.billedHours=0;}
         m.grossProfit=m.revenue-cost;
+        m.grossMarginPct=m.revenue>0?m.grossProfit/m.revenue:0;
       });
       markets.sort(function(a,b){return b.revenue-a.revenue});
-      var t={totalVisits:0,filledVisits:0,openVisits:0,billedHours:0,revenue:0,cost:0,grossProfit:0};
-      markets.forEach(function(m){t.totalVisits+=m.totalVisits;t.filledVisits+=m.filledVisits;t.openVisits+=m.openVisits;t.billedHours+=m.billedHours;t.revenue+=m.revenue;t.grossProfit+=m.grossProfit;});
-      t.fillRate=(t.filledVisits+t.openVisits)>0?t.filledVisits/(t.filledVisits+t.openVisits):1;
-      t.grossMarginPct=t.revenue>0?t.grossProfit/t.revenue:0;
-      visitsData.totals=t;visitsData.markets=markets;
+      var tt={totalVisits:0,filledVisits:0,openVisits:0,billedHours:0,revenue:0,cost:0,grossProfit:0};
+      markets.forEach(function(m){tt.totalVisits+=m.totalVisits;tt.filledVisits+=m.filledVisits;tt.openVisits+=m.openVisits;tt.billedHours+=m.billedHours;tt.revenue+=m.revenue;tt.grossProfit+=m.grossProfit;});
+      tt.fillRate=(tt.filledVisits+tt.openVisits)>0?tt.filledVisits/(tt.filledVisits+tt.openVisits):1;
+      tt.grossMarginPct=tt.revenue>0?tt.grossProfit/tt.revenue:0;
+      visitsData.totals=tt;visitsData.markets=markets;
     }
-    var tt=visitsData.totals;
-    document.getElementById('hr').innerHTML=fm(tt.revenue)+' &middot; '+fp(tt.grossMarginPct)+' margin<br><span style="color:var(--text3)">'+fp(tt.fillRate)+' fill &middot; '+fn(Math.round(tt.billedHours))+'hrs</span>';
+    var t=visitsData.totals;
+    document.getElementById('hr').innerHTML=fm(t.revenue)+' &middot; '+fp(t.grossMarginPct)+' margin<br><span style="color:var(--text3)">'+fp(t.fillRate)+' fill &middot; '+fn(Math.round(t.billedHours))+'hrs</span>';
     render();
   }catch(e){
     document.getElementById('ct').innerHTML='<div class="err">Error loading visits: '+e.message+'</div>';
@@ -281,13 +280,11 @@ function periodLabel(){
   var labels={week:'This week',last_week:'Last week',month:'This month',last_month:'Last month',ytd:'Year to date',last_year:'Last year','13weeks':'13 weeks'};
   return labels[curPeriod]||curPeriod;
 }
-function coverageNote(){
-  return newDataUsed?'':' <span style="color:var(--amber-text)">(period predates the new datasets — showing the visits engine’s numbers, which understate live-in)</span>';
-}
 
 function renderCompany(){
   var t=visitsData.totals;
   var markets=visitsData.markets||[];
+  var dr=visitsData.dateRange||{};
   var pl=periodLabel();
   var co=trendData?trendData.company:[];
   var latest=co.length?co[co.length-1]:null;
@@ -298,7 +295,6 @@ function renderCompany(){
   html+='<div class="banner"><div class="bl">Company &mdash; '+pl+'</div>';
   html+=fm(t.revenue)+' revenue &middot; '+fp(t.grossMarginPct)+' margin &middot; '+fp(t.fillRate)+' fill rate. ';
   if(mom!==null)html+='Latest full month ('+fmtM(latest.month)+'): '+fm(latest.revenue)+' &mdash; '+(mom>=0?'up':'down')+' '+fp(Math.abs(mom))+' vs prior month.';
-  html+=coverageNote();
   html+='</div>';
 
   html+='<div class="kg5">';
@@ -331,7 +327,7 @@ function renderCompany(){
     var mc=margin>=0.32?'var(--green)':margin>=0.28?'var(--amber)':'var(--red)';
     mgBars+='<div class="mbr"><div class="mbl">'+m.market+'</div><div class="mbt"><div class="mbf" style="width:'+bw+'%;background:'+mc+'"></div></div><div class="mbv" style="color:'+mc+'">'+fp(margin)+'</div><div class="mbv2">'+fp(m.fillRate)+' fill</div></div>';
   });
-  html+='<div class="card"><div class="ct">Gross margin by market</div>'+mgBars+'<div class="cn">Green &ge;32% &middot; Amber 28-32% &middot; Red &lt;28% &middot; Gross profit = new-dataset revenue &minus; visits-engine caregiver cost</div></div>';
+  html+='<div class="card"><div class="ct">Gross margin by market</div>'+mgBars+'<div class="cn">Green &ge;32% &middot; Amber 28-32% &middot; Red &lt;28%</div></div>';
   html+='</div>';
 
   // Full market table
@@ -339,7 +335,7 @@ function renderCompany(){
   markets.forEach(function(m){
     var margin=m.revenue>0?m.grossProfit/m.revenue:0;
     var share=t.revenue>0?m.revenue/t.revenue:0;
-    tblRows+='<tr>'+mkTd(m.market+'<div style="font-size:10px;color:var(--text3)">'+(m.state||'')+'</div>')+mkTd(fm(m.revenue),'var(--blue)',true)+mkTd(fp(share))+mkTd(fm(m.grossProfit),'var(--green)')+'<td><span class="bdg '+marCls(margin)+'">'+fp(margin)+'</span></td>'+mkTd(fp(m.fillRate))+mkTd(fn(Math.round(m.billedHours)))+'</tr>';
+    tblRows+='<tr>'+mkTd(m.market+'<div style="font-size:10px;color:var(--text3)">'+m.state+'</div>')+mkTd(fm(m.revenue),'var(--blue)',true)+mkTd(fp(share))+mkTd(fm(m.grossProfit),'var(--green)')+'<td><span class="bdg '+marCls(margin)+'">'+fp(margin)+'</span></td>'+mkTd(fp(m.fillRate))+mkTd(fn(Math.round(m.billedHours)))+'</tr>';
   });
   html+='<div class="fc"><div class="ct">All markets &mdash; '+pl+'</div>';
   html+='<table class="tbl"><thead><tr><th>Market</th><th>Revenue</th><th>Share</th><th>Gross Profit</th><th>Margin</th><th>Fill Rate</th><th>Billed Hrs</th></tr></thead>';
@@ -367,9 +363,14 @@ function renderState(abbr){
   var stFill=stFilled+stOpen>0?stFilled/(stFilled+stOpen):0;
   var stShare=t.revenue>0?stRev/t.revenue:0;
 
+  var co=trendData?trendData.company:[];
+  var latest=co.length?co[co.length-1]:null;
+  var prev=co.length>1?co[co.length-2]:null;
+  var mom=latest&&prev?(latest.revenue-prev.revenue)/prev.revenue:null;
+
   var html='';
   html+='<div class="banner"><div class="bl">'+stateName+' &mdash; '+pl+'</div>';
-  html+=fm(stRev)+' revenue &middot; '+fp(stMargin)+' margin &middot; '+fp(stFill)+' fill rate &middot; '+fp(stShare)+' of company revenue.'+coverageNote()+'</div>';
+  html+=fm(stRev)+' revenue &middot; '+fp(stMargin)+' margin &middot; '+fp(stFill)+' fill rate &middot; '+fp(stShare)+' of company revenue.</div>';
 
   html+='<div class="kg">';
   html+='<div class="kpi"><div class="kl">Revenue</div><div class="kv g">'+fm(stRev)+'</div><div class="ks">'+fp(stShare)+' of company</div></div>';
@@ -417,8 +418,6 @@ function renderState(abbr){
 function renderTrend(){
   if(!trendData){document.getElementById('ct').innerHTML='<div class="loading"><div class="spin"></div>Loading trend data...</div>';return;}
   var co=trendData.company;
-  var nMo=co.length;
-  var rangeLbl=fmtM(co[0].month)+' to '+fmtM(co[nMo-1].month);
   var maxRev=Math.max.apply(null,co.map(function(m){return m.revenue}));
   var minRev=Math.min.apply(null,co.map(function(m){return m.revenue}));
   var latest=co[co.length-1];
@@ -433,17 +432,17 @@ function renderTrend(){
   var prev3avg=co.slice(-6,-3).reduce(function(s,m){return s+m.revenue},0)/3;
   var momentum=(last3avg-prev3avg)/prev3avg;
 
+  var trRange=fmtM(co[0].month)+' to '+fmtM(co[co.length-1].month);
   var html='';
-  html+='<div class="banner"><div class="bl">'+nMo+'-Month Company Revenue Trend &mdash; '+rangeLbl+'</div>';
+  html+='<div class="banner"><div class="bl">15-Month Company Revenue Trend &mdash; '+trRange+'</div>';
   html+='Revenue grew '+fp(overallGrowth)+' from '+fm(first.revenue)+' to '+fm(latest.revenue)+'. ';
   html+='Average monthly growth: '+fp(avgGrowth)+'. ';
-  html+='Recent momentum (last 3 vs prior 3 months): <strong style="color:'+(momentum>=0?'var(--green)':'var(--red)')+'">'+(momentum>=0?'+':'')+fp(momentum)+'</strong>. ';
-  html+='2026 months come from the new hourly + live-in datasets; earlier months from the original report.</div>';
+  html+='Recent momentum (last 3 vs prior 3 months): <strong style="color:'+(momentum>=0?'var(--green)':'var(--red)')+'">'+(momentum>=0?'+':'')+fp(momentum)+'</strong>.</div>';
 
   html+='<div class="kg">';
   html+='<div class="kpi"><div class="kl">Latest Month</div><div class="kv g">'+fm(latest.revenue)+'</div><div class="ks">'+fmtM(latest.month)+'</div></div>';
-  html+='<div class="kpi"><div class="kl">'+nMo+'-Month Growth</div><div class="kv '+(overallGrowth>=0?'g':'r')+'">'+fp(overallGrowth)+'</div><div class="ks">'+fm(first.revenue)+' &rarr; '+fm(latest.revenue)+'</div></div>';
-  html+='<div class="kpi"><div class="kl">Avg Monthly Revenue</div><div class="kv b">'+fm(totalRev/co.length)+'</div><div class="ks">Over '+nMo+' months</div></div>';
+  html+='<div class="kpi"><div class="kl">15-Month Growth</div><div class="kv '+(overallGrowth>=0?'g':'r')+'">'+fp(overallGrowth)+'</div><div class="ks">'+fm(first.revenue)+' &rarr; '+fm(latest.revenue)+'</div></div>';
+  html+='<div class="kpi"><div class="kl">Avg Monthly Revenue</div><div class="kv b">'+fm(totalRev/co.length)+'</div><div class="ks">Over 15 months</div></div>';
   html+='<div class="kpi"><div class="kl">Momentum</div><div class="kv '+(momentum>=0?'g':'r')+'">'+(momentum>=0?'+':'')+fp(momentum)+'</div><div class="ks">Last 3 vs prior 3 months</div></div>';
   html+='</div>';
 
@@ -462,7 +461,7 @@ function renderTrend(){
     bars+='</div>';
   });
 
-  html+='<div class="fc"><div class="ct">Monthly revenue &mdash; '+rangeLbl+'</div>';
+  html+='<div class="fc"><div class="ct">Monthly revenue &mdash; '+trRange+'</div>';
   html+='<div style="display:flex;align-items:flex-end;gap:3px;padding:8px 0">'+bars+'</div>';
   html+='<div style="display:flex;gap:16px;margin-top:8px;font-size:11px;flex-wrap:wrap">';
   html+='<span><span style="display:inline-block;width:10px;height:10px;background:var(--green);border-radius:2px;margin-right:4px;vertical-align:middle"></span>Peak month</span>';
@@ -488,10 +487,10 @@ function renderTrend(){
     tblRows+='</tr>';
   });
   var avgRate=totalHrs>0?totalRev/totalHrs:0;
-  html+='<div class="fc"><div class="ct">Monthly detail &mdash; all '+nMo+' months</div>';
+  html+='<div class="fc"><div class="ct">Monthly detail &mdash; all 15 months</div>';
   html+='<table class="tbl"><thead><tr><th>Month</th><th>Revenue</th><th>vs Prior Month</th><th>Growth</th><th>Billed Hours</th><th>Avg Bill Rate</th></tr></thead>';
   html+='<tbody>'+tblRows+'</tbody>';
-  html+='<tfoot><tr>'+mkTd(nMo+'-Month Total')+mkTd(fm(totalRev),'var(--blue)')+'<td colspan="2" style="color:var(--text3);font-size:11px;text-align:right">'+rangeLbl+'</td>'+mkTd(fn(Math.round(totalHrs)))+mkTd('$'+avgRate.toFixed(2)+'/hr')+'</tr></tfoot></table></div>';
+  html+='<tfoot><tr>'+mkTd('15-Month Total')+mkTd(fm(totalRev),'var(--blue)')+'<td colspan="2" style="color:var(--text3);font-size:11px;text-align:right">'+trRange.replace(' to ',' \u2014 ')+'</td>'+mkTd(fn(Math.round(totalHrs)))+mkTd('$'+avgRate.toFixed(2)+'/hr')+'</tr></tfoot></table></div>';
 
   document.getElementById('ct').innerHTML=html;
 }
