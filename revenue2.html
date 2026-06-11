@@ -95,7 +95,7 @@ function aggReport(res){
 
 (async()=>{
   try{
-    document.getElementById('loading').innerHTML='<div class="spin"></div>Loading… the original-method 2026 months are computed live from raw visits and can take a minute on a cold cache.';
+    document.getElementById('loading').innerHTML='<div class="spin"></div>Loading… (first load after a cache reset can take ~1 min while the server computes the original-method months; after that it\'s seconds)';
     const [origRes,liveinRes,hourlyRes]=await Promise.all([
       fetch(API+'?endpoint=revenue_trends').then(r=>r.json()),
       runReport(RPT_LIVEIN),
@@ -106,22 +106,17 @@ function aggReport(res){
     const livein=aggReport(liveinRes), hourly=aggReport(hourlyRes);
 
     // Original-method months beyond the saved report's frozen window (ends
-    // 2025-12) — computed live with the original dashboard's visits engine.
+    // 2025-12) — served by revenue2_months, which computes each complete
+    // month once and caches it server-side for a week.
     const curMonth=new Date().toISOString().slice(0,7);
     const lastOrig=Object.keys(orig).sort().pop()||'2025-12';
-    const liveMonths=[];
-    {
-      let d=new Date(lastOrig+'-01T12:00:00'); d.setMonth(d.getMonth()+1);
-      while(d.toISOString().slice(0,7)<curMonth){ liveMonths.push(d.toISOString().slice(0,7)); d.setMonth(d.getMonth()+1); }
-    }
-    const liveResults=await Promise.all(liveMonths.map(m=>{
-      const end=new Date(+m.slice(0,4),+m.slice(5,7),0).toISOString().slice(0,10);
-      return fetch(API+'?endpoint=visits&startDate='+m+'-01&endDate='+end).then(r=>r.json()).catch(()=>null);
-    }));
-    liveMonths.forEach((m,i)=>{
-      const t=liveResults[i]&&liveResults[i].totals;
-      if(t)orig[m]={hours:t.billedHours,revenue:t.revenue,live:true};
-    });
+    const startM=(()=>{const d=new Date(lastOrig+'-01T12:00:00');d.setMonth(d.getMonth()+1);return d.toISOString().slice(0,7);})();
+    try{
+      const r2=await fetch(API+'?endpoint=revenue2_months&start='+startM).then(r=>r.json());
+      (r2.months||[]).forEach(mo=>{
+        if(mo&&mo.month&&!mo.error)orig[mo.month]={hours:mo.hours,revenue:mo.revenue,live:true};
+      });
+    }catch(e){/* page degrades to report-window months only */}
 
     const months=[...new Set([...Object.keys(orig),...Object.keys(hourly),...Object.keys(livein)])].sort();
     const overlap=months.filter(m=>orig[m]&&hourly[m]&&m<curMonth);
