@@ -493,12 +493,19 @@ function detectOverlapsClient(bookings) {
   return issues;
 }
 
+// Any bonus / RFH / incentive pay must be a flat lump sum (Shift rate type), never Hourly.
+// Pattern-matched (not a hardcoded list) so every market's bonus names + all RFH amounts
+// are caught — the old SHIFT_REQ set only knew the six Annapolis "(Ann)" bonuses.
+function isBonusPayVT(vt){
+  const v=(vt||'').toLowerCase();
+  return v.includes('bonus')||v.includes('rfh')||/\brf[a-g]\b/.test(v)||v.includes('incentive')||v.includes('referral');
+}
 function detectRateType(bookings) {
   return bookings
-    .filter(b => !b._cancelled && SHIFT_REQ.has(b._vt) && b._rtype==='Hourly')
+    .filter(b => !b._cancelled && isBonusPayVT(b._vt) && b._rtype!=='Shift')
     .map(b => ({'Caregiver':b._cg_name,'Market':b._geo,'Date':fmtD(b._start),
-      'Visit Type':b._vt,'Current':'Hourly','Should Be':'Shift',
-      'CG Rate':`$${b._cg_rate.toFixed(2)}`,'Action':'Change Rate Type: Hourly → Shift',
+      'Visit Type':b._vt,'Current':b._rtype||'(blank)','Should Be':'Shift',
+      'CG Rate':`$${b._cg_rate.toFixed(2)}`,'Action':`Bonus must be a lump sum — change Rate Type: ${b._rtype||'(blank)'} → Shift`,
       severity:'error', geo:b._geo, _cgid:b._cgid, _cid:b._cid, _bid:b._bid}));
 }
 
@@ -1120,7 +1127,7 @@ async function runDashboard() {
        data:dupExpenseRows,
        cols:['Caregiver','Client','Market','Date','Category','Lines','Amounts','Total Paid','Billed to Client','Action']},
       {id:'rate',     name:'Rate Type Errors',        icon:'💰',
-       desc:'Bonus or RFH visits incorrectly set to Hourly instead of Shift.',
+       desc:'Any bonus / RFH / incentive pay must be a flat lump sum (Shift rate type) — flags any set to Hourly (or anything other than Shift). Matches all bonus types across markets, not just a fixed list.',
        data:detectRateType(bookings),
        cols:['Caregiver','Market','Date','Visit Type','Current','Should Be','CG Rate','Action']},
       {id:'toff',     name:'Time Off Rate Errors',    icon:'🏖️',
