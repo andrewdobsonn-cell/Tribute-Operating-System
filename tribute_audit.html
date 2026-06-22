@@ -570,30 +570,53 @@ function detectVTMismatch(bookings) {
       }
     }
   });
+  // New rule: a CANCELLED visit where the client is still BILLED or the caregiver is still
+  // PAID counts toward that client's total hours for the day. A long visit (e.g. 12h) where the
+  // caregiver was sent home early / the client left becomes a worked portion + a cancelled-but-
+  // billed/paid portion; rolling those hours back in stops a real 12-24h visit from being wrongly
+  // downgraded to 5-11h. Keyed by client + ET date; max(bill,pay) avoids double-counting one
+  // cancelled visit's billed AND paid hours.
+  const cancHrsByClientDay = {};
+  bookings.forEach(b => {
+    if (!b._cancelled || b._is_office || !b._start || !VT_RANGES[b._vt]) return;
+    const hrs = Math.max(b._bill_h||0, b._pay_h||0);
+    if (hrs <= 0) return; // truly voided cancellation (no bill, no pay) — ignore
+    const k = b._cid + '|' + etDate(b._start);
+    cancHrsByClientDay[k] = (cancHrsByClientDay[k]||0) + hrs;
+  });
   const issues = [];
   bookings.forEach(b => {
     if (b._cancelled || b._is_office || !VT_RANGES[b._vt] || b._pay_h===0) return;
     // Skip 24/7 clients — back-to-back shifts (e.g. 7a-7p, 7p-7a) are expected
     if (is247Client.has(b._cid)) return;
     const [mn,mx] = VT_RANGES[b._vt];
-    const flags = [];
-    if (mn!==null && b._pay_h < mn-TOL) flags.push(`Payable ${fmtH(b._pay_h)} below ${fmtH(mn)} min`);
-    if (mx!==null && b._pay_h > mx+TOL) flags.push(`Payable ${fmtH(b._pay_h)} exceeds ${fmtH(mx)} max`);
-    if (!flags.length) return;
+    const cxl = b._start ? (cancHrsByClientDay[b._cid + '|' + etDate(b._start)] || 0) : 0;
+    const combined = b._pay_h + cxl;
+    // Only let cancelled hours rescue this visit's booking type if the combined total still fits the
+    // type's max. If it blows past the max, those hours belong to a separate visit (not this one) —
+    // don't over-credit. This keeps Myrna's 9h+3h=12h '12-24 Hours' valid while not letting an
+    // unrelated 11h cancelled visit absorb a genuinely short visit.
+    const lowH = (mx!==null && combined > mx+TOL) ? b._pay_h : combined;
+    const belowMin = mn!==null && lowH < mn-TOL;
+    const exceedsMax = mx!==null && b._pay_h > mx+TOL; // upper bound judges the live visit alone (cancellations can't lengthen it)
+    if (!belowMin && !exceedsMax) return;
+    const judgeH = belowMin ? lowH : b._pay_h;
     const validForMarket = MARKET_VT[b._geo] || new Set();
     let suggestion = '—';
     for (const candidate of [...validForMarket].sort()) {
       if (candidate===b._vt || candidate==='Live-In' || !VT_RANGES[candidate]) continue;
       const [cmn,cmx] = VT_RANGES[candidate];
-      if ((cmn===null||b._pay_h>=cmn-TOL) && (cmx===null||b._pay_h<=cmx+TOL)) {
+      if ((cmn===null||judgeH>=cmn-TOL) && (cmx===null||judgeH<=cmx+TOL)) {
         suggestion = candidate; break;
       }
     }
+    const appliedCxl = lowH - b._pay_h; // cancelled hours actually credited (0 if capped out)
+    const hrsDisp = appliedCxl>0.001 ? `${fmtH(b._pay_h)} +${fmtH(appliedCxl)} cxl = ${fmtH(lowH)}` : fmtH(b._pay_h);
     issues.push({'Caregiver':b._cg_name,'Client':b._client,'Market':b._geo,
-      'Date':fmtD(b._start),'Visit Type':b._vt,'Payable Hrs':fmtH(b._pay_h),
+      'Date':fmtD(b._start),'Visit Type':b._vt,'Payable Hrs':hrsDisp,
       'Expected Range':`${mn!==null?fmtH(mn):'0'} – ${mx!==null?fmtH(mx):'∞'}`,
       'Suggestion':suggestion,'Status':b._status,
-      'Action':suggestion!=='—'?`Wrong type for ${fmtH(b._pay_h)} — consider '${suggestion}'`:`Review: ${fmtH(b._pay_h)} outside range for ${b._vt}`,
+      'Action':suggestion!=='—'?`Wrong type for ${fmtH(judgeH)} — consider '${suggestion}'`:`Review: ${fmtH(judgeH)} outside range for ${b._vt}`,
       severity:'error', geo:b._geo, _cgid:b._cgid, _cid:b._cid, _bid:b._bid});
   });
   return issues;
