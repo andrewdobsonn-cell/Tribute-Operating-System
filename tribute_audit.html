@@ -1040,10 +1040,21 @@ async function runDashboard() {
     } catch(e) { logLine('Expense fetch failed (non-fatal): '+e.message); }
 
     logLine('Running detection modules...');
+    // Display decimal hours as "Xh Ym" (e.g. 5.67 -> "5h 40m"). Presentation only —
+    // the numeric fields (owed/paid/guarantee) stay intact for any math/filtering.
+    const fmtHM=h=>{const t=Math.round((Number(h)||0)*60),hh=Math.floor(t/60),mm=t%60;return hh&&mm?`${hh}h ${mm}m`:mm?`${mm}m`:`${hh}h`;};
     const sections = [
       {id:'ts',       name:'TS Admin Time',          icon:'🛡️', red:true,
-       desc:'Tribute Secure guarantee vs. paid hours — only caregivers actually owed admin time are listed. Days off (approved Temporary Unavailability, Time Off bookings, OR a call-out/NCNS service exception on an unworked day) on committed availability days reduce the guarantee; a committed weekend taken off costs an extra 10h unless a weekend visit was worked. Flags surface call-outs with no time off entered, double-entries, off-days on non-committed days, pending requests, and missing availability.',
-       data:(apiData.tsAdmin||[]).filter(r=>parseFloat(r['Hrs Owed'])>0),  // shared calc (proxy computeTsAdmin)
+       desc:'Tribute Secure guarantee vs. paid hours — only caregivers actually owed admin time are listed. Days off (approved Temporary Unavailability, Time Off bookings, OR a call-out/NCNS service exception on an unworked day) on committed availability days reduce the guarantee; a committed weekend taken off costs an extra 10h unless a weekend visit was worked. A caregiver is never owed admin time in their first employment week. Flags surface call-outs with no time off entered, double-entries, off-days on non-committed days, pending requests, and missing availability.',
+       data:(apiData.tsAdmin||[]).filter(r=>(r.owed!=null?r.owed:parseFloat(r['Hrs Owed']))>0).map(r=>{  // shared calc (proxy computeTsAdmin)
+         const owedN=r.owed!=null?r.owed:parseFloat(r['Hrs Owed'])||0;
+         const workedN=r.paid!=null?r.paid:parseFloat(r['Worked'])||0;
+         const guarN=r.guarantee!=null?r.guarantee:parseFloat(r['Guarantee'])||0;
+         return Object.assign({},r,{
+           'Worked':fmtHM(workedN),'Guarantee':fmtHM(guarN),'Hrs Owed':fmtHM(owedN),
+           'Action':owedN>0?('Create '+fmtHM(owedN)+' TS Admin Time — '+(r['Client']||('Office'+(r.geo?' ('+r.geo+')':'')))):r['Action']
+         });
+       }),
        cols:['Caregiver','Market','Level','Committed','Worked','Days Off','Avail/Req','Guarantee','Hrs Owed','Client','Flags','Action']},
       {id:'tt',       name:'Missing Travel Time',     icon:'🚗',
        desc:'Caregivers with back-to-back visits ≤ 2 hours apart with no Travel Time visit entered.',
