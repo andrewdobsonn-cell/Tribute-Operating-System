@@ -534,9 +534,9 @@ function detectVTMismatch(bookings) {
     'Under 4 Hours':[0,3.99],'Under 4 Hours (Boston)':[0,3.99],'Under 4 Hours (MWB)':[0,3.99],
     'Under 4 Hours (NB)':[0,3.99],'Under 4 Hours (SB)':[0,3.99],'Under 4 Hours (CHI)':[0,3.99],
     '1 - 3 Hours':[1,3.99],'1.5 Person':[0,null],
-    '4 Hours':[3.75,4.24],
+    '4 Hours':[3.75,4.0],   // FLAT 4h product — exceeding 4h bumps to the next type (not '4+ Hours')
     '4 + Hours (CHI)':[4,null],'4 + Hours (SB)':[4,null],
-    '5 - 11 Hours':[5,11.5],'5 + Hours':[5,null],
+    '5 - 11 Hours':[4,11.5],'5 + Hours':[5,null],   // starts just above flat-4: a 4.5h visit belongs here, not '4 Hours'
     '12 - 24 Hours':[11.5,24],
     '4 - 7 Hours (CHI)':[4,7.99],'8 + Hours (CHI)':[8,null],'4 - 11 Hours':[4,11.99],
   };
