@@ -474,12 +474,15 @@ function detectOverlapsClient(bookings) {
       // time. A caregiver who stays late (e.g. to train the next CG) is PAID but not BILLED, so
       // bill_h < the worked span and their billed window ends on schedule: no client double-charge.
       const aBillEnd = a._start.getTime() + a._bill_h*3600000; // ms timestamp (_start is a Date — use getTime, not +, to avoid string concat)
-      if (aBillEnd <= b._start) continue;
+      const mins = Math.round((aBillEnd - b._start)/60000);
+      // A balanced handoff (one CG runs long, the next starts late by the same amount) leaves the
+      // billed windows contiguous: total billed time = elapsed time, so the client is NOT double-billed.
+      // Require a real (≥1 min) billed overlap; this also absorbs sub-minute msToH rounding.
+      if (mins <= 0) continue;
       if (a._vt==='Live-In'||b._vt==='Live-In') continue;
       if (a._cgid===b._cgid) continue;
       if (a._cl_rate===0||a._bill_h===0||b._cl_rate===0||b._bill_h===0) continue;
       if (OVERLAP_EXEMPT.has(a._client)||OVERLAP_EXEMPT.has(b._client)) continue;
-      const mins = Math.round((aBillEnd-b._start)/60000);
       issues.push({'Client':a._client,'Market':a._geo,
         'CG 1':`${a._cg_name} ${fmtD(a._start)} ${fmtT(a._start)}–${fmtT(a._end)}`,
         'CG 2':`${b._cg_name} ${fmtD(b._start)} ${fmtT(b._start)}–${fmtT(b._end)}`,
