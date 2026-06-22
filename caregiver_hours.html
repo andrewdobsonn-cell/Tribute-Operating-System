@@ -150,6 +150,8 @@ var TYPE_COLORS={'Live-In':'#7B4FBE','Overnight':'#185FA5','Long Hour':'#1D9E75'
 
 function fn(n){return Math.round(n).toLocaleString()}
 function fh(n){return parseFloat(n).toFixed(1)+'h'}
+// Decimal hours -> "Xh Ym" for the TS Admin table only (5.67 -> "5h 40m"); '—' if absent.
+function fmtHM(h){if(h==null||isNaN(h))return '—';var t=Math.round(Number(h)*60),hh=Math.floor(t/60),mm=t%60;return hh&&mm?hh+'h '+mm+'m':mm?mm+'m':hh+'h';}
 function fp(n){return(n*100).toFixed(1)+'%'}
 function gc(v){return v>=0?'var(--green)':'var(--red)'}
 function hapCls(h){return h>=0.75?'g':h>=0.5?'a':'r'}
@@ -800,10 +802,10 @@ function renderTributeSecure(){
       html+='<td style="font-weight:normal;color:var(--text2)">'+c.market+'</td>';
       html+='<td style="font-weight:normal;color:var(--text2)">'+c.assignee+'</td>';
       html+='<td style="color:var(--purple)">'+(r.Level||('TS'+c.tsThreshold))+'</td>';
-      html+='<td>'+(r.Worked||'—')+'</td>';
+      html+='<td>'+fmtHM(r.paid!=null?r.paid:parseFloat(r.Worked))+'</td>';
       html+='<td style="color:var(--text2)">'+(r['Days Off']||'—')+'</td>';
       html+='<td style="color:var(--text2)">'+(r['Avail/Req']||'—')+'</td>';
-      html+='<td style="color:var(--red);font-weight:500">'+fh(tsOwed(c))+'</td>';
+      html+='<td style="color:var(--red);font-weight:500">'+fmtHM(tsOwed(c))+'</td>';
       html+='<td style="font-weight:normal;color:var(--text3);font-size:11px">'+(r.Flags&&r.Flags!=='—'?r.Flags:'')+'</td>';
       html+='</tr>';
     });
