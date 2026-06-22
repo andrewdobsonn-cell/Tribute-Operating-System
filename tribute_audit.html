@@ -473,7 +473,7 @@ function detectOverlapsClient(bookings) {
       // end — a double-bill only matters when the CLIENT is actually charged for the overlapping
       // time. A caregiver who stays late (e.g. to train the next CG) is PAID but not BILLED, so
       // bill_h < the worked span and their billed window ends on schedule: no client double-charge.
-      const aBillEnd = a._start + a._bill_h*3600000;
+      const aBillEnd = a._start.getTime() + a._bill_h*3600000; // ms timestamp (_start is a Date — use getTime, not +, to avoid string concat)
       if (aBillEnd <= b._start) continue;
       if (a._vt==='Live-In'||b._vt==='Live-In') continue;
       if (a._cgid===b._cgid) continue;
