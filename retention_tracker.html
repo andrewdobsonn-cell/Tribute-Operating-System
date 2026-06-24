@@ -147,6 +147,7 @@ var engByPhone={};                         // call-intel SMS/communication signa
 var rejInsights=null, rejInsightsLoading=false;  // Claude visit-rejection analysis
 var CLAUDE=API.replace('/vivProxy','/claudeProxy'), cgWhy={};  // per-caregiver on-demand Claude "why"
 var hoursById={}, hoursLoaded=false;      // current-week desired/scheduled per caregiver (by Viv id)
+var rosterErr=null, hoursErr=null;        // surface load failures instead of silently blanking a tab
 var hoursWeeks={}, hrWindowLoaded=0, hrWindowLoading=false, hrWindowProgress=0, hrWindowTotal=0;  // multi-week scheduled series for historical avg
 var curTab='roster';
 var sortCol='termDate', sortDir=-1, search='', fType='';
@@ -300,14 +301,14 @@ async function loadAll(force,fromGate){
     render();loadRoster(force);loadNotes();loadCalls();loadHours();loadEngagement();
   }catch(e){if(fromGate){document.getElementById('gateErr').textContent='Error: '+e.message;return}document.getElementById('view').innerHTML='<div class="err">Failed to load: '+esc(e.message)+'</div>'}
 }
-async function loadRoster(force){try{var res=await fetch(API+'?endpoint=retention_roster'+(force?'&_t='+Date.now():''),{headers:hdrs()});if(!res.ok)return;var d=await res.json();roster=d.caregivers||[];rosterByMnum={};roster.forEach(function(c){if(c.mnum!=null)rosterByMnum[c.mnum]=c});enrichRosterMarkets();renderFilterBar();setStatus();render()}catch(e){}}
+async function loadRoster(force){try{var res=await fetch(API+'?endpoint=retention_roster'+(force?'&_t='+Date.now():''),{headers:hdrs()});if(!res.ok){rosterErr=(res.status===401?'Session expired — re-enter the password (⟳ Refresh).':'roster HTTP '+res.status);render();return}var d=await res.json();roster=d.caregivers||[];rosterByMnum={};roster.forEach(function(c){if(c.mnum!=null)rosterByMnum[c.mnum]=c});rosterErr=null;enrichRosterMarkets();renderFilterBar();setStatus();render()}catch(e){rosterErr='Could not load roster: '+(e&&e.message||e);render()}}
 async function loadNotes(){try{var res=await fetch(API+'?endpoint=retention_notes',{headers:hdrs()});if(!res.ok)return;var d=await res.json();notesStore=d.notes||{};if(curTab==='notes')render()}catch(e){}}
 async function loadCalls(){try{var res=await fetch(API+'?endpoint=retention_calls',{headers:hdrs()});if(!res.ok)return;var d=await res.json();if(d.counts&&Object.keys(d.counts).length){callIndex=d.counts;callMeta=d.meta||{};setStatus();if(curTab==='atrisk'||curTab==='calls')render()}}catch(e){}}
 async function loadHours(){
-  try{var res=await fetch(API+'?endpoint=caregiver_hours',{});if(!res.ok)return;var d=await res.json();
+  try{var res=await fetch(API+'?endpoint=caregiver_hours',{});if(!res.ok){hoursErr='hours HTTP '+res.status;render();return}var d=await res.json();
     hoursById={};(d.caregivers||[]).forEach(function(c){hoursById[c.id]={desired:c.desiredHrs||0,scheduled:c.scheduledHrs||0,pto:c.ptoHrs||0,differential:c.differential||0,happiness:c.happiness,market:c.market};});
-    hoursLoaded=true;enrichRosterMarkets();setStatus();render();
-  }catch(e){}
+    hoursLoaded=true;hoursErr=null;enrichRosterMarkets();setStatus();render();
+  }catch(e){hoursErr=(e&&e.message||e);render();}
 }
 // The roster's `gcity` is state-level only — enrich with visit-derived market from caregiver_hours.
 function enrichRosterMarkets(){
@@ -361,15 +362,21 @@ function setTab(t,el){curTab=t;document.querySelectorAll('.ntab').forEach(functi
 function render(){setStatus();renderFilterBar();renderView()}
 function renderView(){
   var v=document.getElementById('view');
-  if(curTab==='roster'){if(!terms.length){v.innerHTML='<div class="loading">No termination records.</div>';return}v.innerHTML=renderKPIs()+renderRoster()}
-  else if(curTab==='atrisk')v.innerHTML=renderAtRisk();
-  else if(curTab==='rejections')v.innerHTML=renderRejections();
-  else if(curTab==='notes')v.innerHTML=renderNotes();
-  else if(curTab==='hours')v.innerHTML=renderHours();
-  else if(curTab==='lifecycle')v.innerHTML=renderKPIs()+renderLifecycle();
-  else if(curTab==='patterns')v.innerHTML=renderKPIs()+renderPatterns();
-  else if(curTab==='insights')v.innerHTML=renderInsights();
-  else if(curTab==='calls')v.innerHTML=renderCalls();
+  try{
+    if(curTab==='roster'){if(!terms.length){v.innerHTML='<div class="loading">No termination records.</div>';return}v.innerHTML=renderKPIs()+renderRoster()}
+    else if(curTab==='atrisk')v.innerHTML=renderAtRisk();
+    else if(curTab==='rejections')v.innerHTML=renderRejections();
+    else if(curTab==='notes')v.innerHTML=renderNotes();
+    else if(curTab==='hours')v.innerHTML=renderHours();
+    else if(curTab==='lifecycle')v.innerHTML=renderKPIs()+renderLifecycle();
+    else if(curTab==='patterns')v.innerHTML=renderKPIs()+renderPatterns();
+    else if(curTab==='insights')v.innerHTML=renderInsights();
+    else if(curTab==='calls')v.innerHTML=renderCalls();
+  }catch(e){
+    // Never leave a tab silently blank — show what broke so it's diagnosable.
+    if(v)v.innerHTML='<div class="err">This view hit an error and could not render: '+esc(e&&e.message||e)+'.<br>Try <b>⟳ Refresh</b>. If it keeps happening, send Andrew this message.</div>';
+    console.error('renderView('+curTab+') failed:',e);
+  }
 }
 
 // ── KPIs (scoped terminations) ──
@@ -487,7 +494,9 @@ function riskScore(c){
   return withFlags(res);
 }
 function renderAtRisk(){
-  if(!roster.length)return '<div class="loading"><div class="spin"></div>Loading active roster…</div>';
+  if(!roster.length)return rosterErr
+    ? '<div class="err">Couldn\'t load the active roster: '+esc(rosterErr)+'<br><button class="btn2" onclick="rosterErr=null;loadRoster(true)" style="margin-top:8px">↻ Retry</button></div>'
+    : '<div class="loading"><div class="spin"></div>Loading active roster…</div>';
   var active=scopedRoster().filter(function(c){return c.status==='hired'});
   var scored=[];
   active.forEach(function(c){var r=riskScore(c);if(r)scored.push(Object.assign({},c,{_level:r.level,_score:r.score,_reasons:r.reasons,_flags:r.flags||[]}));});
@@ -497,6 +506,7 @@ function renderAtRisk(){
   var shown=sortRows(scored.filter(function(c){return (arShowAll||c._score>=40)&&(!arFlaggedOnly||(c._flags&&c._flags.length))}),AR_COLS,arSort); // default Medium+; Flagged-only narrows further
   var h='<div class="banner w"><div class="bl w">At-risk watchlist — '+active.length+' active</div>'+
     '<b>Scoring:</b> <span class="bdg br">Critical</span> first 90 days · 0 hrs · never called/texted &nbsp; <span class="bdg br">High</span> getting 0 or &lt;50% of desired hours &nbsp; <span class="bdg ba">Medium</span> 50–75% of desired &nbsp; <span class="bdg bg">Low</span> 75%+. PRN: low unless no work 30d+ (High if also no call/text). Caregivers with no desired hours (non-PRN) are excluded.<br><b>🚩 Intervention flags</b> (any flag → at least High): declining offered visits (within-availability once that data populates) · called on 2+ days with no callback (0 answered, 0 inbound) · not replying to texts (3+ sent, 0 replies).</div>';
+  if(!hoursLoaded)h+='<div class="banner'+(hoursErr?' r':'')+'"><div class="bl'+(hoursErr?' r':'')+'">'+(hoursErr?'Hours data failed to load':'Loading current-week hours…')+'</div>'+(hoursErr?'Couldn\'t load caregiver hours ('+esc(hoursErr)+'), so risk scores below are based on desired hours only and may over-flag. <button class="btn2" onclick="hoursErr=null;loadHours()">↻ Retry hours</button>':'Risk scores use desired-vs-received hours; the received side is still loading (~15s) and scores will refine automatically when it arrives.')+'</div>';
   h+='<div class="kg">'+kpi('Active',active.length,'in scope','')+kpi('Critical',crit,'first-90 · 0h · no contact','r')+kpi('High',high,'0 or <50% of desired','r')+kpi('Medium',med,'50–75% of desired','a')+kpi('🚩 Flagged',scored.filter(function(c){return c._flags&&c._flags.length}).length,'intervention triggers','r')+'</div>';
   h+='<div class="toolbar"><button class="btn2" onclick="arShowAll=!arShowAll;render()">'+(arShowAll?'● Showing all (incl. low) — click for Medium+ only':'○ Show all active (incl. low risk)')+'</button>'+
     '<button class="btn2" onclick="arFlaggedOnly=!arFlaggedOnly;render()">'+(arFlaggedOnly?'● Flagged only — click to clear':'🚩 Flagged only')+'</button>'+
