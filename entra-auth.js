@@ -33,16 +33,22 @@
         background: #ff5a1f; border: none; border-radius: 10px; cursor: pointer; }
       #${OVERLAY_ID} button:hover { background: #e04a15; }
       #${OVERLAY_ID} .entra-error { font-size: 12px; color: #c0392b; margin-top: 14px; min-height: 14px; }
-      #entraAuthBadge { position: fixed; top: 14px; right: 16px; z-index: 999998; display: none;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; font-size: 12px; }
-      #entraAuthBadge span { background: #e9f5db; color: #2f6f12; padding: 5px 12px; border-radius: 999px; font-weight: 600; margin-right: 6px; }
-      #entraAuthBadge button { background: #eee; color: #333; border: none; padding: 5px 12px; border-radius: 999px; font-weight: 600; cursor: pointer; font-size: 12px; }
+      #entraAuthBadge { position: fixed; bottom: 10px; right: 10px; z-index: 999998; display: none;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; font-size: 10px;
+        opacity: .55; transition: opacity .15s; }
+      #entraAuthBadge:hover { opacity: 1; }
+      #entraAuthBadge span { background: #e9f5db; color: #2f6f12; padding: 3px 9px; border-radius: 999px; font-weight: 600; margin-right: 4px; }
+      #entraAuthBadge button { background: #eee; color: #333; border: none; padding: 3px 9px; border-radius: 999px; font-weight: 600; cursor: pointer; font-size: 10px; }
     `;
     document.head.appendChild(s);
   };
 
   const showBadge = () => {
     if (!state.account) return;
+    // Pages like index_live.html embed several dashboards at once as iframes;
+    // each one running this script would otherwise stack a badge on top of
+    // the other. Only the top-level page shows one.
+    if (window.self !== window.top) return;
     let badge = document.getElementById('entraAuthBadge');
     if (!badge) {
       badge = document.createElement('div');
