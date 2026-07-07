@@ -14,6 +14,12 @@
 
   const LOCK_CLASS = 'entra-signin-locked';
   const OVERLAY_ID = 'entraSignInOverlay';
+  // MSAL flatly refuses redirect-based login/token-acquisition inside an
+  // iframe (index_live.html's embedded panels, retention_tracker.html
+  // embedded in the rise-dashboard suite, etc.) — has to use the popup
+  // APIs there instead. Top-level pages keep using redirect, which is the
+  // less disruptive of the two (no popup-blocker risk).
+  const IS_IFRAME = window.self !== window.top;
   const state = { msal: null, account: null };
 
   const injectStyles = () => {
@@ -86,7 +92,13 @@
     `;
     document.body.appendChild(overlay);
     overlay.querySelector('#entraSignInBtn').addEventListener('click', () => {
-      state.msal.loginRedirect({ scopes: [CFG.apiScope] }).catch(showError);
+      if (IS_IFRAME) {
+        state.msal.loginPopup({ scopes: [CFG.apiScope] })
+          .then((r) => { state.account = r.account; reveal(); })
+          .catch(showError);
+      } else {
+        state.msal.loginRedirect({ scopes: [CFG.apiScope] }).catch(showError);
+      }
     });
   };
 
@@ -107,7 +119,10 @@
         cache: { cacheLocation: 'localStorage' },
       });
       await state.msal.initialize();
-      const resp = await state.msal.handleRedirectPromise().catch((e) => { showError(e); return null; });
+      // handleRedirectPromise() is only relevant to the redirect flow, which
+      // iframed pages never use (and calling it can itself throw the same
+      // "not supported in an iframe" error there) — skip it in that case.
+      const resp = IS_IFRAME ? null : await state.msal.handleRedirectPromise().catch((e) => { showError(e); return null; });
       const accts = state.msal.getAllAccounts();
       state.account = (resp && resp.account) || accts[0] || null;
       if (state.account) reveal();
@@ -126,6 +141,14 @@
       const r = await state.msal.acquireTokenSilent({ scopes: [CFG.apiScope], account: state.account });
       return r.accessToken;
     } catch (e) {
+      if (IS_IFRAME) {
+        try {
+          const r = await state.msal.acquireTokenPopup({ scopes: [CFG.apiScope] });
+          return r.accessToken;
+        } catch (e2) {
+          return null;
+        }
+      }
       await state.msal.acquireTokenRedirect({ scopes: [CFG.apiScope] });
       return null;
     }
@@ -134,7 +157,11 @@
   window.tributeKsfGate = {
     getToken,
     isSignedIn() { return !!state.account; },
-    signOut() { if (state.msal) state.msal.logoutRedirect({ account: state.account }); },
+    signOut() {
+      if (!state.msal) return;
+      if (IS_IFRAME) state.msal.logoutPopup({ account: state.account }).catch(() => {});
+      else state.msal.logoutRedirect({ account: state.account });
+    },
   };
 
   injectStyles();
