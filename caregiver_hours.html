@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@3.28.1/lib/msal-browser.min.js"></script>
+<script src="./entra-auth.js?v=2026-07-07a"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Tribute — Caregiver Hours</title>
@@ -255,15 +257,18 @@ function fetchTsAdmin(){
   var key=curStart+'|'+curEnd;
   if(tsAdminKey===key||tsAdminFetching===key)return;   // already loaded / in flight
   tsAdminFetching=key;
-  fetch(API+'?endpoint=ts_admin&startDate='+curStart+'&endDate='+curEnd)
-    .then(function(r){return r.json();})
-    .then(function(d){
-      tsAdminFetching=null;
-      if((curStart+'|'+curEnd)!==key)return;            // week changed mid-flight
-      var m={}; (d.tsAdmin||[]).forEach(function(r){m[r._cgid]=r;}); tsAdminMap=m; tsAdminKey=key;
-      if(curView==='tributesecure')render();
-    })
-    .catch(function(){ tsAdminFetching=null; });
+  var tokenP=(window.tributeKsfGate&&window.tributeKsfGate.getToken)?window.tributeKsfGate.getToken():Promise.resolve(null);
+  tokenP.then(function(token){
+    if(!token){ tsAdminFetching=null; return; }
+    return fetch(API+'?endpoint=ts_admin&startDate='+curStart+'&endDate='+curEnd,{headers:{Authorization:'Bearer '+token}})
+      .then(function(r){return r.json();})
+      .then(function(d){
+        tsAdminFetching=null;
+        if((curStart+'|'+curEnd)!==key)return;            // week changed mid-flight
+        var m={}; (d.tsAdmin||[]).forEach(function(r){m[r._cgid]=r;}); tsAdminMap=m; tsAdminKey=key;
+        if(curView==='tributesecure')render();
+      });
+  }).catch(function(){ tsAdminFetching=null; });
 }
 function tsOwed(c){ var r=tsAdminMap[c.id]; return r?(parseFloat(r['Hrs Owed'])||0):0; }
 

@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@3.28.1/lib/msal-browser.min.js"></script>
+<script src="./entra-auth.js?v=2026-07-07a"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Caregiver Utilization — Tribute OS</title>
@@ -476,10 +478,13 @@ function fetchTsAdminV2(weekKey){
   if(tsAdminKeyV2===weekKey)return;
   var s=new Date(weekKey+'T00:00:00'),e=new Date(s);e.setDate(e.getDate()+6);
   var end=e.toISOString().slice(0,10);
-  fetch(API+'?endpoint=ts_admin&startDate='+weekKey+'&endDate='+end)
-    .then(function(r){return r.json();})
-    .then(function(d){ if(CURRENT_WEEK_KEY!==weekKey)return; var m={}; (d.tsAdmin||[]).forEach(function(r){m[r._cgid]=r;}); tsAdminMapV2=m; tsAdminKeyV2=weekKey; renderTS(); })
-    .catch(function(){});
+  var tokenP=(window.tributeKsfGate&&window.tributeKsfGate.getToken)?window.tributeKsfGate.getToken():Promise.resolve(null);
+  tokenP.then(function(token){
+    if(!token)return;
+    return fetch(API+'?endpoint=ts_admin&startDate='+weekKey+'&endDate='+end,{headers:{Authorization:'Bearer '+token}})
+      .then(function(r){return r.json();})
+      .then(function(d){ if(CURRENT_WEEK_KEY!==weekKey)return; var m={}; (d.tsAdmin||[]).forEach(function(r){m[r._cgid]=r;}); tsAdminMapV2=m; tsAdminKeyV2=weekKey; renderTS(); });
+  }).catch(function(){});
 }
 
 // ═════════════════════════════════════════════════════════════
