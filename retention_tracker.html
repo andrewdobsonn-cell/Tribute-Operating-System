@@ -562,7 +562,7 @@ function analyzeWhy(c){
       var callText=calls.length?calls.map(function(x){return '- '+((x.started_at||'').slice(0,10))+' ['+(x.outcome||'?')+', '+(x.direction||'')+']: '+((x.summary||'')).slice(0,500);}).join('\n'):'(no analyzed calls on file)';
       var sys='You are a home-care retention analyst. Using the signals AND the recent call summaries, explain in 2–4 sentences why this caregiver is declining visits / at risk — cite specifics from the calls — then give one concrete next action. No preamble.';
       var content='Signals:\n'+whyPrompt(c)+'\n\nRecent analyzed calls (date [outcome, direction]: summary):\n'+callText+'\n\nWhy is this caregiver declining / at risk, and what should we do?';
-      return fetch(CLAUDE,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:500,system:sys,messages:[{role:'user',content:content}]})})
+      return _authFetch(CLAUDE,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:500,system:sys,messages:[{role:'user',content:content}]})})
         .then(function(r){return r.json()}).then(function(d){cgWhy[k]={text:(d.content&&d.content[0]&&d.content[0].text)||'(no response)',calls:calls};repaintRej();});
     })
     .catch(function(e){cgWhy[k]={text:'Analysis failed: '+e.message};repaintRej();});
