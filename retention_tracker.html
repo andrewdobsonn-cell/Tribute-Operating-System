@@ -143,6 +143,16 @@ tr.cg-row{cursor:pointer}
 <script>
 // ── CONFIG — runtime-fetched data only; no PII or secrets in this file ──
 var API='https://tribute-api-prod-bkc4hfcwf3f2f6bf.centralus-01.azurewebsites.net/api/vivProxy';
+// 2026-07-09: every endpoint below now requires a real signed-in Tribute
+// account server-side. Wraps fetch() so every API call carries the token
+// without hand-editing each call site.
+async function _authFetch(url, opts) {
+  opts = opts || {};
+  var t = (window.tributeKsfGate && window.tributeKsfGate.getToken) ? await window.tributeKsfGate.getToken() : null;
+  if (t) { opts = Object.assign({}, opts); opts.headers = Object.assign({}, opts.headers || {}, {Authorization: 'Bearer ' + t}); }
+  return fetch(url, opts);
+}
+
 var GATE_KEY=null;
 var terms=[], roster=[], rosterByMnum={}, insights=null, callIndex=null, callMeta=null, notesStore={};
 var engByPhone={};                         // call-intel SMS/communication signals (by phone last10)
@@ -295,7 +305,7 @@ async function loadAll(force,fromGate){
   if(!GATE_KEY){try{GATE_KEY=sessionStorage.getItem('tribute_retention_key')}catch(e){}}
   if(!GATE_KEY)return;
   try{
-    var res=await fetch(API+'?endpoint=termination_forms'+(force?'&_t='+Date.now():''),{headers:hdrs()});
+    var res=await _authFetch(API+'?endpoint=termination_forms'+(force?'&_t='+Date.now():''),{headers:hdrs()});
     if(res.status===401){GATE_KEY=null;try{sessionStorage.removeItem('tribute_retention_key')}catch(e){}document.getElementById('gateErr').textContent='Incorrect password.';document.getElementById('gate').style.display='flex';document.getElementById('app').style.display='none';return}
     if(!res.ok)throw new Error('HTTP '+res.status);
     var d=await res.json();showApp();
@@ -303,11 +313,11 @@ async function loadAll(force,fromGate){
     render();loadRoster(force);loadNotes();loadCalls();loadHours();loadEngagement();
   }catch(e){if(fromGate){document.getElementById('gateErr').textContent='Error: '+e.message;return}document.getElementById('view').innerHTML='<div class="err">Failed to load: '+esc(e.message)+'</div>'}
 }
-async function loadRoster(force){try{var res=await fetch(API+'?endpoint=retention_roster'+(force?'&_t='+Date.now():''),{headers:hdrs()});if(!res.ok){rosterErr=(res.status===401?'Session expired — re-enter the password (⟳ Refresh).':'roster HTTP '+res.status);render();return}var d=await res.json();roster=d.caregivers||[];rosterByMnum={};roster.forEach(function(c){if(c.mnum!=null)rosterByMnum[c.mnum]=c});rosterErr=null;enrichRosterMarkets();renderFilterBar();setStatus();render()}catch(e){rosterErr='Could not load roster: '+(e&&e.message||e);render()}}
-async function loadNotes(){try{var res=await fetch(API+'?endpoint=retention_notes',{headers:hdrs()});if(!res.ok)return;var d=await res.json();notesStore=d.notes||{};if(curTab==='notes')render()}catch(e){}}
-async function loadCalls(){try{var res=await fetch(API+'?endpoint=retention_calls',{headers:hdrs()});if(!res.ok)return;var d=await res.json();if(d.counts&&Object.keys(d.counts).length){callIndex=d.counts;callMeta=d.meta||{};setStatus();if(curTab==='atrisk'||curTab==='calls')render()}}catch(e){}}
+async function loadRoster(force){try{var res=await _authFetch(API+'?endpoint=retention_roster'+(force?'&_t='+Date.now():''),{headers:hdrs()});if(!res.ok){rosterErr=(res.status===401?'Session expired — re-enter the password (⟳ Refresh).':'roster HTTP '+res.status);render();return}var d=await res.json();roster=d.caregivers||[];rosterByMnum={};roster.forEach(function(c){if(c.mnum!=null)rosterByMnum[c.mnum]=c});rosterErr=null;enrichRosterMarkets();renderFilterBar();setStatus();render()}catch(e){rosterErr='Could not load roster: '+(e&&e.message||e);render()}}
+async function loadNotes(){try{var res=await _authFetch(API+'?endpoint=retention_notes',{headers:hdrs()});if(!res.ok)return;var d=await res.json();notesStore=d.notes||{};if(curTab==='notes')render()}catch(e){}}
+async function loadCalls(){try{var res=await _authFetch(API+'?endpoint=retention_calls',{headers:hdrs()});if(!res.ok)return;var d=await res.json();if(d.counts&&Object.keys(d.counts).length){callIndex=d.counts;callMeta=d.meta||{};setStatus();if(curTab==='atrisk'||curTab==='calls')render()}}catch(e){}}
 async function loadHours(){
-  try{var res=await fetch(API+'?endpoint=caregiver_hours',{});if(!res.ok){hoursErr='hours HTTP '+res.status;render();return}var d=await res.json();
+  try{var res=await _authFetch(API+'?endpoint=caregiver_hours',{});if(!res.ok){hoursErr='hours HTTP '+res.status;render();return}var d=await res.json();
     hoursById={};(d.caregivers||[]).forEach(function(c){hoursById[c.id]={desired:c.desiredHrs||0,scheduled:c.scheduledHrs||0,pto:c.ptoHrs||0,differential:c.differential||0,happiness:c.happiness,market:c.market};});
     hoursLoaded=true;hoursErr=null;enrichRosterMarkets();setStatus();render();
   }catch(e){hoursErr=(e&&e.message||e);render();}
@@ -331,7 +341,7 @@ function loadHoursWindow(n){
   var acc={};
   weeks.forEach(function(w,idx){
     setTimeout(function(){
-      fetch(API+'?endpoint=caregiver_hours&startDate='+w[0]+'&endDate='+w[1])
+      _authFetch(API+'?endpoint=caregiver_hours&startDate='+w[0]+'&endDate='+w[1])
         .then(function(r){return r.ok?r.json():{caregivers:[]}})
         .then(function(d){(d.caregivers||[]).forEach(function(c){if(c.id){if(!acc[c.id])acc[c.id]=[];acc[c.id].push({week:w[0],scheduled:c.scheduledHrs||0})}});})
         .catch(function(){})
@@ -344,7 +354,7 @@ function loadHoursWindow(n){
     }, idx*200);
   });
 }
-async function loadEngagement(){try{var res=await fetch(API+'?endpoint=engagement',{headers:hdrs()});if(!res.ok)return;var d=await res.json();engByPhone={};(d.caregivers||[]).forEach(function(e){if(e.phone)engByPhone[e.phone]=e});if((d.caregivers||[]).length){setStatus();if(curTab==='atrisk')render()}}catch(e){}}
+async function loadEngagement(){try{var res=await _authFetch(API+'?endpoint=engagement',{headers:hdrs()});if(!res.ok)return;var d=await res.json();engByPhone={};(d.caregivers||[]).forEach(function(e){if(e.phone)engByPhone[e.phone]=e});if((d.caregivers||[]).length){setStatus();if(curTab==='atrisk')render()}}catch(e){}}
 function engFor(c){return c&&c.phone?engByPhone[c.phone]:null}
 function engDetail(c){var e=engFor(c);if(!e)return null;return (e.inbound||0)+' in / '+(e.outbound||0)+' out'+(e.tone?' · tone: '+e.tone:'')+(e.responsiveness?' · '+e.responsiveness:'')+(e.last_contact?' · last '+fmtDate(e.last_contact):'')}
 function engTexts(c){var e=engFor(c);return e?((e.inbound||0)+'↔'+(e.outbound||0)):'<span class="muted">—</span>'}
@@ -355,8 +365,8 @@ function avgWeekly(c){ // tenure-aware avg over loaded window
   var since=parseDate(c.hireDate); var rows=since?w.filter(function(x){return parseDate(x.week)>=new Date(since.getFullYear(),since.getMonth(),since.getDate()-6)}):w;
   if(!rows.length)rows=w; return rows.reduce(function(s,x){return s+x.scheduled},0)/rows.length;
 }
-async function saveCalls(){if(!callIndex)return;var btn=document.getElementById('saveCallsBtn');if(btn){btn.disabled=true;btn.textContent='Saving…'}try{var res=await fetch(API+'?endpoint=retention_calls',{method:'POST',headers:Object.assign({'Content-Type':'application/json'},hdrs()),body:JSON.stringify({counts:callIndex,meta:callMeta||{}})});if(!res.ok)throw new Error('HTTP '+res.status);var d=await res.json();callMeta=d.meta||callMeta||{};render()}catch(e){alert('Save failed: '+e.message);if(btn){btn.disabled=false;btn.textContent='Save to server'}}}
-async function loadInsights(force){var v=document.getElementById('view');v.innerHTML='<div class="loading"><div class="spin"></div>'+(force?'Regenerating':'Loading')+' Claude insights…</div>';try{var res=await fetch(API+'?endpoint=termination_insights'+(force?'&regenerate=1':''),{headers:hdrs()});insights=await res.json();render()}catch(e){v.innerHTML='<div class="err">Insights failed: '+esc(e.message)+'</div>'}}
+async function saveCalls(){if(!callIndex)return;var btn=document.getElementById('saveCallsBtn');if(btn){btn.disabled=true;btn.textContent='Saving…'}try{var res=await _authFetch(API+'?endpoint=retention_calls',{method:'POST',headers:Object.assign({'Content-Type':'application/json'},hdrs()),body:JSON.stringify({counts:callIndex,meta:callMeta||{}})});if(!res.ok)throw new Error('HTTP '+res.status);var d=await res.json();callMeta=d.meta||callMeta||{};render()}catch(e){alert('Save failed: '+e.message);if(btn){btn.disabled=false;btn.textContent='Save to server'}}}
+async function loadInsights(force){var v=document.getElementById('view');v.innerHTML='<div class="loading"><div class="spin"></div>'+(force?'Regenerating':'Loading')+' Claude insights…</div>';try{var res=await _authFetch(API+'?endpoint=termination_insights'+(force?'&regenerate=1':''),{headers:hdrs()});insights=await res.json();render()}catch(e){v.innerHTML='<div class="err">Insights failed: '+esc(e.message)+'</div>'}}
 function setStatus(){var sl=document.getElementById('statusLine');if(!sl)return;var active=roster.filter(function(c){return c.status==='hired'}).length;sl.innerHTML='<span class="dot"></span>'+terms.length+' terminations · '+(roster.length?active+' active · ':'')+(callIndex?'calls matched · ':'')+new Date().toLocaleTimeString()}
 
 // ── Tabs ──
@@ -527,7 +537,7 @@ function renderAtRisk(){
 // ── Rejections (visit offers declined; scoped active caregivers + Claude "why") ──
 function loadRejInsights(force){
   if(rejInsightsLoading)return; rejInsightsLoading=true; if(curTab==='rejections')render();
-  fetch(API+'?endpoint=rejection_insights'+(force?'&regenerate=1':''),{headers:hdrs()})
+  _authFetch(API+'?endpoint=rejection_insights'+(force?'&regenerate=1':''),{headers:hdrs()})
     .then(function(r){return r.json()}).then(function(d){rejInsights=d;rejInsightsLoading=false;if(curTab==='rejections')render()})
     .catch(function(){rejInsightsLoading=false;if(curTab==='rejections')render()});
 }
@@ -545,14 +555,14 @@ function whyPrompt(c){
 }
 function analyzeWhy(c){
   var k=c.mnum; if(cgWhy[k])return; cgWhy[k]={loading:true}; repaintRej();
-  fetch(API+'?endpoint=caregiver_calls&phone='+encodeURIComponent(c.phone||''),{headers:hdrs()})
+  _authFetch(API+'?endpoint=caregiver_calls&phone='+encodeURIComponent(c.phone||''),{headers:hdrs()})
     .then(function(r){return r.ok?r.json():{calls:[]}}).catch(function(){return {calls:[]}})
     .then(function(cd){
       var calls=(cd&&cd.calls)||[]; cgWhy[k]={loading:true,calls:calls}; repaintRej();
       var callText=calls.length?calls.map(function(x){return '- '+((x.started_at||'').slice(0,10))+' ['+(x.outcome||'?')+', '+(x.direction||'')+']: '+((x.summary||'')).slice(0,500);}).join('\n'):'(no analyzed calls on file)';
       var sys='You are a home-care retention analyst. Using the signals AND the recent call summaries, explain in 2–4 sentences why this caregiver is declining visits / at risk — cite specifics from the calls — then give one concrete next action. No preamble.';
       var content='Signals:\n'+whyPrompt(c)+'\n\nRecent analyzed calls (date [outcome, direction]: summary):\n'+callText+'\n\nWhy is this caregiver declining / at risk, and what should we do?';
-      return fetch(CLAUDE,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:500,system:sys,messages:[{role:'user',content:content}]})})
+      return _authFetch(CLAUDE,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:500,system:sys,messages:[{role:'user',content:content}]})})
         .then(function(r){return r.json()}).then(function(d){cgWhy[k]={text:(d.content&&d.content[0]&&d.content[0].text)||'(no response)',calls:calls};repaintRej();});
     })
     .catch(function(e){cgWhy[k]={text:'Analysis failed: '+e.message};repaintRej();});
@@ -653,7 +663,7 @@ function repaint2(){if(curTab==='notes'){var el=document.getElementById('nhList'
 async function postNote(m){
   var ta=document.getElementById('nt'+m);if(!ta||!ta.value.trim())return;
   var payload={mnum:m,text:ta.value.trim(),author:myInitials(),weekOf:sundayOf(new Date())};ta.disabled=true;
-  try{var res=await fetch(API+'?endpoint=retention_notes',{method:'POST',headers:Object.assign({'Content-Type':'application/json'},hdrs()),body:JSON.stringify(payload)});if(!res.ok)throw new Error('HTTP '+res.status);if(!notesStore[m])notesStore[m]=[];notesStore[m].push({weekOf:payload.weekOf,text:payload.text,author:payload.author,ts:new Date().toISOString()});repaint2()}
+  try{var res=await _authFetch(API+'?endpoint=retention_notes',{method:'POST',headers:Object.assign({'Content-Type':'application/json'},hdrs()),body:JSON.stringify(payload)});if(!res.ok)throw new Error('HTTP '+res.status);if(!notesStore[m])notesStore[m]=[];notesStore[m].push({weekOf:payload.weekOf,text:payload.text,author:payload.author,ts:new Date().toISOString()});repaint2()}
   catch(e){ta.disabled=false;alert('Save failed: '+e.message)}
 }
 

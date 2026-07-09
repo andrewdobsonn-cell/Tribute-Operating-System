@@ -257,6 +257,16 @@ input[type=range]{flex:1;accent-color:var(--orange);cursor:pointer;height:4px;}
 </div>
 <script>
 var API='https://tribute-api-prod-bkc4hfcwf3f2f6bf.centralus-01.azurewebsites.net/api/vivProxy';
+// 2026-07-09: every endpoint below now requires a real signed-in Tribute
+// account server-side. Wraps fetch() so every API call carries the token
+// without hand-editing each call site.
+async function _authFetch(url, opts) {
+  opts = opts || {};
+  var t = (window.tributeKsfGate && window.tributeKsfGate.getToken) ? await window.tributeKsfGate.getToken() : null;
+  if (t) { opts = Object.assign({}, opts); opts.headers = Object.assign({}, opts.headers || {}, {Authorization: 'Bearer ' + t}); }
+  return fetch(url, opts);
+}
+
 var apiData=null,map=null,markers=[],clientMarker=null,filteredCGs=[],selectedDows=[];
 var clientLat=null,clientLng=null;
 
@@ -473,7 +483,7 @@ function geocodeNext(){
       if(!geocodeQueue.length){
         document.getElementById('geoProgress').classList.remove('show');
         var updates=apiData.caregivers.filter(function(c){return c.lat&&c.lng;}).map(function(c){return{id:c.id,lat:c.lat,lng:c.lng,addr:c.addrStr};});
-        fetch(API+'?endpoint=store_geocache',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({updates:updates})}).catch(function(){});
+        _authFetch(API+'?endpoint=store_geocache',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({updates:updates})}).catch(function(){});
         applyFilters();
       }
       setTimeout(geocodeNext,1100);
@@ -599,7 +609,7 @@ function renderResults(list,reqs,maxMiles){
 async function load(){
   try{
     document.getElementById('loadingSub').textContent='Fetching caregiver data…';
-    var r=await fetch(API+'?endpoint=caregiver_supply');
+    var r=await _authFetch(API+'?endpoint=caregiver_supply');
     var d=await r.json();
     if(d.error)throw new Error(d.error);
     apiData=d;

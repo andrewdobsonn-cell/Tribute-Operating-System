@@ -225,6 +225,16 @@ tr.clickable:hover td{background:var(--bg);}
 
 <script>
 var API='https://tribute-api-prod-bkc4hfcwf3f2f6bf.centralus-01.azurewebsites.net/api/vivProxy';
+// 2026-07-09: every endpoint below now requires a real signed-in Tribute
+// account server-side. Wraps fetch() so every API call carries the token
+// without hand-editing each call site.
+async function _authFetch(url, opts) {
+  opts = opts || {};
+  var t = (window.tributeKsfGate && window.tributeKsfGate.getToken) ? await window.tributeKsfGate.getToken() : null;
+  if (t) { opts = Object.assign({}, opts); opts.headers = Object.assign({}, opts.headers || {}, {Authorization: 'Bearer ' + t}); }
+  return fetch(url, opts);
+}
+
 
 // State
 var allHoursWeeks={};  // wkStr -> caregiver_hours response
@@ -398,7 +408,7 @@ async function load(){
     try{
       var endD=addDays(new Date(wk),6);
       var endStr=fmtD(endD);
-      var r=await fetch(API+'?endpoint=caregiver_hours&startDate='+wk+'&endDate='+endStr);
+      var r=await _authFetch(API+'?endpoint=caregiver_hours&startDate='+wk+'&endDate='+endStr);
       if(r.ok)allHoursWeeks[wk]=await r.json();
     }catch(e){console.error('hours fetch error',wk,e);}
   });
@@ -407,7 +417,7 @@ async function load(){
   var bioFetch=async function(){
     if(allBio.length)return;
     try{
-      var r=await fetch(API+'?endpoint=caregivers');
+      var r=await _authFetch(API+'?endpoint=caregivers');
       if(r.ok){
         var d=await r.json();
         allBio=(d.caregivers||[]);

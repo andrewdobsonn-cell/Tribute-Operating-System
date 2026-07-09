@@ -881,6 +881,16 @@ body {
 
 <script>
 var API = 'https://tribute-api-prod-bkc4hfcwf3f2f6bf.centralus-01.azurewebsites.net/api/vivProxy';
+// 2026-07-09: every endpoint below now requires a real signed-in Tribute
+// account server-side. Wraps fetch() so every API call carries the token
+// without hand-editing each call site.
+async function _authFetch(url, opts) {
+  opts = opts || {};
+  var t = (window.tributeKsfGate && window.tributeKsfGate.getToken) ? await window.tributeKsfGate.getToken() : null;
+  if (t) { opts = Object.assign({}, opts); opts.headers = Object.assign({}, opts.headers || {}, {Authorization: 'Bearer ' + t}); }
+  return fetch(url, opts);
+}
+
 var BASE = 'https://andrewdobsonn-cell.github.io/Tribute-Operating-System/';
 
 var DASHES = {
@@ -928,9 +938,9 @@ async function loadMetrics(){
 
     // Load visits, caregiver hours, and caregivers in parallel
     var [visitsRes, cgHoursRes, cgRes] = await Promise.all([
-      fetch(API+'?endpoint=visits&startDate='+s+'&endDate='+e),
-      fetch(API+'?endpoint=caregiver_hours&startDate='+s+'&endDate='+e),
-      fetch(API+'?endpoint=caregivers&fast=true')
+      _authFetch(API+'?endpoint=visits&startDate='+s+'&endDate='+e),
+      _authFetch(API+'?endpoint=caregiver_hours&startDate='+s+'&endDate='+e),
+      _authFetch(API+'?endpoint=caregivers&fast=true')
     ]);
 
     var visitsData = visitsRes.ok ? await visitsRes.json() : null;

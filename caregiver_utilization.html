@@ -161,6 +161,16 @@ tbody tr:nth-child(even):hover{background:var(--orange-50)}
 (function(){
 'use strict';
 var API='https://tribute-api-prod-bkc4hfcwf3f2f6bf.centralus-01.azurewebsites.net/api/vivProxy';
+// 2026-07-09: every endpoint below now requires a real signed-in Tribute
+// account server-side. Wraps fetch() so every API call carries the token
+// without hand-editing each call site.
+async function _authFetch(url, opts) {
+  opts = opts || {};
+  var t = (window.tributeKsfGate && window.tributeKsfGate.getToken) ? await window.tributeKsfGate.getToken() : null;
+  if (t) { opts = Object.assign({}, opts); opts.headers = Object.assign({}, opts.headers || {}, {Authorization: 'Bearer ' + t}); }
+  return fetch(url, opts);
+}
+
 var MKT_ORDER=['Boston','North of Boston','MetroWest Boston','South of Boston','Chicago','Annapolis','Baltimore','Bethesda'];
 var D;
 
@@ -240,7 +250,7 @@ $$('.tab-btn').forEach(function(btn){
   };
 });
 
-fetch(API+'?endpoint=utilization_report').then(function(r){return r.json();}).then(function(data){
+_authFetch(API+'?endpoint=utilization_report').then(function(r){return r.json();}).then(function(data){
   D=data;
   $('#loading').style.display='none';
   $('#app').style.display='block';

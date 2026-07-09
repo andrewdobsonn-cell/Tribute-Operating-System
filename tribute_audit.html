@@ -998,7 +998,8 @@ async function runDashboard() {
 
     // Fetch from API
     const apiUrl = `https://tribute-api-prod-bkc4hfcwf3f2f6bf.centralus-01.azurewebsites.net/api/vivProxy?endpoint=weekly_audit&startDate=${startStr}&endDate=${endStr}`;
-    const response = await fetch(apiUrl);
+    const _waToken = (window.tributeKsfGate && window.tributeKsfGate.getToken) ? await window.tributeKsfGate.getToken() : null;
+    const response = await fetch(apiUrl, { headers: _waToken ? { Authorization: 'Bearer ' + _waToken } : {} });
 
     if (!response.ok) {
       throw new Error(`API error: ${response.status}`);
