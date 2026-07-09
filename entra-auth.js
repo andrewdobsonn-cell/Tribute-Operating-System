@@ -22,6 +22,20 @@
   const IS_IFRAME = window.self !== window.top;
   const state = { msal: null, account: null };
 
+  // 2026-07-09: getToken() used to check state.account immediately with no
+  // wait — but a page's own inline <script> (its data-fetch IIFE) runs
+  // synchronously as the parser reaches it, which is often BEFORE
+  // DOMContentLoaded even fires, let alone before init() (triggered by that
+  // same event) finishes its awaits. getToken() was returning null on that
+  // first call every time, not because sign-in failed but because it never
+  // waited for init() to run at all. Harmless while every backend endpoint
+  // was ungated; surfaced as real 401s the moment they started requiring
+  // this token. resolveReady() fires once init() completes either way, so
+  // getToken() called at any point — even before init() has started —
+  // correctly waits instead of racing it.
+  let resolveReady;
+  const readyPromise = new Promise((resolve) => { resolveReady = resolve; });
+
   const injectStyles = () => {
     if (document.getElementById('entra-signin-styles')) return;
     const s = document.createElement('style');
@@ -132,10 +146,13 @@
       try { localStorage.clear(); } catch {}
       buildOverlay();
       showError(e);
+    } finally {
+      resolveReady();
     }
   }
 
   async function getToken() {
+    await readyPromise;
     if (!state.account) return null;
     try {
       const r = await state.msal.acquireTokenSilent({ scopes: [CFG.apiScope], account: state.account });
