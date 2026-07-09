@@ -141,6 +141,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 <script>
 var API='https://tribute-api-prod-bkc4hfcwf3f2f6bf.centralus-01.azurewebsites.net/api/vivProxy';
+// 2026-07-09: every endpoint below now requires a real signed-in Tribute
+// account server-side. Wraps fetch() so every API call carries the token
+// without hand-editing each call site.
+async function _authFetch(url, opts) {
+  opts = opts || {};
+  var t = (window.tributeKsfGate && window.tributeKsfGate.getToken) ? await window.tributeKsfGate.getToken() : null;
+  if (t) { opts = Object.assign({}, opts); opts.headers = Object.assign({}, opts.headers || {}, {Authorization: 'Bearer ' + t}); }
+  return fetch(url, opts);
+}
+
 var data=null,curNav='company',curView='overview',curStart=null,curEnd=null;
 var tsAdminMap={},tsAdminKey=null,tsAdminFetching=null;  // authoritative TS owed (proxy ts_admin), cgid -> row
 var globalMCE='';
@@ -231,7 +241,7 @@ async function fetchData(){
     applyData(cached);
     document.getElementById('sl').innerHTML='<span class="dot"></span>Cached &middot; refreshing in background...';
     // Refresh in background
-    fetch(API+'?endpoint=caregiver_hours&startDate='+curStart+'&endDate='+curEnd)
+    _authFetch(API+'?endpoint=caregiver_hours&startDate='+curStart+'&endDate='+curEnd)
       .then(function(r){return r.json();})
       .then(function(d){setCache('caregiver_hours',curStart,curEnd,d);applyData(d);})
       .catch(function(){});
@@ -240,7 +250,7 @@ async function fetchData(){
   document.getElementById('sl').innerHTML='<span class="adot"></span>Loading... (60-90 sec)';
   document.getElementById('ct').innerHTML='<div class="loading"><div class="spin"></div>Loading caregiver hours for '+curStart+' to '+curEnd+'...<br><span style="font-size:11px;color:var(--text3);margin-top:8px;display:block">Pulling caregiver records and visit data.</span></div>';
   try{
-    var res=await fetch(API+'?endpoint=caregiver_hours&startDate='+curStart+'&endDate='+curEnd);
+    var res=await _authFetch(API+'?endpoint=caregiver_hours&startDate='+curStart+'&endDate='+curEnd);
     if(!res.ok)throw new Error('HTTP '+res.status);
     var d=await res.json();
     setCache('caregiver_hours',curStart,curEnd,d);
@@ -260,7 +270,7 @@ function fetchTsAdmin(){
   var tokenP=(window.tributeKsfGate&&window.tributeKsfGate.getToken)?window.tributeKsfGate.getToken():Promise.resolve(null);
   tokenP.then(function(token){
     if(!token){ tsAdminFetching=null; return; }
-    return fetch(API+'?endpoint=ts_admin&startDate='+curStart+'&endDate='+curEnd,{headers:{Authorization:'Bearer '+token}})
+    return _authFetch(API+'?endpoint=ts_admin&startDate='+curStart+'&endDate='+curEnd,{headers:{Authorization:'Bearer '+token}})
       .then(function(r){return r.json();})
       .then(function(d){
         tsAdminFetching=null;
@@ -1047,7 +1057,7 @@ function renderBarriers(){
     barriersData=cached;
     renderBarriersUI(cached);
     // Refresh in background
-    fetch(API+'?endpoint=performance_barriers&startDate='+curStart+'&endDate='+curEnd+'&lookback=90')
+    _authFetch(API+'?endpoint=performance_barriers&startDate='+curStart+'&endDate='+curEnd+'&lookback=90')
       .then(function(r){return r.json();})
       .then(function(d){d._period=curStart;barriersData=d;setCache('performance_barriers',curStart,curEnd,d);renderBarriersUI(d);})
       .catch(function(){});
@@ -1056,7 +1066,7 @@ function renderBarriers(){
   if(barriersLoading)return;
   barriersLoading=true;
   document.getElementById('ct').innerHTML='<div class="loading"><div class="spin"></div>Loading performance barriers (90-day lookback)...<br><span style="font-size:11px;color:var(--text3);margin-top:8px;display:block">Fetching incident reports and turndown data.</span></div>';
-  fetch(API+'?endpoint=performance_barriers&startDate='+curStart+'&endDate='+curEnd+'&lookback=90')
+  _authFetch(API+'?endpoint=performance_barriers&startDate='+curStart+'&endDate='+curEnd+'&lookback=90')
     .then(function(r){return r.json();})
     .then(function(d){
       d._period=curStart;
@@ -1282,7 +1292,7 @@ function renderDHTrend(){
   weeks.forEach(function(w,idx){
     // Stagger requests slightly to avoid overloading
     setTimeout(function(){
-      fetch(API+'?endpoint=caregiver_hours&startDate='+w.start+'&endDate='+w.end)
+      _authFetch(API+'?endpoint=caregiver_hours&startDate='+w.start+'&endDate='+w.end)
         .then(function(r){return r.json();})
         .then(function(d){
           weekData[idx]={week:w.start,data:d};

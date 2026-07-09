@@ -116,6 +116,16 @@ body{font-family:var(--font);background:var(--gray50);color:var(--charcoal);font
 
 <script>
 var API='https://tribute-api-prod-bkc4hfcwf3f2f6bf.centralus-01.azurewebsites.net/api/vivProxy';
+// 2026-07-09: every endpoint below now requires a real signed-in Tribute
+// account server-side. Wraps fetch() so every API call carries the token
+// without hand-editing each call site.
+async function _authFetch(url, opts) {
+  opts = opts || {};
+  var t = (window.tributeKsfGate && window.tributeKsfGate.getToken) ? await window.tributeKsfGate.getToken() : null;
+  if (t) { opts = Object.assign({}, opts); opts.headers = Object.assign({}, opts.headers || {}, {Authorization: 'Bearer ' + t}); }
+  return fetch(url, opts);
+}
+
 var curTab='open';
 var openData=null,bookingData=null,timeoffData=null;
 var filters={state:'all',market:'all',shifts:{long:true,short:true,overnight:true,livein:true}};
@@ -144,8 +154,9 @@ function setTab(t,el){
 function loading(msg){document.getElementById('ct').innerHTML='<div class="info"><span class="spin"></span>&nbsp; '+(msg||'Loading...')+'</div>';}
 function showErr(msg){document.getElementById('ct').innerHTML='<div class="err">'+msg+'</div>';}
 
-function safeFetch(url,label){
-  return fetch(url)
+async function safeFetch(url,label){
+  var t = (window.tributeKsfGate && window.tributeKsfGate.getToken) ? await window.tributeKsfGate.getToken() : null;
+  return fetch(url, t ? {headers:{Authorization:'Bearer '+t}} : {})
     .then(function(r){return r.text().then(function(txt){try{return JSON.parse(txt);}catch(e){return{error:label+' bad JSON'};} });})
     .catch(function(e){return{error:label+': '+e.message};});
 }

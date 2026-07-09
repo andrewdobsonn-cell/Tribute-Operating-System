@@ -379,6 +379,16 @@ body{font-family:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;backgroun
 
 <script>
 var API='https://tribute-api-prod-bkc4hfcwf3f2f6bf.centralus-01.azurewebsites.net/api/vivProxy';
+// 2026-07-09: every endpoint below now requires a real signed-in Tribute
+// account server-side. Wraps fetch() so every API call carries the token
+// without hand-editing each call site.
+async function _authFetch(url, opts) {
+  opts = opts || {};
+  var t = (window.tributeKsfGate && window.tributeKsfGate.getToken) ? await window.tributeKsfGate.getToken() : null;
+  if (t) { opts = Object.assign({}, opts); opts.headers = Object.assign({}, opts.headers || {}, {Authorization: 'Bearer ' + t}); }
+  return fetch(url, opts);
+}
+
 var allEntries=[];
 var genderMap={};  // name -> gender
 var selectedDay=null;
@@ -432,9 +442,9 @@ async function loadData(){
   try{
     // Fetch all three endpoints in parallel
     var [supplyRes, cgRes, recurRes]=await Promise.all([
-      fetch(API+'?endpoint=caregiver_supply'),
-      fetch(API+'?endpoint=caregivers'),
-      fetch(API+'?endpoint=recurring_days')
+      _authFetch(API+'?endpoint=caregiver_supply'),
+      _authFetch(API+'?endpoint=caregivers'),
+      _authFetch(API+'?endpoint=recurring_days')
     ]);
     if(!supplyRes.ok)throw new Error('Supply API returned '+supplyRes.status);
     var supplyData=await supplyRes.json();
@@ -696,7 +706,7 @@ function distanceMiles(lat1,lng1,lat2,lng2){
 
 // OpenRouteService matrix via API proxy (returns miles and seconds)
 async function orsMatrix(locations, sources, destinations){
-  var res=await fetch(API+'?endpoint=distance_matrix',{
+  var res=await _authFetch(API+'?endpoint=distance_matrix',{
     method:'POST',
     headers:{'Content-Type':'application/json'},
     body:JSON.stringify({locations:locations,sources:sources,destinations:destinations,metrics:['distance','duration']})
@@ -997,7 +1007,7 @@ async function runStacker(){
   // Fetch visit schedules from API
   var scheduleData=null;
   try{
-    var res=await fetch(API+'?endpoint=stacker_visits&date='+dateStr);
+    var res=await _authFetch(API+'?endpoint=stacker_visits&date='+dateStr);
     if(!res.ok)throw new Error('HTTP '+res.status);
     scheduleData=await res.json();
   }catch(e){

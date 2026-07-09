@@ -156,6 +156,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 <script>
 var API='https://tribute-api-prod-bkc4hfcwf3f2f6bf.centralus-01.azurewebsites.net/api/vivProxy';
+// 2026-07-09: every endpoint below now requires a real signed-in Tribute
+// account server-side. Wraps fetch() so every API call carries the token
+// without hand-editing each call site.
+async function _authFetch(url, opts) {
+  opts = opts || {};
+  var t = (window.tributeKsfGate && window.tributeKsfGate.getToken) ? await window.tributeKsfGate.getToken() : null;
+  if (t) { opts = Object.assign({}, opts); opts.headers = Object.assign({}, opts.headers || {}, {Authorization: 'Bearer ' + t}); }
+  return fetch(url, opts);
+}
+
 
 var curPeriod='month';
 var curMetric='revenue';
@@ -192,7 +202,7 @@ function applyScope(){if(apiData)render();}
 async function load(){
   document.getElementById('main').innerHTML='<div class="loading"><div class="spin"></div>Fetching visit data…<div style="font-size:11px;color:var(--text4);margin-top:4px">This may take a moment for longer periods</div></div>';
   try{
-    var r=await fetch(API+'?endpoint=service_mix&period='+curPeriod);
+    var r=await _authFetch(API+'?endpoint=service_mix&period='+curPeriod);
     if(!r.ok)throw new Error('HTTP '+r.status);
     apiData=await r.json();
     document.getElementById('updated').textContent='Updated '+new Date().toLocaleTimeString();
