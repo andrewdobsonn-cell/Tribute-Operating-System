@@ -629,7 +629,7 @@ function render(){
       var dayEntries=filtered.filter(function(e){return e.openDays.indexOf(d)>=0;});
       if(dayEntries.length>0){
         html+='<div style="margin-bottom:32px">';
-        html+='<div style="font-family:DM Serif Display,Georgia,serif;font-size:24px;color:var(--charcoal);margin-bottom:12px;padding-bottom:6px;border-bottom:2px solid var(--orange)">'+DAYS[d]+'<span style="font-family:DM Sans;font-size:13px;color:var(--gray-light);margin-left:10px;font-weight:400">'+dayEntries.length+' available</span></div>';
+        html+='<div style="font-family:DM Serif Display,Georgia,serif;font-size:24px;color:var(--charcoal);margin-bottom:12px;padding-bottom:6px;border-bottom:2px solid var(--orange)">'+DAYS[d]+'<span style="font-family:DM Sans;font-size:13px;color:var(--gray-light);margin-left:10px;font-weight:400">'+availCountLabel(dayEntries)+'</span></div>';
         html+=renderTypeGroups(dayEntries);
         html+='</div>';
       }
@@ -639,11 +639,24 @@ function render(){
   document.getElementById('dayContent').innerHTML=html;
 }
 
+// "N available" label that never counts temp-unavailable caregivers as available:
+// purple entries get their own "+ M temp unavailable" suffix when visible.
+function availCountLabel(entries){
+  var avail=0,tu=0;
+  entries.forEach(function(e){if(e.tempUnavail)tu++;else avail++;});
+  var label=avail+' available';
+  if(tu>0)label+=' <span style="color:var(--purple);font-weight:600">+ '+tu+' temp unavailable</span>';
+  return label;
+}
 function renderDayTabs(filtered){
-  var html='<div class="day-tab'+(selectedDay===null?' active':'')+'" onclick="selectDay(null)"><div class="day-tab-name">All Days</div><div class="day-tab-count">'+new Set(filtered.map(function(e){return e.name;})).size+' caregivers</div></div>';
+  var allAvail=new Set(filtered.filter(function(e){return !e.tempUnavail;}).map(function(e){return e.name;})).size;
+  var allTu=new Set(filtered.filter(function(e){return e.tempUnavail;}).map(function(e){return e.name;})).size;
+  var html='<div class="day-tab'+(selectedDay===null?' active':'')+'" onclick="selectDay(null)"><div class="day-tab-name">All Days</div><div class="day-tab-count">'+allAvail+' caregivers'+(allTu>0?' <span style="color:var(--purple)">+'+allTu+'</span>':'')+'</div></div>';
   for(var d=0;d<7;d++){
     var dayEntries=filtered.filter(function(e){return e.openDays.indexOf(d)>=0;});
-    html+='<div class="day-tab'+(selectedDay===d?' active':'')+'" onclick="selectDay('+d+')"><div class="day-tab-name">'+DAYS[d]+'</div><div class="day-tab-count">'+new Set(dayEntries.map(function(e){return e.name;})).size+' avail</div></div>';
+    var dAvail=new Set(dayEntries.filter(function(e){return !e.tempUnavail;}).map(function(e){return e.name;})).size;
+    var dTu=new Set(dayEntries.filter(function(e){return e.tempUnavail;}).map(function(e){return e.name;})).size;
+    html+='<div class="day-tab'+(selectedDay===d?' active':'')+'" onclick="selectDay('+d+')"><div class="day-tab-name">'+DAYS[d]+'</div><div class="day-tab-count">'+dAvail+' avail'+(dTu>0?' <span style="color:var(--purple)">+'+dTu+'</span>':'')+'</div></div>';
   }
   document.getElementById('dayTabs').innerHTML=html;
 }
@@ -654,7 +667,9 @@ function renderTypeGroups(entries){
     var typeEntries=entries.filter(function(e){return e.type===type;});
     if(typeEntries.length===0)return;
     var css=TYPE_CSS[type];
-    html+='<div class="type-section"><div class="type-header"><div class="type-badge '+css+'">'+type+'</div><span class="type-count">'+typeEntries.length+'</span></div>';
+    var tAvail=typeEntries.filter(function(e){return !e.tempUnavail;}).length;
+    var tTu=typeEntries.length-tAvail;
+    html+='<div class="type-section"><div class="type-header"><div class="type-badge '+css+'">'+type+'</div><span class="type-count">'+tAvail+(tTu>0?' <span style="color:var(--purple);font-weight:600">+ '+tTu+' temp unavailable</span>':'')+'</span></div>';
     html+='<div class="cg-grid">';
     typeEntries.forEach(function(e){
       var openDayNames=e.openDays.map(function(d){return DAYS[d].slice(0,3);}).join(', ');
