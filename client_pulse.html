@@ -110,6 +110,13 @@
     <div class="sub">Where every active client stands — ranked by who needs attention. Caregiver visit notes, change-of-condition reports, communications, hospitalization risk and 90-day incidents in one read.</div>
   </div>
 
+  <div class="rise" style="margin-top:16px;">
+    <div class="seg" id="viewSeg">
+      <button data-view="pulse" class="on">💓 Client Pulse</button>
+      <button data-view="md">🎯 Market Director — Retention Risk</button>
+    </div>
+  </div>
+
   <div class="kpis rise" id="kpis" style="animation-delay:.06s"></div>
 
   <div class="toolbar rise" id="toolbar" style="display:none;animation-delay:.1s">
@@ -126,6 +133,30 @@
   </div>
 
   <div id="list"><div class="loading">Signing in &amp; loading client pulse…</div></div>
+
+  <!-- MARKET DIRECTOR — RETENTION RISK -->
+  <div id="mdview" style="display:none;">
+    <div class="sub" style="margin:6px 0 14px;">Clients most at risk of <b>cancelling service</b>, with the specific drivers and the intervention to make. Preventable and financial risk is where to push — unavoidable churn is context, not a to-do.</div>
+    <div class="toolbar" style="position:static;">
+      <div class="seg" id="mdMktSeg">
+        <button data-mkt="MA" class="on">Massachusetts</button>
+        <button data-mkt="MD">Maryland</button>
+        <button data-mkt="IL">Illinois</button>
+      </div>
+      <div class="seg" id="mdRiskSeg">
+        <button data-risk="" class="on">All risk</button>
+        <button data-risk="high">High</button>
+        <button data-risk="medium">Medium</button>
+      </div>
+      <select id="mdCatSel"><option value="">All categories</option>
+        <option value="preventable">Preventable</option><option value="financial">Financial</option>
+        <option value="unavoidable">Unavoidable</option><option value="competitive">Competitive</option></select>
+      <select id="mdCsmSel"><option value="">All CSMs</option></select>
+      <span class="count" id="mdCount"></span>
+    </div>
+    <div class="kpis" id="mdKpis"></div>
+    <div id="mdList"></div>
+  </div>
 
   <div class="footer">
     <span><i>Remarkable, personified.</i></span>
@@ -150,6 +181,7 @@ async function load(force){
     if(DATA.error) throw new Error(DATA.error);
     render();
   }catch(e){ $('#list').innerHTML='<div class="err">Could not load pulse: '+esc(e.message)+'</div>'; }
+  if(VIEW==='md')drawMD();
 }
 
 function render(){
@@ -227,6 +259,77 @@ function card(c){
     </div>
   </div>`;
 }
+
+// ── Market Director — Retention Risk ──
+const MKT_STATE={'Boston':'MA','MetroWest Boston':'MA','Metro West Boston':'MA','North of Boston':'MA','North Boston':'MA','South of Boston':'MA','South Boston':'MA','Massachusetts':'MA','Baltimore':'MD','Bethesda':'MD','Annapolis':'MD','Maryland':'MD','Chicago':'IL','Illinois':'IL'};
+let MD={mkt:'MA',risk:'',cat:'',csm:''};
+let VIEW='pulse';
+const RISK_ORD={high:0,medium:1,low:2};
+const CAT_STYLE={preventable:['Preventable','#A4271E','#F8E5E2'],financial:['Financial','#92580B','#F8EEDB'],unavoidable:['Unavoidable','#2C5689','#E8EFF7'],competitive:['Competitive','#8A1A57','#F6E7EF']};
+function setView(v){
+  VIEW=v;
+  document.querySelectorAll('#viewSeg button').forEach(x=>x.className=x.dataset.view===v?'on':'');
+  $('#list').style.display=v==='pulse'?'':'none';
+  $('#toolbar').style.display=v==='pulse'?'flex':'none';
+  $('#kpis').style.display=v==='pulse'?'flex':'none';
+  $('#mdview').style.display=v==='md'?'block':'none';
+  if(v==='md')drawMD();
+}
+function mdRows(){
+  const cs=(DATA&&DATA.clients)||[];
+  return cs.filter(c=>MKT_STATE[(c.market||'').trim()]===MD.mkt);
+}
+function drawMD(){
+  if(!DATA){$('#mdList').innerHTML='<div class="loading">Loading…</div>';return;}
+  const all=mdRows();
+  const hasRisk=all.some(c=>c.cancelRisk);
+  const csms=[...new Set(all.map(c=>c.csm).filter(Boolean))].sort();
+  const sel=$('#mdCsmSel');const cur=sel.value;
+  sel.innerHTML='<option value="">All CSMs</option>'+csms.map(m=>`<option>${esc(m)}</option>`).join('');sel.value=cur;
+  const hi=all.filter(c=>c.cancelRisk==='high'),med=all.filter(c=>c.cancelRisk==='medium');
+  const prev=all.filter(c=>c.cancelRisk!=='low'&&c.cancelCategory==='preventable');
+  const fin=all.filter(c=>c.cancelRisk!=='low'&&c.cancelCategory==='financial');
+  $('#mdKpis').innerHTML=
+    kpi('red',hi.length,'High cancel risk')+
+    kpi('amber',med.length,'Medium risk')+
+    kpi('red',prev.length,'Preventable — act now')+
+    kpi('',fin.length,'Financial');
+  let rows=all.filter(c=>(MD.risk?c.cancelRisk===MD.risk:(c.cancelRisk==='high'||c.cancelRisk==='medium'))&&(!MD.cat||c.cancelCategory===MD.cat)&&(!MD.csm||c.csm===MD.csm));
+  rows.sort((a,z)=>(RISK_ORD[a.cancelRisk]??2)-(RISK_ORD[z.cancelRisk]??2)||(z.score-a.score));
+  $('#mdCount').textContent=rows.length+' shown';
+  if(!hasRisk){$('#mdList').innerHTML='<div class="loading">Retention-risk scoring arrives with the next pulse rebuild (runs 3×/day) — check back shortly.</div>';return;}
+  if(!rows.length){$('#mdList').innerHTML='<div class="loading">No clients match — nobody in this slice is at elevated cancellation risk. 🎉</div>';return;}
+  $('#mdList').innerHTML=rows.map(c=>{
+    const cat=CAT_STYLE[c.cancelCategory]||null;
+    const riskChip=c.cancelRisk==='high'?'<span class="lvl red">High cancel risk</span>':'<span class="lvl amber">Medium risk</span>';
+    return `<div class="card ${c.cancelRisk==='high'?'red':'amber'}" onclick="this.classList.toggle('open')">
+      <div class="row">
+        <span class="pdot ${c.cancelRisk==='high'?'red':'amber'}"></span>
+        <div class="who">
+          <div class="nm"><a href="https://tribute.mavencare.com/client/${esc(c.cid)}/dashboard/summary" target="_blank" onclick="event.stopPropagation()">${esc(c.name)}</a></div>
+          <div class="meta">${[c.market,c.csm?('CSM · '+c.csm):''].filter(Boolean).map(esc).join(' · ')}</div>
+          <div class="chips">${cat?`<span class="chip" style="background:${cat[2]};color:${cat[1]};font-weight:700;">${cat[0]}</span>`:''}${(c.cancelDrivers||[]).map(dr=>`<span class="chip">${esc(dr)}</span>`).join('')}</div>
+          ${c.intervention?`<div style="margin-top:9px;font-size:13px;line-height:1.5;background:var(--orange-soft);border-radius:10px;padding:9px 12px;"><b style="color:var(--orange-fg);">→ Intervene:</b> ${esc(c.intervention)}</div>`:''}
+        </div>
+        <div class="right">${riskChip}<span class="score">${c.score}</span></div>
+      </div>
+      <div class="detail">
+        ${c.aiPulse?`<div class="ai"><div class="ah">✦ Tribute Intelligence Pulse Read</div><div class="p">${esc(c.aiPulse)}</div></div>`:''}
+        ${(c.visitNotes&&c.visitNotes.length)?`<div style="margin-top:12px"><div class="dh">Caregiver visit notes (14d)</div>${c.visitNotes.map(n=>`<div class="inc"><div class="d">${esc(n.date)}${n.cg?' · '+esc(n.cg):''}</div><div class="x">${esc(n.note)}</div></div>`).join('')}</div>`:''}
+        ${(c.incidents||[]).length?`<div style="margin-top:12px"><div class="dh">Service exceptions (90d)</div>${c.incidents.slice(0,5).map(i=>`<div class="inc"><div class="d">${esc(i.date)}</div><div class="x">${esc((i.types||[]).join(', '))}${i.incident?': '+esc(i.incident):''}</div></div>`).join('')}</div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+document.addEventListener('click',e=>{
+  const v=e.target.closest('#viewSeg button'); if(v){setView(v.dataset.view);return;}
+  const mk=e.target.closest('#mdMktSeg button'); if(mk){MD.mkt=mk.dataset.mkt;[...document.querySelectorAll('#mdMktSeg button')].forEach(x=>x.className=x===mk?'on':'');drawMD();return;}
+  const rk=e.target.closest('#mdRiskSeg button'); if(rk){MD.risk=rk.dataset.risk;[...document.querySelectorAll('#mdRiskSeg button')].forEach(x=>x.className=x===rk?'on '+(rk.dataset.risk==='high'?'red':rk.dataset.risk==='medium'?'amber':''):'');drawMD();return;}
+});
+document.addEventListener('change',e=>{
+  if(e.target.id==='mdCatSel'){MD.cat=e.target.value;drawMD();}
+  if(e.target.id==='mdCsmSel'){MD.csm=e.target.value;drawMD();}
+});
 
 // filters
 document.addEventListener('click',e=>{
