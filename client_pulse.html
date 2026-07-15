@@ -107,7 +107,7 @@
 <div class="wrap">
   <div class="rise">
     <h1>Client Pulse Check</h1>
-    <div class="sub">Where every active client stands — ranked by who needs attention. Notes, hospitalization risk, transitions, and 90-day incidents in one read.</div>
+    <div class="sub">Where every active client stands — ranked by who needs attention. Caregiver visit notes, change-of-condition reports, communications, hospitalization risk and 90-day incidents in one read.</div>
   </div>
 
   <div class="kpis rise" id="kpis" style="animation-delay:.06s"></div>
@@ -168,8 +168,8 @@ function render(){
   $('#csmSel').innerHTML='<option value="">All CSMs</option>'+cm.map(m=>`<option>${esc(m)}</option>`).join('');
   $('#toolbar').style.display='flex';
   $('#stamp').textContent='as of '+new Date(DATA.generatedAt).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
-  const aiOn = DATA.aiStatus==='ok';
-  $('#foot').textContent=(DATA.activeClients||cs.length)+' active clients · 90-day incident window · Claude reads '+(aiOn?'on':'off');
+  const aiOn = String(DATA.aiStatus||'').indexOf('ok')===0;
+  $('#foot').textContent=(DATA.activeClients||cs.length)+' active clients · visit notes 14d · incidents 90d · comms 30d · Claude reads '+(aiOn?'on':'off');
   drawList();
 }
 function kpi(cls,n,l){return `<div class="kpi ${cls}"><div class="n">${n}</div><div class="l">${l}</div></div>`;}
@@ -211,6 +211,9 @@ function card(c){
     </div>
     <div class="detail">
       ${ai}
+      ${(c.cocFlags&&c.cocFlags.length)?`<div style="margin-top:12px"><div class="dh" style="color:var(--red-fg)">Change of condition (visit reports)</div>${c.cocFlags.map(f=>`<div class="inc"><div class="d">${esc(f.date)}${f.cg?' · '+esc(f.cg):''}</div><div class="x" style="color:var(--red-fg)">${esc(f.note)}</div></div>`).join('')}</div>`:''}
+      ${(c.visitNotes&&c.visitNotes.length)?`<div style="margin-top:12px"><div class="dh">Caregiver visit notes (14d)${c.moodAvg?` · visit mood ${esc(c.moodAvg)}/5`:''}</div>${c.visitNotes.map(n=>`<div class="inc"><div class="d">${esc(n.date)}${n.cg?' · '+esc(n.cg):''}</div><div class="x">${esc(n.note)}</div></div>`).join('')}</div>`:''}
+      ${(c.recentComms&&c.recentComms.length)?`<div style="margin-top:12px"><div class="dh">Recent communications${c.comms30?` (30d: ${c.comms30.calls} calls · ${c.comms30.emails} emails · ${c.comms30.texts} texts)`:''}</div>${c.recentComms.map(m2=>`<div class="inc"><div class="d">${esc(m2.date)}</div><div class="x">${esc(m2.summary)}</div></div>`).join('')}</div>`:''}
       <div class="dgrid" style="margin-top:${c.aiPulse||(''+DATA.aiStatus).indexOf('disabled')===0?'12px':'0'}">
         <div>
           <div class="dh">Client notes</div>
