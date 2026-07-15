@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Client Pulse · Tribute Home Care</title>
+<script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@3.28.1/lib/msal-browser.min.js"></script>
+<script src="./entra-auth.js?v=2026-07-07c"></script>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='13' fill='%23FF5A1F'/%3E%3C/svg%3E"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet"/>
+<style>
+  :root{
+    --bg:#FAF8F4;--surface:#FFFFFF;--soft:#F1EEE8;--line:#EAE6DF;--line2:#DED8CE;
+    --ink:#1C1A17;--muted:#6E685F;--muted2:#A49D93;
+    --orange:#FF5A1F;--orange-dark:#E25309;--orange-soft:#FBEADF;--orange-fg:#C2410C;
+    --red:#C8362B;--red-soft:#F8E5E2;--red-fg:#A4271E;
+    --amber:#C2710C;--amber-soft:#F8EEDB;--amber-fg:#92580B;
+    --teal:#0F8F6B;--teal-soft:#E2F2EC;--teal-fg:#0F6E56;
+    --blue:#3B72B8;--blue-soft:#E8EFF7;--blue-fg:#2C5689;
+    --sans:'Inter',system-ui,-apple-system,sans-serif;--display:'Space Grotesk','Inter',sans-serif;
+    --sh-card:0 1px 2px rgba(28,26,23,.04);--sh-soft:0 6px 24px -8px rgba(28,26,23,.10),0 2px 6px -2px rgba(28,26,23,.04);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:var(--sans);background:var(--bg);color:var(--ink);font-size:14px;letter-spacing:-.005em;-webkit-font-smoothing:antialiased;min-height:100vh}
+  .dot{color:var(--orange)}
+  @keyframes dotpulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.7);opacity:.5}}
+  .pulse{animation:dotpulse 2.2s ease-in-out infinite}
+  @keyframes rise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+  .rise{animation:rise .5s cubic-bezier(.2,.8,.2,1) both}
+  @media(prefers-reduced-motion:reduce){.rise{animation:none}.pulse{animation:none}}
+  header{position:sticky;top:0;z-index:40;height:60px;background:rgba(250,248,244,.85);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px;padding:0 22px}
+  .logo{font-family:var(--display);font-size:19px;font-weight:700;letter-spacing:-.02em}
+  .hpulse{width:6px;height:6px;border-radius:99px;background:var(--orange);align-self:center;margin:0 3px 2px -3px}
+  .kicker{font-size:10px;text-transform:uppercase;letter-spacing:.16em;color:var(--muted2);font-weight:600}
+  .hstamp{margin-left:auto;font-size:11px;color:var(--muted2)}
+  .refresh{font-size:11px;font-weight:600;padding:5px 12px;border-radius:99px;background:var(--surface);color:var(--muted);border:1px solid var(--line);cursor:pointer;margin-left:10px}
+  .refresh:hover{color:var(--ink);border-color:var(--line2)}
+  .wrap{max-width:1180px;margin:0 auto;padding:26px 22px 80px}
+  h1{font-family:var(--display);font-size:30px;font-weight:700;letter-spacing:-.02em}
+  .sub{color:var(--muted);font-size:14px;margin-top:4px}
+  .kpis{display:flex;gap:12px;flex-wrap:wrap;margin:20px 0 8px}
+  .kpi{flex:1;min-width:150px;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px 18px;box-shadow:var(--sh-card)}
+  .kpi .n{font-family:var(--display);font-size:26px;font-weight:700}
+  .kpi .l{font-size:11.5px;color:var(--muted);margin-top:2px;font-weight:500}
+  .kpi.red .n{color:var(--red-fg)} .kpi.amber .n{color:var(--amber-fg)} .kpi.teal .n{color:var(--teal-fg)}
+  .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:18px 0 14px;position:sticky;top:60px;z-index:30;background:rgba(250,248,244,.92);backdrop-filter:blur(6px);padding:8px 0}
+  .seg{display:inline-flex;border:1px solid var(--line);background:var(--surface);border-radius:99px;padding:2px;font-size:12px;font-weight:600}
+  .seg button{border:none;background:none;padding:5px 13px;border-radius:99px;cursor:pointer;color:var(--muted);font:inherit}
+  .seg button.on{background:var(--ink);color:#fff}
+  .seg button.on.red{background:var(--red)} .seg button.on.amber{background:var(--amber)} .seg button.on.green{background:var(--teal)}
+  select,input.search{background:var(--surface);border:1px solid var(--line2);border-radius:10px;padding:7px 12px;font:inherit;font-size:12.5px;color:var(--ink);outline:none}
+  input.search{min-width:200px}
+  select:focus,input.search:focus{border-color:var(--orange)}
+  .count{font-size:12px;color:var(--muted2);margin-left:auto}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:var(--sh-card);margin-bottom:12px;overflow:hidden;transition:box-shadow .15s}
+  .card:hover{box-shadow:var(--sh-soft)}
+  .card.red{border-left:4px solid var(--red)} .card.amber{border-left:4px solid var(--amber)} .card.green{border-left:4px solid var(--teal)}
+  .row{display:flex;align-items:flex-start;gap:14px;padding:15px 18px;cursor:pointer}
+  .pdot{width:11px;height:11px;border-radius:99px;margin-top:5px;flex-shrink:0}
+  .pdot.red{background:var(--red)} .pdot.amber{background:var(--amber)} .pdot.green{background:var(--teal)}
+  .who{flex:1;min-width:0}
+  .nm{font-weight:600;font-size:15px}
+  .nm a{color:var(--ink);text-decoration:none;border-bottom:1px dashed var(--line2)}
+  .nm a:hover{color:var(--orange)}
+  .meta{font-size:12px;color:var(--muted);margin-top:2px}
+  .meta b{color:var(--ink);font-weight:600}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+  .chip{font-size:11px;font-weight:600;padding:2px 9px;border-radius:99px;background:var(--soft);color:var(--muted)}
+  .chip.red{background:var(--red-soft);color:var(--red-fg)} .chip.amber{background:var(--amber-soft);color:var(--amber-fg)} .chip.blue{background:var(--blue-soft);color:var(--blue-fg)}
+  .right{text-align:right;flex-shrink:0;display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+  .lvl{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:3px 10px;border-radius:99px}
+  .lvl.red{background:var(--red-soft);color:var(--red-fg)} .lvl.amber{background:var(--amber-soft);color:var(--amber-fg)} .lvl.green{background:var(--teal-soft);color:var(--teal-fg)}
+  .score{font-family:var(--display);font-size:20px;font-weight:700;color:var(--muted)}
+  .csm{font-size:11.5px;color:var(--muted2)}
+  .detail{display:none;border-top:1px solid var(--line);padding:14px 18px 16px;background:#FDFCFA}
+  .card.open .detail{display:block}
+  .dgrid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media(max-width:720px){.dgrid{grid-template-columns:1fr}}
+  .dh{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted2);font-weight:700;margin-bottom:6px}
+  .notes{font-size:12.5px;color:var(--ink);line-height:1.55;white-space:pre-wrap;background:var(--soft);border-radius:10px;padding:10px 12px;max-height:220px;overflow:auto}
+  .inc{font-size:12px;padding:7px 0;border-bottom:1px solid var(--line)}
+  .inc:last-child{border:none}
+  .inc .d{color:var(--muted2);font-size:11px}
+  .inc .t{font-weight:600;font-size:12px;margin:1px 0}
+  .inc .x{color:var(--muted);font-size:11.5px}
+  .ai{background:linear-gradient(180deg,#fff7f3,#fff);border:1px solid var(--orange-soft);border-radius:12px;padding:12px 14px;margin-top:4px}
+  .ai .ah{font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:var(--orange-fg);font-weight:700;display:flex;align-items:center;gap:6px;margin-bottom:6px}
+  .ai .p{font-size:13px;line-height:1.55}
+  .ai .w{margin-top:8px}
+  .ai .w li{font-size:12.5px;color:var(--muted);margin-left:16px;line-height:1.5}
+  .aioff{font-size:12px;color:var(--muted);background:var(--soft);border-radius:10px;padding:9px 12px;margin-top:4px}
+  .loading,.err{text-align:center;padding:80px 20px;color:var(--muted)}
+  .footer{border-top:1px solid var(--line);margin-top:30px;padding-top:16px;font-size:11.5px;color:var(--muted2);display:flex;justify-content:space-between}
+  .footer i{font-family:var(--display)}
+</style>
+</head>
+<body>
+<header>
+  <span class="logo">Tribute<span class="dot">.</span></span>
+  <span class="hpulse pulse"></span>
+  <span class="kicker">Client Pulse</span>
+  <span class="hstamp" id="stamp"></span>
+  <button class="refresh" id="refreshBtn" onclick="load(true)">↻ Refresh</button>
+</header>
+
+<div class="wrap">
+  <div class="rise">
+    <h1>Client Pulse Check</h1>
+    <div class="sub">Where every active client stands — ranked by who needs attention. Notes, hospitalization risk, transitions, and 90-day incidents in one read.</div>
+  </div>
+
+  <div class="kpis rise" id="kpis" style="animation-delay:.06s"></div>
+
+  <div class="toolbar rise" id="toolbar" style="display:none;animation-delay:.1s">
+    <div class="seg" id="levelSeg">
+      <button data-lvl="" class="on">All</button>
+      <button data-lvl="red">Needs attention</button>
+      <button data-lvl="amber">Watch</button>
+      <button data-lvl="green">Stable</button>
+    </div>
+    <select id="marketSel"><option value="">All markets</option></select>
+    <select id="csmSel"><option value="">All CSMs</option></select>
+    <input class="search" id="search" placeholder="Search client…"/>
+    <span class="count" id="count"></span>
+  </div>
+
+  <div id="list"><div class="loading">Signing in &amp; loading client pulse…</div></div>
+
+  <div class="footer">
+    <span><i>Remarkable, personified.</i></span>
+    <span id="foot"></span>
+  </div>
+</div>
+
+<script>
+const API='https://tribute-api-prod-bkc4hfcwf3f2f6bf.centralus-01.azurewebsites.net/api/vivProxy';
+let DATA=null, F={lvl:'',market:'',csm:'',q:''};
+const $=s=>document.querySelector(s);
+const esc=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const LVLNAME={red:'Needs attention',amber:'Watch',green:'Stable'};
+
+async function load(force){
+  $('#list').innerHTML='<div class="loading">Loading client pulse…</div>';
+  try{
+    const t = (window.tributeKsfGate&&window.tributeKsfGate.getToken)?await window.tributeKsfGate.getToken():null;
+    const r = await fetch(API+'?endpoint=client_pulse'+(force?'&regenerate=1':''),{headers:t?{Authorization:'Bearer '+t}:{}});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    DATA = await r.json();
+    if(DATA.error) throw new Error(DATA.error);
+    render();
+  }catch(e){ $('#list').innerHTML='<div class="err">Could not load pulse: '+esc(e.message)+'</div>'; }
+}
+
+function render(){
+  const cs=DATA.clients||[];
+  // KPIs
+  const c=DATA.counts||{red:0,amber:0,green:0};
+  $('#kpis').innerHTML=
+    kpi('',DATA.activeClients||cs.length,'Active clients')+
+    kpi('red',c.red,'Need attention now')+
+    kpi('amber',c.amber,'To watch')+
+    kpi('teal',c.green,'Stable');
+  // filter options
+  const mk=[...new Set(cs.map(x=>x.market).filter(Boolean))].sort();
+  const cm=[...new Set(cs.map(x=>x.csm).filter(Boolean))].sort();
+  $('#marketSel').innerHTML='<option value="">All markets</option>'+mk.map(m=>`<option>${esc(m)}</option>`).join('');
+  $('#csmSel').innerHTML='<option value="">All CSMs</option>'+cm.map(m=>`<option>${esc(m)}</option>`).join('');
+  $('#toolbar').style.display='flex';
+  $('#stamp').textContent='as of '+new Date(DATA.generatedAt).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
+  const aiOn = DATA.aiStatus==='ok';
+  $('#foot').textContent=(DATA.activeClients||cs.length)+' active clients · 90-day incident window · Claude reads '+(aiOn?'on':'off');
+  drawList();
+}
+function kpi(cls,n,l){return `<div class="kpi ${cls}"><div class="n">${n}</div><div class="l">${l}</div></div>`;}
+
+function drawList(){
+  let cs=(DATA.clients||[]).filter(c=>
+    (!F.lvl||c.level===F.lvl)&&(!F.market||c.market===F.market)&&(!F.csm||c.csm===F.csm)&&
+    (!F.q||(c.name+' '+c.market+' '+c.csm).toLowerCase().includes(F.q.toLowerCase())));
+  $('#count').textContent=cs.length+' shown';
+  if(!cs.length){ $('#list').innerHTML='<div class="loading">No clients match.</div>'; return; }
+  $('#list').innerHTML=cs.map(card).join('');
+}
+
+function card(c){
+  const reasons=(c.reasons||[]).map(r=>{
+    const cls=/safety|clinical|discharge|risk: high/i.test(r)?'red':/reliability|transition|risk|alert/i.test(r)?'amber':'';
+    return `<span class="chip ${cls}">${esc(r)}</span>`;
+  }).join('');
+  const incBreak=[c.safeCount&&`${c.safeCount} safety`,c.clinCount&&`${c.clinCount} clinical`,c.relCount&&`${c.relCount} reliability`].filter(Boolean).join(' · ')||'no incidents (90d)';
+  const since=c.startDate?('client since '+c.startDate):'';
+  const ai = c.aiPulse
+    ? `<div class="ai"><div class="ah">✦ Claude pulse read</div><div class="p">${esc(c.aiPulse)}</div>`+
+      ((c.aiWatch&&c.aiWatch.length)?`<ul class="w">${c.aiWatch.map(w=>`<li>${esc(w)}</li>`).join('')}</ul>`:'')+`</div>`
+    : (DATA.aiStatus&&DATA.aiStatus.indexOf('disabled')===0
+        ? `<div class="aioff">Claude reads are off. Enable <code>CLIENT_PULSE_AI=1</code> to get a per-client triage summary + watch-items here.</div>`:'');
+  return `<div class="card ${c.level}" onclick="this.classList.toggle('open')">
+    <div class="row">
+      <span class="pdot ${c.level}"></span>
+      <div class="who">
+        <div class="nm"><a href="https://tribute.mavencare.com/clients/${esc(c.cid)}/dashboard/summary" target="_blank" onclick="event.stopPropagation()">${esc(c.name)}</a></div>
+        <div class="meta">${[c.market,c.caseType,since].filter(Boolean).map(esc).join(' · ')}${c.hospRisk&&c.hospRisk!=='None'?` · <b>Hosp risk: ${esc(c.hospRisk)}</b>`:''}</div>
+        <div class="chips">${reasons||'<span class="chip">stable — no active flags</span>'}</div>
+      </div>
+      <div class="right">
+        <span class="lvl ${c.level}">${LVLNAME[c.level]}</span>
+        <span class="score">${c.score}</span>
+        ${c.csm?`<span class="csm">CSM · ${esc(c.csm)}</span>`:''}
+      </div>
+    </div>
+    <div class="detail">
+      ${ai}
+      <div class="dgrid" style="margin-top:${c.aiPulse||(''+DATA.aiStatus).indexOf('disabled')===0?'12px':'0'}">
+        <div>
+          <div class="dh">Client notes</div>
+          <div class="notes">${esc(c.notes)||'<span style="color:var(--muted2)">No notes on file.</span>'}</div>
+        </div>
+        <div>
+          <div class="dh">Recent incidents (90d) — ${esc(incBreak)}</div>
+          ${(c.incidents||[]).length?c.incidents.map(i=>`<div class="inc"><div class="d">${esc(i.date)} · ${esc(i.reportType||'')}</div><div class="t">${esc((i.types||[]).join(', ')||'Incident')}</div>${i.incident?`<div class="x">${esc(i.incident)}</div>`:''}</div>`).join(''):'<div class="inc"><span style="color:var(--muted2)">No service exceptions in the last 90 days.</span></div>'}
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+// filters
+document.addEventListener('click',e=>{
+  const b=e.target.closest('#levelSeg button'); if(!b)return;
+  F.lvl=b.dataset.lvl;
+  [...document.querySelectorAll('#levelSeg button')].forEach(x=>x.className='');
+  b.className='on '+(F.lvl==='red'?'red':F.lvl==='amber'?'amber':F.lvl==='green'?'green':'');
+  drawList();
+});
+document.addEventListener('change',e=>{
+  if(e.target.id==='marketSel'){F.market=e.target.value;drawList();}
+  if(e.target.id==='csmSel'){F.csm=e.target.value;drawList();}
+});
+document.addEventListener('input',e=>{ if(e.target.id==='search'){F.q=e.target.value;drawList();} });
+
+document.addEventListener('tribute-gate-unlocked',()=>load(false));
+// fallback if the gate script already unlocked before this listener bound
+if(window.tributeKsfGate&&window.tributeKsfGate.isSignedIn&&window.tributeKsfGate.isSignedIn())load(false);
+</script>
+</body>
+</html>
