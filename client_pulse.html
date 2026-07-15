@@ -169,7 +169,7 @@ function render(){
   $('#toolbar').style.display='flex';
   $('#stamp').textContent='as of '+new Date(DATA.generatedAt).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
   const aiOn = String(DATA.aiStatus||'').indexOf('ok')===0;
-  $('#foot').textContent=(DATA.activeClients||cs.length)+' active clients · visit notes 14d · incidents 90d · comms 30d · Claude reads '+(aiOn?'on':'off');
+  $('#foot').textContent=(DATA.activeClients||cs.length)+' active clients · visit notes 14d · incidents 90d · comms 30d · Pulse Reads '+(aiOn?'on':'off');
   drawList();
 }
 function kpi(cls,n,l){return `<div class="kpi ${cls}"><div class="n">${n}</div><div class="l">${l}</div></div>`;}
@@ -191,10 +191,10 @@ function card(c){
   const incBreak=[c.safeCount&&`${c.safeCount} safety`,c.clinCount&&`${c.clinCount} clinical`,c.relCount&&`${c.relCount} reliability`].filter(Boolean).join(' · ')||'no incidents (90d)';
   const since=c.startDate?('client since '+c.startDate):'';
   const ai = c.aiPulse
-    ? `<div class="ai"><div class="ah">✦ Claude pulse read</div><div class="p">${esc(c.aiPulse)}</div>`+
+    ? `<div class="ai"><div class="ah">✦ Tribute Intelligence Pulse Read</div><div class="p">${esc(c.aiPulse)}</div>`+
       ((c.aiWatch&&c.aiWatch.length)?`<ul class="w">${c.aiWatch.map(w=>`<li>${esc(w)}</li>`).join('')}</ul>`:'')+`</div>`
     : (DATA.aiStatus&&DATA.aiStatus.indexOf('disabled')===0
-        ? `<div class="aioff">Claude reads are off. Enable <code>CLIENT_PULSE_AI=1</code> to get a per-client triage summary + watch-items here.</div>`:'');
+        ? `<div class="aioff">Pulse Reads are off. Enable <code>CLIENT_PULSE_AI=1</code> to get a per-client triage summary + watch-items here.</div>`:'');
   return `<div class="card ${c.level}" onclick="this.classList.toggle('open')">
     <div class="row">
       <span class="pdot ${c.level}"></span>
