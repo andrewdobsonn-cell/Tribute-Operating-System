@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rate-Card Audit — Tribute</title>
+<style>
+  :root{--bg:#f7f5f2;--card:#fff;--bd:#e5e1da;--bd2:#d8d3ca;--text:#1c1a17;--text2:#5c5850;--text3:#928d84;--red:#c0392b;--redbg:#fdecea;--amber:#b7791f;--green:#2f6f12;--blue:#2563eb;--accent:#ff5a1f;}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;font-size:14px;line-height:1.45}
+  .wrap{max-width:1100px;margin:0 auto;padding:28px 20px 80px}
+  h1{font-size:23px;margin:0 0 4px}
+  .sub{color:var(--text2);font-size:13px;margin-bottom:22px}
+  .sub b{color:var(--text)}
+  .card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:20px 22px;margin-bottom:22px;box-shadow:0 1px 2px rgba(28,26,23,.03)}
+  .ct{font-size:16px;font-weight:700;margin:0 0 4px;display:flex;align-items:center;gap:8px}
+  .cd{color:var(--text2);font-size:12.5px;margin:0 0 16px}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{text-align:left;color:var(--text3);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.04em;padding:6px 10px;border-bottom:1px solid var(--bd2)}
+  td{padding:7px 10px;border-bottom:1px solid var(--bd)}
+  tr:last-child td{border-bottom:none}
+  .num{text-align:right;font-variant-numeric:tabular-nums}
+  .anom td{background:var(--redbg)}
+  .delta-pos{color:var(--red);font-weight:600}
+  .delta-neg{color:var(--blue);font-weight:600}
+  .mkt-h{font-size:13.5px;font-weight:700;margin:18px 0 6px;color:var(--text);border-left:3px solid var(--accent);padding-left:8px}
+  .mkt-h:first-child{margin-top:0}
+  input.rate{width:78px;padding:4px 7px;border:1px solid var(--bd2);border-radius:6px;font:inherit;text-align:right;font-variant-numeric:tabular-nums}
+  input.rate.edited{border-color:var(--accent);background:#fff7f3}
+  .alts{color:var(--text3);font-size:12px}
+  .cov{font-variant-numeric:tabular-nums}
+  .cov.low{color:var(--amber)}
+  .btn{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:9px 16px;font-weight:600;font-size:13px;cursor:pointer}
+  .btn:hover{background:#e04a15}
+  .note{background:#fff8ee;border:1px solid #f0e2c8;border-radius:8px;padding:11px 14px;font-size:12.5px;color:var(--text2);margin-bottom:16px}
+  .pill{display:inline-block;background:#eee;color:#555;border-radius:999px;padding:1px 8px;font-size:11px;font-weight:600}
+  .toolbar{display:flex;gap:10px;align-items:center;margin-top:16px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Rate-Card Audit</h1>
+  <div class="sub">Caregiver pay-rate governance — snapshot <b id="gen"></b> · <b id="cgn"></b> active caregivers across <b id="mktn"></b> markets. Derived from live Viv rate rules.</div>
+
+  <div class="card">
+    <div class="ct">⚠ <span>Gross Rate Anomalies</span> <span class="pill" id="anomCount"></span></div>
+    <div class="cd">Caregivers whose rate for a single visit type is far out of line with their market (&gt;12%), while their other rates sit at market. These are the high-confidence likely errors (or undocumented exceptions) — the ones worth fixing first.</div>
+    <table id="anomTable"><thead><tr><th>Caregiver</th><th>Market</th><th>Visit Type</th><th class="num">Their Rate</th><th class="num">Market Standard</th><th class="num">Difference</th></tr></thead><tbody></tbody></table>
+  </div>
+
+  <div class="card">
+    <div class="ct">📋 <span>Candidate Rate Card</span></div>
+    <div class="cd">The most common (modal) pay rate per market &amp; visit type — the system's best guess at your standard rate. <b>Confirm or correct each rate.</b> Once locked in, every caregiver whose rate differs can be flagged automatically (that's what makes the $0.50-type errors catchable). "Coverage" = share of caregivers already at that rate; low coverage or many alternates = a rate worth a closer look.</div>
+    <div class="note">This is a starting point, not the source of truth yet. Legitimate variation (tenure/negotiated raises) is mixed in — edit the standard where it's wrong, then export. A future version can add tenure tiers.</div>
+    <div id="cardBody"></div>
+    <div class="toolbar">
+      <button class="btn" onclick="exportCard()">⬇ Export confirmed rate card (JSON)</button>
+      <button class="btn" style="background:#555" onclick="exportCSV()">⬇ CSV</button>
+      <span class="alts" id="editCount"></span>
+    </div>
+  </div>
+</div>
+<script>const RC_DATA={"generated":"2026-07-14","rateCard":[{"market":"Annapolis","type":"12-24 Hours","nt":"12-24hours","standard":19,"n":10,"coverage":0.8,"alts":[[19.75,1],[19.25,1]]},{"market":"Annapolis","type":"2 Person","nt":"2person","standard":28.5,"n":8,"coverage":1.0,"alts":[]},{"market":"Annapolis","type":"4-11 Hours","nt":"4-11hours","standard":18.5,"n":5,"coverage":0.6,"alts":[[19.25,1],[18.75,1]]},{"market":"Annapolis","type":"4 Hours","nt":"4hours","standard":22,"n":10,"coverage":1.0,"alts":[]},{"market":"Annapolis","type":"5-11 Hours","nt":"5-11hours","standard":19,"n":10,"coverage":0.8,"alts":[[19.75,1],[19.25,1]]},{"market":"Annapolis","type":"Live-In","nt":"live-in","standard":317.15,"n":9,"coverage":1.0,"alts":[]},{"market":"Annapolis","type":"Under 4 Hours","nt":"under4hours","standard":25,"n":10,"coverage":1.0,"alts":[]},{"market":"Baltimore","type":"12-24 Hours","nt":"12-24hours","standard":19,"n":109,"coverage":0.725,"alts":[[19.25,6],[20,6],[20.25,4],[21,4],[19.5,3]]},{"market":"Baltimore","type":"2 Person","nt":"2person","standard":28.5,"n":84,"coverage":0.893,"alts":[[28.88,3],[29.25,2],[28.9,1],[38.25,1],[30.38,1]]},{"market":"Baltimore","type":"3-12 Hours","nt":"3-12hours","standard":17.5,"n":51,"coverage":0.392,"alts":[[17.75,6],[18.5,6],[18.75,4],[19.5,4],[18,3]]},{"market":"Baltimore","type":"4-11 Hours","nt":"4-11hours","standard":18.5,"n":60,"coverage":0.5,"alts":[[18.75,6],[19.5,6],[19.75,4],[20.5,4],[19,3]]},{"market":"Baltimore","type":"4 Hours","nt":"4hours","standard":22,"n":109,"coverage":1.0,"alts":[]},{"market":"Baltimore","type":"5-11 Hours","nt":"5-11hours","standard":19,"n":109,"coverage":0.725,"alts":[[19.25,6],[20,6],[20.25,5],[21,4],[19.5,3]]},{"market":"Baltimore","type":"Live-In","nt":"live-in","standard":317.15,"n":107,"coverage":1.0,"alts":[]},{"market":"Baltimore","type":"Under 4 Hours","nt":"under4hours","standard":25,"n":109,"coverage":1.0,"alts":[]},{"market":"Boston","type":"1.5 Person","nt":"1.5person","standard":28.13,"n":142,"coverage":0.838,"alts":[[28.44,7],[29.69,5],[29.07,4],[28.76,3],[29.38,1]]},{"market":"Boston","type":"2 Person","nt":"2person","standard":33.75,"n":142,"coverage":0.817,"alts":[[34.13,7],[35.63,5],[34.88,5],[34.5,3],[33.85,2]]},{"market":"Boston","type":"4 Hours","nt":"4hours","standard":25,"n":142,"coverage":1.0,"alts":[]},{"market":"Boston","type":"5+ Hours","nt":"5+hours","standard":22.5,"n":142,"coverage":0.838,"alts":[[22.75,8],[23.75,6],[23.25,4],[23,3],[23.5,1]]},{"market":"Boston","type":"Live-In","nt":"live-in","standard":325.8,"n":142,"coverage":0.88,"alts":[[329.8,7],[345.8,4],[333.8,2],[341.8,1],[349.8,1]]},{"market":"Boston","type":"Under 4 Hours","nt":"under4hours","standard":30,"n":43,"coverage":1.0,"alts":[]},{"market":"Boston","type":"Under 4 Hours (Boston)","nt":"under4hours(boston)","standard":30,"n":100,"coverage":0.99,"alts":[[37.5,1]]},{"market":"Boston","type":"Under 4 Hours (MWB)","nt":"under4hours(mwb)","standard":30,"n":99,"coverage":1.0,"alts":[]},{"market":"Boston","type":"Under 4 Hours (NB)","nt":"under4hours(nb)","standard":30,"n":100,"coverage":1.0,"alts":[]},{"market":"Boston","type":"Under 4 Hours (SB)","nt":"under4hours(sb)","standard":30,"n":99,"coverage":1.0,"alts":[]},{"market":"Chicago","type":"1.5 Person","nt":"1.5person","standard":23.76,"n":8,"coverage":1.0,"alts":[]},{"market":"Chicago","type":"4+ Hours (CHI)","nt":"4+hours(chi)","standard":19,"n":39,"coverage":1.0,"alts":[]},{"market":"Chicago","type":"4-7 Hours (CHI)","nt":"4-7hours(chi)","standard":19,"n":30,"coverage":0.967,"alts":[[18.5,1]]},{"market":"Chicago","type":"4 Hours","nt":"4hours","standard":21,"n":39,"coverage":1.0,"alts":[]},{"market":"Chicago","type":"5+ Hours","nt":"5+hours","standard":19,"n":40,"coverage":1.0,"alts":[]},{"market":"Chicago","type":"8+ Hours (CHI)","nt":"8+hours(chi)","standard":19,"n":30,"coverage":0.967,"alts":[[18.5,1]]},{"market":"Chicago","type":"Live-In","nt":"live-in","standard":342.51,"n":26,"coverage":0.962,"alts":[[300,1]]},{"market":"Chicago","type":"Under 4 Hours (CHI)","nt":"under4hours(chi)","standard":24.5,"n":42,"coverage":1.0,"alts":[]},{"market":"MetroWest Boston","type":"1.5 Person","nt":"1.5person","standard":28.13,"n":50,"coverage":0.86,"alts":[[28.44,2],[29.07,2],[28.76,2],[29.38,1]]},{"market":"MetroWest Boston","type":"2 Person","nt":"2person","standard":33.75,"n":50,"coverage":0.86,"alts":[[34.13,2],[34.88,2],[34.5,2],[35.25,1]]},{"market":"MetroWest Boston","type":"4 Hours","nt":"4hours","standard":25,"n":50,"coverage":1.0,"alts":[]},{"market":"MetroWest Boston","type":"5+ Hours","nt":"5+hours","standard":22.5,"n":51,"coverage":0.824,"alts":[[23,4],[22.75,2],[23.25,2],[23.5,1]]},{"market":"MetroWest Boston","type":"Live-In","nt":"live-in","standard":325.8,"n":51,"coverage":0.902,"alts":[[333.8,3],[329.8,2]]},{"market":"MetroWest Boston","type":"Under 4 Hours","nt":"under4hours","standard":30,"n":21,"coverage":1.0,"alts":[]},{"market":"MetroWest Boston","type":"Under 4 Hours (Boston)","nt":"under4hours(boston)","standard":30,"n":30,"coverage":1.0,"alts":[]},{"market":"MetroWest Boston","type":"Under 4 Hours (MWB)","nt":"under4hours(mwb)","standard":30,"n":30,"coverage":1.0,"alts":[]},{"market":"MetroWest Boston","type":"Under 4 Hours (NB)","nt":"under4hours(nb)","standard":30,"n":30,"coverage":1.0,"alts":[]},{"market":"MetroWest Boston","type":"Under 4 Hours (SB)","nt":"under4hours(sb)","standard":30,"n":30,"coverage":1.0,"alts":[]},{"market":"North of Boston","type":"1.5 Person","nt":"1.5person","standard":28.13,"n":9,"coverage":0.778,"alts":[[29.38,1],[29.07,1]]},{"market":"North of Boston","type":"2 Person","nt":"2person","standard":33.75,"n":9,"coverage":0.778,"alts":[[35.25,1],[34.88,1]]},{"market":"North of Boston","type":"4 Hours","nt":"4hours","standard":25,"n":9,"coverage":1.0,"alts":[]},{"market":"North of Boston","type":"5+ Hours","nt":"5+hours","standard":22.5,"n":9,"coverage":0.778,"alts":[[23.5,1],[23.25,1]]},{"market":"North of Boston","type":"Live-In","nt":"live-in","standard":325.8,"n":9,"coverage":1.0,"alts":[]},{"market":"North of Boston","type":"Under 4 Hours (Boston)","nt":"under4hours(boston)","standard":30,"n":7,"coverage":1.0,"alts":[]},{"market":"North of Boston","type":"Under 4 Hours (MWB)","nt":"under4hours(mwb)","standard":30,"n":7,"coverage":1.0,"alts":[]},{"market":"North of Boston","type":"Under 4 Hours (NB)","nt":"under4hours(nb)","standard":30,"n":7,"coverage":1.0,"alts":[]},{"market":"North of Boston","type":"Under 4 Hours (SB)","nt":"under4hours(sb)","standard":30,"n":7,"coverage":1.0,"alts":[]},{"market":"South of Boston","type":"1.5 Person","nt":"1.5person","standard":28.13,"n":16,"coverage":0.875,"alts":[[28.44,1],[29.63,1]]},{"market":"South of Boston","type":"2 Person","nt":"2person","standard":33.75,"n":16,"coverage":0.875,"alts":[[34.13,1],[35.25,1]]},{"market":"South of Boston","type":"4 Hours","nt":"4hours","standard":25,"n":16,"coverage":1.0,"alts":[]},{"market":"South of Boston","type":"5+ Hours","nt":"5+hours","standard":22.5,"n":16,"coverage":0.875,"alts":[[22.75,1],[23.5,1]]},{"market":"South of Boston","type":"Live-In","nt":"live-in","standard":325.8,"n":16,"coverage":0.938,"alts":[[332.8,1]]},{"market":"South of Boston","type":"Under 4 Hours","nt":"under4hours","standard":30,"n":5,"coverage":1.0,"alts":[]},{"market":"South of Boston","type":"Under 4 Hours (Boston)","nt":"under4hours(boston)","standard":30,"n":11,"coverage":1.0,"alts":[]},{"market":"South of Boston","type":"Under 4 Hours (MWB)","nt":"under4hours(mwb)","standard":30,"n":11,"coverage":1.0,"alts":[]},{"market":"South of Boston","type":"Under 4 Hours (NB)","nt":"under4hours(nb)","standard":30,"n":11,"coverage":1.0,"alts":[]},{"market":"South of Boston","type":"Under 4 Hours (SB)","nt":"under4hours(sb)","standard":30,"n":11,"coverage":1.0,"alts":[]}],"grossAnomalies":[{"cg":"Mariam El Bounjimi","market":"Chicago","type":"Live-In","rate":300,"standard":342.51,"delta":-42.51},{"cg":"Shanta Davis","market":"Baltimore","type":"2 Person","rate":38.25,"standard":28.5,"delta":9.75},{"cg":"Mellon Tayebwa","market":"Boston","type":"Under 4 Hours (Boston)","rate":37.5,"standard":30,"delta":7.5},{"cg":"Beverly Penix","market":"Baltimore","type":"4-11 Hours","rate":20.75,"standard":18.5,"delta":2.25},{"cg":"Beverly Penix","market":"Baltimore","type":"3-12 Hours","rate":19.75,"standard":17.5,"delta":2.25},{"cg":"Juliet Stewart","market":"Baltimore","type":"4-11 Hours","rate":20.75,"standard":18.5,"delta":2.25},{"cg":"Juliet Stewart","market":"Baltimore","type":"3-12 Hours","rate":19.75,"standard":17.5,"delta":2.25}],"caregivers":385};</script>
+<script>
+const $=s=>document.querySelector(s);
+$('#gen').textContent=RC_DATA.generated; $('#cgn').textContent=RC_DATA.caregivers;
+const markets=[...new Set(RC_DATA.rateCard.map(r=>r.market))];
+$('#mktn').textContent=markets.length;
+$('#anomCount').textContent=RC_DATA.grossAnomalies.length+' flagged';
+const money=n=>'$'+Number(n).toFixed(2);
+// anomalies
+const atb=$('#anomTable tbody');
+RC_DATA.grossAnomalies.forEach(a=>{
+  const tr=document.createElement('tr'); tr.className='anom';
+  const cls=a.delta>0?'delta-pos':'delta-neg';
+  tr.innerHTML=`<td>${a.cg}</td><td>${a.market}</td><td>${a.type}</td><td class="num">${money(a.rate)}</td><td class="num">${money(a.standard)}</td><td class="num ${cls}">${a.delta>0?'+':''}${money(a.delta)}</td>`;
+  atb.appendChild(tr);
+});
+// rate card grouped by market
+const cb=$('#cardBody');
+markets.forEach(mk=>{
+  const h=document.createElement('div'); h.className='mkt-h'; h.textContent=mk; cb.appendChild(h);
+  const t=document.createElement('table');
+  t.innerHTML='<thead><tr><th>Visit Type</th><th class="num">Standard Rate</th><th class="num">Coverage</th><th>Other rates seen (count)</th></tr></thead>';
+  const tb=document.createElement('tbody');
+  RC_DATA.rateCard.filter(r=>r.market===mk).forEach(r=>{
+    const tr=document.createElement('tr');
+    const covCls=r.coverage<0.7?'cov low':'cov';
+    const alts=r.alts.length?r.alts.map(a=>money(a[0])+'×'+a[1]).join(', '):'—';
+    tr.innerHTML=`<td>${r.type}</td>`
+      +`<td class="num"><input class="rate" value="${r.standard}" data-mkt="${r.market}" data-type="${r.type}" data-orig="${r.standard}"></td>`
+      +`<td class="num ${covCls}">${Math.round(r.coverage*100)}%</td>`
+      +`<td class="alts">${alts}</td>`;
+    tb.appendChild(tr);
+  });
+  t.appendChild(tb); cb.appendChild(t);
+});
+// edit tracking
+document.addEventListener('input',e=>{
+  if(!e.target.classList.contains('rate'))return;
+  e.target.classList.toggle('edited', e.target.value!==e.target.dataset.orig);
+  const n=document.querySelectorAll('input.rate.edited').length;
+  $('#editCount').textContent=n?`${n} rate${n>1?'s':''} edited`:'';
+});
+function collect(){return [...document.querySelectorAll('input.rate')].map(i=>({market:i.dataset.mkt,type:i.dataset.type,standard:parseFloat(i.value)}));}
+function dl(name,text,mime){const b=new Blob([text],{type:mime});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=name;a.click();URL.revokeObjectURL(u);}
+function exportCard(){dl('rate_card_confirmed.json',JSON.stringify({confirmed:RC_DATA.generated,rates:collect()},null,2),'application/json');}
+function exportCSV(){const rows=[['Market','Visit Type','Standard Rate'],...collect().map(r=>[r.market,r.type,r.standard])];dl('rate_card_confirmed.csv',rows.map(r=>r.map(x=>`"${x}"`).join(',')).join('\n'),'text/csv');}
+</script>
+</body>
+</html>
