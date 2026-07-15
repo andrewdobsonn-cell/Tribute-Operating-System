@@ -114,6 +114,7 @@
     <div class="seg" id="viewSeg">
       <button data-view="pulse" class="on">💓 Client Pulse</button>
       <button data-view="md">🎯 Market Director — Retention Risk</button>
+      <button data-view="po">📈 Prediction vs Outcome</button>
     </div>
   </div>
 
@@ -156,6 +157,13 @@
     </div>
     <div class="kpis" id="mdKpis"></div>
     <div id="mdList"></div>
+  </div>
+
+  <!-- PREDICTION VS OUTCOME -->
+  <div id="poview" style="display:none;">
+    <div class="sub" style="margin:6px 0 14px;">How good is the pulse at seeing cancellations coming? Every morning's predictions are snapshotted, then scored against what actually happened in Viv. <b>Recall</b> = of the clients who cancelled, how many we flagged high/medium risk beforehand. A flagged client who stays is often a <b>save</b>, not a miss.</div>
+    <div class="kpis" id="poKpis"></div>
+    <div id="poBody"><div class="loading">Loading…</div></div>
   </div>
 
   <div class="footer">
@@ -273,7 +281,52 @@ function setView(v){
   $('#toolbar').style.display=v==='pulse'?'flex':'none';
   $('#kpis').style.display=v==='pulse'?'flex':'none';
   $('#mdview').style.display=v==='md'?'block':'none';
+  $('#poview').style.display=v==='po'?'block':'none';
   if(v==='md')drawMD();
+  if(v==='po')loadPO();
+}
+let PO=null;
+async function loadPO(){
+  if(PO){drawPO();return;}
+  $('#poBody').innerHTML='<div class="loading">Scoring predictions against Viv outcomes…</div>';
+  try{
+    const t=(window.tributeKsfGate&&window.tributeKsfGate.getToken)?await window.tributeKsfGate.getToken():null;
+    const r=await fetch(API+'?endpoint=pulse_outcomes',{headers:t?{Authorization:'Bearer '+t}:{}});
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    PO=await r.json();
+    drawPO();
+  }catch(e){$('#poBody').innerHTML='<div class="err">Could not load outcomes: '+esc(e.message)+'</div>';}
+}
+function drawPO(){
+  if(!PO)return;
+  if(!PO.summary){
+    $('#poKpis').innerHTML='';
+    $('#poBody').innerHTML='<div class="loading">'+esc(PO.note||'Tracking starts with the first daily snapshot.')+'</div>';
+    return;
+  }
+  const s=PO.summary;
+  $('#poKpis').innerHTML=
+    kpi('',s.trackedDays+'d','Tracking since '+esc(s.trackingSince))+
+    kpi('',s.cancellations,'Cancellations observed')+
+    kpi(s.recallPct==null?'':(s.recallPct>=70?'teal':s.recallPct>=40?'amber':'red'),s.recallPct==null?'—':s.recallPct+'%','Flagged before cancelling (recall)')+
+    kpi('amber',s.highRiskOpen,'High-risk clients still open');
+  const cancelRows=(PO.cancelled||[]).map(c=>{
+    const flagged=c.cancelRisk==='high'||c.cancelRisk==='medium';
+    return `<div class="inc"><div class="d">${esc(c.dischargedOn||'')} · predicted ${esc(c.predDate)} · ${esc(c.market||'')}${c.csm?' · '+esc(c.csm):''}</div>
+      <div class="t">${esc(c.name)} — ${flagged?'<span style="color:var(--teal-fg);font-weight:700;">✓ flagged '+esc(c.cancelRisk)+' ('+esc(c.cancelCategory)+')</span>':'<span style="color:var(--red-fg);font-weight:700;">✗ missed (predicted '+esc(c.cancelRisk||'low')+')</span>'}${c.daysToCancel!=null?' · '+c.daysToCancel+'d after prediction':''}</div>
+      ${(c.cancelDrivers&&c.cancelDrivers.length)?`<div class="x">${c.cancelDrivers.map(esc).join(' · ')}</div>`:''}</div>`;
+  }).join('');
+  const openRows=(PO.highOpen||[]).slice(0,40).map(c=>`<div class="inc"><div class="d">flagged ${esc(c.predDate)} · ${esc(c.market||'')}${c.csm?' · '+esc(c.csm):''}</div><div class="t">${esc(c.name)} <span style="color:var(--muted);font-weight:400;">(${esc(c.cancelCategory)})</span></div></div>`).join('');
+  $('#poBody').innerHTML=`
+    <div class="card" style="padding:16px 18px;margin-top:6px;">
+      <div class="dh">Cancellations since tracking began — flagged vs missed</div>
+      ${cancelRows||'<div class="inc"><span style="color:var(--muted2)">No cancellations observed yet — outcomes accrue as the days pass. Check back in a week or two.</span></div>'}
+    </div>
+    <div class="card" style="padding:16px 18px;">
+      <div class="dh">High-risk predictions still open (retention opportunities — a client here who stays is a save)</div>
+      ${openRows||'<div class="inc"><span style="color:var(--muted2)">None open.</span></div>'}
+    </div>
+    <div style="font-size:11px;color:var(--muted2);margin:10px 4px;">Snapshots: ${PO.summary.snapshots} · clients tracked: ${PO.summary.clientsTracked} · categories of observed cancellations: ${esc(JSON.stringify(PO.summary.byCategory||{}))} · evaluated ${esc(new Date(PO.generatedAt).toLocaleString())}</div>`;
 }
 function mdRows(){
   const cs=(DATA&&DATA.clients)||[];
