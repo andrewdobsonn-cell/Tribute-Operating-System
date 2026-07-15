@@ -56,7 +56,8 @@ input[type=date]::-webkit-calendar-picker-indicator{cursor:pointer}
 #dashboard-screen{display:none;flex-direction:column;height:100vh}
 .topbar{position:sticky;top:0;z-index:200;height:60px;background:rgba(250,248,244,.85);backdrop-filter:blur(8px);border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;padding:0 22px;flex-shrink:0}
 .tb-l{display:flex;align-items:baseline;gap:7px}
-.tb-logo{font-family:var(--display);font-size:19px;font-weight:700;color:var(--t1);letter-spacing:-.02em}
+.tb-logo{font-family:var(--display);font-size:19px;font-weight:700;color:var(--t1);letter-spacing:-.02em;text-decoration:none;cursor:pointer;transition:opacity .15s}
+.tb-logo:hover{opacity:.7}
 .tb-pulse{display:inline-block;width:6px;height:6px;border-radius:99px;background:var(--orange);margin:0 3px 2px -3px;align-self:center}
 .tb-sep{display:none}
 .tb-kicker{font-size:10px;text-transform:uppercase;letter-spacing:.16em;color:var(--t3);font-weight:600;padding-left:2px}
@@ -149,7 +150,7 @@ tbody td{padding:9px 13px;color:var(--t1);vertical-align:middle}
 <div id="dashboard-screen">
   <header class="topbar">
     <div class="tb-l">
-      <span class="tb-logo">Tribute<span class="dot">.</span></span>
+      <a class="tb-logo" href="https://tribute-home-care.github.io/TributeKSFs/" title="Back to the Intelligence Hub">Tribute<span class="dot">.</span></a>
       <span class="tb-pulse pulse"></span>
       <span class="tb-kicker">Weekly Audit</span>
       <span class="tb-wk" id="dash-week">—</span>
