@@ -1222,6 +1222,20 @@ async function runDashboard() {
       container.appendChild(div);
     });
 
+    // ── Reference tab: Rate-Card Audit (standalone tool, embedded here for reference) ──
+    {
+      const dv=document.createElement('div'); dv.className='ndiv'; navList.appendChild(dv);
+      const li=document.createElement('li'); li.className='ni'; li.setAttribute('data-id','ratecard');
+      li.onclick=()=>showSection('ratecard');
+      li.innerHTML=`<span class="n-ic">💲</span><span class="n-lb">Rate-Card Audit</span><span class="n-bd" style="background:var(--blue-soft);color:var(--blue2)">ref</span>`;
+      navList.appendChild(li);
+      const sec=document.createElement('div'); sec.className='section'; sec.id='s-ratecard';
+      sec.innerHTML=`<div class="sh"><div class="st"><span class="si">💲</span><span class="sn">Rate-Card Audit</span><span class="sc n">reference</span></div>
+        <div class="sd">Caregiver pay-rate governance — gross rate anomalies + the candidate rate card, for reference alongside the weekly audit. <a href="rate_card_audit.html" target="_blank" style="color:var(--orange);font-weight:600;text-decoration:none">Open the full tool ↗</a></div></div>
+        <div class="tw" style="padding:0;overflow:hidden"><iframe src="rate_card_audit.html" title="Rate-Card Audit" style="width:100%;height:calc(100vh - 210px);border:0;border-radius:14px;background:#fff"></iframe></div>`;
+      container.appendChild(sec);
+    }
+
     document.getElementById('dash-week').textContent = wk;
     document.getElementById('dash-total').textContent = `${total} total issues`;
 
