@@ -5,12 +5,12 @@
 <script src="./entra-auth.js?v=2026-07-07c"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Tribute — Caregiver Hours</title>
+<title>Tribute — Caregiver Hours</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{--bg:#fff;--bg2:#f7f7f5;--bg3:#ededea;--text:#1a1a18;--text2:#6b6b67;--text3:#9e9c96;--border:rgba(0,0,0,0.09);--border2:rgba(0,0,0,0.16);--green:#1D9E75;--amber:#EF9F27;--red:#E24B4A;--blue:#185FA5;--purple:#7B4FBE;--green-bg:#E1F5EE;--amber-bg:#FAEEDA;--red-bg:#FCEBEB;--blue-bg:#E6F1FB;--green-text:#0F6E56;--amber-text:#633806;--red-text:#791F1F;--blue-text:#0C447C;--r:8px;--rl:12px}
-@media(prefers-color-scheme:dark){:root{--bg:#1a1a18;--bg2:#232320;--bg3:#2c2c29;--text:#e8e6e0;--text2:#9e9c96;--text3:#6b6b67;--border:rgba(255,255,255,0.09);--border2:rgba(255,255,255,0.16);--green-bg:#04342C;--amber-bg:#412402;--red-bg:#501313;--blue-bg:#042C53;--green-text:#9FE1CB;--amber-text:#FAC775;--red-text:#F09595;--blue-text:#85B7EB}}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);padding:20px;max-width:1200px;margin:0 auto;font-size:14px;line-height:1.5}
+:root{--bg:#fff;--bg2:#F6F3EE;--bg3:#EAE6DF;--text:#1C1A17;--text2:#8C857B;--text3:#B7B0A6;--border:#EAE6DF;--border2:#E0DACE;--green:#1D9E75;--amber:#EF9F27;--red:#E24B4A;--blue:#185FA5;--purple:#7B4FBE;--green-bg:#E1F5EE;--amber-bg:#FAEEDA;--red-bg:#FCEBEB;--blue-bg:#E6F1FB;--green-text:#0F6E56;--amber-text:#633806;--red-text:#791F1F;--blue-text:#0C447C;--r:8px;--rl:12px}
+
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#FAF8F4;color:var(--text);padding:20px;max-width:1200px;margin:0 auto;font-size:14px;line-height:1.5}
 .hdr{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:14px;border-bottom:.5px solid var(--border);margin-bottom:16px;flex-wrap:wrap;gap:10px}
 .logo{font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--text3)}
 .title{font-size:22px;font-weight:500;margin-top:3px}
@@ -86,11 +86,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .mce-body{display:none;border-top:.5px solid var(--border);padding:12px 18px}
 .ftr{margin-top:32px;padding-top:14px;border-top:.5px solid var(--border);font-size:11px;color:var(--text3);display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
 </style>
-</head>
+<style>/* design-system header */ .logo,.hdr .logo{font-family:"Space Grotesk",Inter,sans-serif!important;font-weight:700!important;font-size:22px!important;letter-spacing:-.02em!important;color:#1C1A17!important;text-decoration:none!important} .title{font-family:"Space Grotesk",Inter,sans-serif!important} h1,h2,.finder-title,.results-title{font-family:"Space Grotesk",Inter,sans-serif}</style></head>
 <body>
 <div class="hdr">
   <div>
-    <div class="logo">Tribute Home Care</div>
+    <a class="logo" href="index_live.html" title="Back to the Scheduling Suite">Tribute<span style="color:#FF5A1F">.</span></a>
     <div class="title">Caregiver Hours & Happiness</div>
     <div class="sub" id="sl"><span class="adot"></span>Select a week to load</div>
   </div>

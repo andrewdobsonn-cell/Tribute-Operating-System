@@ -1,496 +1,160 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Scheduling Suite · Tribute Home Care</title>
 <script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@3.28.1/lib/msal-browser.min.js"></script>
 <script src="./entra-auth.js?v=2026-07-07c"></script>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Tribute Scheduling Suite</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='13' fill='%23FF5A1F'/%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: { extend: {
+      colors: { tribute: {
+        orange:'#FF5A1F','orange-dark':'#E25309','orange-soft':'#FBEADF','orange-fg':'#C2410C',
+        blue:'#3B72B8','blue-soft':'#E8EFF7','blue-fg':'#2C5689',
+        teal:'#0F8F6B','teal-soft':'#E2F2EC','teal-fg':'#0F6E56',
+        amber:'#C2710C','amber-soft':'#F8EEDB','amber-fg':'#92580B',
+        ink:'#1C1A17',muted:'#8C857B','muted-soft':'#B7B0A6',
+        line:'#EAE6DF','line-soft':'#F1EEE8',surface:'#FFFFFF',canvas:'#FAF8F4',
+      } },
+      fontFamily: {
+        sans:['Inter','system-ui','-apple-system','sans-serif'],
+        display:['"Space Grotesk"','Inter','system-ui','sans-serif'],
+      },
+      boxShadow: {
+        card:'0 1px 2px rgba(28,26,23,0.04)',
+        soft:'0 6px 24px -8px rgba(28,26,23,0.10), 0 2px 6px -2px rgba(28,26,23,0.04)',
+      },
+      borderRadius: { xl:'14px','2xl':'18px' },
+    } },
+  };
+</script>
 <style>
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body { letter-spacing:-0.005em; }
+  .font-display { letter-spacing:-0.02em; }
+  @keyframes rise{ from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:none} }
+  .rise{ animation:rise .62s cubic-bezier(.2,.8,.2,1) both; }
+  @keyframes dotpulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.6);opacity:.55}}
+  .pulse{ animation:dotpulse 2.2s ease-in-out infinite; }
+  @media (prefers-reduced-motion: reduce){ .rise{opacity:1;animation:none} .pulse{animation:none} }
 
-:root {
-  --orange: #E8541A;
-  --orange-dark: #C4441A;
-  --orange-light: #F47A4A;
-  --orange-pale: #FDF2ED;
-  --orange-50: #FEF8F5;
-  --charcoal: #2C2C2C;
-  --charcoal-mid: #4A4A4A;
-  --gray-text: #6B6B6B;
-  --gray-light: #9B9B9B;
-  --gray-100: #F5F5F5;
-  --gray-200: #EBEBEB;
-  --gray-300: #D8D8D8;
-  --white: #FFFFFF;
-  --cream: #FAFAF8;
-  --shadow-sm: 0 1px 4px rgba(44,44,44,0.06), 0 1px 2px rgba(44,44,44,0.04);
-  --shadow-md: 0 4px 20px rgba(44,44,44,0.09), 0 2px 6px rgba(44,44,44,0.05);
-  --shadow-lg: 0 12px 40px rgba(44,44,44,0.12), 0 4px 12px rgba(44,44,44,0.06);
-  --r: 10px;
-  --rl: 14px;
-}
+  /* Dashboard tiles — preserve .dash-tile / .active hooks used by loadDash() */
+  .dash-tile{ cursor:pointer; background:#fff; border:1px solid #EAE6DF; border-radius:18px; padding:20px 18px;
+    box-shadow:0 1px 2px rgba(28,26,23,.04); transition:transform .18s ease, box-shadow .22s ease, border-color .2s ease;
+    display:flex; flex-direction:column; gap:9px; }
+  .dash-tile:hover{ transform:translateY(-3px); box-shadow:0 14px 30px -12px rgba(28,26,23,.20); border-color:#E0DACE; }
+  .dash-tile.active{ border-color:#FF5A1F; box-shadow:0 0 0 1px #FF5A1F, 0 10px 26px -12px rgba(255,90,31,.38); }
+  .tile-icon{ font-size:22px; width:46px; height:46px; display:grid; place-items:center; border-radius:13px; background:#FBEADF; }
+  .tile-name{ font-family:'Space Grotesk',Inter,sans-serif; font-weight:600; font-size:15.5px; letter-spacing:-0.02em; color:#1C1A17; }
+  .tile-desc{ font-size:12.5px; color:#8C857B; line-height:1.5; }
 
-html { scroll-behavior: smooth; }
-
-body {
-  font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-  background: var(--cream);
-  color: var(--charcoal);
-  min-height: 100vh;
-  font-size: 14px;
-  line-height: 1.6;
-  -webkit-font-smoothing: antialiased;
-}
-
-/* TOPBAR */
-.topbar {
-  background: var(--white);
-  border-bottom: 1px solid var(--gray-200);
-  padding: 0 48px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  height: 56px;
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  box-shadow: var(--shadow-sm);
-}
-
-.topbar-brand { display: flex; align-items: baseline; }
-
-.topbar-tribute {
-  font-family: 'DM Serif Display', Georgia, serif;
-  font-size: 22px;
-  font-weight: 400;
-  color: var(--orange);
-  letter-spacing: -.01em;
-}
-
-.topbar-sub {
-  font-size: 11px;
-  color: var(--gray-text);
-  margin-left: 4px;
-  font-weight: 400;
-  letter-spacing: .01em;
-}
-
-.topbar-right { display: flex; align-items: center; gap: 20px; }
-
-.topbar-live { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--gray-text); }
-
-.live-dot {
-  width: 6px; height: 6px;
-  border-radius: 50%;
-  background: #3DAA7A;
-  animation: pulse 2.5s ease-in-out infinite;
-}
-
-@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
-
-.topbar-time { font-size: 11px; color: var(--gray-light); font-variant-numeric: tabular-nums; }
-
-/* HERO */
-.hero {
-  background: var(--white);
-  padding: 52px 48px 44px;
-  border-bottom: 1px solid var(--gray-200);
-  position: relative;
-  overflow: hidden;
-}
-
-.hero::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0;
-  width: 4px;
-  height: 100%;
-  background: var(--orange);
-}
-
-.hero::after {
-  content: '';
-  position: absolute;
-  top: 0; right: 0;
-  width: 360px; height: 100%;
-  background: radial-gradient(ellipse at right center, rgba(232,84,26,0.04) 0%, transparent 70%);
-  pointer-events: none;
-}
-
-.hero-left { padding-left: 20px; }
-
-.hero-eyebrow {
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: .16em;
-  text-transform: uppercase;
-  color: var(--orange);
-  margin-bottom: 12px;
-}
-
-.hero-title {
-  font-family: 'DM Serif Display', Georgia, serif;
-  font-size: 46px;
-  font-weight: 400;
-  color: var(--charcoal);
-  line-height: 1.05;
-  letter-spacing: -.025em;
-  margin-bottom: 12px;
-}
-
-.hero-title span { color: var(--orange); font-style: italic; }
-
-.hero-sub {
-  font-size: 15px;
-  font-weight: 300;
-  color: var(--gray-text);
-  max-width: 540px;
-  line-height: 1.65;
-}
-
-/* MAIN */
-.main {
-  padding: 40px 48px;
-  max-width: 1400px;
-  margin: 0 auto;
-}
-
-.section-hdr {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 16px;
-}
-
-.section-label {
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: .16em;
-  text-transform: uppercase;
-  color: var(--gray-light);
-}
-
-/* DASHBOARD TILES */
-.dash-nav {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 10px;
-  margin-bottom: 28px;
-}
-
-@media(max-width:900px){.dash-nav{grid-template-columns:repeat(3,1fr)}}
-@media(max-width:580px){.dash-nav{grid-template-columns:1fr 1fr}}
-
-.dash-tile {
-  background: var(--white);
-  border: 1.5px solid var(--gray-200);
-  border-radius: var(--rl);
-  padding: 18px 18px 16px;
-  cursor: pointer;
-  transition: all .18s ease;
-  position: relative;
-  overflow: hidden;
-}
-
-.dash-tile::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 3px;
-  background: var(--orange);
-  transform: scaleX(0);
-  transform-origin: left;
-  transition: transform .2s ease;
-}
-
-.dash-tile:hover {
-  border-color: var(--orange-light);
-  box-shadow: var(--shadow-md);
-  transform: translateY(-2px);
-}
-
-.dash-tile:hover::before { transform: scaleX(1); }
-
-.dash-tile.active {
-  border-color: var(--orange);
-  background: var(--orange-50);
-  box-shadow: 0 4px 16px rgba(232,84,26,0.12);
-}
-
-.dash-tile.active::before { transform: scaleX(1); }
-
-.tile-icon {
-  width: 34px; height: 34px;
-  border-radius: 8px;
-  background: var(--gray-100);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 16px;
-  margin-bottom: 10px;
-  transition: background .18s;
-}
-
-.dash-tile.active .tile-icon { background: var(--orange-pale); }
-
-.tile-name {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--charcoal);
-  margin-bottom: 4px;
-  line-height: 1.3;
-}
-
-.tile-desc {
-  font-size: 10px;
-  color: var(--gray-text);
-  line-height: 1.5;
-}
-
-/* DASHBOARD FRAME */
-.dash-frame-wrap {
-  background: var(--white);
-  border: 1px solid var(--gray-200);
-  border-radius: var(--rl);
-  overflow: hidden;
-  box-shadow: var(--shadow-md);
-  margin-bottom: 28px;
-}
-
-.dash-frame-bar {
-  background: var(--charcoal);
-  padding: 10px 20px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.dash-frame-left { display: flex; align-items: center; gap: 10px; }
-
-.frame-dots { display: flex; gap: 5px; }
-
-.frame-dot { width: 9px; height: 9px; border-radius: 50%; }
-
-.frame-dot.r { background: #FF5F57; }
-.frame-dot.y { background: #FFBD2E; }
-.frame-dot.g { background: #28C840; }
-
-.dash-frame-title {
-  font-size: 11px;
-  font-weight: 500;
-  color: rgba(255,255,255,0.55);
-  letter-spacing: .01em;
-}
-
-.dash-frame-actions { display: flex; gap: 6px; }
-
-.dash-frame-btn {
-  font-size: 10px;
-  font-weight: 500;
-  color: rgba(255,255,255,0.45);
-  padding: 4px 10px;
-  border-radius: 5px;
-  border: 1px solid rgba(255,255,255,0.12);
-  cursor: pointer;
-  text-decoration: none;
-  transition: all .15s;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.dash-frame-btn:hover {
-  background: rgba(255,255,255,0.08);
-  color: rgba(255,255,255,0.8);
-  border-color: rgba(255,255,255,0.25);
-}
-
-.dash-frame-loading {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 220px;
-  flex-direction: column;
-  gap: 14px;
-  color: var(--gray-light);
-  font-size: 13px;
-}
-
-.dash-frame-loading-inner {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-}
-
-.spinner {
-  width: 22px; height: 22px;
-  border: 2.5px solid var(--gray-200);
-  border-top-color: var(--orange);
-  border-radius: 50%;
-  animation: spin .75s linear infinite;
-}
-
-@keyframes spin { to { transform: rotate(360deg); } }
-
-.dash-iframe {
-  width: 100%;
-  border: none;
-  display: block;
-  height: 950px;
-}
-
-/* FOOTER */
-.footer {
-  background: var(--white);
-  border-top: 1px solid var(--gray-200);
-  padding: 18px 48px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-top: 28px;
-}
-
-.footer-brand { display: flex; align-items: baseline; gap: 5px; }
-
-.footer-tribute {
-  font-family: 'DM Serif Display', Georgia, serif;
-  font-size: 16px;
-  color: var(--orange);
-}
-
-.footer-hc { font-size: 11px; color: var(--gray-light); }
-
-.footer-meta {
-  font-size: 11px;
-  color: var(--gray-light);
-  display: flex;
-  align-items: center;
-  gap: 20px;
-}
-
-.footer-live { display: flex; align-items: center; gap: 5px; color: #3DAA7A; }
-
-.footer-live-dot {
-  width: 5px; height: 5px;
-  border-radius: 50%;
-  background: #3DAA7A;
-  animation: pulse 2.5s infinite;
-}
-
-@media(max-width:900px){.main,.topbar,.hero{padding-left:16px;padding-right:16px}.footer{padding-left:16px;padding-right:16px}}
+  /* Embedded dashboard viewer */
+  .dash-frame-wrap{ background:#fff; border:1px solid #EAE6DF; border-radius:18px; box-shadow:0 6px 24px -8px rgba(28,26,23,.10),0 2px 6px -2px rgba(28,26,23,.04); overflow:hidden; margin-top:26px; }
+  .dash-frame-bar{ display:flex; align-items:center; justify-content:space-between; padding:11px 16px; border-bottom:1px solid #F1EEE8; background:#FAF8F4; }
+  .dash-frame-left{ display:flex; align-items:center; gap:12px; }
+  .frame-dots{ display:flex; gap:6px; }
+  .frame-dot{ width:11px; height:11px; border-radius:50%; }
+  .frame-dot.r{ background:#F0533B; } .frame-dot.y{ background:#E8B400; } .frame-dot.g{ background:#0F8F6B; }
+  .dash-frame-title{ font-family:'Space Grotesk',Inter,sans-serif; font-weight:600; font-size:14px; letter-spacing:-0.01em; color:#1C1A17; }
+  .dash-frame-btn{ font-size:12px; font-weight:600; color:#C2410C; border:1px solid #EAE6DF; border-radius:9px; padding:6px 13px; background:#fff; text-decoration:none; transition:all .15s ease; }
+  .dash-frame-btn:hover{ border-color:#FF5A1F; background:#FBEADF; }
+  .dash-iframe{ width:100%; height:78vh; min-height:600px; border:0; background:#fff; display:block; }
+  .dash-frame-loading{ display:flex; align-items:center; justify-content:center; height:78vh; min-height:600px; color:#8C857B; font-size:13px; }
+  .dash-frame-loading-inner{ display:flex; flex-direction:column; align-items:center; gap:14px; }
+  .spinner{ width:30px; height:30px; border:3px solid #F1EEE8; border-top-color:#FF5A1F; border-radius:50%; animation:spin .8s linear infinite; }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
 </style>
 </head>
-<body>
+<body class="bg-tribute-canvas text-tribute-ink font-sans min-h-screen flex flex-col">
 
-<!-- TOPBAR -->
-<div class="topbar">
-  <div class="topbar-brand">
-    <span class="topbar-tribute">Tribute</span>
-    <span class="topbar-sub">Home Care · Scheduling Suite</span>
-  </div>
-  <div class="topbar-right">
-    <div class="topbar-live">
-      <div class="live-dot"></div>
-      Live · Viv Technologies
+  <header class="sticky top-0 z-40 h-[72px] bg-tribute-canvas/85 backdrop-blur border-b border-tribute-line flex items-center px-6 md:px-10">
+    <a href="https://tribute-home-care.github.io/TributeKSFs/index.html" title="Back to the Intelligence Hub" class="group flex items-baseline gap-2">
+      <span class="font-display text-[22px] font-bold tracking-tight group-hover:text-tribute-orange transition-colors">Tribute<span class="text-tribute-orange">.</span></span>
+      <span class="pulse inline-block w-1.5 h-1.5 rounded-full bg-tribute-orange -ml-1 mb-0.5"></span>
+      <span class="text-[10px] uppercase tracking-[0.18em] text-tribute-muted font-semibold pl-1">Scheduling Suite</span>
+    </a>
+    <div class="ml-auto flex items-center gap-4">
+      <a href="https://tribute-home-care.github.io/TributeKSFs/index.html" class="hidden sm:inline-flex items-center gap-1 text-[12px] font-semibold text-tribute-muted hover:text-tribute-ink transition-colors">
+        <span class="text-tribute-orange">←</span> Intelligence Hub
+      </a>
+      <span id="topbarTime" class="text-[12px] font-medium text-tribute-muted-soft tabular-nums"></span>
     </div>
-    <div class="topbar-time" id="topbarTime"></div>
-  </div>
-</div>
+  </header>
 
-<!-- HERO -->
-<div class="hero">
-  <div class="hero-left">
-    <div class="hero-eyebrow">Executive Operating System</div>
-    <h1 class="hero-title">Run the company.<br><span>See everything.</span></h1>
-    <p class="hero-sub">Maximizing scheduling efficiency across all markets — caregiver utilization, supply mapping, and availability in one place.</p>
-  </div>
-</div>
+  <!-- Hero -->
+  <section class="px-6 text-center pt-14 pb-2">
+    <div class="rise text-[11px] font-semibold uppercase tracking-[0.16em] text-tribute-muted" style="animation-delay:.02s">Scheduling Intelligence</div>
+    <h1 class="rise font-display text-[38px] md:text-[50px] font-bold tracking-tight leading-none mt-3" style="animation-delay:.08s">Run the company. <span class="text-tribute-orange italic">See everything.</span></h1>
+    <p class="rise mt-4 text-[15px] md:text-[16px] text-tribute-muted max-w-[620px] mx-auto" style="animation-delay:.14s">Caregiver utilization, supply mapping, availability and fill — every scheduling dashboard in one place.</p>
+  </section>
 
-<!-- MAIN -->
-<div class="main">
+  <!-- Main -->
+  <main class="w-full max-w-[1180px] mx-auto px-6 md:px-10 pt-8 pb-6 flex-1">
 
-  <div class="section-hdr">
-    <div class="section-label">Dashboards</div>
-  </div>
+    <div class="flex items-center gap-3 mb-4">
+      <span class="text-[11px] font-semibold uppercase tracking-[0.14em] text-tribute-muted">Dashboards</span>
+      <span class="h-px flex-1 bg-tribute-line-soft"></span>
+    </div>
 
-  <div class="dash-nav">
-    <div class="dash-tile active" onclick="loadDash('caregiver_hours',this)">
-      <div class="tile-icon">&#9201;</div>
-      <div class="tile-name">Caregiver Hours</div>
-      <div class="tile-desc">Happiness, utilization, open shifts and MCE performance</div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div class="dash-tile active rise" style="animation-delay:.20s" onclick="loadDash('caregiver_hours',this)">
+        <div class="tile-icon">&#9201;</div>
+        <div class="tile-name">Caregiver Hours</div>
+        <div class="tile-desc">Happiness, utilization, open shifts and MCE performance</div>
+      </div>
+      <div class="dash-tile rise" style="animation-delay:.26s" onclick="loadDash('caregiver_supply_map',this)">
+        <div class="tile-icon">&#128506;</div>
+        <div class="tile-name">Caregiver Supply Map</div>
+        <div class="tile-desc">Geographic supply, intake matching and availability by distance</div>
+      </div>
+      <div class="dash-tile rise" style="animation-delay:.32s" onclick="loadDash('availability_analyzer',this)">
+        <div class="tile-icon">&#128203;</div>
+        <div class="tile-name">Availability Analyzer</div>
+        <div class="tile-desc">Day-of-week availability, preferences and capacity by market</div>
+      </div>
+      <div class="dash-tile rise" style="animation-delay:.38s" onclick="loadDash('caregiver_utilization',this)">
+        <div class="tile-icon">&#128202;</div>
+        <div class="tile-name">Caregiver Utilization</div>
+        <div class="tile-desc">Market &amp; state utilization, day breakdowns and roster</div>
+      </div>
+      <div class="dash-tile rise" style="animation-delay:.44s" onclick="loadDash('scheduling_fill',this)">
+        <div class="tile-icon">&#128197;</div>
+        <div class="tile-name">Scheduling Fill</div>
+        <div class="tile-desc">Open visits, open booking sets and caregiver time off</div>
+      </div>
     </div>
-    <div class="dash-tile" onclick="loadDash('caregiver_supply_map',this)">
-      <div class="tile-icon">&#128506;</div>
-      <div class="tile-name">Caregiver Supply Map</div>
-      <div class="tile-desc">Geographic supply visualization, intake matching and availability by distance</div>
-    </div>
-    <div class="dash-tile" onclick="loadDash('availability_analyzer',this)">
-      <div class="tile-icon">&#128203;</div>
-      <div class="tile-name">Availability Analyzer</div>
-      <div class="tile-desc">Caregiver day-of-week availability, preferences, and workforce capacity by market</div>
-    </div>
-    <div class="dash-tile" onclick="loadDash('caregiver_utilization',this)">
-      <div class="tile-icon">&#128202;</div>
-      <div class="tile-name">Caregiver Utilization</div>
-      <div class="tile-desc">Market and state utilization summaries, day breakdowns, and caregiver roster</div>
-    </div>
-    <div class="dash-tile" onclick="loadDash('scheduling_fill',this)">
-      <div class="tile-icon">&#128197;</div>
-      <div class="tile-name">Scheduling Fill</div>
-      <div class="tile-desc">Open visits, open booking sets and caregiver time off</div>
-    </div>
-  </div>
 
-  <!-- ACTIVE DASHBOARD FRAME -->
-  <div class="dash-frame-wrap">
-    <div class="dash-frame-bar">
-      <div class="dash-frame-left">
-        <div class="frame-dots">
-          <div class="frame-dot r"></div>
-          <div class="frame-dot y"></div>
-          <div class="frame-dot g"></div>
+    <!-- Active dashboard frame -->
+    <div class="dash-frame-wrap rise" style="animation-delay:.5s">
+      <div class="dash-frame-bar">
+        <div class="dash-frame-left">
+          <div class="frame-dots"><div class="frame-dot r"></div><div class="frame-dot y"></div><div class="frame-dot g"></div></div>
+          <div class="dash-frame-title" id="frameTitle">Caregiver Hours</div>
         </div>
-        <div class="dash-frame-title" id="frameTitle">Caregiver Hours</div>
+        <div class="dash-frame-actions">
+          <a id="frameLink" href="https://andrewdobsonn-cell.github.io/Tribute-Operating-System/caregiver_hours.html" target="_blank" class="dash-frame-btn">Open full screen &#8599;</a>
+        </div>
       </div>
-      <div class="dash-frame-actions">
-        <a id="frameLink" href="https://andrewdobsonn-cell.github.io/Tribute-Operating-System/caregiver_hours.html" target="_blank" class="dash-frame-btn">Open full screen &#8599;</a>
+      <div id="frameLoading" class="dash-frame-loading">
+        <div class="dash-frame-loading-inner"><div class="spinner"></div>Loading dashboard…</div>
       </div>
+      <iframe id="dashFrame" class="dash-iframe" src="https://andrewdobsonn-cell.github.io/Tribute-Operating-System/caregiver_hours.html" style="display:none"></iframe>
     </div>
-    <div id="frameLoading" class="dash-frame-loading">
-      <div class="dash-frame-loading-inner">
-        <div class="spinner"></div>
-        Loading dashboard...
-      </div>
-    </div>
-    <iframe
-      id="dashFrame"
-      class="dash-iframe"
-      src="https://andrewdobsonn-cell.github.io/Tribute-Operating-System/caregiver_hours.html"
-      style="display:none"
-    ></iframe>
-  </div>
 
-</div>
+  </main>
 
-<!-- FOOTER -->
-<div class="footer">
-  <div class="footer-brand">
-    <span class="footer-tribute">Tribute</span>
-    <span class="footer-hc">Home Care LLC</span>
-  </div>
-  <div class="footer-meta">
-    <div class="footer-live">
-      <div class="footer-live-dot"></div>
-      Live · Viv Technologies
-    </div>
-    <span id="footerUpdated"></span>
-  </div>
-</div>
+  <footer class="border-t border-tribute-line px-6 md:px-10 py-5 max-w-[1180px] w-full mx-auto text-[12px] text-tribute-muted flex items-center justify-between">
+    <span class="italic font-display">Remarkable, personified.</span>
+    <span class="flex items-center gap-3">
+      <span class="inline-flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-tribute-teal"></span>Live · Viv Technologies</span>
+      <span id="footerUpdated"></span>
+    </span>
+  </footer>
 
 <script>
 var BASE = 'https://andrewdobsonn-cell.github.io/Tribute-Operating-System/';

@@ -5,15 +5,15 @@
 <script src="./entra-auth.js?v=2026-07-07c"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Tribute Home Care · Scheduling Fill</title>
+<title>Tribute Home Care · Scheduling Fill</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{
-  --orange:#E8732A;--orange-lt:#FFF3EC;--green:#2E7D32;--green-bg:#F1F8E9;
+  --orange:#FF5A1F;--orange-lt:#FFF3EC;--green:#2E7D32;--green-bg:#F1F8E9;
   --red:#C62828;--red-bg:#FFEBEE;--amber:#E65100;--amber-bg:#FFF3E0;
   --blue:#1565C0;--blue-bg:#E3F2FD;--purple:#6A1B9A;--purple-bg:#F3E5F5;
-  --charcoal:#1A1A1A;--text2:#444;--text3:#777;--text4:#AAA;
-  --gray50:#FAFAFA;--gray100:#F0F0F0;--gray200:#E0E0E0;--gray300:#C8C8C8;
-  --r:8px;--font:'Lato',system-ui,sans-serif;
+  --charcoal:#1C1A17;--text2:#3A362F;--text3:#8C857B;--text4:#B7B0A6;
+  --gray50:#FAF8F4;--gray100:#F6F3EE;--gray200:#EAE6DF;--gray300:#E0DACE;
+  --r:8px;--font:'Inter',system-ui,sans-serif;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:var(--font);background:var(--gray50);color:var(--charcoal);font-size:13px;}
@@ -95,11 +95,11 @@ body{font-family:var(--font);background:var(--gray50);color:var(--charcoal);font
 .empty{text-align:center;padding:40px;color:var(--text3);font-size:13px;}
 .z{color:var(--text4);}
 </style>
-</head>
+<style>/* design-system header */ .logo,.hdr .logo{font-family:"Space Grotesk",Inter,sans-serif!important;font-weight:700!important;font-size:22px!important;letter-spacing:-.02em!important;color:#1C1A17!important;text-decoration:none!important} .title{font-family:"Space Grotesk",Inter,sans-serif!important} h1,h2,.finder-title,.results-title{font-family:"Space Grotesk",Inter,sans-serif}</style></head>
 <body>
 
 <div class="header">
-  <div class="logo">Tribute <span>Home Care &middot; Scheduling Fill</span></div>
+  <a class="logo" href="index_live.html" title="Back to the Scheduling Suite" style="text-decoration:none">Tribute<span style="color:#FF5A1F">.</span> <span style="color:#8C857B;font-weight:500">Scheduling Fill</span></a>
   <span id="genAt" style="font-size:11px;color:var(--text3);"></span>
   <button onclick="loadAll()" style="margin-left:auto;background:var(--orange);color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer;">&#x21bb; Refresh</button>
 </div>

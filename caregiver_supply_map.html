@@ -5,22 +5,22 @@
 <script src="./entra-auth.js?v=2026-07-07c"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Caregiver Supply Map · Tribute</title>
+<title>Caregiver Supply Map · Tribute</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <style>
 :root{
   --bg:#0F0F0E;--card:#1C1C1A;--card2:#242422;--border:#2E2E2B;
   --text1:#F0EFE8;--text2:#B8B7AF;--text3:#7A7970;--text4:#4A4940;
-  --orange:#E8732A;--shadow:0 2px 8px rgba(0,0,0,.4);
+  --orange:#FF5A1F;--shadow:0 2px 8px rgba(0,0,0,.4);
   --green:#22C55E;--yellow:#EAB308;--red:#EF4444;--blue:#3B82F6;
   --green-dim:#15803D;--yellow-dim:#A16207;--red-dim:#991B1B;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
 html,body{height:100%;overflow:hidden;}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text1);font-size:13px;display:flex;flex-direction:column;}
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text1);font-size:13px;display:flex;flex-direction:column;}
 .hd{background:var(--card);border-bottom:1px solid var(--border);padding:0 20px;display:flex;align-items:center;height:50px;gap:14px;flex-shrink:0;z-index:1000;}
-.logo{font-size:12px;font-weight:700;letter-spacing:.5px;color:var(--text2);}
+.logo{font-family:'Space Grotesk',Inter,sans-serif;font-size:19px;font-weight:700;letter-spacing:-.02em;color:var(--text1);text-decoration:none;}
 .hd-div{width:1px;height:18px;background:var(--border);}
 .hd-title{font-size:13px;color:var(--text1);font-weight:600;}
 .hd-r{margin-left:auto;display:flex;align-items:center;gap:10px;}
@@ -123,10 +123,10 @@ input[type=range]{flex:1;accent-color:var(--orange);cursor:pointer;height:4px;}
 .dow-summary{margin-top:7px;}
 .dow-summary-label{font-size:9px;font-weight:700;text-transform:uppercase;color:var(--text3);letter-spacing:.05em;margin-bottom:3px;}
 </style>
-</head>
+<style>h1,h2,h3,.title,.panel-title{font-family:"Space Grotesk",Inter,sans-serif!important;letter-spacing:-.02em}</style></head>
 <body>
 <div class="hd">
-  <span class="logo">TRIBUTE HOME CARE</span>
+  <a class="logo" href="index_live.html" title="Back to the Scheduling Suite">Tribute<span style="color:#FF5A1F">.</span></a>
   <div class="hd-div"></div>
   <span class="hd-title">Caregiver Supply Map</span>
   <div class="hd-r">
@@ -420,7 +420,7 @@ function renderMarkers(){
     var color=cgColor(cg),status=cgStatus(cg);
     if(status==='green'){green++;gHrs+=cg.gap;}else if(status==='yellow'){yellow++;yHrs+=cg.gap;}else red++;
     var m=L.marker([lat,lng],{icon:makeIcon(color)});
-    var p='<div style="font-family:-apple-system,sans-serif;min-width:200px;">';
+    var p='<div style="font-family:'Inter',-apple-system,sans-serif;min-width:200px;">';
     p+='<div style="font-weight:700;font-size:13px;margin-bottom:6px">'+esc(cg.name)+'</div>';
     p+='<div style="font-size:11px;color:#888;margin-bottom:8px">'+esc(cg.market)+'</div>';
     p+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:12px;margin-bottom:8px;">';

@@ -8,15 +8,15 @@
 <title>Caregiver Utilization — Tribute OS</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{--orange:#E8541A;--orange-dark:#C4441A;--orange-light:#F47A4A;--orange-pale:#FDF2ED;--orange-50:#FEF8F5;--charcoal:#2C2C2C;--charcoal-mid:#4A4A4A;--gray-text:#6B6B6B;--gray-light:#9B9B9B;--gray-100:#F5F5F5;--gray-200:#EBEBEB;--gray-300:#D8D8D8;--white:#FFFFFF;--cream:#FAFAF8;--green:#3DAA7A;--green-light:#E2EFDA;--red:#E05252;--navy:#0F2647;--slate:#44546A;--shadow-sm:0 1px 4px rgba(44,44,44,0.06),0 1px 2px rgba(44,44,44,0.04);--shadow-md:0 4px 20px rgba(44,44,44,0.09),0 2px 6px rgba(44,44,44,0.05);--r:10px;--rl:14px;--prn-bg:#EEE0CC;--prn-fg:#654321;--pto-bg:#E4DEF2;--pto-fg:#4B3278;--orange-fill:#FCE4D6;--yellow-fill:#FFF2CC;--blue-fill:#DAE3F3;--green-fill:#E2EFDA}
-body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--charcoal);min-height:100vh;font-size:13px;line-height:1.5}
+:root{--orange:#FF5A1F;--orange-dark:#E25309;--orange-light:#FF7A4A;--orange-pale:#FBEADF;--orange-50:#FEF6F1;--charcoal:#1C1A17;--charcoal-mid:#3A362F;--gray-text:#8C857B;--gray-light:#B7B0A6;--gray-100:#F6F3EE;--gray-200:#EAE6DF;--gray-300:#E0DACE;--white:#FFFFFF;--cream:#FAF8F4;--green:#0F8F6B;--green-light:#E2EFDA;--red:#C8362B;--navy:#0F2647;--slate:#44546A;--shadow-sm:0 1px 4px rgba(44,44,44,0.06),0 1px 2px rgba(44,44,44,0.04);--shadow-md:0 4px 20px rgba(44,44,44,0.09),0 2px 6px rgba(44,44,44,0.05);--r:10px;--rl:14px;--prn-bg:#EEE0CC;--prn-fg:#654321;--pto-bg:#E4DEF2;--pto-fg:#4B3278;--orange-fill:#FCE4D6;--yellow-fill:#FFF2CC;--blue-fill:#DAE3F3;--green-fill:#E2EFDA}
+body{font-family:'Inter',sans-serif;background:var(--cream);color:var(--charcoal);min-height:100vh;font-size:13px;line-height:1.5}
 
-.topbar{background:var(--white);border-bottom:1px solid var(--gray-200);padding:0 48px;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:100;box-shadow:var(--shadow-sm)}
+.topbar{background:rgba(250,248,244,0.85);backdrop-filter:saturate(1.4) blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--gray-200);padding:0 48px;display:flex;align-items:center;justify-content:space-between;height:64px;position:sticky;top:0;z-index:100;}
 .topbar-brand{display:flex;align-items:baseline}
-.topbar-tribute{font-family:'DM Serif Display',Georgia,serif;font-size:22px;color:var(--orange)}
+.topbar-tribute{font-family:'Space Grotesk',Inter,sans-serif;font-size:22px;font-weight:700;letter-spacing:-.02em;color:var(--charcoal);text-decoration:none}
 .topbar-os{font-size:11px;font-weight:600;color:var(--gray-light);margin-left:6px;letter-spacing:1.5px;text-transform:uppercase}
 .topbar-right{display:flex;align-items:center;gap:16px}
 .topbar-link{font-size:13px;color:var(--gray-text);text-decoration:none;font-weight:500}
@@ -24,7 +24,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--charco
 
 .hero{padding:40px 48px 0;max-width:1600px;margin:0 auto}
 .hero-eyebrow{font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--orange);margin-bottom:6px}
-.hero-title{font-family:'DM Serif Display',Georgia,serif;font-size:32px;color:var(--charcoal);margin-bottom:4px}
+.hero-title{font-family:'Space Grotesk',Georgia,serif;font-size:32px;color:var(--charcoal);margin-bottom:4px}
 .hero-subtitle{font-size:14px;color:var(--gray-text);max-width:650px}
 
 .upload-section{max-width:1600px;margin:24px auto 0;padding:0 48px}
@@ -42,10 +42,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--charco
 
 .stats-strip{display:none;gap:0;margin:24px auto 0;border-radius:var(--rl);overflow:hidden;box-shadow:var(--shadow-md);max-width:1600px;padding:0 48px}
 .stats-strip.show{display:flex}
-.stat-card{flex:1;background:var(--orange);padding:16px 20px;text-align:center;border-right:1px solid rgba(255,255,255,0.15)}
+.stat-card{flex:1;background:var(--white);padding:16px 20px;text-align:center;border-right:1px solid var(--gray-200)}
 .stat-card:last-child{border-right:none}
-.stat-label{font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:rgba(255,255,255,0.75);margin-bottom:2px}
-.stat-value{font-family:'DM Serif Display',Georgia,serif;font-size:24px;color:var(--white)}
+.stat-label{font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--gray-text);margin-bottom:2px}
+.stat-value{font-family:'Space Grotesk',Inter,sans-serif;font-size:24px;font-weight:600;color:var(--charcoal)}
 
 .content{max-width:1600px;margin:0 auto;padding:24px 48px 64px;display:none}
 .content.show{display:block}
@@ -101,7 +101,7 @@ td.wr{white-space:normal;max-width:200px;overflow:hidden;text-overflow:ellipsis}
 .dash-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
 .dash-kpi{background:var(--white);border-radius:var(--r);padding:20px;text-align:center;box-shadow:var(--shadow-sm)}
 .dash-kpi .kl{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--gray-text);margin-bottom:4px}
-.dash-kpi .kv{font-family:'DM Serif Display',Georgia,serif;font-size:28px;color:var(--charcoal)}
+.dash-kpi .kv{font-family:'Space Grotesk',Georgia,serif;font-size:28px;color:var(--charcoal)}
 .dash-kpi .ks{font-size:11px;color:var(--gray-light);margin-top:2px}
 .heatmap-cell{padding:6px 10px;text-align:center;font-size:12px;font-weight:600;border:1px solid var(--gray-200)}
 .hm-low{background:#FEE2E2;color:#991B1B}
@@ -114,7 +114,7 @@ td.wr{white-space:normal;max-width:200px;overflow:hidden;text-overflow:ellipsis}
 </style>
 </head>
 <body>
-<div class="topbar"><div class="topbar-brand"><span class="topbar-tribute">Tribute</span><span class="topbar-os">Operating System</span></div><div class="topbar-right"><a href="index.html" class="topbar-link">Dashboard</a></div></div>
+<div class="topbar"><div class="topbar-brand"><a class="topbar-tribute" href="index_live.html" title="Back to the Scheduling Suite">Tribute<span style="color:var(--orange)">.</span></a><span class="topbar-os">Operating System</span></div><div class="topbar-right"><a href="index.html" class="topbar-link">Dashboard</a></div></div>
 <div class="hero"><div class="hero-eyebrow">Workforce Analytics</div><h1 class="hero-title">Caregiver Utilization</h1><p class="hero-subtitle">Live data from Viv — select any week to view utilization metrics.</p></div>
 <div id="upload-meta" style="display:none"></div>
 <div class="stats-strip" id="stats-strip">

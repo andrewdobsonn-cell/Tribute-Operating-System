@@ -8,17 +8,17 @@
 <title>Availability Analyzer — Tribute OS</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{--orange:#E8541A;--orange-dark:#C4441A;--orange-light:#F47A4A;--orange-pale:#FDF2ED;--orange-50:#FEF8F5;--charcoal:#2C2C2C;--charcoal-mid:#4A4A4A;--gray-text:#6B6B6B;--gray-light:#9B9B9B;--gray-100:#F5F5F5;--gray-200:#EBEBEB;--gray-300:#D8D8D8;--white:#FFFFFF;--cream:#FAFAF8;--green:#3DAA7A;--green-light:#dcfce7;--red:#E05252;--red-light:#fee2e2;--purple:#7c3aed;--purple-light:#ede9fe;--cyan:#0891b2;--cyan-light:#cffafe;--amber:#d97706;--amber-light:#fef3c7;--blue:#2563eb;--blue-light:#dbeafe;--shadow-sm:0 1px 4px rgba(44,44,44,0.06),0 1px 2px rgba(44,44,44,0.04);--shadow-md:0 4px 20px rgba(44,44,44,0.09),0 2px 6px rgba(44,44,44,0.05);--r:10px;--rl:14px}
+:root{--orange:#FF5A1F;--orange-dark:#E25309;--orange-light:#FF7A4A;--orange-pale:#FBEADF;--orange-50:#FEF6F1;--charcoal:#1C1A17;--charcoal-mid:#3A362F;--gray-text:#8C857B;--gray-light:#B7B0A6;--gray-100:#F6F3EE;--gray-200:#EAE6DF;--gray-300:#E0DACE;--white:#FFFFFF;--cream:#FAF8F4;--green:#0F8F6B;--green-light:#dcfce7;--red:#C8362B;--red-light:#fee2e2;--purple:#7c3aed;--purple-light:#ede9fe;--cyan:#0891b2;--cyan-light:#cffafe;--amber:#d97706;--amber-light:#fef3c7;--blue:#2563eb;--blue-light:#dbeafe;--shadow-sm:0 1px 2px rgba(28,26,23,0.04);--shadow-md:0 6px 24px -8px rgba(28,26,23,0.10),0 2px 6px -2px rgba(28,26,23,0.04);--r:12px;--rl:18px}
 html{scroll-behavior:smooth}
-body{font-family:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;background:var(--cream);color:var(--charcoal);min-height:100vh;font-size:14px;line-height:1.6;-webkit-font-smoothing:antialiased}
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:var(--cream);color:var(--charcoal);min-height:100vh;font-size:14px;line-height:1.6;-webkit-font-smoothing:antialiased}
 
-.topbar{background:var(--white);border-bottom:1px solid var(--gray-200);padding:0 48px;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:100;box-shadow:var(--shadow-sm)}
+.topbar{background:rgba(250,248,244,0.85);backdrop-filter:saturate(1.4) blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--gray-200);padding:0 48px;display:flex;align-items:center;justify-content:space-between;height:64px;position:sticky;top:0;z-index:100}
 .topbar-brand{display:flex;align-items:baseline}
-.topbar-tribute{font-family:'DM Serif Display',Georgia,serif;font-size:22px;color:var(--orange)}
-.topbar-sub{font-size:11px;color:var(--gray-text);margin-left:4px}
+.topbar-tribute{font-family:'Space Grotesk',Inter,sans-serif;font-size:22px;font-weight:700;letter-spacing:-.02em;color:var(--charcoal);text-decoration:none}
+.topbar-sub{font-size:10px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--gray-light);margin-left:8px}
 .topbar-right{display:flex;align-items:center;gap:16px}
 .topbar-live{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--gray-text)}
 .live-dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 2.5s ease-in-out infinite}
@@ -27,14 +27,14 @@ body{font-family:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;backgroun
 .hero{background:var(--white);padding:36px 48px 32px;border-bottom:1px solid var(--gray-200);position:relative;overflow:hidden}
 .hero::before{content:'';position:absolute;top:0;left:0;width:4px;height:100%;background:var(--orange)}
 .hero-eyebrow{font-size:10px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--orange);margin-bottom:8px;padding-left:20px}
-.hero-title{font-family:'DM Serif Display',Georgia,serif;font-size:34px;color:var(--charcoal);line-height:1.1;letter-spacing:-.025em;margin-bottom:8px;padding-left:20px}
+.hero-title{font-family:'Space Grotesk',Georgia,serif;font-size:34px;color:var(--charcoal);line-height:1.1;letter-spacing:-.025em;margin-bottom:8px;padding-left:20px}
 .hero-title span{color:var(--orange);font-style:italic}
 .hero-sub{font-size:14px;font-weight:300;color:var(--gray-text);padding-left:20px;max-width:700px}
 
-.stats-strip{background:var(--orange);padding:12px 48px;display:flex;gap:36px;flex-wrap:wrap}
+.stats-strip{background:var(--white);border-bottom:1px solid var(--gray-200);padding:16px 48px;display:flex;gap:40px;flex-wrap:wrap}
 .stat-item{display:flex;flex-direction:column;gap:2px}
-.stat-label{font-size:9px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,0.65)}
-.stat-value{font-size:20px;font-weight:500;color:var(--white);font-variant-numeric:tabular-nums}
+.stat-label{font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--gray-text)}
+.stat-value{font-family:'Space Grotesk',Inter,sans-serif;font-size:22px;font-weight:600;color:var(--charcoal);font-variant-numeric:tabular-nums}
 
 .main{padding:28px 48px;max-width:1600px;margin:0 auto}
 
@@ -95,7 +95,7 @@ body{font-family:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;backgroun
 
 /* FIND CARE TEAM MODE */
 .finder-panel{background:var(--white);border:1px solid var(--gray-200);border-radius:var(--rl);padding:24px 28px;margin-bottom:24px;box-shadow:var(--shadow-sm)}
-.finder-title{font-family:'DM Serif Display',Georgia,serif;font-size:20px;color:var(--charcoal);margin-bottom:4px}
+.finder-title{font-family:'Space Grotesk',Georgia,serif;font-size:20px;color:var(--charcoal);margin-bottom:4px}
 .finder-sub{font-size:12px;color:var(--gray-light);margin-bottom:16px}
 .finder-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
 @media(max-width:900px){.finder-grid{grid-template-columns:1fr 1fr}}
@@ -125,7 +125,7 @@ body{font-family:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;backgroun
 
 /* RESULTS */
 .results-header{display:flex;align-items:baseline;gap:12px;margin-bottom:16px;flex-wrap:wrap}
-.results-title{font-family:'DM Serif Display',Georgia,serif;font-size:22px;color:var(--charcoal)}
+.results-title{font-family:'Space Grotesk',Georgia,serif;font-size:22px;color:var(--charcoal)}
 .results-count{font-size:13px;color:var(--gray-light)}
 .results-sort{margin-left:auto;display:flex;align-items:center;gap:6px}
 .results-sort label{font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--gray-light)}
@@ -199,7 +199,7 @@ body{font-family:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;backgroun
 
 <div class="topbar">
   <div class="topbar-brand">
-    <span class="topbar-tribute">Tribute</span>
+    <a class="topbar-tribute" href="index_live.html" title="Back to the Scheduling Suite">Tribute<span style="color:var(--orange)">.</span></a>
     <span class="topbar-sub">Availability Analyzer</span>
   </div>
   <div class="topbar-right">
@@ -629,7 +629,7 @@ function render(){
       var dayEntries=filtered.filter(function(e){return e.openDays.indexOf(d)>=0;});
       if(dayEntries.length>0){
         html+='<div style="margin-bottom:32px">';
-        html+='<div style="font-family:DM Serif Display,Georgia,serif;font-size:24px;color:var(--charcoal);margin-bottom:12px;padding-bottom:6px;border-bottom:2px solid var(--orange)">'+DAYS[d]+'<span style="font-family:DM Sans;font-size:13px;color:var(--gray-light);margin-left:10px;font-weight:400">'+availCountLabel(dayEntries)+'</span></div>';
+        html+='<div style="font-family:Space Grotesk,Georgia,serif;font-size:24px;color:var(--charcoal);margin-bottom:12px;padding-bottom:6px;border-bottom:2px solid var(--orange)">'+DAYS[d]+'<span style="font-family:Inter;font-size:13px;color:var(--gray-light);margin-left:10px;font-weight:400">'+availCountLabel(dayEntries)+'</span></div>';
         html+=renderTypeGroups(dayEntries);
         html+='</div>';
       }
