@@ -476,6 +476,40 @@ function detectLiveIn(bookings) {
   return issues;
 }
 
+// Client billing-rate consistency: a client's contracted rate for a given visit type
+// should be uniform. Flag an isolated outlier rate (e.g. one visit at $59 among $65s) —
+// the pattern behind Jennifer's "bill $65/hr not $59/hr" catches. A clean forward rate
+// change (all deviating visits at the tail, none of the norm rate on/after them) is a
+// legitimate increase and is NOT flagged.
+function detectClientRate(bookings) {
+  const g = {};
+  bookings.forEach(b => {
+    if (b._cancelled || EXCLUDE_VT.has(b._vt) || b._is_office || !b._start || !(b._cl_rate>0)) return;
+    const k = b._cid+'|'+b._vt;
+    (g[k] = g[k] || []).push(b);
+  });
+  const issues = [];
+  Object.values(g).forEach(rows => {
+    if (rows.length < 3) return;
+    const cnt = {};
+    rows.forEach(b => { const r = Math.round(b._cl_rate*100)/100; cnt[r] = (cnt[r]||0)+1; });
+    const mode = +Object.keys(cnt).reduce((a,b)=> cnt[+b]>cnt[+a] || (cnt[+b]===cnt[+a] && +b<+a) ? b : a);
+    rows.forEach(b => {
+      const r = Math.round(b._cl_rate*100)/100;
+      if (Math.abs(r-mode) <= 0.01) return;
+      // legit forward change guard: only flag if a norm-rate visit occurs on/after this one
+      const hasNormAfter = rows.some(o => Math.abs(Math.round(o._cl_rate*100)/100 - mode) <= 0.01 && o._start >= b._start);
+      if (!hasNormAfter) return;
+      issues.push({'Client':b._client,'Market':b._geo,'Date':fmtD(b._start),'Visit Type':b._vt,
+        'Billed Rate':`$${r.toFixed(2)}`,'Client Norm':`$${mode.toFixed(2)}`,
+        'Why Flagged':`Billed $${r.toFixed(2)}/hr — this client's other ${rows.length-1} "${b._vt}" visits bill $${mode.toFixed(2)}/hr`,
+        'Action':`Verify client rate — should likely be $${mode.toFixed(2)}/hr`,
+        severity:'error', geo:b._geo, _cid:b._cid});
+    });
+  });
+  return issues;
+}
+
 function detectApprovalQueue(bookings) {
   return bookings
     .filter(b => b._status==='REQUIRES_APPROVAL'||b._status==='REQUIRES_REAPPROVAL')
@@ -1260,6 +1294,10 @@ async function runDashboard() {
        desc:'Client rates that have never appeared in the full rate history for that market.',
        data:detectInvalidRates(bookings,rateTable),
        cols:['Market','Visit Type','Invalid Rate','Current Rate','Visits','Clients','Action']},
+      {id:'clrate',   name:'Client Rate Inconsistency', icon:'🏷️', red:true,
+       desc:'A single visit billed at a different client rate than that client\'s other visits of the same type — the pattern behind "bill $65/hr not $59/hr" corrections. A clean forward rate increase (all later visits at the new rate) is treated as legitimate and not flagged.',
+       data:detectClientRate(bookings),
+       cols:['Client','Market','Date','Visit Type','Billed Rate','Client Norm','Why Flagged','Action']},
       {id:'livein',   name:'Live-In Hourly Review',   icon:'🏠', red:true,
        desc:'Live-In visits under 24h — if CG works ≤48h/wk on Live-In, pay hourly up to 16h/day.',
        data:detectLiveInHourly(bookings, liveInContext, startDate, endDate),
