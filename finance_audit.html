@@ -152,6 +152,10 @@ tbody td{padding:9px 13px;color:var(--t1);vertical-align:middle}
 .wl-detail{font-size:11.5px;color:var(--t2);line-height:1.5;max-width:340px}
 .wl-action{font-size:11.5px;color:var(--teal-fg);max-width:220px}
 .wl-subj{color:var(--blue);text-decoration:none;border-bottom:1px dashed var(--bd2)}
+.chk{margin:0 0 22px}
+.chk-h{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700;color:var(--t1);margin-bottom:4px}
+.chk-c{font-size:10.5px;font-weight:700;background:var(--bd);color:var(--t2);border-radius:99px;padding:1px 8px}
+.chk-d{font-size:11px;color:var(--t3);line-height:1.5;margin-bottom:8px;max-width:900px}
 </style>
 </head>
 <body>
@@ -1408,54 +1412,31 @@ async function runDashboard() {
     geoSel.innerHTML = '<option value="">All Markets</option>';
     geos.forEach(g => { const o=document.createElement('option'); o.value=g; o.textContent=g; geoSel.appendChild(o); });
 
-    // ── Finance Readiness layout: 3 domains × 2 lanes + scorecard (test rebuild) ──
+    // ── Finance Readiness layout: 3 domains, checks grouped by lane (full tables) ──
     const DOMAINS = {
       billing:  {name:'Visit Billing',     icon:'💳', blurb:'Is each visit ready to bill? — the pre-billing catches.'},
-      payroll:  {name:'Caregiver Payroll',  icon:'🛡️', blurb:'TS admin time + pay-rate correctness before payroll runs.'},
+      payroll:  {name:'Caregiver Payroll',  icon:'🛡️', blurb:'TS admin time to pay out + pay-rate correctness before payroll runs.'},
       expenses: {name:'Expenses / AP',      icon:'🧾', blurb:'Reimbursement integrity — double-charges & client-billable rides.'},
     };
     const DOMAIN_OF = {ts:'payroll', rate:'payroll', toff:'payroll', dup_exp:'expenses', uber_client:'expenses'};
     const DROP = new Set(['irates']);      // dead: rate history is empty from the API
     const METRIC_ONLY = new Set(['evv']);  // ~1,400/wk — a health metric, not a worklist
 
-    // Stash every shown section's rows so the 💡 Fix button can rebuild context (via explainFlag)
+    // Stash rows + meta so the 💡 Fix button (explainFlag) can rebuild context
     window._flagRows = {}; window._flagMeta = {};
     sections.forEach(s => { if (DROP.has(s.id)) return; window._flagRows[s.id]=s.data; window._flagMeta[s.id]={name:s.name,desc:s.desc||'',cols:s.cols}; });
 
-    // Project a heterogeneous check row into a common worklist row
-    const pickDetail = r => {
-      for (const k of ['Why Flagged','Why Orphaned','Flags','Suggestion','Expected Range','Missing','Day Coverage','Overlap']) if (r[k]) return r[k];
-      const p=[]; if(r['Visit Type'])p.push(r['Visit Type']); if(r['Payable Hrs'])p.push('pay '+r['Payable Hrs']); if(r['Billable'])p.push('bill '+r['Billable']); if(r['LI Hours'])p.push(r['LI Hours']);
-      return p.join(' · ');
-    };
-    const proj = (s,r,ri) => ({subject:r['Client']||r['Caregiver']||r['Market']||'—', when:r['Date']||r['Time']||'', issue:s.name, icon:s.icon,
-      detail:pickDetail(r), action:r['Action']||'', sev:(r.severity||'info'), sectionId:s.id, ri, geo:r.geo||'', _cid:r._cid||'', _cgid:r._cgid||''});
-    const laneOf = (s,r) => (s.id==='ts' || r.severity==='error') ? 'mustfix' : 'review';
-
-    const buckets={}, evvCount={};
-    Object.keys(DOMAINS).forEach(d=>buckets[d]={mustfix:[],review:[]});
-    sections.forEach(s => {
-      if (DROP.has(s.id)) return;
-      const dom = DOMAIN_OF[s.id] || 'billing';
-      if (METRIC_ONLY.has(s.id)) { evvCount[dom]=(evvCount[dom]||0)+s.data.length; return; }
-      s.data.forEach((r,ri)=>buckets[dom][laneOf(s,r)].push(proj(s,r,ri)));
-    });
-    const domCount = d => buckets[d].mustfix.length + buckets[d].review.length;
-
-    // Unified worklist table (reuses explainFlag via sectionId + ri)
-    const laneTable = rows => {
-      if (!rows.length) return '<div class="empty"><span>✓</span> Nothing here — clear</div>';
-      const body = rows.map(r => {
-        const link = r._cid ? `https://tribute.mavencare.com/clients/${esc(r._cid)}/dashboard/summary`
-                   : r._cgid ? `https://tribute.mavencare.com/caregivers/${esc(r._cgid)}/dashboard/summary` : '';
-        const subj = link ? `<a href="${link}" target="_blank" class="wl-subj">${esc(r.subject)}</a>` : esc(r.subject);
-        return `<tr data-geo="${esc(r.geo)}"><td><span class="sev-dot ${r.sev}"></span></td>
-          <td class="wl-issue">${r.icon} ${esc(r.issue)}</td><td>${subj}</td><td class="wl-when">${esc(r.when)}</td>
-          <td class="wl-detail">${esc(r.detail)}</td><td class="wl-action">${esc(r.action)}</td>
-          <td class="fixcell"><button type="button" class="fixbtn" onclick="explainFlag('${r.sectionId}',${r.ri},this)">💡 Fix</button></td></tr>`;
-      }).join('');
-      return `<div class="tw"><table><thead><tr><th></th><th>Issue</th><th>Who</th><th>When</th><th>Detail</th><th>Suggested action</th><th>Recommend</th></tr></thead><tbody>${body}</tbody></table></div>`;
-    };
+    // Each check keeps its OWN full table (so payout-critical columns like Caregiver /
+    // Hrs Owed are never lost). Checks are grouped by domain, then by lane: a red check
+    // is "must-fix", everything else is "review & confirm".
+    const domSecs = d => sections.filter(s => !DROP.has(s.id) && !METRIC_ONLY.has(s.id) && (DOMAIN_OF[s.id]||'billing')===d && s.data.length);
+    const laneSecs = (d,red) => domSecs(d).filter(s => !!s.red===red);
+    const cntRows = list => list.reduce((a,s)=>a+s.data.length,0);
+    const evvCount = {};
+    sections.forEach(s => { if (METRIC_ONLY.has(s.id) && s.data.length) { const d=DOMAIN_OF[s.id]||'billing'; evvCount[d]=(evvCount[d]||0)+s.data.length; } });
+    const domMustfix = d => cntRows(laneSecs(d,true));
+    const domReview  = d => cntRows(laneSecs(d,false));
+    const domCount   = d => domMustfix(d)+domReview(d);
 
     // Build nav: Readiness overview + 3 domains
     const navList = document.getElementById('nav-list');
@@ -1468,14 +1449,14 @@ async function runDashboard() {
     };
     mkNav('overview','📋','Readiness','','');
     { const dv=document.createElement('div'); dv.className='ndiv'; navList.appendChild(dv); }
-    Object.entries(DOMAINS).forEach(([d,m])=>mkNav('dom-'+d,m.icon,m.name,domCount(d)||'',buckets[d].mustfix.length?' r':''));
+    Object.entries(DOMAINS).forEach(([d,m])=>mkNav('dom-'+d,m.icon,m.name,domCount(d)||'',domMustfix(d)?' r':''));
 
     // Build views
     const container = document.getElementById('sections-container');
     container.innerHTML = '';
     // Overview: readiness scorecard + honesty banner
     const cards = Object.entries(DOMAINS).map(([d,m]) => {
-      const mf=buckets[d].mustfix.length, rv=buckets[d].review.length;
+      const mf=domMustfix(d), rv=domReview(d);
       const evv = evvCount[d]?`<div class="rc-metric">+ ${evvCount[d]} Missing-EVV (health metric)</div>`:'';
       return `<div class="rc-card" onclick="showSection('dom-${d}')">
         <div class="rc-h">${m.icon} ${esc(m.name)}</div>
@@ -1486,17 +1467,24 @@ async function runDashboard() {
     ov.innerHTML=`<div class="sh"><div class="st"><span class="si">📋</span><span class="sn">Finance Readiness</span><span class="sc ${total?'h':'n'}">${esc(wk)}</span></div>
       <div class="sd">One close, three domains. Clear <b>must-fix</b> before billing/payroll runs; <b>review &amp; confirm</b> the judgment calls (each with a 💡 recommended answer) so nothing routes to Finance.</div></div>
       <div class="rc-grid">${cards}</div>
-      <div class="honesty">⚠️ Coverage note: some visits can't be fully verified from scheduling data — grandfathered client rates, Live-In / 24-7 exemptions, and visits with no care-plan hour target. A clean board is not proof of a verified close.</div>`;
+      <div class="honesty">⚠️ Coverage note: some items can't be fully verified from scheduling data — grandfathered client rates, Live-In / 24-7 exemptions, and visits with no care-plan hour target. A clean board is not proof of a verified close.</div>`;
     container.appendChild(ov);
-    // Domain views: two lanes each
+    // Domain views: each check as its OWN full table, grouped under the two lanes
+    const laneBlock = (title, cls, list) => list.length
+      ? `<div class="lane-h ${cls}">${title} <span class="lane-c">${cntRows(list)}</span></div>`
+        + list.map(s => `<div class="chk"><div class="chk-h">${s.icon} ${esc(s.name)} <span class="chk-c">${s.data.length}</span></div>`
+            + (s.desc?`<div class="chk-d">${esc(s.desc)}</div>`:'')
+            + makeTable(s.cols, s.data, s.id) + `</div>`).join('')
+      : '';
     Object.entries(DOMAINS).forEach(([d,m]) => {
       const div=document.createElement('div'); div.className='section'; div.id='s-dom-'+d;
+      const mf=laneSecs(d,true), rv=laneSecs(d,false);
       const evv = evvCount[d]?`<div class="rate-history-notice">ℹ️ ${evvCount[d]} visits missing EVV this week — tracked as a health metric, not listed as work items.</div>`:'';
+      const emptyMsg = (!mf.length && !rv.length) ? '<div class="empty"><span>✓</span> Nothing flagged in this domain this week</div>' : '';
       div.innerHTML=`<div class="sh"><div class="st"><span class="si">${m.icon}</span><span class="sn">${esc(m.name)}</span>
           <span class="sc ${domCount(d)?'h':'n'}">${domCount(d)} item${domCount(d)!==1?'s':''}</span></div>
-        <div class="sd">${esc(m.blurb)}</div></div>${evv}
-        <div class="lane-h mustfix">🔴 Must fix <span class="lane-c">${buckets[d].mustfix.length}</span></div>${laneTable(buckets[d].mustfix)}
-        <div class="lane-h review">🟡 Review &amp; confirm <span class="lane-c">${buckets[d].review.length}</span></div>${laneTable(buckets[d].review)}`;
+        <div class="sd">${esc(m.blurb)}</div></div>${evv}${emptyMsg}
+        ${laneBlock('🔴 Must fix','mustfix',mf)}${laneBlock('🟡 Review &amp; confirm','review',rv)}`;
       container.appendChild(div);
     });
 
