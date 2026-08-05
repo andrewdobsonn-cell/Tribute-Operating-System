@@ -102,10 +102,15 @@ tr.cg-row{cursor:pointer}
   <div class="gate-box">
     <div class="logo"><span class="wordmark">Tribute</span><span class="wordmark-sub">Operating System</span></div>
     <div class="title" style="font-size:18px">Retention Tracker</div>
-    <div class="sub">Contains caregiver HR records. Enter the team password.</div>
-    <input type="password" id="gateInput" placeholder="Password" autocomplete="current-password" onkeydown="if(event.key==='Enter')submitGate()">
-    <button onclick="submitGate()">Unlock</button>
+    <div class="sub">Contains caregiver HR records. Sign in with your Microsoft account to continue.</div>
+    <button onclick="msSignIn()">Sign in with your Microsoft account</button>
     <div class="gate-err" id="gateErr"></div>
+    <div style="margin-top:16px;font-size:11px"><a href="#" onclick="showPwFallback();return false" style="color:var(--text3);text-decoration:underline">Trouble signing in?</a></div>
+    <div id="pwFallback" style="display:none;margin-top:8px">
+      <div class="sub" style="margin-bottom:4px">Fallback: enter the team password.</div>
+      <input type="password" id="gateInput" placeholder="Password" autocomplete="current-password" onkeydown="if(event.key==='Enter')submitGate()">
+      <button onclick="submitGate()">Unlock with team password</button>
+    </div>
   </div>
 </div>
 
@@ -171,7 +176,17 @@ var MARKET_STATE={'Boston':'Massachusetts','MetroWest Boston':'Massachusetts','S
 // ── Gate ──
 function submitGate(){var v=document.getElementById('gateInput').value.trim();if(!v)return;GATE_KEY=v;try{sessionStorage.setItem('tribute_retention_key',v)}catch(e){}document.getElementById('gateErr').textContent='Checking…';loadAll(false,true)}
 function showApp(){document.getElementById('gate').style.display='none';document.getElementById('app').style.display='block';loadInitials()}
-function hdrs(){return {'X-Retention-Key':GATE_KEY}}
+// Microsoft sign-in is the primary gate. getToken() triggers interactive sign-in
+// via entra-auth.js; on success we load. Password path stays as a no-lockout fallback.
+function msSignIn(){
+  var g=document.getElementById('gateErr');if(g)g.textContent='Opening Microsoft sign-in…';
+  var tp=(window.tributeKsfGate&&window.tributeKsfGate.getToken)?window.tributeKsfGate.getToken():Promise.resolve(null);
+  tp.then(function(t){if(t){if(g)g.textContent='';loadAll(false,false);}else{if(g)g.textContent='Sign-in didn’t complete — try again, or use the team password below.';}}).catch(function(e){if(g)g.textContent='Sign-in error: '+(e&&e.message||e);});
+}
+function showPwFallback(){var w=document.getElementById('pwFallback');if(w)w.style.display='block';}
+// Token-first auth header: send the Microsoft Bearer token when signed in, else
+// fall back to the legacy team-password key. Keeping the key path prevents lockout.
+async function hdrs(){var t=(window.tributeKsfGate&&window.tributeKsfGate.getToken)?await window.tributeKsfGate.getToken():null;return t?{'Authorization':'Bearer '+t}:{'X-Retention-Key':GATE_KEY};}
 
 // ── Utils ──
 function esc(s){if(s==null)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
@@ -303,19 +318,21 @@ function renderFilterBar(){
 // ── Load ──
 async function loadAll(force,fromGate){
   if(!GATE_KEY){try{GATE_KEY=sessionStorage.getItem('tribute_retention_key')}catch(e){}}
-  if(!GATE_KEY)return;
+  // Token-first: load when a Microsoft token is present OR a legacy key exists.
+  var _tok=(window.tributeKsfGate&&window.tributeKsfGate.getToken)?await window.tributeKsfGate.getToken():null;
+  if(!_tok&&!GATE_KEY)return;   // entra-auth.js overlay handles interactive sign-in
   try{
-    var res=await _authFetch(API+'?endpoint=termination_forms'+(force?'&_t='+Date.now():''),{headers:hdrs()});
-    if(res.status===401){GATE_KEY=null;try{sessionStorage.removeItem('tribute_retention_key')}catch(e){}document.getElementById('gateErr').textContent='Incorrect password.';document.getElementById('gate').style.display='flex';document.getElementById('app').style.display='none';return}
+    var res=await _authFetch(API+'?endpoint=termination_forms'+(force?'&_t='+Date.now():''),{headers:await hdrs()});
+    if(res.status===401){GATE_KEY=null;try{sessionStorage.removeItem('tribute_retention_key')}catch(e){}document.getElementById('gateErr').textContent='Please sign in with your Microsoft account.';document.getElementById('gate').style.display='flex';document.getElementById('app').style.display='none';return}
     if(!res.ok)throw new Error('HTTP '+res.status);
     var d=await res.json();showApp();
     terms=[];(d.forms||[]).forEach(function(f){(f.submissions||[]).forEach(function(s){terms.push(s)})});
     render();loadRoster(force);loadNotes();loadCalls();loadHours();loadEngagement();
   }catch(e){if(fromGate){document.getElementById('gateErr').textContent='Error: '+e.message;return}document.getElementById('view').innerHTML='<div class="err">Failed to load: '+esc(e.message)+'</div>'}
 }
-async function loadRoster(force){try{var res=await _authFetch(API+'?endpoint=retention_roster'+(force?'&_t='+Date.now():''),{headers:hdrs()});if(!res.ok){rosterErr=(res.status===401?'Session expired — re-enter the password (⟳ Refresh).':'roster HTTP '+res.status);render();return}var d=await res.json();roster=d.caregivers||[];rosterByMnum={};roster.forEach(function(c){if(c.mnum!=null)rosterByMnum[c.mnum]=c});rosterErr=null;enrichRosterMarkets();renderFilterBar();setStatus();render()}catch(e){rosterErr='Could not load roster: '+(e&&e.message||e);render()}}
-async function loadNotes(){try{var res=await _authFetch(API+'?endpoint=retention_notes',{headers:hdrs()});if(!res.ok)return;var d=await res.json();notesStore=d.notes||{};if(curTab==='notes')render()}catch(e){}}
-async function loadCalls(){try{var res=await _authFetch(API+'?endpoint=retention_calls',{headers:hdrs()});if(!res.ok)return;var d=await res.json();if(d.counts&&Object.keys(d.counts).length){callIndex=d.counts;callMeta=d.meta||{};setStatus();if(curTab==='atrisk'||curTab==='calls')render()}}catch(e){}}
+async function loadRoster(force){try{var res=await _authFetch(API+'?endpoint=retention_roster'+(force?'&_t='+Date.now():''),{headers:await hdrs()});if(!res.ok){rosterErr=(res.status===401?'Session expired — re-enter the password (⟳ Refresh).':'roster HTTP '+res.status);render();return}var d=await res.json();roster=d.caregivers||[];rosterByMnum={};roster.forEach(function(c){if(c.mnum!=null)rosterByMnum[c.mnum]=c});rosterErr=null;enrichRosterMarkets();renderFilterBar();setStatus();render()}catch(e){rosterErr='Could not load roster: '+(e&&e.message||e);render()}}
+async function loadNotes(){try{var res=await _authFetch(API+'?endpoint=retention_notes',{headers:await hdrs()});if(!res.ok)return;var d=await res.json();notesStore=d.notes||{};if(curTab==='notes')render()}catch(e){}}
+async function loadCalls(){try{var res=await _authFetch(API+'?endpoint=retention_calls',{headers:await hdrs()});if(!res.ok)return;var d=await res.json();if(d.counts&&Object.keys(d.counts).length){callIndex=d.counts;callMeta=d.meta||{};setStatus();if(curTab==='atrisk'||curTab==='calls')render()}}catch(e){}}
 async function loadHours(){
   try{var res=await _authFetch(API+'?endpoint=caregiver_hours',{});if(!res.ok){hoursErr='hours HTTP '+res.status;render();return}var d=await res.json();
     hoursById={};(d.caregivers||[]).forEach(function(c){hoursById[c.id]={desired:c.desiredHrs||0,scheduled:c.scheduledHrs||0,pto:c.ptoHrs||0,differential:c.differential||0,happiness:c.happiness,market:c.market};});
@@ -354,7 +371,7 @@ function loadHoursWindow(n){
     }, idx*200);
   });
 }
-async function loadEngagement(){try{var res=await _authFetch(API+'?endpoint=engagement',{headers:hdrs()});if(!res.ok)return;var d=await res.json();engByPhone={};(d.caregivers||[]).forEach(function(e){if(e.phone)engByPhone[e.phone]=e});if((d.caregivers||[]).length){setStatus();if(curTab==='atrisk')render()}}catch(e){}}
+async function loadEngagement(){try{var res=await _authFetch(API+'?endpoint=engagement',{headers:await hdrs()});if(!res.ok)return;var d=await res.json();engByPhone={};(d.caregivers||[]).forEach(function(e){if(e.phone)engByPhone[e.phone]=e});if((d.caregivers||[]).length){setStatus();if(curTab==='atrisk')render()}}catch(e){}}
 function engFor(c){return c&&c.phone?engByPhone[c.phone]:null}
 function engDetail(c){var e=engFor(c);if(!e)return null;return (e.inbound||0)+' in / '+(e.outbound||0)+' out'+(e.tone?' · tone: '+e.tone:'')+(e.responsiveness?' · '+e.responsiveness:'')+(e.last_contact?' · last '+fmtDate(e.last_contact):'')}
 function engTexts(c){var e=engFor(c);return e?((e.inbound||0)+'↔'+(e.outbound||0)):'<span class="muted">—</span>'}
@@ -365,8 +382,8 @@ function avgWeekly(c){ // tenure-aware avg over loaded window
   var since=parseDate(c.hireDate); var rows=since?w.filter(function(x){return parseDate(x.week)>=new Date(since.getFullYear(),since.getMonth(),since.getDate()-6)}):w;
   if(!rows.length)rows=w; return rows.reduce(function(s,x){return s+x.scheduled},0)/rows.length;
 }
-async function saveCalls(){if(!callIndex)return;var btn=document.getElementById('saveCallsBtn');if(btn){btn.disabled=true;btn.textContent='Saving…'}try{var res=await _authFetch(API+'?endpoint=retention_calls',{method:'POST',headers:Object.assign({'Content-Type':'application/json'},hdrs()),body:JSON.stringify({counts:callIndex,meta:callMeta||{}})});if(!res.ok)throw new Error('HTTP '+res.status);var d=await res.json();callMeta=d.meta||callMeta||{};render()}catch(e){alert('Save failed: '+e.message);if(btn){btn.disabled=false;btn.textContent='Save to server'}}}
-async function loadInsights(force){var v=document.getElementById('view');v.innerHTML='<div class="loading"><div class="spin"></div>'+(force?'Regenerating':'Loading')+' Claude insights…</div>';try{var res=await _authFetch(API+'?endpoint=termination_insights'+(force?'&regenerate=1':''),{headers:hdrs()});insights=await res.json();render()}catch(e){v.innerHTML='<div class="err">Insights failed: '+esc(e.message)+'</div>'}}
+async function saveCalls(){if(!callIndex)return;var btn=document.getElementById('saveCallsBtn');if(btn){btn.disabled=true;btn.textContent='Saving…'}try{var res=await _authFetch(API+'?endpoint=retention_calls',{method:'POST',headers:Object.assign({'Content-Type':'application/json'},await hdrs()),body:JSON.stringify({counts:callIndex,meta:callMeta||{}})});if(!res.ok)throw new Error('HTTP '+res.status);var d=await res.json();callMeta=d.meta||callMeta||{};render()}catch(e){alert('Save failed: '+e.message);if(btn){btn.disabled=false;btn.textContent='Save to server'}}}
+async function loadInsights(force){var v=document.getElementById('view');v.innerHTML='<div class="loading"><div class="spin"></div>'+(force?'Regenerating':'Loading')+' Claude insights…</div>';try{var res=await _authFetch(API+'?endpoint=termination_insights'+(force?'&regenerate=1':''),{headers:await hdrs()});insights=await res.json();render()}catch(e){v.innerHTML='<div class="err">Insights failed: '+esc(e.message)+'</div>'}}
 function setStatus(){var sl=document.getElementById('statusLine');if(!sl)return;var active=roster.filter(function(c){return c.status==='hired'}).length;sl.innerHTML='<span class="dot"></span>'+terms.length+' terminations · '+(roster.length?active+' active · ':'')+(callIndex?'calls matched · ':'')+new Date().toLocaleTimeString()}
 
 // ── Tabs ──
@@ -535,9 +552,9 @@ function renderAtRisk(){
 }
 
 // ── Rejections (visit offers declined; scoped active caregivers + Claude "why") ──
-function loadRejInsights(force){
+async function loadRejInsights(force){
   if(rejInsightsLoading)return; rejInsightsLoading=true; if(curTab==='rejections')render();
-  _authFetch(API+'?endpoint=rejection_insights'+(force?'&regenerate=1':''),{headers:hdrs()})
+  _authFetch(API+'?endpoint=rejection_insights'+(force?'&regenerate=1':''),{headers:await hdrs()})
     .then(function(r){return r.json()}).then(function(d){rejInsights=d;rejInsightsLoading=false;if(curTab==='rejections')render()})
     .catch(function(){rejInsightsLoading=false;if(curTab==='rejections')render()});
 }
@@ -553,9 +570,9 @@ function whyPrompt(c){
   L.push('Market/state: '+(c.market||c.state||'unknown'));
   return L.join('\n');
 }
-function analyzeWhy(c){
+async function analyzeWhy(c){
   var k=c.mnum; if(cgWhy[k])return; cgWhy[k]={loading:true}; repaintRej();
-  _authFetch(API+'?endpoint=caregiver_calls&phone='+encodeURIComponent(c.phone||''),{headers:hdrs()})
+  _authFetch(API+'?endpoint=caregiver_calls&phone='+encodeURIComponent(c.phone||''),{headers:await hdrs()})
     .then(function(r){return r.ok?r.json():{calls:[]}}).catch(function(){return {calls:[]}})
     .then(function(cd){
       var calls=(cd&&cd.calls)||[]; cgWhy[k]={loading:true,calls:calls}; repaintRej();
@@ -663,7 +680,7 @@ function repaint2(){if(curTab==='notes'){var el=document.getElementById('nhList'
 async function postNote(m){
   var ta=document.getElementById('nt'+m);if(!ta||!ta.value.trim())return;
   var payload={mnum:m,text:ta.value.trim(),author:myInitials(),weekOf:sundayOf(new Date())};ta.disabled=true;
-  try{var res=await _authFetch(API+'?endpoint=retention_notes',{method:'POST',headers:Object.assign({'Content-Type':'application/json'},hdrs()),body:JSON.stringify(payload)});if(!res.ok)throw new Error('HTTP '+res.status);if(!notesStore[m])notesStore[m]=[];notesStore[m].push({weekOf:payload.weekOf,text:payload.text,author:payload.author,ts:new Date().toISOString()});repaint2()}
+  try{var res=await _authFetch(API+'?endpoint=retention_notes',{method:'POST',headers:Object.assign({'Content-Type':'application/json'},await hdrs()),body:JSON.stringify(payload)});if(!res.ok)throw new Error('HTTP '+res.status);if(!notesStore[m])notesStore[m]=[];notesStore[m].push({weekOf:payload.weekOf,text:payload.text,author:payload.author,ts:new Date().toISOString()});repaint2()}
   catch(e){ta.disabled=false;alert('Save failed: '+e.message)}
 }
 
@@ -798,7 +815,14 @@ function exportCSV(){
 // Accept a key handed off via URL hash (#k=…) by the Caregiver Intelligence
 // Suite shell, then strip it from the address bar.
 (function(){var m=location.hash.match(/[#&]k=([^&]+)/);if(m){try{sessionStorage.setItem('tribute_retention_key',decodeURIComponent(m[1]))}catch(e){}try{history.replaceState(null,'',location.pathname+location.search)}catch(e){}}})();
-(function(){var saved=null;try{saved=sessionStorage.getItem('tribute_retention_key')}catch(e){}if(saved){GATE_KEY=saved;loadAll(false,false)}})();
+(function(){
+  var saved=null;try{saved=sessionStorage.getItem('tribute_retention_key')}catch(e){}
+  if(saved)GATE_KEY=saved;
+  // Token-first boot: entra-auth.js signs the user in on load; once a Microsoft
+  // token is present we load. A legacy team-password key still works as a fallback.
+  var tp=(window.tributeKsfGate&&window.tributeKsfGate.getToken)?window.tributeKsfGate.getToken():Promise.resolve(null);
+  tp.then(function(t){if(t||GATE_KEY)loadAll(false,false);}).catch(function(){if(GATE_KEY)loadAll(false,false);});
+})();
 </script>
 </body>
 </html>

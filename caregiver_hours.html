@@ -1528,7 +1528,7 @@ function forceRefresh() {
   if(btn) { btn.textContent = '⟳ Refreshing...'; btn.disabled = true; }
   // Clear sessionStorage cache
   try{Object.keys(sessionStorage).forEach(function(k){if(k.indexOf('tribute_')===0)sessionStorage.removeItem(k);});}catch(e){}
-  fetch('https://tribute-api-prod-bkc4hfcwf3f2f6bf.centralus-01.azurewebsites.net/api/vivProxy?endpoint=refresh_cache&keys=caregiver_hours')
+  _authFetch(API+'?endpoint=refresh_cache&keys=caregiver_hours')
     .then(function() { window.location.reload(); })
     .catch(function() { window.location.reload(); });
 }
