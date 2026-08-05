@@ -843,17 +843,22 @@ function makeTable(cols, rows, sectionId) {
   const bodyRows = rows.map(r => {
     const sev = r.severity||'info';
     const geo = esc(r.geo||'');
+    // Viv has no standalone /bookings/{id} route (it bounces to Tasks). Visits
+    // open from the caregiver's — or, failing that, the client's — scheduling →
+    // visits view, so deep-link there.
+    const vivLink = r._cgid ? `https://tribute.mavencare.com/caregivers/${esc(r._cgid)}/dashboard/scheduling/visits`
+                  : r._cid ? `https://tribute.mavencare.com/clients/${esc(r._cid)}/dashboard/scheduling/visits` : '';
     const cells = cols.map(c => {
       const val = r[c]||'';
       if (c==='Action') {
-        if (r._bid) return `<td><a href="https://tribute.mavencare.com/bookings/${esc(r._bid)}" target="_blank" class="pill ${sev}" style="text-decoration:none">${esc(val)}</a></td>`;
+        if (vivLink) return `<td><a href="${vivLink}" target="_blank" class="pill ${sev}" style="text-decoration:none" title="Open in Viv (scheduling → visits)">${esc(val)}</a></td>`;
         return `<td><span class="pill ${sev}">${esc(val)}</span></td>`;
       }
       if (c==='Status') return `<td><span class="stag" style="color:var(--${sev==='error'?'red':sev==='warn'?'yellow':'blue'})">${esc(val)}</span></td>`;
       if (c==='Flags'||c==='Missing') return `<td class="fc">${esc(val)}</td>`;
       if (c==='Caregiver'&&r._cgid&&val) return `<td><a href="https://tribute.mavencare.com/caregivers/${esc(r._cgid)}/dashboard/summary" target="_blank" style="color:var(--blue);text-decoration:none;border-bottom:1px dashed var(--bd2)">${esc(val)}</a></td>`;
       if (c==='Client'&&r._cid&&val) return `<td><a href="https://tribute.mavencare.com/clients/${esc(r._cid)}/dashboard/summary" target="_blank" style="color:var(--blue);text-decoration:none;border-bottom:1px dashed var(--bd2)">${esc(val)}</a></td>`;
-      if ((c==='Date'||c==='Time')&&r._bid&&val) return `<td><a href="https://tribute.mavencare.com/bookings/${esc(r._bid)}" target="_blank" style="color:var(--t1);text-decoration:none;border-bottom:1px dashed var(--bd2)">${esc(val)}</a></td>`;
+      if ((c==='Date'||c==='Time')&&vivLink&&val) return `<td><a href="${vivLink}" target="_blank" style="color:var(--t1);text-decoration:none;border-bottom:1px dashed var(--bd2)">${esc(val)}</a></td>`;
       return `<td>${esc(val)}</td>`;
     }).join('');
     return `<tr data-geo="${geo}">${cells}</tr>`;
