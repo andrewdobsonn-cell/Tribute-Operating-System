@@ -400,6 +400,45 @@ function detectTravelTime(bookings) {
   return issues;
 }
 
+// Orphaned Travel Time — the inverse of the "missing" check. A Travel Time
+// visit is only valid when it fills the gap BETWEEN two consecutive client
+// visits (from → to). If it has no client visit before it, none after it, or
+// the caregiver has ≤1 visit that day, it's orphaned and should be removed.
+// (Jennifer 2026-08-04: "remove travel time — only one visit that day", etc.)
+function detectOrphanTravelTime(bookings) {
+  // A valid Travel Time bridges two visits: a client visit ENDS where the TT
+  // starts, and another client visit STARTS where the TT ends. We match by
+  // actual clock time (NOT by calendar day) so overnight visits that end in the
+  // morning correctly count as the "before" visit — otherwise every early-AM TT
+  // after an overnight would look orphaned. Orphaned = missing the before, the
+  // after, or both.
+  const AB = 45*60000; // abut tolerance (min) between a TT edge and its bracketing visit
+  const worked = bookings.filter(b => !b._cancelled && !EXCLUDE_VT.has(b._vt) && !b._is_office && b._start && b._end);
+  const byCg = {};
+  worked.forEach(b => { (byCg[b._cgid]=byCg[b._cgid]||[]).push(b); });
+  const issues = [];
+  bookings.forEach(tt => {
+    if (tt._vt!=='Travel Time' || tt._cancelled || !tt._start || !tt._end) return;
+    const w = byCg[tt._cgid] || [];
+    const prior = w.some(x => x._start < tt._start && Math.abs(x._end - tt._start) <= AB);
+    const next  = w.some(x => x._start > tt._start && Math.abs(x._start - tt._end) <= AB);
+    if (prior && next) return;
+    const dayVisits = w.filter(x => etDate(x._start)===etDate(tt._start)).length;
+    let reason;
+    if (!prior && !next) reason = dayVisits===0 ? 'No client visits that day — nothing to travel between'
+      : dayVisits===1 ? 'Only one client visit that day — nothing to travel between'
+      : 'No client visit adjacent before or after it';
+    else if (!prior) reason = 'No client visit ending where it starts (no visit before)';
+    else reason = 'No client visit starting where it ends (no visit after)';
+    issues.push({'Caregiver':tt._cg_name,'Market':tt._geo,'Date':fmtD(tt._start),
+      'Time':`${fmtT(tt._start)}–${fmtT(tt._end)}`,'Duration':fmtH(tt._pay_h||tt._dur_h),
+      'Day Visits':String(dayVisits),'Why Orphaned':reason,
+      'Action':'Remove orphaned Travel Time',
+      severity:'warn', geo:tt._geo, _cgid:tt._cgid, _cid:tt._cid, _bid:tt._bid});
+  });
+  return issues;
+}
+
 function detectApprovalQueue(bookings) {
   return bookings
     .filter(b => b._status==='REQUIRES_APPROVAL'||b._status==='REQUIRES_REAPPROVAL')
@@ -1119,6 +1158,10 @@ async function runDashboard() {
        desc:'Caregivers with back-to-back visits ≤ 2 hours apart with no Travel Time visit entered.',
        data:detectTravelTime(bookings),
        cols:['Caregiver','Market','Date','Gap Start','Gap End','Gap Hrs','From → To','Action']},
+      {id:'ott',      name:'Orphaned Travel Time',    icon:'🧭', red:true,
+       desc:'Travel Time visits that aren\'t bracketed by two client visits — no visit before or after, or the only visit that day — so they should be removed before visits lock. The inverse of the Missing Travel Time check.',
+       data:detectOrphanTravelTime(bookings),
+       cols:['Caregiver','Market','Date','Time','Duration','Day Visits','Why Orphaned','Action']},
       {id:'appr',     name:'Approval Queue',          icon:'✅', red:true,
        desc:'All visits flagged as Requires Approval or Requires Re-Approval in Viv.',
        data:detectApprovalQueue(bookings),
