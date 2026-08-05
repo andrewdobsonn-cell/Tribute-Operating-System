@@ -1,0 +1,1536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@3.28.1/lib/msal-browser.min.js"></script>
+<script src="./entra-auth.js?v=2026-07-07c"></script>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Finance Readiness Audit (Test)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  /* KSFs "Intelligence Hub" design system — warm light theme */
+  --bg:#FAF8F4;--navy:#FFFFFF;--navy2:#F4F1EB;--card:#FFFFFF;--card2:#F1EEE8;
+  --bd:#EAE6DF;--bd2:#DED8CE;
+  --t1:#1C1A17;--t2:#6E685F;--t3:#A49D93;
+  --blue:#3B72B8;--blue2:#2C5689;--green:#0F8F6B;--yellow:#C2710C;--red:#C8362B;
+  --orange:#FF5A1F;--orange-dark:#E25309;--orange-soft:#FBEADF;--orange-fg:#C2410C;
+  --blue-soft:#E8EFF7;--teal-soft:#E2F2EC;--teal-fg:#0F6E56;
+  --amber-soft:#F8EEDB;--amber-fg:#92580B;--danger-soft:#F8E5E2;--danger-fg:#A4271E;
+  --sans:'Inter',system-ui,-apple-system,sans-serif;--display:'Space Grotesk','Inter',system-ui,sans-serif;--mono:'Inter',system-ui,sans-serif;
+  --sh-card:0 1px 2px rgba(28,26,23,.04);--sh-soft:0 6px 24px -8px rgba(28,26,23,.10),0 2px 6px -2px rgba(28,26,23,.04);
+  --sw:236px;
+}
+body{font-family:var(--sans);background:var(--bg);color:var(--t1);font-size:13px;min-height:100vh;letter-spacing:-.005em;-webkit-font-smoothing:antialiased}
+.dot{color:var(--orange)}
+@keyframes dotpulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.7);opacity:.5}}
+.pulse{animation:dotpulse 2.2s ease-in-out infinite}
+@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.rise{animation:rise .5s cubic-bezier(.2,.8,.2,1) both}
+@media (prefers-reduced-motion:reduce){.rise{animation:none}.pulse{animation:none}}
+
+/* ── UPLOAD SCREEN → DATE PICKER SCREEN ── */
+#upload-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:40px 20px;gap:30px;background:radial-gradient(120% 75% at 50% -12%,#fff 0%,var(--bg) 58%)}
+.upload-logo{font-family:var(--display);font-size:46px;font-weight:700;color:var(--t1);letter-spacing:-.025em;line-height:1}
+.upload-kicker{font-size:10px;text-transform:uppercase;letter-spacing:.2em;color:var(--t3);font-weight:600;margin-top:10px}
+.upload-sub{font-size:14px;color:var(--t2);margin-top:6px;font-weight:500}
+.date-picker-container{display:flex;flex-direction:column;gap:22px;width:100%;max-width:400px;align-items:center}
+.date-input-group{display:flex;flex-direction:column;gap:8px;width:100%}
+.date-label{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--t3);font-weight:600}
+input[type=date]{background:var(--card);border:1px solid var(--bd2);color:var(--t1);padding:11px 13px;border-radius:12px;font-size:13px;font-family:var(--sans);outline:none;cursor:pointer;width:100%;box-shadow:var(--sh-card)}
+input[type=date]:focus{border-color:var(--orange)}
+input[type=date]::-webkit-calendar-picker-indicator{cursor:pointer}
+.date-info{font-size:11px;color:var(--t2);text-align:center;margin-top:8px}
+.run-btn{background:var(--orange);color:#fff;border:none;padding:13px 40px;border-radius:14px;font-family:var(--sans);font-size:14px;font-weight:600;cursor:pointer;transition:all .2s;box-shadow:var(--sh-soft);width:100%;max-width:280px}
+.run-btn:hover{background:var(--orange-dark);transform:translateY(-1px)}
+.run-btn:active{transform:translateY(0)}
+.run-btn:disabled{opacity:.45;pointer-events:none}
+
+/* ── PROCESSING ── */
+#processing-screen{display:none;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;gap:18px}
+.proc-title{font-family:var(--display);font-size:18px;font-weight:600;color:var(--t1)}
+.proc-log{font-size:11.5px;color:var(--t2);max-width:440px;text-align:center;line-height:1.9}
+
+/* ── DASHBOARD ── */
+#dashboard-screen{display:none;flex-direction:column;height:100vh}
+.topbar{position:sticky;top:0;z-index:200;height:60px;background:rgba(250,248,244,.85);backdrop-filter:blur(8px);border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;padding:0 22px;flex-shrink:0}
+.tb-l{display:flex;align-items:baseline;gap:7px}
+.tb-logo{font-family:var(--display);font-size:19px;font-weight:700;color:var(--t1);letter-spacing:-.02em;text-decoration:none;cursor:pointer;transition:opacity .15s}
+.tb-logo:hover{opacity:.7}
+.tb-pulse{display:inline-block;width:6px;height:6px;border-radius:99px;background:var(--orange);margin:0 3px 2px -3px;align-self:center}
+.tb-sep{display:none}
+.tb-kicker{font-size:10px;text-transform:uppercase;letter-spacing:.16em;color:var(--t3);font-weight:600;padding-left:2px}
+.tb-wk{font-size:11px;color:var(--t2);font-weight:500;padding-left:8px;border-left:1px solid var(--bd);margin-left:6px}
+.tb-r{display:flex;align-items:center;gap:10px}
+.tb-tot{font-size:11px;font-weight:600;padding:4px 12px;border-radius:99px;background:var(--danger-soft);color:var(--danger-fg);cursor:pointer;transition:.15s}
+.tb-tot:hover{filter:brightness(.97)}
+.tb-reset{font-size:11px;font-weight:600;padding:5px 12px;border-radius:99px;background:var(--card);color:var(--t2);border:1px solid var(--bd);cursor:pointer;transition:.15s}
+.tb-reset:hover{color:var(--t1);border-color:var(--bd2)}
+.layout{display:flex;flex:1;overflow:hidden;height:calc(100vh - 60px)}
+.sidebar{width:var(--sw);background:var(--card);border-right:1px solid var(--bd);display:flex;flex-direction:column;overflow-y:auto;flex-shrink:0}
+.sb-head{padding:16px 16px 8px;font-size:10px;text-transform:uppercase;letter-spacing:.14em;color:var(--t3);font-weight:600}
+ul{list-style:none}
+.ni{display:flex;align-items:center;gap:9px;padding:9px 16px;cursor:pointer;border-left:2px solid transparent;transition:all .15s;color:var(--t2);font-size:12.5px}
+.ni:hover{background:var(--card2);color:var(--t1)}
+.ni.active{background:var(--orange-soft);color:var(--orange-fg);border-left-color:var(--orange)}
+.ni.hi{color:var(--t1);font-weight:500}
+.n-ic{font-size:14px;width:18px;text-align:center;flex-shrink:0}
+.n-lb{flex:1;font-size:12px}
+.n-bd{font-size:10px;font-weight:600;padding:1px 7px;border-radius:99px;background:var(--amber-soft);color:var(--amber-fg);min-width:22px;text-align:center}
+.n-bd.r{background:var(--danger-soft);color:var(--danger-fg)}
+.ndiv{height:1px;background:var(--bd);margin:6px 12px}
+.main{flex:1;overflow-y:auto;background:var(--bg)}
+.fb{position:sticky;top:0;z-index:100;background:rgba(250,248,244,.9);backdrop-filter:blur(6px);border-bottom:1px solid var(--bd);padding:11px 22px;display:flex;align-items:center;gap:10px}
+.fl{font-size:11px;color:var(--t3);font-weight:600;text-transform:uppercase;letter-spacing:.06em}
+select{background:var(--card);border:1px solid var(--bd2);color:var(--t1);padding:6px 12px;border-radius:10px;font-size:12px;font-family:var(--sans);outline:none;cursor:pointer}
+select:focus{border-color:var(--orange)}
+.section{display:none;padding:24px 22px}
+.section.active{display:block}
+.sh{margin-bottom:16px}
+.st{display:flex;align-items:center;gap:10px;margin-bottom:7px}
+.si{font-size:20px}
+.sn{font-family:var(--display);font-size:18px;font-weight:600;letter-spacing:-.01em}
+.sc{font-size:11px;font-weight:600;padding:2px 10px;border-radius:99px}
+.sc.h{background:var(--amber-soft);color:var(--amber-fg)}
+.sc.n{background:var(--teal-soft);color:var(--teal-fg)}
+.sd{font-size:12px;color:var(--t2);line-height:1.55;max-width:720px}
+.tw{overflow-x:auto;border-radius:14px;border:1px solid var(--bd);background:var(--card);box-shadow:var(--sh-card)}
+table{width:100%;border-collapse:collapse;font-size:12px}
+thead{background:var(--navy2)}
+thead th{padding:9px 13px 5px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--t2);white-space:nowrap;border-bottom:1px solid var(--bd);font-weight:600;cursor:pointer;user-select:none;vertical-align:top}
+thead th:hover{color:var(--t1)}
+thead th.sort-asc::after{content:' ↑';color:var(--orange);font-size:10px}
+thead th.sort-desc::after{content:' ↓';color:var(--orange);font-size:10px}
+.col-search{width:100%;margin-top:5px;background:var(--bg);border:1px solid var(--bd2);color:var(--t1);padding:4px 7px;border-radius:7px;font-size:10.5px;font-family:var(--sans);outline:none;box-sizing:border-box;font-weight:400;text-transform:none;letter-spacing:0}
+.col-search:focus{border-color:var(--orange)}
+.col-search::placeholder{color:var(--t3)}
+tbody tr{border-bottom:1px solid var(--bd);transition:background .1s}
+tbody tr:last-child{border-bottom:none}
+tbody tr:hover{background:var(--card2)}
+tbody td{padding:9px 13px;color:var(--t1);vertical-align:middle}
+.pill{display:inline-block;padding:3px 10px;border-radius:99px;font-size:10.5px;font-weight:600;white-space:nowrap}
+.pill.error{color:var(--danger-fg);background:var(--danger-soft)}
+.pill.warn{color:var(--amber-fg);background:var(--amber-soft)}
+.pill.info{color:var(--blue2);background:var(--blue-soft)}
+.stag{font-size:10.5px;font-weight:600}
+.fc{font-size:11px;color:var(--t2);font-style:italic;max-width:280px;line-height:1.5}
+.empty{padding:30px;text-align:center;color:var(--teal-fg);font-size:13px;font-weight:500;display:flex;align-items:center;justify-content:center;gap:8px;background:var(--teal-soft);border-radius:14px;border:1px solid #CFE8DD}
+.empty span{font-size:16px}
+.filter-count{font-size:10.5px;color:var(--t3);padding:0 2px 8px;text-align:right}
+.rate-history-notice{padding:12px 16px;background:var(--teal-soft);border:1px solid #CFE8DD;border-radius:12px;margin-bottom:20px;color:var(--teal-fg);font-size:11.5px}
+.fixhdr{font-size:10px;color:var(--t3);font-weight:600;text-align:center}
+.fixbtn{font:inherit;font-size:10.5px;font-weight:600;color:var(--blue2);background:var(--blue-soft);border:1px solid #CBDAEC;border-radius:99px;padding:4px 10px;cursor:pointer;white-space:nowrap}
+.fixbtn:hover{background:#DCE8F5}
+.fixbtn:disabled{opacity:.6;cursor:default}
+.fixrow td.fixbox{background:var(--blue-soft);padding:12px 16px;font-size:12px;line-height:1.55;color:var(--t1);border-left:3px solid var(--blue)}
+.fixbox .fx-e{margin-bottom:4px}
+.fixbox .fx-f{margin-bottom:4px;color:var(--teal-fg)}
+.fixbox .fx-n{margin-bottom:4px;color:var(--amber-fg)}
+.fixbox .fx-src{margin-top:6px;font-size:10px;color:var(--t3);font-style:italic}
+.fixbox b{font-weight:700}
+/* ── Finance Readiness rebuild ── */
+.rc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;margin:4px 0 20px}
+.rc-card{background:#fff;border:1px solid var(--bd2);border-radius:16px;padding:18px 20px;cursor:pointer;transition:.15s;box-shadow:0 1px 2px rgba(0,0,0,.03)}
+.rc-card:hover{border-color:var(--blue);transform:translateY(-2px);box-shadow:0 6px 18px rgba(0,0,0,.06)}
+.rc-h{font-size:15px;font-weight:700;color:var(--t1);margin-bottom:10px}
+.rc-nums{font-size:12px;color:var(--t2);font-weight:600}
+.rc-mf{font-size:24px;font-weight:800;color:var(--t3);vertical-align:-2px}
+.rc-mf.on{color:var(--red)}
+.rc-rv{font-size:24px;font-weight:800;color:var(--amber-fg);vertical-align:-2px}
+.rc-blurb{font-size:11.5px;color:var(--t3);margin-top:10px;line-height:1.5}
+.rc-metric{font-size:10.5px;color:var(--t3);margin-top:8px;font-style:italic}
+.honesty{background:var(--amber-soft);border:1px solid #EAD9B0;border-radius:12px;padding:12px 16px;font-size:11.5px;color:var(--amber-fg);line-height:1.5}
+.lane-h{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:var(--t1);margin:22px 0 10px}
+.lane-h.mustfix{color:var(--red)}
+.lane-h.review{color:var(--amber-fg)}
+.lane-c{font-size:11px;font-weight:700;background:var(--bd);color:var(--t2);border-radius:99px;padding:1px 9px}
+.sev-dot{display:inline-block;width:9px;height:9px;border-radius:99px;background:var(--t3)}
+.sev-dot.error{background:var(--red)}.sev-dot.warn{background:var(--amber-fg)}.sev-dot.info{background:var(--blue)}
+.wl-issue{font-weight:600;white-space:nowrap}
+.wl-when{white-space:nowrap;color:var(--t2)}
+.wl-detail{font-size:11.5px;color:var(--t2);line-height:1.5;max-width:340px}
+.wl-action{font-size:11.5px;color:var(--teal-fg);max-width:220px}
+.wl-subj{color:var(--blue);text-decoration:none;border-bottom:1px dashed var(--bd2)}
+</style>
+</head>
+<body>
+
+<!-- DATE PICKER SCREEN -->
+<div id="upload-screen">
+  <div style="text-align:center" class="rise">
+    <div class="upload-logo">Tribute<span class="dot">.</span></div>
+    <div class="upload-kicker">Intelligence Hub</div>
+    <div class="upload-sub">Finance Readiness — Billing · Payroll · Expenses. Test rebuild; the live Weekly Audit is unchanged.</div>
+  </div>
+  <div class="date-picker-container">
+    <div class="date-input-group">
+      <label class="date-label">Week Start Date (Sunday)</label>
+      <input type="date" id="week-start-date">
+      <div class="date-info" id="week-info"></div>
+    </div>
+  </div>
+  <button class="run-btn" id="run-btn" onclick="runDashboard()">Load from Viv →</button>
+</div>
+
+<!-- PROCESSING SCREEN -->
+<div id="processing-screen">
+  <div class="proc-title">Processing...</div>
+  <div class="proc-log" id="proc-log"></div>
+</div>
+
+<!-- DASHBOARD SCREEN -->
+<div id="dashboard-screen">
+  <header class="topbar">
+    <div class="tb-l">
+      <a class="tb-logo" href="https://tribute-home-care.github.io/TributeKSFs/" title="Back to the Intelligence Hub">Tribute<span class="dot">.</span></a>
+      <span class="tb-pulse pulse"></span>
+      <span class="tb-kicker">Finance Readiness · TEST</span>
+      <span class="tb-wk" id="dash-week">—</span>
+    </div>
+    <div class="tb-r">
+      <span class="tb-tot" id="dash-total" title="Click to reset all filters" onclick="resetFilters()">— issues</span>
+      <button class="tb-reset" onclick="startOver()">↩ New Week</button>
+    </div>
+  </header>
+  <div class="layout">
+    <nav class="sidebar">
+      <div class="sb-head">Sections</div>
+      <ul id="nav-list"></ul>
+    </nav>
+    <div class="main">
+      <div class="fb">
+        <span class="fl">FILTER BY MARKET:</span>
+        <select id="geo-filter" onchange="filterGeo(this.value)"><option value="">All Markets</option></select>
+      </div>
+      <div id="sections-container"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── STATE ─────────────────────────────────────────────────────────────────
+let apiData = null;
+
+// ── DATE PICKER INITIALIZATION ─────────────────────────────────────────────
+function initializeDatePicker() {
+  const dateInput = document.getElementById('week-start-date');
+  const weekInfo = document.getElementById('week-info');
+
+  // Default to last Sunday
+  const today = new Date();
+  const dayOfWeek = today.getDay();
+  const daysBack = dayOfWeek === 0 ? 7 : dayOfWeek;
+  const lastSunday = new Date(today);
+  lastSunday.setDate(today.getDate() - daysBack);
+
+  const dateStr = lastSunday.toISOString().split('T')[0];
+  dateInput.value = dateStr;
+  updateWeekInfo();
+
+  dateInput.addEventListener('change', updateWeekInfo);
+}
+
+function updateWeekInfo() {
+  const dateInput = document.getElementById('week-start-date');
+  const weekInfo = document.getElementById('week-info');
+
+  if (!dateInput.value) {
+    weekInfo.textContent = '';
+    return;
+  }
+
+  const startDate = new Date(dateInput.value + 'T00:00:00');
+  if (startDate.getDay() !== 0) {            // pay week begins Sunday — snap back to it
+    startDate.setDate(startDate.getDate() - startDate.getDay());
+    dateInput.value = startDate.toISOString().split('T')[0];
+  }
+  const endDate = new Date(startDate);
+  endDate.setDate(endDate.getDate() + 6);
+
+  const fmt = d => d.toLocaleDateString('en-US', {month:'short', day:'numeric'});
+  weekInfo.textContent = `Week: ${fmt(startDate)} – ${fmt(endDate)}`;
+}
+
+// ── HELPERS ────────────────────────────────────────────────────────────────
+function parseTime(s) {
+  if (!s || ['','null','None'].includes(s.trim())) return null;
+  s = s.trim().replace(/\.(\d+)Z$/, 'Z').replace(/Z$/, '+00:00');
+  try { const d = new Date(s); return isNaN(d) ? null : d; } catch(e) { return null; }
+}
+function msToH(v) { const n = parseFloat(v); return isNaN(n) ? 0 : Math.round(n/3600000*10000)/10000; }
+function sf(v, d=0) { const n = parseFloat(v); return isNaN(n) ? d : n; }
+function fmtT(dt) {
+  if (!dt) return '—';
+  return dt.toLocaleTimeString('en-US',{timeZone:'America/New_York',hour:'numeric',minute:'2-digit'});
+}
+function fmtD(dt) {
+  if (!dt) return '—';
+  return dt.toLocaleDateString('en-US',{timeZone:'America/New_York',weekday:'short',month:'2-digit',day:'2-digit'});
+}
+function fmtH(h) {
+  if (h===0) return '0h';
+  const s = h.toFixed(2).replace(/\.?0+$/,'');
+  return s+'h';
+}
+function etDate(dt) {
+  if (!dt) return null;
+  const s = dt.toLocaleDateString('en-US',{timeZone:'America/New_York'});
+  return s;
+}
+// ET calendar date as ISO (YYYY-MM-DD) and ET day-of-week (0=Sun..6=Sat).
+function etDateISO(dt) {
+  if (!dt) return null;
+  return dt.toLocaleDateString('en-CA',{timeZone:'America/New_York'});
+}
+const _DOW = {Sun:0,Mon:1,Tue:2,Wed:3,Thu:4,Fri:5,Sat:6};
+function etDow(dt) {
+  if (!dt) return null;
+  const w = dt.toLocaleDateString('en-US',{timeZone:'America/New_York',weekday:'short'});
+  return _DOW[w];
+}
+// Expand a [startIso,endIso] range into the set of ET calendar dates it touches.
+function expandEtDates(startIso, endIso) {
+  const s = parseTime(startIso), e = parseTime(endIso);
+  if (!s || !e) return [];
+  const endISO = etDateISO(e); const seen = new Set(); let d = new Date(s.getTime()); let guard = 0;
+  while (guard++ < 400) {
+    const iso = etDateISO(d); seen.add(iso);
+    if (iso >= endISO) break;
+    d = new Date(d.getTime() + 24*3600*1000);
+  }
+  return [...seen];
+}
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── CONSTANTS ──────────────────────────────────────────────────────────────
+const EXCLUDE_VT = new Set(['Time Off','PTO - New','Sick Time','Turn Down','Training','Unpaid Training',
+  'Office Meeting','Orientation','Bonus 1 Year (Ann)','Bonus 2&3 Year (Ann)','Bonus 3 Year (Ann)',
+  'Bonus 4 Year (Ann)','Bonus 5 - 9 Year (Ann)','Bonus 10 - 14 Year (Ann)',
+  'Expense Reimbursement','Travel Time','Shadow Visit','Home Visit','Home Assessment',
+  'Caregiver Partner','Interview','Client Training','RN Med Management',
+  'Leadership Development','TS Admin Time']);
+const ABSENCE_VT = new Set(['Time Off','PTO - New','Sick Time','Turn Down']);
+const BONUS_VT = new Set([...EXCLUDE_VT].filter(v=>v.includes('Bonus')));
+const SHIFT_REQ = new Set([...BONUS_VT,'RFH $500','RFH $700','RFH $200','RFH $300','RFH']);
+const TRAINING_VT = new Set(['Training','Unpaid Training','Office Meeting','Orientation','Client Training']);
+// Flat incentive pay (bonuses, RFH) + reimbursements: paid, but NOT hours toward
+// the TS guarantee. Everything else with payable hours (client visits, office
+// meetings, travel time, paid trainings, supervisory visits, TS Admin Time) DOES
+// count toward the guarantee per the offer ("all paid hours count").
+const FLAT_PAY_VT = new Set([...SHIFT_REQ, 'Expense Reimbursement']);
+const MKT_TAG = {'boston':'Boston','nob':'North of Boston','north-of-boston':'North of Boston',
+  'mwb':'MetroWest Boston','metrowest-boston':'MetroWest Boston','sob':'South of Boston',
+  'chicago':'Chicago','annapolis':'Annapolis','baltimore':'Baltimore','bethesda':'Bethesda','bel-air':'Bel-Air'};
+const MKT_OFFICE = {'Boston':'Office (Boston)','North of Boston':'Office (North of Boston)',
+  'MetroWest Boston':'Office (MetroWest Boston)','South of Boston':'Office (South of Boston)',
+  'Chicago':'Office (Chicago)','Annapolis':'Office (Annapolis)','Baltimore':'Office (Baltimore)',
+  'Bethesda':'Office (Bethesda)','Bel-Air':'Office (Bel-Air)'};
+const OVERLAP_EXEMPT = new Set(['Francis and Ann Klocke','Elizabeth Treitler','Mable "Muffie" Cabot']);
+
+// ── ENRICH BOOKINGS ────────────────────────────────────────────────────────
+function enrichBookings(rows) {
+  return rows.map(r => {
+    const b = {...r};
+    b._start    = parseTime(b['Start Time']);
+    b._end      = parseTime(b['End Time']);
+    b._checkin  = parseTime(b['Checkin Time']);
+    b._checkout = parseTime(b['Checkout Time']);
+    b._hasEVVIn = (b['Has EVV In']||'').toUpperCase()==='TRUE';
+    b._hasEVVOut= (b['Has EVV Out']||'').toUpperCase()==='TRUE';
+    b._bill_h   = msToH(b['Billable ms']);
+    b._pay_h    = msToH(b['Payable ms']);
+    b._dur_h    = sf(b['Duration']);
+    b._cg_rate  = sf(b['CG Rate']);
+    b._cl_rate  = sf(b['CL Rate']);
+    b._cancelled= (b['Canceled']||'').toUpperCase()==='TRUE' || (b['AM Approval Status']||'').toUpperCase()==='CANCELLED';
+    b._vt       = (b['Booking Type']||'').trim();
+    b._geo      = (b['GEO']||'').trim();
+    b._rtype    = (b['Rate Type']||'').trim();
+    b._status   = (b['AM Approval Status']||'').trim();
+    b._cgid     = (b['CGID']||'').trim();
+    b._cid      = (b['CID']||'').trim();
+    b._bid      = (b['BID']||'').trim();
+    b._cg_name  = `${(b['CG First Name']||'').trim()} ${(b['CG Last Name']||'').trim()}`.trim();
+    b._client_fn= (b['Client First Name']||'').trim();
+    b._client_ln= (b['Client Last Name']||'').trim();
+    b._client   = `${b._client_fn} ${b._client_ln}`.trim();
+    b._is_office= ['Office','Office Training'].includes(b._client_fn);
+    return b;
+  });
+}
+
+// ── LOAD TAGS FROM API ─────────────────────────────────────────────────────
+function loadTags(tagsObj) {
+  const result = {};
+  Object.entries(tagsObj).forEach(([cgid, info]) => {
+    // Guaranteed hours = the number after "TS" (e.g. TS16 → 16, TS40 → 40)
+    const threshStr = (info.threshold || '').toString().toUpperCase();
+    const m = threshStr.match(/TS(\d+)/);
+    const thresh = m ? parseInt(m[1], 10) : 0;
+    result[cgid] = {
+      threshold: thresh,
+      market: info.market || 'Unknown',
+      fn: info.fn || '',
+      ln: info.ln || '',
+      committedDays: Array.isArray(info.committedDays) ? info.committedDays : [],
+      availabilityMissing: !!info.availabilityMissing
+    };
+  });
+  return result;
+}
+
+// ── LOAD RATE TABLE ────────────────────────────────────────────────────────
+function loadRateTable(rateHistory) {
+  // Rate history is empty for now from the API
+  return { active: {}, allEver: {} };
+}
+
+// ── WEEK LABEL ─────────────────────────────────────────────────────────────
+function weekLabel(bookings) {
+  const starts = bookings.map(b=>b._start).filter(Boolean);
+  if (!starts.length) return 'Week of —';
+  const mn = new Date(Math.min(...starts));
+  const mx = new Date(Math.max(...starts));
+  const fmt = d => d.toLocaleDateString('en-US',{timeZone:'America/New_York',month:'short',day:'numeric'});
+  return `Week of ${fmt(mn)} – ${fmt(mx)}, ${mx.getFullYear()}`;
+}
+
+// ── DETECTION MODULES ──────────────────────────────────────────────────────
+// TS Admin Time calc moved to the proxy (computeTsAdmin) — single source of truth. Section consumes apiData.tsAdmin.
+
+function detectTravelTime(bookings) {
+  const ttExisting = {};
+  bookings.forEach(b => {
+    if (b._vt==='Travel Time' && !b._cancelled && b._start) {
+      if (!ttExisting[b._cgid]) ttExisting[b._cgid] = [];
+      ttExisting[b._cgid].push({s:b._start, e:b._end});
+    }
+  });
+  const worked = bookings.filter(b =>
+    !b._cancelled && !EXCLUDE_VT.has(b._vt) && !b._is_office && b._start && b._end
+  ).sort((a,b) => a._cgid.localeCompare(b._cgid)||a._start-b._start);
+
+  const issues = [];
+  for (let i=0; i<worked.length-1; i++) {
+    const a = worked[i], b = worked[i+1];
+    if (a._cgid !== b._cgid) continue;
+    if (etDate(a._start) !== etDate(b._start)) continue;
+    const gapMins = (b._start - a._end) / 60000;
+    if (gapMins <= 0 || gapMins > 120) continue;
+    const covered = (ttExisting[a._cgid]||[]).some(tt => tt.s >= a._end && tt.s < b._start);
+    if (covered) continue;
+    const hrs = Math.round(gapMins/60*100)/100;
+    const office = MKT_OFFICE[a._geo] || `Office (${a._geo})`;
+    issues.push({'Caregiver':a._cg_name,'Market':a._geo,'Date':fmtD(a._start),
+      'Gap Start':fmtT(a._end),'Gap End':fmtT(b._start),'Gap Hrs':hrs.toFixed(2),
+      'From → To':`${a._client} → ${b._client}`,'Visit Type':'Travel Time',
+      'Action':`Create ${hrs.toFixed(2)}h Travel Time — ${office}`,
+      severity:'warn', geo:a._geo, _cgid:a._cgid});
+  }
+  return issues;
+}
+
+// Orphaned Travel Time — the inverse of the "missing" check. A Travel Time
+// visit is only valid when it fills the gap BETWEEN two consecutive client
+// visits (from → to). If it has no client visit before it, none after it, or
+// the caregiver has ≤1 visit that day, it's orphaned and should be removed.
+// (Jennifer 2026-08-04: "remove travel time — only one visit that day", etc.)
+function detectOrphanTravelTime(bookings) {
+  // A valid Travel Time bridges two visits: a client visit ENDS where the TT
+  // starts, and another client visit STARTS where the TT ends. We match by
+  // actual clock time (NOT by calendar day) so overnight visits that end in the
+  // morning correctly count as the "before" visit — otherwise every early-AM TT
+  // after an overnight would look orphaned. Orphaned = missing the before, the
+  // after, or both.
+  const AB = 45*60000; // abut tolerance (min) between a TT edge and its bracketing visit
+  const worked = bookings.filter(b => !b._cancelled && !EXCLUDE_VT.has(b._vt) && !b._is_office && b._start && b._end);
+  const byCg = {};
+  worked.forEach(b => { (byCg[b._cgid]=byCg[b._cgid]||[]).push(b); });
+  const issues = [];
+  bookings.forEach(tt => {
+    if (tt._vt!=='Travel Time' || tt._cancelled || !tt._start || !tt._end) return;
+    const w = byCg[tt._cgid] || [];
+    const prior = w.some(x => x._start < tt._start && Math.abs(x._end - tt._start) <= AB);
+    const next  = w.some(x => x._start > tt._start && Math.abs(x._start - tt._end) <= AB);
+    if (prior && next) return;
+    const dayVisits = w.filter(x => etDate(x._start)===etDate(tt._start)).length;
+    let reason;
+    if (!prior && !next) reason = dayVisits===0 ? 'No client visits that day — nothing to travel between'
+      : dayVisits===1 ? 'Only one client visit that day — nothing to travel between'
+      : 'No client visit adjacent before or after it';
+    else if (!prior) reason = 'No client visit ending where it starts (no visit before)';
+    else reason = 'No client visit starting where it ends (no visit after)';
+    issues.push({'Caregiver':tt._cg_name,'Market':tt._geo,'Date':fmtD(tt._start),
+      'Time':`${fmtT(tt._start)}–${fmtT(tt._end)}`,'Duration':fmtH(tt._pay_h||tt._dur_h),
+      'Day Visits':String(dayVisits),'Why Orphaned':reason,
+      'Action':'Remove orphaned Travel Time',
+      severity:'warn', geo:tt._geo, _cgid:tt._cgid, _cid:tt._cid, _bid:tt._bid});
+  });
+  return issues;
+}
+
+// Live-In coverage: each Live-In DAY for a client should total ~24h. Flag a
+// SHORT day (gap / incomplete caregiver switch) or an OVER day (caregivers
+// overlap / duplicate). Compares each day to the CLIENT'S OWN median daily
+// Live-In hours, so legitimate 2-caregiver clients (a stable ~48h/day) are NOT
+// flagged — only days that deviate from that client's norm. (Jennifer's
+// recurring "should be a 24-hour Live-In, not an 11am switch" theme.)
+function detectLiveIn(bookings) {
+  const li = bookings.filter(b => !b._cancelled && b._vt==='Live-In' && b._start && b._end);
+  const byCD = {}, byC = {};
+  li.forEach(b => {
+    const day = etDate(b._start), k = b._cid+'|'+day;
+    if (!byCD[k]) byCD[k] = {hours:0, cgs:[], geo:b._geo, client:b._client, cid:b._cid, day, start:b._start};
+    byCD[k].hours += (b._end - b._start)/3600000;
+    if (b._cg_name) byCD[k].cgs.push(b._cg_name);
+    (byC[b._cid] = byC[b._cid] || new Set()).add(day);
+  });
+  const med = {};
+  Object.keys(byC).forEach(cid => {
+    const arr = [...byC[cid]].map(dd => byCD[cid+'|'+dd].hours).sort((a,b)=>a-b);
+    med[cid] = arr[Math.floor((arr.length-1)/2)];
+  });
+  const issues = [];
+  Object.values(byCD).forEach(o => {
+    const days = [...byC[o.cid]].sort();
+    const boundary = o.day===days[0] || o.day===days[days.length-1]; // week edge = likely cross-week continuation
+    const tot = Math.round(o.hours*10)/10;
+    let why, sev;
+    if (o.hours < 23.5 && !boundary) { why = `Only ${tot}h of Live-In coverage — expected ~24h (gap or incomplete switch)`; sev='warn'; }
+    else if (o.hours > 24.5 && o.hours > med[o.cid]+0.5) { why = `${tot}h Live-In vs this client's ~${Math.round(med[o.cid])}h norm — caregivers overlap / possible duplicate day`; sev='error'; }
+    else return;
+    issues.push({'Client':o.client,'Market':o.geo,'Date':fmtD(o.start),'LI Hours':tot+'h',
+      'Caregivers':[...new Set(o.cgs)].join(', '),'Why Flagged':why,
+      'Action':'Review Live-In coverage', severity:sev, geo:o.geo, _cid:o.cid});
+  });
+  return issues;
+}
+
+// Client billing-rate consistency: a client's contracted rate for a given visit type
+// should be uniform. Flag an isolated outlier rate (e.g. one visit at $59 among $65s) —
+// the pattern behind Jennifer's "bill $65/hr not $59/hr" catches. A clean forward rate
+// change (all deviating visits at the tail, none of the norm rate on/after them) is a
+// legitimate increase and is NOT flagged.
+function detectClientRate(bookings) {
+  const g = {};
+  bookings.forEach(b => {
+    if (b._cancelled || EXCLUDE_VT.has(b._vt) || b._is_office || !b._start || !(b._cl_rate>0)) return;
+    const k = b._cid+'|'+b._vt;
+    (g[k] = g[k] || []).push(b);
+  });
+  const issues = [];
+  Object.values(g).forEach(rows => {
+    if (rows.length < 3) return;
+    const cnt = {};
+    rows.forEach(b => { const r = Math.round(b._cl_rate*100)/100; cnt[r] = (cnt[r]||0)+1; });
+    const mode = +Object.keys(cnt).reduce((a,b)=> cnt[+b]>cnt[+a] || (cnt[+b]===cnt[+a] && +b<+a) ? b : a);
+    rows.forEach(b => {
+      const r = Math.round(b._cl_rate*100)/100;
+      if (Math.abs(r-mode) <= 0.01) return;
+      // legit forward change guard: only flag if a norm-rate visit occurs on/after this one
+      const hasNormAfter = rows.some(o => Math.abs(Math.round(o._cl_rate*100)/100 - mode) <= 0.01 && o._start >= b._start);
+      if (!hasNormAfter) return;
+      issues.push({'Client':b._client,'Market':b._geo,'Date':fmtD(b._start),'Visit Type':b._vt,
+        'Billed Rate':`$${r.toFixed(2)}`,'Client Norm':`$${mode.toFixed(2)}`,
+        'Why Flagged':`Billed $${r.toFixed(2)}/hr — this client's other ${rows.length-1} "${b._vt}" visits bill $${mode.toFixed(2)}/hr`,
+        'Action':`Verify client rate — should likely be $${mode.toFixed(2)}/hr`,
+        severity:'error', geo:b._geo, _cid:b._cid});
+    });
+  });
+  return issues;
+}
+
+function detectApprovalQueue(bookings) {
+  return bookings
+    .filter(b => b._status==='REQUIRES_APPROVAL'||b._status==='REQUIRES_REAPPROVAL')
+    .map(b => ({'Caregiver':b._cg_name,'Client':b._client,'Market':b._geo,
+      'Date':fmtD(b._start),'Time':`${fmtT(b._start)}–${fmtT(b._end)}`,
+      'Visit Type':b._vt,'Billable':fmtH(b._bill_h),'Payable':fmtH(b._pay_h),
+      'CG Rate':`$${b._cg_rate.toFixed(2)}`,'Cancelled':b._cancelled?'Yes':'No',
+      'Status':b._status.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase()),
+      'Action':'Approve in Viv',
+      severity: b._status==='REQUIRES_REAPPROVAL'?'error':'warn', geo:b._geo,
+      _cgid:b._cgid, _cid:b._cid, _bid:b._bid}));
+}
+
+function detectCancelled(bookings) {
+  const issues = [];
+  bookings.forEach(b => {
+    if (!b._cancelled) return;
+    const flags = [];
+    if (b._bill_h > 0) flags.push(`Billing client ${fmtH(b._bill_h)}`);
+    if (b._pay_h > 0)  flags.push(`Paying CG ${fmtH(b._pay_h)}`);
+    if (b._pay_h===0 && b._cg_rate>0) flags.push('CG not paid — verify intent');
+    if (flags.length) issues.push({'Caregiver':b._cg_name,'Client':b._client,
+      'Market':b._geo,'Date':fmtD(b._start),'Visit Type':b._vt,
+      'Billable':fmtH(b._bill_h),'Payable':fmtH(b._pay_h),'CG Rate':`$${b._cg_rate.toFixed(2)}`,
+      'Flags':flags.join(' | '),'Status':b._status,
+      'Action':'Verify cancelled visit pay/bill settings',
+      severity:b._bill_h>0?'error':'warn', geo:b._geo,
+      _cgid:b._cgid, _cid:b._cid, _bid:b._bid});
+  });
+  return issues;
+}
+
+function detectDurationMismatches(bookings) {
+  const TOL = 0.02, issues = [];
+  bookings.forEach(b => {
+    if (b._cancelled || ABSENCE_VT.has(b._vt) || b._is_office) return;
+    const {_dur_h:dur, _bill_h:bill, _pay_h:pay} = b;
+    if (!dur) return;
+    const flags = [];
+    if (bill>0 && Math.abs(bill-dur)>TOL) flags.push(`Billable ${fmtH(bill)} ≠ Sched ${fmtH(dur)}`);
+    if (pay >0 && Math.abs(pay -dur)>TOL) flags.push(`Payable ${fmtH(pay)} ≠ Sched ${fmtH(dur)}`);
+    if (bill>0 && pay>0 && Math.abs(bill-pay)>TOL) flags.push(`Bill ${fmtH(bill)} ≠ Pay ${fmtH(pay)}`);
+    if (flags.length) issues.push({'Caregiver':b._cg_name,'Client':b._client,
+      'Market':b._geo,'Date':fmtD(b._start),'Visit Type':b._vt,
+      'Scheduled':fmtH(dur),'Billable':fmtH(bill),'Payable':fmtH(pay),
+      'Flags':flags.join(' | '),'Status':b._status,
+      'Action':'Review and correct hours in Viv', severity:'warn', geo:b._geo,
+      _cgid:b._cgid, _cid:b._cid, _bid:b._bid});
+  });
+  return issues;
+}
+
+function detectOverlapsCG(bookings) {
+  const byCG = {};
+  bookings.forEach(b => {
+    if (b._cancelled || EXCLUDE_VT.has(b._vt) || ABSENCE_VT.has(b._vt) || b._is_office || !b._start || !b._end) return;
+    if (!byCG[b._cgid]) byCG[b._cgid] = [];
+    byCG[b._cgid].push(b);
+  });
+  const issues = [];
+  Object.values(byCG).forEach(visits => {
+    visits.sort((a,b)=>a._start-b._start);
+    for (let i=0; i<visits.length-1; i++) {
+      const a=visits[i], b=visits[i+1];
+      if (a._end > b._start) {
+        const mins = Math.round((a._end-b._start)/60000);
+        issues.push({'Caregiver':a._cg_name,'Market':a._geo,
+          'Visit 1':`${a._client} ${fmtD(a._start)} ${fmtT(a._start)}–${fmtT(a._end)}`,
+          'Visit 2':`${b._client} ${fmtD(b._start)} ${fmtT(b._start)}–${fmtT(b._end)}`,
+          'Overlap':`${mins} min`,'Action':`Resolve ${mins}-min caregiver overlap`,
+          severity:'error', geo:a._geo, _cgid:a._cgid, _bid:a._bid});
+      }
+    }
+  });
+  return issues;
+}
+
+function detectOverlapsClient(bookings) {
+  const byCL = {};
+  bookings.forEach(b => {
+    if (b._cancelled || b._is_office || b._vt==='RN Med Management' || b._bill_h===0 || !b._start || !b._end) return;
+    if (!byCL[b._cid]) byCL[b._cid] = [];
+    byCL[b._cid].push(b);
+  });
+  const issues = [];
+  Object.values(byCL).forEach(visits => {
+    visits.sort((a,b)=>a._start-b._start);
+    for (let i=0; i<visits.length-1; i++) {
+      const a=visits[i], b=visits[i+1];
+      // Judge the overlap by the BILLED window (start + billable hours), NOT the scheduled/checkout
+      // end — a double-bill only matters when the CLIENT is actually charged for the overlapping
+      // time. A caregiver who stays late (e.g. to train the next CG) is PAID but not BILLED, so
+      // bill_h < the worked span and their billed window ends on schedule: no client double-charge.
+      const aBillEnd = a._start.getTime() + a._bill_h*3600000; // ms timestamp (_start is a Date — use getTime, not +, to avoid string concat)
+      const mins = Math.round((aBillEnd - b._start)/60000);
+      // A balanced handoff (one CG runs long, the next starts late by the same amount) leaves the
+      // billed windows contiguous: total billed time = elapsed time, so the client is NOT double-billed.
+      // Require a real (≥1 min) billed overlap; this also absorbs sub-minute msToH rounding.
+      if (mins <= 0) continue;
+      if (a._vt==='Live-In'||b._vt==='Live-In') continue;
+      if (a._cgid===b._cgid) continue;
+      if (a._cl_rate===0||a._bill_h===0||b._cl_rate===0||b._bill_h===0) continue;
+      if (OVERLAP_EXEMPT.has(a._client)||OVERLAP_EXEMPT.has(b._client)) continue;
+      issues.push({'Client':a._client,'Market':a._geo,
+        'CG 1':`${a._cg_name} ${fmtD(a._start)} ${fmtT(a._start)}–${fmtT(a._end)}`,
+        'CG 2':`${b._cg_name} ${fmtD(b._start)} ${fmtT(b._start)}–${fmtT(b._end)}`,
+        'Overlap':`${mins} min`,'Action':`Resolve ${mins}-min client billing overlap`,
+        severity:'error', geo:a._geo, _cid:a._cid, _bid:a._bid});
+    }
+  });
+  return issues;
+}
+
+// Any bonus / RFH / incentive pay must be a flat lump sum (Shift rate type), never Hourly.
+// Pattern-matched (not a hardcoded list) so every market's bonus names + all RFH amounts
+// are caught — the old SHIFT_REQ set only knew the six Annapolis "(Ann)" bonuses.
+function isBonusPayVT(vt){
+  const v=(vt||'').toLowerCase();
+  return v.includes('bonus')||v.includes('rfh')||/\brf[a-g]\b/.test(v)||v.includes('incentive')||v.includes('referral');
+}
+function detectRateType(bookings) {
+  return bookings
+    .filter(b => !b._cancelled && isBonusPayVT(b._vt) && b._rtype!=='Shift')
+    .map(b => ({'Caregiver':b._cg_name,'Market':b._geo,'Date':fmtD(b._start),
+      'Visit Type':b._vt,'Current':b._rtype||'(blank)','Should Be':'Shift',
+      'CG Rate':`$${b._cg_rate.toFixed(2)}`,'Action':`Bonus must be a lump sum — change Rate Type: ${b._rtype||'(blank)'} → Shift`,
+      severity:'error', geo:b._geo, _cgid:b._cgid, _cid:b._cid, _bid:b._bid}));
+}
+
+function detectTimeOffRates(bookings) {
+  return bookings
+    .filter(b => ABSENCE_VT.has(b._vt) && !b._is_office && (b._cg_rate>0||b._pay_h>0))
+    .map(b => ({'Caregiver':b._cg_name,'Market':b._geo,'Date':fmtD(b._start),
+      'Visit Type':b._vt,'CG Rate':`$${b._cg_rate.toFixed(2)}`,'Pay Hrs':fmtH(b._pay_h),
+      'Status':b._status,'Action':'Set CG Rate = $0.00 and Payable = 0h',
+      severity:'error', geo:b._geo, _cgid:b._cgid, _cid:b._cid, _bid:b._bid}));
+}
+
+function detectMissingEVV(bookings) {
+  const issues = [];
+  bookings.forEach(b => {
+    if (b._cancelled || EXCLUDE_VT.has(b._vt) || ABSENCE_VT.has(b._vt) || b._is_office || b._vt==='Live-In') return;
+    const missing = [];
+    if (!b._hasEVVIn && !b._checkin)  missing.push('Check-In');
+    if (!b._hasEVVOut && !b._checkout) missing.push('Check-Out');
+    if (missing.length) issues.push({'Caregiver':b._cg_name,'Client':b._client,
+      'Market':b._geo,'Date':fmtD(b._start),'Visit Type':b._vt,
+      'Scheduled':`${fmtT(b._start)} – ${fmtT(b._end)}`,'Missing':missing.join(', '),
+      'Status':b._status,'Action':`Resolve missing EVV: ${missing.join(', ')}`,
+      severity:missing.includes('Check-In')?'error':'warn', geo:b._geo,
+      _cgid:b._cgid, _cid:b._cid, _bid:b._bid});
+  });
+  return issues;
+}
+
+function detectAssignmentErrors(bookings) {
+  return bookings
+    .filter(b => !b._cancelled && TRAINING_VT.has(b._vt) && b._client_fn==='Office')
+    .map(b => ({'Caregiver':b._cg_name,'Market':b._geo,'Date':fmtD(b._start),
+      'Visit Type':b._vt,'Current Client':b._client,'Should Be':`Office Training (${b._geo})`,
+      'Status':b._status,'Action':`Change client → Office Training (${b._geo})`,
+      severity:'warn', geo:b._geo, _cgid:b._cgid, _cid:b._cid, _bid:b._bid}));
+}
+
+function detectVTMismatch(bookings) {
+  const VT_RANGES = {
+    'Under 4 Hours':[0,3.99],'Under 4 Hours (Boston)':[0,3.99],'Under 4 Hours (MWB)':[0,3.99],
+    'Under 4 Hours (NB)':[0,3.99],'Under 4 Hours (SB)':[0,3.99],'Under 4 Hours (CHI)':[0,3.99],
+    '1 - 3 Hours':[1,3.99],'1.5 Person':[0,null],
+    '4 Hours':[3.75,4.0],   // FLAT 4h product — exceeding 4h bumps to the next type (not '4+ Hours')
+    '4 + Hours (CHI)':[4,null],'4 + Hours (SB)':[4,null],
+    '5 - 11 Hours':[4,11.5],'5 + Hours':[5,null],   // starts just above flat-4: a 4.5h visit belongs here, not '4 Hours'
+    '12 - 24 Hours':[11.5,24],
+    '4 - 7 Hours (CHI)':[4,7.99],'8 + Hours (CHI)':[8,null],'4 - 11 Hours':[4,11.99],
+  };
+  const MARKET_VT = {
+    'Boston':new Set(['Under 4 Hours (Boston)','4 Hours','5 + Hours','Live-In','1.5 Person']),
+    'MetroWest Boston':new Set(['Under 4 Hours (MWB)','4 Hours','5 + Hours','Live-In','1.5 Person']),
+    'North of Boston':new Set(['Under 4 Hours (NB)','4 Hours','5 + Hours','Live-In']),
+    'South of Boston':new Set(['Under 4 Hours (SB)','4 Hours','5 + Hours','Live-In','1.5 Person','4 + Hours (SB)']),
+    'Chicago':new Set(['Under 4 Hours (CHI)','1 - 3 Hours','4 + Hours (CHI)','4 - 7 Hours (CHI)','8 + Hours (CHI)','Live-In']),
+    'Baltimore':new Set(['Under 4 Hours','4 Hours','5 - 11 Hours','12 - 24 Hours','Live-In']),
+    'Annapolis':new Set(['Under 4 Hours','4 Hours','5 - 11 Hours','12 - 24 Hours','Live-In']),
+    'Bethesda':new Set(['Under 4 Hours','4 Hours','5 - 11 Hours','12 - 24 Hours','Live-In']),
+    'Bel-Air':new Set(['Under 4 Hours','4 Hours','5 - 11 Hours','12 - 24 Hours','Live-In']),
+  };
+  const TOL = 0.1;
+  // Detect 24/7 clients: clients with back-to-back visits (gap ≤ 30 min) on the same day
+  const byCID = {};
+  bookings.forEach(b => {
+    if (b._cancelled || !b._start || !b._end || b._is_office) return;
+    if (!byCID[b._cid]) byCID[b._cid] = [];
+    byCID[b._cid].push(b);
+  });
+  const is247Client = new Set();
+  Object.entries(byCID).forEach(([cid, visits]) => {
+    visits.sort((a,b) => a._start - b._start);
+    for (let i = 0; i < visits.length - 1; i++) {
+      const gap = Math.abs(visits[i+1]._start - visits[i]._end) / 60000; // minutes
+      if (gap <= 30 && visits[i]._cgid !== visits[i+1]._cgid) {
+        is247Client.add(cid);
+        break;
+      }
+    }
+  });
+  // New rule: a CANCELLED visit where the client is still BILLED or the caregiver is still
+  // PAID counts toward that client's total hours for the day. A long visit (e.g. 12h) where the
+  // caregiver was sent home early / the client left becomes a worked portion + a cancelled-but-
+  // billed/paid portion; rolling those hours back in stops a real 12-24h visit from being wrongly
+  // downgraded to 5-11h. Keyed by client + ET date; max(bill,pay) avoids double-counting one
+  // cancelled visit's billed AND paid hours.
+  const cancHrsByClientDay = {};
+  bookings.forEach(b => {
+    if (!b._cancelled || b._is_office || !b._start || !VT_RANGES[b._vt]) return;
+    const hrs = Math.max(b._bill_h||0, b._pay_h||0);
+    if (hrs <= 0) return; // truly voided cancellation (no bill, no pay) — ignore
+    const k = b._cid + '|' + etDate(b._start);
+    cancHrsByClientDay[k] = (cancHrsByClientDay[k]||0) + hrs;
+  });
+  const issues = [];
+  bookings.forEach(b => {
+    if (b._cancelled || b._is_office || !VT_RANGES[b._vt] || b._pay_h===0) return;
+    // Skip 24/7 clients — back-to-back shifts (e.g. 7a-7p, 7p-7a) are expected
+    if (is247Client.has(b._cid)) return;
+    const [mn,mx] = VT_RANGES[b._vt];
+    const cxl = b._start ? (cancHrsByClientDay[b._cid + '|' + etDate(b._start)] || 0) : 0;
+    const combined = b._pay_h + cxl;
+    // Only let cancelled hours rescue this visit's booking type if the combined total still fits the
+    // type's max. If it blows past the max, those hours belong to a separate visit (not this one) —
+    // don't over-credit. This keeps Myrna's 9h+3h=12h '12-24 Hours' valid while not letting an
+    // unrelated 11h cancelled visit absorb a genuinely short visit.
+    const lowH = (mx!==null && combined > mx+TOL) ? b._pay_h : combined;
+    const belowMin = mn!==null && lowH < mn-TOL;
+    const exceedsMax = mx!==null && b._pay_h > mx+TOL; // upper bound judges the live visit alone (cancellations can't lengthen it)
+    if (!belowMin && !exceedsMax) return;
+    const judgeH = belowMin ? lowH : b._pay_h;
+    const validForMarket = MARKET_VT[b._geo] || new Set();
+    let suggestion = '—';
+    for (const candidate of [...validForMarket].sort()) {
+      if (candidate===b._vt || candidate==='Live-In' || !VT_RANGES[candidate]) continue;
+      const [cmn,cmx] = VT_RANGES[candidate];
+      if ((cmn===null||judgeH>=cmn-TOL) && (cmx===null||judgeH<=cmx+TOL)) {
+        suggestion = candidate; break;
+      }
+    }
+    const appliedCxl = lowH - b._pay_h; // cancelled hours actually credited (0 if capped out)
+    const hrsDisp = appliedCxl>0.001 ? `${fmtH(b._pay_h)} +${fmtH(appliedCxl)} cxl = ${fmtH(lowH)}` : fmtH(b._pay_h);
+    issues.push({'Caregiver':b._cg_name,'Client':b._client,'Market':b._geo,
+      'Date':fmtD(b._start),'Visit Type':b._vt,'Payable Hrs':hrsDisp,
+      'Expected Range':`${mn!==null?fmtH(mn):'0'} – ${mx!==null?fmtH(mx):'∞'}`,
+      'Suggestion':suggestion,'Status':b._status,
+      'Action':suggestion!=='—'?`Wrong type for ${fmtH(judgeH)} — consider '${suggestion}'`:`Review: ${fmtH(judgeH)} outside range for ${b._vt}`,
+      severity:'error', geo:b._geo, _cgid:b._cgid, _cid:b._cid, _bid:b._bid});
+  });
+  return issues;
+}
+
+function detect247Gaps(bookings) {
+  // Identify 24/7 clients: clients with back-to-back visits (≤30 min gap), different CGs
+  const byCID = {};
+  bookings.forEach(b => {
+    if (b._cancelled || !b._start || !b._end || b._is_office || b._vt==='Travel Time') return;
+    if (EXCLUDE_VT.has(b._vt) || ABSENCE_VT.has(b._vt)) return;
+    if (!byCID[b._cid]) byCID[b._cid] = {name:'', geo:'', visits:[]};
+    byCID[b._cid].name = b._client;
+    byCID[b._cid].geo = b._geo;
+    byCID[b._cid].visits.push(b);
+  });
+  // Detect which clients are 24/7
+  const clients247 = {};
+  Object.entries(byCID).forEach(([cid, info]) => {
+    const visits = info.visits.sort((a,b) => a._start - b._start);
+    let backToBackCount = 0;
+    for (let i = 0; i < visits.length - 1; i++) {
+      const gap = Math.abs(visits[i+1]._start - visits[i]._end) / 60000;
+      if (gap <= 30 && visits[i]._cgid !== visits[i+1]._cgid) backToBackCount++;
+    }
+    // Need at least 2 back-to-back handoffs to qualify as 24/7
+    if (backToBackCount >= 2) clients247[cid] = info;
+  });
+  const issues = [];
+  Object.entries(clients247).forEach(([cid, info]) => {
+    // Group visits by calendar date (ET)
+    const byDate = {};
+    info.visits.forEach(v => {
+      const d = etDate(v._start);
+      if (!byDate[d]) byDate[d] = [];
+      byDate[d].push(v);
+    });
+    Object.entries(byDate).forEach(([date, dayVisits]) => {
+      dayVisits.sort((a,b) => a._start - b._start);
+      // Only check days with multiple CGs (actual handoff days)
+      const uniqueCGs = new Set(dayVisits.map(v => v._cgid));
+      if (uniqueCGs.size < 2) return;
+      const totalH = dayVisits.reduce((s,v) => s + v._pay_h, 0);
+      // Find gaps between consecutive visits
+      for (let i = 0; i < dayVisits.length - 1; i++) {
+        const gapMs = dayVisits[i+1]._start - dayVisits[i]._end;
+        const gapMins = Math.round(gapMs / 60000);
+        if (gapMins > 30) {
+          issues.push({'Client':info.name,'Market':info.geo,'Date':date,
+            'Gap Start':fmtT(dayVisits[i]._end),'Gap End':fmtT(dayVisits[i+1]._start),
+            'Gap Hrs':(gapMins/60).toFixed(1),
+            'CG Before':`${dayVisits[i]._cg_name} (${fmtT(dayVisits[i]._start)}–${fmtT(dayVisits[i]._end)})`,
+            'CG After':`${dayVisits[i+1]._cg_name} (${fmtT(dayVisits[i+1]._start)}–${fmtT(dayVisits[i+1]._end)})`,
+            'Day Coverage':fmtH(totalH)+'h',
+            'Action':`${(gapMins/60).toFixed(1)}h gap in 24/7 coverage — verify CG handoff`,
+            severity: gapMins >= 120 ? 'error' : 'warn', geo:info.geo,
+            _cid:cid, _bid:dayVisits[i]._bid});
+        }
+      }
+    });
+  });
+  issues.sort((a,b) => sf(b['Gap Hrs'])-sf(a['Gap Hrs']));
+  return issues;
+}
+
+function detectLiveInHourly(bookings, liveInContext, auditStart, auditEnd) {
+  // If a CG works 48h or less/week on Live-In visits for a client,
+  // they should be paid hourly (up to 16h/day) instead of flat Live-In rate
+  // liveInContext = adjacent-week Live-In visits for cross-week rally detection
+  // auditStart/auditEnd = the selected audit week boundaries
+
+  // Build audit week window (midnight-to-midnight ET, using the selected dates)
+  const awStart = new Date(auditStart); awStart.setHours(0,0,0,0);
+  const awEnd = new Date(auditEnd); awEnd.setHours(23,59,59,999);
+
+  const liveIns = bookings.filter(b => b._vt==='Live-In' && !b._cancelled && b._pay_h > 0);
+  const contextLiveIns = (liveInContext || []).filter(b => b._vt==='Live-In' && !b._cancelled && b._pay_h > 0);
+
+  // Group ALL Live-In visits (current + context) by CG + Client pair
+  const pairs = {};
+  liveIns.forEach(b => {
+    const key = b._cgid + '|' + b._cid;
+    if (!pairs[key]) pairs[key] = {cg:b._cg_name, client:b._client, geo:b._geo, cgid:b._cgid, cid:b._cid, visits:[], allVisits:[]};
+    pairs[key].visits.push(b);
+    pairs[key].allVisits.push(b);
+  });
+
+  // Add context visits to existing pairs (don't create new pairs — we only flag current week)
+  contextLiveIns.forEach(b => {
+    const key = b._cgid + '|' + b._cid;
+    if (pairs[key]) {
+      pairs[key].allVisits.push(b);
+    }
+  });
+
+  const issues = [];
+  Object.values(pairs).forEach(p => {
+    // Weekly total = all Live-In visits for this CG+Client that TOUCH the audit week
+    // A visit "touches" the audit week if it starts within it, or if it ends during/after it starts
+    // (i.e., a visit starting April 5 with end on April 6 straddles into the audit week)
+    const auditVisits = p.allVisits.filter(v => {
+      const s = v._start ? new Date(v._start) : null;
+      const e = v._end ? new Date(v._end) : null;
+      if (!s) return false;
+      // Starts within audit week
+      if (s >= awStart && s <= awEnd) return true;
+      // Starts before but ends during/after audit week start (straddling visit)
+      if (s < awStart && e && e > awStart) return true;
+      return false;
+    });
+
+    const weekTotal = auditVisits.reduce((s,v) => s + v._pay_h, 0);
+    const daysInWeek = auditVisits.length;
+
+    // Only flag current-week visits that are under 24h
+    p.visits.forEach(v => {
+      if (v._pay_h >= 24) return;
+
+      issues.push({'Caregiver':p.cg,'Client':p.client,'Market':p.geo,
+        'Date':fmtD(v._start),'Payable Hrs':fmtH(v._pay_h),
+        'Weekly Total':fmtH(weekTotal),'Days':daysInWeek,
+        'Action': weekTotal <= 48
+          ? `Live-In under 24h (${fmtH(v._pay_h)}h) — CG has ≤48h/wk (${fmtH(weekTotal)}h), pay hourly up to 16h/day`
+          : `Live-In under 24h (${fmtH(v._pay_h)}h) — CG has ${fmtH(weekTotal)}h/wk, review pay structure`,
+        severity: weekTotal <= 48 ? 'error' : 'warn', geo:p.geo,
+        _cgid:p.cgid, _cid:p.cid, _bid:v._bid});
+    });
+  });
+  issues.sort((a,b) => sf(a['Weekly Total'])-sf(b['Weekly Total']));
+  return issues;
+}
+
+function detectInvalidRates(bookings, rateTable) {
+  // Rate history is empty from API, so skip this check
+  return [];
+}
+
+// ── RENDER DASHBOARD ───────────────────────────────────────────────────────
+let _sortState = {};
+let _geoFilter = '';
+
+function makeTable(cols, rows, sectionId) {
+  if (!rows.length) return '<div class="empty"><span>✓</span> No issues found this week</div>';
+  // Stash row objects so the on-demand "Recommend fix" button can rebuild each
+  // flag's context at click time (the LLM only ever explains an already-flagged row).
+  window._flagRows = window._flagRows || {}; window._flagRows[sectionId] = rows;
+  const header = cols.map((c,i) =>
+    `<th onclick="sortCol('${sectionId}',${i},this)">${esc(c)}<br>
+     <input class="col-search" type="text" placeholder="filter…"
+       oninput="applyFilters('${sectionId}')" onclick="event.stopPropagation()"
+       data-sec="${sectionId}" data-col="${i}"></th>`
+  ).join('') + '<th class="fixhdr">Recommend</th>';
+  const bodyRows = rows.map((r,ri) => {
+    const sev = r.severity||'info';
+    const geo = esc(r.geo||'');
+    // Viv has no standalone /bookings/{id} route (it bounces to Tasks). Visits
+    // open from the caregiver's — or, failing that, the client's — scheduling →
+    // visits view, so deep-link there.
+    const vivLink = r._cgid ? `https://tribute.mavencare.com/caregivers/${esc(r._cgid)}/dashboard/scheduling/visits`
+                  : r._cid ? `https://tribute.mavencare.com/clients/${esc(r._cid)}/dashboard/scheduling/visits` : '';
+    const cells = cols.map(c => {
+      const val = r[c]||'';
+      if (c==='Action') {
+        if (vivLink) return `<td><a href="${vivLink}" target="_blank" class="pill ${sev}" style="text-decoration:none" title="Open in Viv (scheduling → visits)">${esc(val)}</a></td>`;
+        return `<td><span class="pill ${sev}">${esc(val)}</span></td>`;
+      }
+      if (c==='Status') return `<td><span class="stag" style="color:var(--${sev==='error'?'red':sev==='warn'?'yellow':'blue'})">${esc(val)}</span></td>`;
+      if (c==='Flags'||c==='Missing') return `<td class="fc">${esc(val)}</td>`;
+      if (c==='Caregiver'&&r._cgid&&val) return `<td><a href="https://tribute.mavencare.com/caregivers/${esc(r._cgid)}/dashboard/summary" target="_blank" style="color:var(--blue);text-decoration:none;border-bottom:1px dashed var(--bd2)">${esc(val)}</a></td>`;
+      if (c==='Client'&&r._cid&&val) return `<td><a href="https://tribute.mavencare.com/clients/${esc(r._cid)}/dashboard/summary" target="_blank" style="color:var(--blue);text-decoration:none;border-bottom:1px dashed var(--bd2)">${esc(val)}</a></td>`;
+      if ((c==='Date'||c==='Time')&&vivLink&&val) return `<td><a href="${vivLink}" target="_blank" style="color:var(--t1);text-decoration:none;border-bottom:1px dashed var(--bd2)">${esc(val)}</a></td>`;
+      return `<td>${esc(val)}</td>`;
+    }).join('');
+    const fixCell = `<td class="fixcell"><button type="button" class="fixbtn" onclick="explainFlag('${sectionId}',${ri},this)">💡 Fix</button></td>`;
+    return `<tr data-geo="${geo}" data-sec="${sectionId}" data-ri="${ri}">${cells}${fixCell}</tr>`;
+  }).join('');
+  return `<div class="filter-count" id="fc-${sectionId}"></div>
+<div class="tw"><table id="tbl-${sectionId}">
+<thead><tr>${header}</tr></thead>
+<tbody>${bodyRows}</tbody>
+</table></div>`;
+}
+
+// On-demand LLM "Recommend fix" for a single already-flagged row. Lazy: one
+// claudeProxy call fires only when the user clicks 💡 Fix, and the result is
+// cached on the row so re-opening is free. The LLM only EXPLAINS a flag the
+// deterministic layer already trusts — it never decides whether to flag.
+async function explainFlag(sectionId, ri, btn) {
+  const tr = btn.closest('tr');
+  const rows = (window._flagRows||{})[sectionId]||[];
+  const meta = (window._flagMeta||{})[sectionId]||{};
+  const r = rows[ri]; if (!r) return;
+  // Toggle: collapse if the detail row is already open
+  const next = tr.nextElementSibling;
+  if (next && next.classList.contains('fixrow')) { next.remove(); btn.textContent='💡 Fix'; return; }
+  const colspan = tr.cells.length || ((meta.cols?meta.cols.length:1) + 1);
+  const insertDetail = html => {
+    const dr = document.createElement('tr');
+    dr.className = 'fixrow'; dr.setAttribute('data-geo', tr.getAttribute('data-geo')||'');
+    dr.innerHTML = `<td colspan="${colspan}" class="fixbox">${html}</td>`;
+    tr.after(dr);
+  };
+  if (r._fixHtml) { insertDetail(r._fixHtml); btn.textContent='✕ Close'; return; }
+  btn.textContent='… thinking'; btn.disabled=true;
+  try {
+    const token = (window.tributeKsfGate && window.tributeKsfGate.getToken) ? await window.tributeKsfGate.getToken() : null;
+    // Build the flag context from the visible columns only (plus the check meaning)
+    const flag = {};
+    (meta.cols||Object.keys(r)).forEach(c => { if (r[c]!==undefined && r[c]!=='') flag[c]=r[c]; });
+    const prompt = `You are the assistant to a home-care billing auditor. A DETERMINISTIC audit check ("${meta.name}") has ALREADY flagged this visit as needing a correction before billing locks — assume the flag is valid; do not re-litigate whether it's a real issue. The check catches: ${meta.desc||meta.name}.\n\nWrite, for the SCHEDULING team, a concrete resolution:\n1. "explain": one plain-English sentence on what is wrong.\n2. "fix": the specific action ("change X to Y", "add a cancelled portion for HH:MM–HH:MM", etc.).\n3. "note": if there is genuine ambiguity (e.g. a short visit could be a wrong TYPE or a MISSING cancelled portion), name the choice and which is more likely; else "".\nBe concise and specific to the numbers shown. Return STRICT JSON only: {"explain":"...","fix":"...","note":"..."}\n\nFLAGGED VISIT:\n${JSON.stringify(flag,null,1)}`;
+    const res = await fetch('https://tribute-api-prod-bkc4hfcwf3f2f6bf.centralus-01.azurewebsites.net/api/claudeproxy', {
+      method:'POST', headers:{'Content-Type':'application/json', ...(token?{Authorization:'Bearer '+token}:{})},
+      body: JSON.stringify({model:'claude-sonnet-4-6', max_tokens:700, messages:[{role:'user',content:prompt}]})
+    });
+    if (!res.ok) throw new Error('proxy '+res.status);
+    const data = await res.json();
+    const txt = (((data.content||[])[0]||{}).text)||'';
+    let o=null; const m=txt.match(/\{[\s\S]*\}/); if(m){ try{o=JSON.parse(m[0]);}catch(e){} }
+    let html;
+    if (o) {
+      html = `<div class="fx-e"><b>What's wrong:</b> ${esc(o.explain||'')}</div>`+
+             `<div class="fx-f"><b>Recommended fix:</b> ${esc(o.fix||'')}</div>`+
+             (o.note? `<div class="fx-n"><b>Judgment call:</b> ${esc(o.note)}</div>`:'');
+    } else {
+      html = `<div class="fx-e">${esc(txt||'No response')}</div>`;
+    }
+    html += `<div class="fx-src">AI suggestion — verify before actioning · not a billing decision</div>`;
+    r._fixHtml = html; insertDetail(html); btn.textContent='✕ Close';
+  } catch(e) {
+    insertDetail(`<div class="fx-n">Couldn't generate a recommendation (${esc(e.message)}). Try again.</div>`);
+    btn.textContent='💡 Fix';
+  } finally { btn.disabled=false; }
+}
+
+function sortCol(secId, colIdx, th) {
+  const table = document.getElementById('tbl-'+secId);
+  if (!table) return;
+  // Drop any open AI detail rows so they don't scramble into the sort
+  table.querySelectorAll('tbody tr.fixrow').forEach(x=>x.remove());
+  table.querySelectorAll('tbody .fixbtn').forEach(b=>b.textContent='💡 Fix');
+  const key = secId+'-'+colIdx;
+  const dir = _sortState[key]===1 ? -1 : 1;
+  _sortState = {};
+  _sortState[key] = dir;
+  table.querySelectorAll('thead th').forEach(t=>t.classList.remove('sort-asc','sort-desc'));
+  th.classList.add(dir===1?'sort-asc':'sort-desc');
+  const tbody = table.querySelector('tbody');
+  const rows = [...tbody.querySelectorAll('tr')];
+  rows.sort((a,b) => {
+    const av = (a.cells[colIdx]?.innerText||'').trim();
+    const bv = (b.cells[colIdx]?.innerText||'').trim();
+    const an = parseFloat(av.replace(/[^0-9.-]/g,''));
+    const bn = parseFloat(bv.replace(/[^0-9.-]/g,''));
+    if (!isNaN(an)&&!isNaN(bn)) return (an-bn)*dir;
+    return av.localeCompare(bv)*dir;
+  });
+  rows.forEach(r => tbody.appendChild(r));
+  applyFilters(secId);
+}
+
+function applyFilters(secId) {
+  const sec = document.getElementById('s-'+secId);
+  if (!sec) return;
+  const inputs = sec.querySelectorAll('.col-search');
+  const filters = [...inputs].map(i=>i.value.trim().toLowerCase());
+  let vis = 0, tot = 0;
+  sec.querySelectorAll('tbody tr').forEach(tr => {
+    tot++;
+    if (_geoFilter && (tr.getAttribute('data-geo')||'')!==_geoFilter) { tr.style.display='none'; return; }
+    let show = true;
+    filters.forEach((f,i) => {
+      if (!f) return;
+      const cell = tr.cells[i];
+      if (cell && !cell.innerText.toLowerCase().includes(f)) show = false;
+    });
+    tr.style.display = show?'':'none';
+    if (show) vis++;
+  });
+  const fc = document.getElementById('fc-'+secId);
+  if (fc) fc.textContent = vis===tot ? `${tot} rows` : `${vis} of ${tot} rows`;
+}
+
+function filterGeo(v) {
+  _geoFilter = v;
+  const activeSection = document.querySelector('.section.active');
+  if (activeSection) applyFilters(activeSection.id.replace('s-',''));
+}
+
+function resetFilters() {
+  _geoFilter = '';
+  document.getElementById('geo-filter').value = '';
+  document.querySelectorAll('.col-search').forEach(i=>i.value='');
+  const activeSection = document.querySelector('.section.active');
+  if (activeSection) applyFilters(activeSection.id.replace('s-',''));
+}
+
+function showSection(id) {
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.ni').forEach(n=>n.classList.remove('active'));
+  const sec = document.getElementById('s-'+id);
+  if (sec) sec.classList.add('active');
+  const nav = document.querySelector(`[data-id="${id}"]`);
+  if (nav) nav.classList.add('active');
+  applyFilters(id);
+}
+
+function startOver() {
+  document.getElementById('dashboard-screen').style.display='none';
+  document.getElementById('upload-screen').style.display='flex';
+  apiData = null;
+  initializeDatePicker();
+}
+
+// ── EXPENSE DOUBLE-CHARGE DETECTION ──────────────────────────────────────────
+// Pulls the Expenses dataset (mileage / parking / tolls / supplies) for the week
+// and flags the same visit billed twice for the same expense category.
+async function fetchExpenses(startStr, endStr) {
+  const body = { path:'/api/dataset-reports/run/expenses', method:'POST', payload:{
+    filterGroups:[{filters:[{fieldPath:'booking.nTime.s',type:'DATE',
+      subType:'booking.nTime.timezone.timeZoneId',operator:'BETWEEN',
+      value:`${startStr}T00:00:00.000Z`,additionalValue:`${endStr}T23:59:59.999Z`}],
+      operator:'AND',subGroups:[]}],
+    fieldPaths:[
+      {fieldPath:'caregiver.id',fieldType:'LINKED_ENTITY'},
+      {fieldPath:'booking.cid',fieldType:'LINKED_ENTITY'},
+      {fieldPath:'status',fieldType:'ENUM'},
+      {fieldPath:'pay.category',fieldType:'ATTRIBUTE'},
+      {fieldPath:'chargeExpenseToClient',fieldType:'BOOLEAN'},
+      {fieldPath:'total',fieldType:'NUMBER'},
+      {fieldPath:'chargeTotal',fieldType:'NUMBER'},
+      {fieldPath:'booking.nTime.s',fieldType:'DATE'},
+      {fieldPath:'booking.bookingType',fieldType:'ATTRIBUTE_TEXT'},
+      {fieldPath:'description',fieldType:'STRING'}],
+    groupBy:[], groupedFields:[], skip:0, limit:2000
+  }};
+  const res = await fetch('https://tribute-api-prod-bkc4hfcwf3f2f6bf.centralus-01.azurewebsites.net/api/vivProxy?endpoint=viv_raw', {
+    method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)
+  });
+  if (!res.ok) throw new Error('expense fetch '+res.status);
+  const d = await res.json();
+  return (d && d.results) || [];
+}
+
+function detectDoubleCharges(expenses) {
+  const LIVE = new Set(['Processed','Approved']);           // only money that actually pays/bills
+  const norm = s => (s||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+  const groups = {};
+  expenses.forEach(r => {
+    if (!LIVE.has(r.status)) return;                        // Cancelled/Denied already voided
+    const bid  = r.booking && r.booking.id;
+    const cgid = r.caregiver && r.caregiver.id;
+    const cat  = (r.pay && r.pay.category && r.pay.category.text) || 'Expense';
+    const dIso = ((r.booking && r.booking.nTime && r.booking.nTime.s) || '').slice(0,10);
+    // group by visit+category; fall back to caregiver+day+category for booking-less expenses
+    const key = bid ? `b|${bid}|${cat}` : `c|${cgid}|${dIso}|${cat}`;
+    (groups[key] = groups[key] || []).push(r);
+  });
+  const rows = [];
+  Object.values(groups).forEach(g => {
+    if (g.length < 2) return;
+    // identical amount entered 2+ times on one visit = high-confidence duplicate
+    const byAmt = {};
+    g.forEach(r => { const a = Math.round((r.total||0)*100)/100; (byAmt[a]=byAmt[a]||[]).push(r); });
+    const hasSameAmtDup = Object.values(byAmt).some(v => v.length >= 2);
+    // identical (non-blank) description repeated = likely the same trip re-entered
+    const descs = g.map(r => norm(r.description));
+    const allSameDesc = descs[0] !== '' && descs.every(d => d === descs[0]);
+    if (!hasSameAmtDup && !allSameDesc) return;             // different amounts + different desc = separate errands, not a dup
+    const r0 = g[0], bk = r0.booking || {};
+    const total = g.reduce((s,r)=>s+(r.total||0),0);
+    const amts  = [...new Set(g.map(r=>`$${(r.total||0).toFixed(2)}`))];
+    const amtLabel = amts.length===1 ? `${amts[0]} ×${g.length}` : amts.join(' + ');
+    const chg = g.filter(r=>r.chargeExpenseToClient);
+    const chgTot = chg.reduce((s,r)=>s+(r.chargeTotal||0),0);
+    const billed = chg.length===0 ? 'No'
+      : chg.length===g.length ? `Yes — $${chgTot.toFixed(2)}`
+      : `Partial — $${chgTot.toFixed(2)}`;
+    rows.push({
+      'Caregiver': `${(r0.caregiver&&r0.caregiver.fn)||''} ${(r0.caregiver&&r0.caregiver.ln)||''}`.trim(),
+      'Client': `${bk.cfn||''} ${bk.cln||''}`.trim() || '—',
+      'Market': bk.gcity||'',
+      'Date': ((bk.nTime&&bk.nTime.s)||'').slice(0,10),
+      'Category': (r0.pay&&r0.pay.category&&r0.pay.category.text)||'',
+      'Lines': String(g.length),
+      'Amounts': amtLabel,
+      'Total Paid': `$${total.toFixed(2)}`,
+      'Billed to Client': billed,
+      'Action': hasSameAmtDup ? 'Remove duplicate line' : 'Review — possible duplicate',
+      severity: hasSameAmtDup ? 'error' : 'warn',
+      geo: bk.gcity||'', _bid: bk.id||'',
+      _cgid:(r0.caregiver&&r0.caregiver.id)||'', _cid: bk.cid||''
+    });
+  });
+  rows.sort((a,b)=> (a.severity==='error'?0:1) - (b.severity==='error'?0:1));
+  return rows;
+}
+
+// ── MAIN RUNNER ────────────────────────────────────────────────────────────
+async function runDashboard() {
+  const dateInput = document.getElementById('week-start-date');
+  if (!dateInput.value) {
+    alert('Please select a week start date');
+    return;
+  }
+
+  document.getElementById('upload-screen').style.display='none';
+  document.getElementById('processing-screen').style.display='flex';
+  const log = document.getElementById('proc-log');
+  const logLine = t => { log.innerHTML += t+'<br>'; };
+
+  try {
+    // Parse dates — snap to the Sunday that begins the pay week so the window
+    // can't be misaligned (a non-Sunday start would drop a Sunday call-out and
+    // pull in the next week's Sunday work).
+    const startDate = new Date(dateInput.value + 'T00:00:00');
+    startDate.setDate(startDate.getDate() - startDate.getDay());
+    const endDate = new Date(startDate);
+    endDate.setDate(endDate.getDate() + 6);
+
+    const formatDate = d => d.toISOString().split('T')[0];
+    const startStr = formatDate(startDate);
+    const endStr = formatDate(endDate);
+
+    logLine(`Fetching data for week ${startStr} to ${endStr}...`);
+
+    // Fetch from API
+    const apiUrl = `https://tribute-api-prod-bkc4hfcwf3f2f6bf.centralus-01.azurewebsites.net/api/vivProxy?endpoint=weekly_audit&startDate=${startStr}&endDate=${endStr}`;
+    const _waToken = (window.tributeKsfGate && window.tributeKsfGate.getToken) ? await window.tributeKsfGate.getToken() : null;
+    const response = await fetch(apiUrl, { headers: _waToken ? { Authorization: 'Bearer ' + _waToken } : {} });
+
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
+    }
+
+    apiData = await response.json();
+    logLine('Data received, enriching bookings...');
+
+    // Fetch Uber client-paid rides (non-blocking — audit still works if Uber fetch fails)
+    let uberData = null;
+    try {
+      const uberRes = await fetch('https://tribute-api-prod-bkc4hfcwf3f2f6bf.centralus-01.azurewebsites.net/api/vivProxy?endpoint=uber_trips');
+      if (uberRes.ok) uberData = await uberRes.json();
+      logLine(`Uber data: ${uberData && uberData.clientRows ? uberData.clientRows.length : 0} client-paid rides across all time`);
+    } catch(e) { logLine('Uber fetch failed (non-fatal): '+e.message); }
+
+    // Process data through the same detection pipeline
+    const bookings = enrichBookings(apiData.bookings || []);
+    logLine(`Loaded ${bookings.length} bookings`);
+
+    const tagLookup = loadTags(apiData.tags || {});
+    logLine(`Loaded tags: ${Object.keys(tagLookup).length} caregivers`);
+
+    const tsCount = Object.values(tagLookup).filter(t=>t.threshold>0).length;
+    logLine(`${tsCount} caregivers with TS threshold`);
+
+    // Enrich adjacent-week Live-In context for cross-week weekly totals
+    const liveInContext = enrichBookings(apiData.liveInContext || []);
+    logLine(`Live-In context: ${liveInContext.length} adjacent-week visits`);
+
+    const rateTable = loadRateTable(apiData.rateHistory || []);
+    const wk = weekLabel(bookings);
+    const geos = [...new Set(bookings.map(b=>b._geo).filter(Boolean))].sort();
+
+    // Build Client-Paid Uber rows for the week from uber_trips.clientRows
+    const uberClientRows = [];
+    if (uberData && Array.isArray(uberData.clientRows)) {
+      const inRange = d => {
+        if (!d) return false;
+        const parts = d.split('/');
+        if (parts.length !== 3) return false;
+        const iso = `${parts[2]}-${parts[0].padStart(2,'0')}-${parts[1].padStart(2,'0')}`;
+        return iso >= startStr && iso <= endStr;
+      };
+      uberData.clientRows.forEach(r => {
+        const d = r['Request Date (Local)'] || r['Request Date (UTC)'] || '';
+        if (!inRange(d)) return;
+        const amt = parseFloat(String(
+          r['Transaction Amount in USD (incl. Taxes)'] ||
+          r['Transaction Amount USD'] ||
+          r['Total Fare USD'] || '0'
+        ).replace(/[^0-9.\-]/g,'')) || 0;
+        // Tribute convention: Guest First Name = caregiver, Guest Last Name = client.
+        const caregiver = (r['Guest First Name']||'').trim() || '(unknown)';
+        const client    = (r['Guest Last Name'] ||'').trim() || '(unknown)';
+        uberClientRows.push({
+          'Date': d,
+          'Market': r._market || '',
+          'Caregiver': caregiver,
+          'Client': client,
+          'Pickup': r['Pickup Address']||'',
+          'Drop-off': r['Drop-off Address']||'',
+          'Amount': `$${amt.toFixed(2)}`,
+          'Action': 'Bill to client',
+          severity: 'warn',
+          geo: r._market || ''
+        });
+      });
+    }
+    logLine(`Uber client-paid rides this week: ${uberClientRows.length}`);
+
+    // Fetch expense line-items for the week and detect double-charges (non-blocking)
+    let dupExpenseRows = [];
+    try {
+      const expenses = await fetchExpenses(startStr, endStr);
+      logLine(`Expense line-items this week: ${expenses.length}`);
+      dupExpenseRows = detectDoubleCharges(expenses);
+      logLine(`Duplicate-expense flags: ${dupExpenseRows.length}`);
+    } catch(e) { logLine('Expense fetch failed (non-fatal): '+e.message); }
+
+    logLine('Running detection modules...');
+    // Display decimal hours as "Xh Ym" (e.g. 5.67 -> "5h 40m"). Presentation only —
+    // the numeric fields (owed/paid/guarantee) stay intact for any math/filtering.
+    const fmtHM=h=>{const t=Math.round((Number(h)||0)*60),hh=Math.floor(t/60),mm=t%60;return hh&&mm?`${hh}h ${mm}m`:mm?`${mm}m`:`${hh}h`;};
+    const sections = [
+      {id:'ts',       name:'TS Admin Time',          icon:'🛡️', red:true,
+       desc:'Tribute Secure guarantee vs. paid hours — only caregivers actually owed admin time are listed. Days off (approved Temporary Unavailability, Time Off bookings, OR a call-out/NCNS service exception on an unworked day) on committed availability days reduce the guarantee; a committed weekend taken off costs an extra 10h unless a weekend visit was worked. A caregiver is never owed admin time in their first employment week. Flags surface call-outs with no time off entered, double-entries, off-days on non-committed days, pending requests, and missing availability.',
+       data:(apiData.tsAdmin||[]).filter(r=>(r.owed!=null?r.owed:parseFloat(r['Hrs Owed']))>0).map(r=>{  // shared calc (proxy computeTsAdmin)
+         const owedN=r.owed!=null?r.owed:parseFloat(r['Hrs Owed'])||0;
+         const workedN=r.paid!=null?r.paid:parseFloat(r['Worked'])||0;
+         const guarN=r.guarantee!=null?r.guarantee:parseFloat(r['Guarantee'])||0;
+         return Object.assign({},r,{
+           'Worked':fmtHM(workedN),'Guarantee':fmtHM(guarN),'Hrs Owed':fmtHM(owedN),
+           'Action':owedN>0?('Create '+fmtHM(owedN)+' TS Admin Time — '+(r['Client']||('Office'+(r.geo?' ('+r.geo+')':'')))):r['Action']
+         });
+       }),
+       cols:['Caregiver','Market','Level','Committed','Worked','Days Off','Avail/Req','Guarantee','Hrs Owed','Client','Flags','Action']},
+      {id:'tt',       name:'Missing Travel Time',     icon:'🚗',
+       desc:'Caregivers with back-to-back visits ≤ 2 hours apart with no Travel Time visit entered.',
+       data:detectTravelTime(bookings),
+       cols:['Caregiver','Market','Date','Gap Start','Gap End','Gap Hrs','From → To','Action']},
+      {id:'ott',      name:'Orphaned Travel Time',    icon:'🧭', red:true,
+       desc:'Travel Time visits that aren\'t bracketed by two client visits — no visit before or after, or the only visit that day — so they should be removed before visits lock. The inverse of the Missing Travel Time check.',
+       data:detectOrphanTravelTime(bookings),
+       cols:['Caregiver','Market','Date','Time','Duration','Day Visits','Why Orphaned','Action']},
+      {id:'li',       name:'Live-In Coverage',        icon:'🏠', red:true,
+       desc:'Live-In days that don\'t total ~24h — a short/gapped day (missing or incomplete caregiver switch) or an over-covered day where caregivers overlap. Each day is compared to that client\'s own Live-In norm, so legitimate 2-caregiver clients aren\'t flagged.',
+       data:detectLiveIn(bookings),
+       cols:['Client','Market','Date','LI Hours','Caregivers','Why Flagged','Action']},
+      {id:'appr',     name:'Approval Queue',          icon:'✅', red:true,
+       desc:'All visits flagged as Requires Approval or Requires Re-Approval in Viv.',
+       data:detectApprovalQueue(bookings),
+       cols:['Caregiver','Client','Market','Date','Time','Visit Type','Billable','Payable','CG Rate','Cancelled','Status','Action']},
+      {id:'cancelled',name:'Cancelled Visit Issues',  icon:'🚫',
+       desc:'Cancelled visits with unexpected billing, pay, or missing pay settings.',
+       data:detectCancelled(bookings),
+       cols:['Caregiver','Client','Market','Date','Visit Type','Billable','Payable','CG Rate','Flags','Status','Action']},
+      {id:'dur',      name:'Duration Mismatches',     icon:'⏱️',
+       desc:'Visits where billable or payable hours differ from the scheduled duration.',
+       data:detectDurationMismatches(bookings),
+       cols:['Caregiver','Client','Market','Date','Visit Type','Scheduled','Billable','Payable','Flags','Status','Action']},
+      {id:'cg_ovlp',  name:'Caregiver Overlaps',      icon:'⚡', red:true,
+       desc:'Caregiver scheduled for two overlapping visits simultaneously.',
+       data:detectOverlapsCG(bookings),
+       cols:['Caregiver','Market','Visit 1','Visit 2','Overlap','Action']},
+      {id:'cl_ovlp',  name:'Client Billing Overlaps', icon:'💳', red:true,
+       desc:'Client being billed for two caregiver visits at the same time.',
+       data:detectOverlapsClient(bookings),
+       cols:['Client','Market','CG 1','CG 2','Overlap','Action']},
+      {id:'uber_client', name:'Client-Paid Uber Rides', icon:'🚕',
+       desc:'Uber rides expensed to clients (expense code pattern "{Market}- Client"). Confirm these are billed on the next client invoice.',
+       data:uberClientRows,
+       cols:['Date','Market','Caregiver','Client','Pickup','Drop-off','Amount','Action']},
+      {id:'dup_exp',  name:'Duplicate Expenses',      icon:'🧾', red:true,
+       desc:'Same visit billed two or more times for the same expense category (mileage, parking, tolls, supplies). Red = identical amount entered more than once on one visit — likely a true double-pay/double-charge; yellow = identical description repeated — eyeball before removing. Cancelled/Denied lines are ignored. Recurring per-visit expenses (same trip on different visits) are NOT flagged.',
+       data:dupExpenseRows,
+       cols:['Caregiver','Client','Market','Date','Category','Lines','Amounts','Total Paid','Billed to Client','Action']},
+      {id:'rate',     name:'Rate Type Errors',        icon:'💰',
+       desc:'Any bonus / RFH / incentive pay must be a flat lump sum (Shift rate type) — flags any set to Hourly (or anything other than Shift). Matches all bonus types across markets, not just a fixed list.',
+       data:detectRateType(bookings),
+       cols:['Caregiver','Market','Date','Visit Type','Current','Should Be','CG Rate','Action']},
+      {id:'toff',     name:'Time Off Rate Errors',    icon:'🏖️',
+       desc:'Time Off, PTO, or Sick visits paying a non-zero caregiver rate.',
+       data:detectTimeOffRates(bookings),
+       cols:['Caregiver','Market','Date','Visit Type','CG Rate','Pay Hrs','Status','Action']},
+      {id:'evv',      name:'Missing EVV',             icon:'📍',
+       desc:'Worked client visits missing electronic check-in or check-out.',
+       data:detectMissingEVV(bookings),
+       cols:['Caregiver','Client','Market','Date','Visit Type','Scheduled','Missing','Status','Action']},
+      {id:'assign',   name:'Assignment Errors',       icon:'🏷️',
+       desc:'Training or office meetings assigned to Office instead of Office Training.',
+       data:detectAssignmentErrors(bookings),
+       cols:['Caregiver','Market','Date','Visit Type','Current Client','Should Be','Status','Action']},
+      {id:'vtmatch',  name:'Visit Type Mismatches',   icon:'⚠️', red:true,
+       desc:'Visits where payable hours fall outside the range implied by the visit type.',
+       data:detectVTMismatch(bookings),
+       cols:['Caregiver','Client','Market','Date','Visit Type','Payable Hrs','Expected Range','Suggestion','Status','Action']},
+      {id:'irates',   name:'Invalid Rates',           icon:'🔍',
+       desc:'Client rates that have never appeared in the full rate history for that market.',
+       data:detectInvalidRates(bookings,rateTable),
+       cols:['Market','Visit Type','Invalid Rate','Current Rate','Visits','Clients','Action']},
+      {id:'clrate',   name:'Client Rate Inconsistency', icon:'🏷️', red:true,
+       desc:'A single visit billed at a different client rate than that client\'s other visits of the same type — the pattern behind "bill $65/hr not $59/hr" corrections. A clean forward rate increase (all later visits at the new rate) is treated as legitimate and not flagged.',
+       data:detectClientRate(bookings),
+       cols:['Client','Market','Date','Visit Type','Billed Rate','Client Norm','Why Flagged','Action']},
+      {id:'livein',   name:'Live-In Hourly Review',   icon:'🏠', red:true,
+       desc:'Live-In visits under 24h — if CG works ≤48h/wk on Live-In, pay hourly up to 16h/day.',
+       data:detectLiveInHourly(bookings, liveInContext, startDate, endDate),
+       cols:['Caregiver','Client','Market','Date','Payable Hrs','Weekly Total','Days','Action']},
+      {id:'247gaps',  name:'24/7 Coverage Gaps',       icon:'🔄', red:true,
+       desc:'Gaps in coverage for 24/7 clients who should have continuous back-to-back shifts.',
+       data:detect247Gaps(bookings),
+       cols:['Client','Market','Date','Gap Start','Gap End','Gap Hrs','CG Before','CG After','Day Coverage','Action']},
+    ];
+
+    const total = sections.reduce((s,sec)=>s+sec.data.length,0);
+    logLine(`Found ${total} total issues across ${sections.length} categories.`);
+    logLine('Building dashboard...');
+
+    // Populate geo filter
+    const geoSel = document.getElementById('geo-filter');
+    geoSel.innerHTML = '<option value="">All Markets</option>';
+    geos.forEach(g => { const o=document.createElement('option'); o.value=g; o.textContent=g; geoSel.appendChild(o); });
+
+    // ── Finance Readiness layout: 3 domains × 2 lanes + scorecard (test rebuild) ──
+    const DOMAINS = {
+      billing:  {name:'Visit Billing',     icon:'💳', blurb:'Is each visit ready to bill? — the pre-billing catches.'},
+      payroll:  {name:'Caregiver Payroll',  icon:'🛡️', blurb:'TS admin time + pay-rate correctness before payroll runs.'},
+      expenses: {name:'Expenses / AP',      icon:'🧾', blurb:'Reimbursement integrity — double-charges & client-billable rides.'},
+    };
+    const DOMAIN_OF = {ts:'payroll', rate:'payroll', toff:'payroll', dup_exp:'expenses', uber_client:'expenses'};
+    const DROP = new Set(['irates']);      // dead: rate history is empty from the API
+    const METRIC_ONLY = new Set(['evv']);  // ~1,400/wk — a health metric, not a worklist
+
+    // Stash every shown section's rows so the 💡 Fix button can rebuild context (via explainFlag)
+    window._flagRows = {}; window._flagMeta = {};
+    sections.forEach(s => { if (DROP.has(s.id)) return; window._flagRows[s.id]=s.data; window._flagMeta[s.id]={name:s.name,desc:s.desc||'',cols:s.cols}; });
+
+    // Project a heterogeneous check row into a common worklist row
+    const pickDetail = r => {
+      for (const k of ['Why Flagged','Why Orphaned','Flags','Suggestion','Expected Range','Missing','Day Coverage','Overlap']) if (r[k]) return r[k];
+      const p=[]; if(r['Visit Type'])p.push(r['Visit Type']); if(r['Payable Hrs'])p.push('pay '+r['Payable Hrs']); if(r['Billable'])p.push('bill '+r['Billable']); if(r['LI Hours'])p.push(r['LI Hours']);
+      return p.join(' · ');
+    };
+    const proj = (s,r,ri) => ({subject:r['Client']||r['Caregiver']||r['Market']||'—', when:r['Date']||r['Time']||'', issue:s.name, icon:s.icon,
+      detail:pickDetail(r), action:r['Action']||'', sev:(r.severity||'info'), sectionId:s.id, ri, geo:r.geo||'', _cid:r._cid||'', _cgid:r._cgid||''});
+    const laneOf = (s,r) => (s.id==='ts' || r.severity==='error') ? 'mustfix' : 'review';
+
+    const buckets={}, evvCount={};
+    Object.keys(DOMAINS).forEach(d=>buckets[d]={mustfix:[],review:[]});
+    sections.forEach(s => {
+      if (DROP.has(s.id)) return;
+      const dom = DOMAIN_OF[s.id] || 'billing';
+      if (METRIC_ONLY.has(s.id)) { evvCount[dom]=(evvCount[dom]||0)+s.data.length; return; }
+      s.data.forEach((r,ri)=>buckets[dom][laneOf(s,r)].push(proj(s,r,ri)));
+    });
+    const domCount = d => buckets[d].mustfix.length + buckets[d].review.length;
+
+    // Unified worklist table (reuses explainFlag via sectionId + ri)
+    const laneTable = rows => {
+      if (!rows.length) return '<div class="empty"><span>✓</span> Nothing here — clear</div>';
+      const body = rows.map(r => {
+        const link = r._cid ? `https://tribute.mavencare.com/clients/${esc(r._cid)}/dashboard/summary`
+                   : r._cgid ? `https://tribute.mavencare.com/caregivers/${esc(r._cgid)}/dashboard/summary` : '';
+        const subj = link ? `<a href="${link}" target="_blank" class="wl-subj">${esc(r.subject)}</a>` : esc(r.subject);
+        return `<tr data-geo="${esc(r.geo)}"><td><span class="sev-dot ${r.sev}"></span></td>
+          <td class="wl-issue">${r.icon} ${esc(r.issue)}</td><td>${subj}</td><td class="wl-when">${esc(r.when)}</td>
+          <td class="wl-detail">${esc(r.detail)}</td><td class="wl-action">${esc(r.action)}</td>
+          <td class="fixcell"><button type="button" class="fixbtn" onclick="explainFlag('${r.sectionId}',${r.ri},this)">💡 Fix</button></td></tr>`;
+      }).join('');
+      return `<div class="tw"><table><thead><tr><th></th><th>Issue</th><th>Who</th><th>When</th><th>Detail</th><th>Suggested action</th><th>Recommend</th></tr></thead><tbody>${body}</tbody></table></div>`;
+    };
+
+    // Build nav: Readiness overview + 3 domains
+    const navList = document.getElementById('nav-list');
+    navList.innerHTML = '';
+    const mkNav = (id,icon,label,badge,cls) => {
+      const li=document.createElement('li'); li.className='ni'+(badge?' hi':''); li.setAttribute('data-id',id);
+      li.onclick=()=>showSection(id);
+      li.innerHTML=`<span class="n-ic">${icon}</span><span class="n-lb">${esc(label)}</span>${badge?`<span class="n-bd${cls||''}">${badge}</span>`:''}`;
+      navList.appendChild(li);
+    };
+    mkNav('overview','📋','Readiness','','');
+    { const dv=document.createElement('div'); dv.className='ndiv'; navList.appendChild(dv); }
+    Object.entries(DOMAINS).forEach(([d,m])=>mkNav('dom-'+d,m.icon,m.name,domCount(d)||'',buckets[d].mustfix.length?' r':''));
+
+    // Build views
+    const container = document.getElementById('sections-container');
+    container.innerHTML = '';
+    // Overview: readiness scorecard + honesty banner
+    const cards = Object.entries(DOMAINS).map(([d,m]) => {
+      const mf=buckets[d].mustfix.length, rv=buckets[d].review.length;
+      const evv = evvCount[d]?`<div class="rc-metric">+ ${evvCount[d]} Missing-EVV (health metric)</div>`:'';
+      return `<div class="rc-card" onclick="showSection('dom-${d}')">
+        <div class="rc-h">${m.icon} ${esc(m.name)}</div>
+        <div class="rc-nums"><span class="rc-mf ${mf?'on':''}">${mf}</span> must-fix · <span class="rc-rv">${rv}</span> to review</div>
+        <div class="rc-blurb">${esc(m.blurb)}</div>${evv}</div>`;
+    }).join('');
+    const ov=document.createElement('div'); ov.className='section'; ov.id='s-overview';
+    ov.innerHTML=`<div class="sh"><div class="st"><span class="si">📋</span><span class="sn">Finance Readiness</span><span class="sc ${total?'h':'n'}">${esc(wk)}</span></div>
+      <div class="sd">One close, three domains. Clear <b>must-fix</b> before billing/payroll runs; <b>review &amp; confirm</b> the judgment calls (each with a 💡 recommended answer) so nothing routes to Finance.</div></div>
+      <div class="rc-grid">${cards}</div>
+      <div class="honesty">⚠️ Coverage note: some visits can't be fully verified from scheduling data — grandfathered client rates, Live-In / 24-7 exemptions, and visits with no care-plan hour target. A clean board is not proof of a verified close.</div>`;
+    container.appendChild(ov);
+    // Domain views: two lanes each
+    Object.entries(DOMAINS).forEach(([d,m]) => {
+      const div=document.createElement('div'); div.className='section'; div.id='s-dom-'+d;
+      const evv = evvCount[d]?`<div class="rate-history-notice">ℹ️ ${evvCount[d]} visits missing EVV this week — tracked as a health metric, not listed as work items.</div>`:'';
+      div.innerHTML=`<div class="sh"><div class="st"><span class="si">${m.icon}</span><span class="sn">${esc(m.name)}</span>
+          <span class="sc ${domCount(d)?'h':'n'}">${domCount(d)} item${domCount(d)!==1?'s':''}</span></div>
+        <div class="sd">${esc(m.blurb)}</div></div>${evv}
+        <div class="lane-h mustfix">🔴 Must fix <span class="lane-c">${buckets[d].mustfix.length}</span></div>${laneTable(buckets[d].mustfix)}
+        <div class="lane-h review">🟡 Review &amp; confirm <span class="lane-c">${buckets[d].review.length}</span></div>${laneTable(buckets[d].review)}`;
+      container.appendChild(div);
+    });
+
+    // ── Reference tab: Rate-Card Audit (standalone tool, embedded here for reference) ──
+    {
+      const dv=document.createElement('div'); dv.className='ndiv'; navList.appendChild(dv);
+      const li=document.createElement('li'); li.className='ni'; li.setAttribute('data-id','ratecard');
+      li.onclick=()=>showSection('ratecard');
+      li.innerHTML=`<span class="n-ic">💲</span><span class="n-lb">Rate-Card Audit</span><span class="n-bd" style="background:var(--blue-soft);color:var(--blue2)">ref</span>`;
+      navList.appendChild(li);
+      const sec=document.createElement('div'); sec.className='section'; sec.id='s-ratecard';
+      sec.innerHTML=`<div class="sh"><div class="st"><span class="si">💲</span><span class="sn">Rate-Card Audit</span><span class="sc n">reference</span></div>
+        <div class="sd">Caregiver pay-rate governance — gross rate anomalies + the candidate rate card, for reference alongside the weekly audit. <a href="rate_card_audit.html" target="_blank" style="color:var(--orange);font-weight:600;text-decoration:none">Open the full tool ↗</a></div></div>
+        <div class="tw" style="padding:0;overflow:hidden"><iframe src="rate_card_audit.html" title="Rate-Card Audit" style="width:100%;height:calc(100vh - 210px);border:0;border-radius:14px;background:#fff"></iframe></div>`;
+      container.appendChild(sec);
+    }
+
+    document.getElementById('dash-week').textContent = wk;
+    document.getElementById('dash-total').textContent = `${total} total issues`;
+
+    document.getElementById('processing-screen').style.display='none';
+    document.getElementById('dashboard-screen').style.display='flex';
+    // Land on the readiness overview
+    showSection('overview');
+
+  } catch (error) {
+    logLine(`ERROR: ${error.message}`);
+    logLine('Check the API endpoint and date range');
+    console.error(error);
+  }
+}
+
+// Initialize on page load
+window.addEventListener('DOMContentLoaded', initializeDatePicker);
+</script>
+</body>
+</html>
