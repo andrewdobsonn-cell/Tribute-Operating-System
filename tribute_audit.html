@@ -119,6 +119,16 @@ tbody td{padding:9px 13px;color:var(--t1);vertical-align:middle}
 .empty span{font-size:16px}
 .filter-count{font-size:10.5px;color:var(--t3);padding:0 2px 8px;text-align:right}
 .rate-history-notice{padding:12px 16px;background:var(--teal-soft);border:1px solid #CFE8DD;border-radius:12px;margin-bottom:20px;color:var(--teal-fg);font-size:11.5px}
+.fixhdr{font-size:10px;color:var(--t3);font-weight:600;text-align:center}
+.fixbtn{font:inherit;font-size:10.5px;font-weight:600;color:var(--blue2);background:var(--blue-soft);border:1px solid #CBDAEC;border-radius:99px;padding:4px 10px;cursor:pointer;white-space:nowrap}
+.fixbtn:hover{background:#DCE8F5}
+.fixbtn:disabled{opacity:.6;cursor:default}
+.fixrow td.fixbox{background:var(--blue-soft);padding:12px 16px;font-size:12px;line-height:1.55;color:var(--t1);border-left:3px solid var(--blue)}
+.fixbox .fx-e{margin-bottom:4px}
+.fixbox .fx-f{margin-bottom:4px;color:var(--teal-fg)}
+.fixbox .fx-n{margin-bottom:4px;color:var(--amber-fg)}
+.fixbox .fx-src{margin-top:6px;font-size:10px;color:var(--t3);font-style:italic}
+.fixbox b{font-weight:700}
 </style>
 </head>
 <body>
@@ -905,13 +915,16 @@ let _geoFilter = '';
 
 function makeTable(cols, rows, sectionId) {
   if (!rows.length) return '<div class="empty"><span>✓</span> No issues found this week</div>';
+  // Stash row objects so the on-demand "Recommend fix" button can rebuild each
+  // flag's context at click time (the LLM only ever explains an already-flagged row).
+  window._flagRows = window._flagRows || {}; window._flagRows[sectionId] = rows;
   const header = cols.map((c,i) =>
     `<th onclick="sortCol('${sectionId}',${i},this)">${esc(c)}<br>
      <input class="col-search" type="text" placeholder="filter…"
        oninput="applyFilters('${sectionId}')" onclick="event.stopPropagation()"
        data-sec="${sectionId}" data-col="${i}"></th>`
-  ).join('');
-  const bodyRows = rows.map(r => {
+  ).join('') + '<th class="fixhdr">Recommend</th>';
+  const bodyRows = rows.map((r,ri) => {
     const sev = r.severity||'info';
     const geo = esc(r.geo||'');
     // Viv has no standalone /bookings/{id} route (it bounces to Tasks). Visits
@@ -932,7 +945,8 @@ function makeTable(cols, rows, sectionId) {
       if ((c==='Date'||c==='Time')&&vivLink&&val) return `<td><a href="${vivLink}" target="_blank" style="color:var(--t1);text-decoration:none;border-bottom:1px dashed var(--bd2)">${esc(val)}</a></td>`;
       return `<td>${esc(val)}</td>`;
     }).join('');
-    return `<tr data-geo="${geo}">${cells}</tr>`;
+    const fixCell = `<td class="fixcell"><button type="button" class="fixbtn" onclick="explainFlag('${sectionId}',${ri},this)">💡 Fix</button></td>`;
+    return `<tr data-geo="${geo}" data-sec="${sectionId}" data-ri="${ri}">${cells}${fixCell}</tr>`;
   }).join('');
   return `<div class="filter-count" id="fc-${sectionId}"></div>
 <div class="tw"><table id="tbl-${sectionId}">
@@ -941,9 +955,63 @@ function makeTable(cols, rows, sectionId) {
 </table></div>`;
 }
 
+// On-demand LLM "Recommend fix" for a single already-flagged row. Lazy: one
+// claudeProxy call fires only when the user clicks 💡 Fix, and the result is
+// cached on the row so re-opening is free. The LLM only EXPLAINS a flag the
+// deterministic layer already trusts — it never decides whether to flag.
+async function explainFlag(sectionId, ri, btn) {
+  const tr = btn.closest('tr');
+  const rows = (window._flagRows||{})[sectionId]||[];
+  const meta = (window._flagMeta||{})[sectionId]||{};
+  const r = rows[ri]; if (!r) return;
+  // Toggle: collapse if the detail row is already open
+  const next = tr.nextElementSibling;
+  if (next && next.classList.contains('fixrow')) { next.remove(); btn.textContent='💡 Fix'; return; }
+  const colspan = (meta.cols?meta.cols.length:1) + 1;
+  const insertDetail = html => {
+    const dr = document.createElement('tr');
+    dr.className = 'fixrow'; dr.setAttribute('data-geo', tr.getAttribute('data-geo')||'');
+    dr.innerHTML = `<td colspan="${colspan}" class="fixbox">${html}</td>`;
+    tr.after(dr);
+  };
+  if (r._fixHtml) { insertDetail(r._fixHtml); btn.textContent='✕ Close'; return; }
+  btn.textContent='… thinking'; btn.disabled=true;
+  try {
+    const token = (window.tributeKsfGate && window.tributeKsfGate.getToken) ? await window.tributeKsfGate.getToken() : null;
+    // Build the flag context from the visible columns only (plus the check meaning)
+    const flag = {};
+    (meta.cols||Object.keys(r)).forEach(c => { if (r[c]!==undefined && r[c]!=='') flag[c]=r[c]; });
+    const prompt = `You are the assistant to a home-care billing auditor. A DETERMINISTIC audit check ("${meta.name}") has ALREADY flagged this visit as needing a correction before billing locks — assume the flag is valid; do not re-litigate whether it's a real issue. The check catches: ${meta.desc||meta.name}.\n\nWrite, for the SCHEDULING team, a concrete resolution:\n1. "explain": one plain-English sentence on what is wrong.\n2. "fix": the specific action ("change X to Y", "add a cancelled portion for HH:MM–HH:MM", etc.).\n3. "note": if there is genuine ambiguity (e.g. a short visit could be a wrong TYPE or a MISSING cancelled portion), name the choice and which is more likely; else "".\nBe concise and specific to the numbers shown. Return STRICT JSON only: {"explain":"...","fix":"...","note":"..."}\n\nFLAGGED VISIT:\n${JSON.stringify(flag,null,1)}`;
+    const res = await fetch('https://tribute-api-prod-bkc4hfcwf3f2f6bf.centralus-01.azurewebsites.net/api/claudeproxy', {
+      method:'POST', headers:{'Content-Type':'application/json', ...(token?{Authorization:'Bearer '+token}:{})},
+      body: JSON.stringify({model:'claude-sonnet-4-6', max_tokens:700, messages:[{role:'user',content:prompt}]})
+    });
+    if (!res.ok) throw new Error('proxy '+res.status);
+    const data = await res.json();
+    const txt = (((data.content||[])[0]||{}).text)||'';
+    let o=null; const m=txt.match(/\{[\s\S]*\}/); if(m){ try{o=JSON.parse(m[0]);}catch(e){} }
+    let html;
+    if (o) {
+      html = `<div class="fx-e"><b>What's wrong:</b> ${esc(o.explain||'')}</div>`+
+             `<div class="fx-f"><b>Recommended fix:</b> ${esc(o.fix||'')}</div>`+
+             (o.note? `<div class="fx-n"><b>Judgment call:</b> ${esc(o.note)}</div>`:'');
+    } else {
+      html = `<div class="fx-e">${esc(txt||'No response')}</div>`;
+    }
+    html += `<div class="fx-src">AI suggestion — verify before actioning · not a billing decision</div>`;
+    r._fixHtml = html; insertDetail(html); btn.textContent='✕ Close';
+  } catch(e) {
+    insertDetail(`<div class="fx-n">Couldn't generate a recommendation (${esc(e.message)}). Try again.</div>`);
+    btn.textContent='💡 Fix';
+  } finally { btn.disabled=false; }
+}
+
 function sortCol(secId, colIdx, th) {
   const table = document.getElementById('tbl-'+secId);
   if (!table) return;
+  // Drop any open AI detail rows so they don't scramble into the sort
+  table.querySelectorAll('tbody tr.fixrow').forEach(x=>x.remove());
+  table.querySelectorAll('tbody .fixbtn').forEach(b=>b.textContent='💡 Fix');
   const key = secId+'-'+colIdx;
   const dir = _sortState[key]===1 ? -1 : 1;
   _sortState = {};
@@ -1336,8 +1404,10 @@ async function runDashboard() {
     // Build sections
     const container = document.getElementById('sections-container');
     container.innerHTML = '';
+    window._flagMeta = {};
     sections.forEach(s => {
       const cnt = s.data.length;
+      window._flagMeta[s.id] = {name:s.name, desc:s.desc||'', cols:s.cols};
       const div = document.createElement('div');
       div.className = 'section';
       div.id = 's-'+s.id;
