@@ -439,6 +439,43 @@ function detectOrphanTravelTime(bookings) {
   return issues;
 }
 
+// Live-In coverage: each Live-In DAY for a client should total ~24h. Flag a
+// SHORT day (gap / incomplete caregiver switch) or an OVER day (caregivers
+// overlap / duplicate). Compares each day to the CLIENT'S OWN median daily
+// Live-In hours, so legitimate 2-caregiver clients (a stable ~48h/day) are NOT
+// flagged — only days that deviate from that client's norm. (Jennifer's
+// recurring "should be a 24-hour Live-In, not an 11am switch" theme.)
+function detectLiveIn(bookings) {
+  const li = bookings.filter(b => !b._cancelled && b._vt==='Live-In' && b._start && b._end);
+  const byCD = {}, byC = {};
+  li.forEach(b => {
+    const day = etDate(b._start), k = b._cid+'|'+day;
+    if (!byCD[k]) byCD[k] = {hours:0, cgs:[], geo:b._geo, client:b._client, cid:b._cid, day, start:b._start};
+    byCD[k].hours += (b._end - b._start)/3600000;
+    if (b._cg_name) byCD[k].cgs.push(b._cg_name);
+    (byC[b._cid] = byC[b._cid] || new Set()).add(day);
+  });
+  const med = {};
+  Object.keys(byC).forEach(cid => {
+    const arr = [...byC[cid]].map(dd => byCD[cid+'|'+dd].hours).sort((a,b)=>a-b);
+    med[cid] = arr[Math.floor((arr.length-1)/2)];
+  });
+  const issues = [];
+  Object.values(byCD).forEach(o => {
+    const days = [...byC[o.cid]].sort();
+    const boundary = o.day===days[0] || o.day===days[days.length-1]; // week edge = likely cross-week continuation
+    const tot = Math.round(o.hours*10)/10;
+    let why, sev;
+    if (o.hours < 23.5 && !boundary) { why = `Only ${tot}h of Live-In coverage — expected ~24h (gap or incomplete switch)`; sev='warn'; }
+    else if (o.hours > 24.5 && o.hours > med[o.cid]+0.5) { why = `${tot}h Live-In vs this client's ~${Math.round(med[o.cid])}h norm — caregivers overlap / possible duplicate day`; sev='error'; }
+    else return;
+    issues.push({'Client':o.client,'Market':o.geo,'Date':fmtD(o.start),'LI Hours':tot+'h',
+      'Caregivers':[...new Set(o.cgs)].join(', '),'Why Flagged':why,
+      'Action':'Review Live-In coverage', severity:sev, geo:o.geo, _cid:o.cid});
+  });
+  return issues;
+}
+
 function detectApprovalQueue(bookings) {
   return bookings
     .filter(b => b._status==='REQUIRES_APPROVAL'||b._status==='REQUIRES_REAPPROVAL')
@@ -1167,6 +1204,10 @@ async function runDashboard() {
        desc:'Travel Time visits that aren\'t bracketed by two client visits — no visit before or after, or the only visit that day — so they should be removed before visits lock. The inverse of the Missing Travel Time check.',
        data:detectOrphanTravelTime(bookings),
        cols:['Caregiver','Market','Date','Time','Duration','Day Visits','Why Orphaned','Action']},
+      {id:'li',       name:'Live-In Coverage',        icon:'🏠', red:true,
+       desc:'Live-In days that don\'t total ~24h — a short/gapped day (missing or incomplete caregiver switch) or an over-covered day where caregivers overlap. Each day is compared to that client\'s own Live-In norm, so legitimate 2-caregiver clients aren\'t flagged.',
+       data:detectLiveIn(bookings),
+       cols:['Client','Market','Date','LI Hours','Caregivers','Why Flagged','Action']},
       {id:'appr',     name:'Approval Queue',          icon:'✅', red:true,
        desc:'All visits flagged as Requires Approval or Requires Re-Approval in Viv.',
        data:detectApprovalQueue(bookings),
