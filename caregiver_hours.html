@@ -154,6 +154,9 @@ async function _authFetch(url, opts) {
 var data=null,curNav='company',curView='overview',curStart=null,curEnd=null;
 var tsAdminMap={},tsAdminKey=null,tsAdminFetching=null;  // authoritative TS owed (proxy ts_admin), cgid -> row
 var globalMCE='';
+// On-leave caregivers (cas_on_leave endpoint). Excluded from utilization/gap/unhappy
+// while out, but kept in total headcount. Keyed by Viv id and by normalized name.
+var onLeaveIds={},onLeaveNames={},onLeaveLoaded=false,onLeaveFetching=false;
 
 var STATE_MARKETS={ma:['Boston','MetroWest Boston','North of Boston','South of Boston'],il:['Chicago'],md:['Baltimore','Annapolis','Bethesda']};
 var NAV_STATES={ma:'Massachusetts',il:'Illinois',md:'Maryland'};
@@ -170,6 +173,40 @@ function hapCls(h){return h>=0.75?'g':h>=0.5?'a':'r'}
 function hapBdg(h){return h>=0.75?'bg':h>=0.5?'ba':'br'}
 function hapColor(h){return h>=0.75?'var(--green)':h>=0.5?'var(--amber)':'var(--red)'}
 function fmtDate(d){return d.toISOString().split('T')[0]}
+
+function normName(s){return(s||'').toLowerCase().trim();}
+// Fetch the on-leave set once (defensive: on failure nobody is treated as on-leave).
+function fetchOnLeave(){
+  if(onLeaveLoaded||onLeaveFetching)return Promise.resolve();
+  onLeaveFetching=true;
+  return _authFetch(API+'?endpoint=cas_on_leave')
+    .then(function(r){return r.json();})
+    .then(function(d){
+      ((d&&d.rows)||[]).forEach(function(r){
+        if(r&&r.onLeaveBySchedule===true){
+          if(r.id)onLeaveIds[r.id]=true;
+          if(r.name)onLeaveNames[normName(r.name)]=true;
+        }
+      });
+      onLeaveLoaded=true;onLeaveFetching=false;
+    })
+    .catch(function(){onLeaveLoaded=true;onLeaveFetching=false;});
+}
+function isCgOnLeave(c){
+  if(!c)return false;
+  if(c.id&&onLeaveIds[c.id])return true;
+  if(c.name&&onLeaveNames[normName(c.name)])return true;
+  return false;
+}
+function markOnLeave(){
+  if(!data||!data.caregivers)return;
+  data.caregivers.forEach(function(c){c.onLeave=isCgOnLeave(c);});
+}
+// Per-caregiver happiness cell — shows an "On leave" badge instead of a red 0%.
+function hapCell(c){
+  if(c.onLeave)return '<span class="bdg bb">On leave</span>';
+  return '<span class="bdg '+hapBdg(c.happiness)+'">'+Math.round(c.happiness*100)+'%</span>';
+}
 
 function getSunday(weeksAgo){
   var now=new Date();var d=new Date(now);
@@ -229,8 +266,14 @@ function applyData(d){
   document.getElementById('sl').innerHTML='<span class="dot"></span>Live &middot; Viv Technologies &middot; '+new Date().toLocaleTimeString();
   document.getElementById('hr').innerHTML=fn(t.total)+' caregivers &middot; '+fp(t.goal75pct)+' at 75%+<br><span style="color:var(--text3)">'+curStart+' to '+curEnd+'</span>';
   document.getElementById('ga').textContent='Week: '+curStart+' \u2014 '+curEnd;
+  markOnLeave();
   populateMCEDropdown();
   render();
+  // Fetch the on-leave set once, then re-mark + re-render so on-leave caregivers
+  // are excluded from utilization/gap/unhappy and shown with an "On leave" tag.
+  if(!onLeaveLoaded){
+    fetchOnLeave().then(function(){if(data===d){markOnLeave();render();}});
+  }
 }
 
 async function fetchData(){
@@ -312,15 +355,19 @@ function populateMCEDropdown(){
 
 function aggregateGroup(cgs){
   var total=cgs.length;
-  var desired=cgs.reduce(function(s,c){return s+c.desiredHrs},0);
-  var scheduled=cgs.reduce(function(s,c){return s+c.scheduledHrs},0);
+  // On-leave caregivers stay in headcount but are excluded from utilization,
+  // the hours gap, and desired/scheduled totals so they don't drag the numbers.
+  var active=cgs.filter(function(c){return !c.onLeave;});
+  var onLeave=total-active.length;
+  var desired=active.reduce(function(s,c){return s+c.desiredHrs},0);
+  var scheduled=active.reduce(function(s,c){return s+c.scheduledHrs},0);
   var b0=cgs.filter(function(c){return c.bucket==='0-25'}).length;
   var b25=cgs.filter(function(c){return c.bucket==='25-50'}).length;
   var b50=cgs.filter(function(c){return c.bucket==='50-75'}).length;
   var b75=cgs.filter(function(c){return c.bucket==='75-100'}).length;
   var avgH=total>0?cgs.reduce(function(s,c){return s+c.happiness},0)/total:0;
-  var gap=cgs.reduce(function(s,c){return s+Math.max(0,c.desiredHrs-c.scheduledHrs)},0);
-  return{total,desired,scheduled,b0,b25,b50,b75,avgH,gap,util:desired>0?scheduled/desired:0,goal75:total>0?b75/total:0};
+  var gap=active.reduce(function(s,c){return s+Math.max(0,c.desiredHrs-c.scheduledHrs)},0);
+  return{total,onLeave,desired,scheduled,b0,b25,b50,b75,avgH,gap,util:desired>0?scheduled/desired:0,goal75:total>0?b75/total:0};
 }
 
 function stackBar(b0,b25,b50,b75,total,h){
@@ -369,13 +416,15 @@ function renderOverview(){
   html+='<div class="banner '+bc+'"><div class="bl '+bc+'">'+navLabel()+' &mdash; '+pl+'</div>';
   html+=fn(agg.total)+' active caregivers. '+fp(agg.goal75)+' receiving 75%+ of desired hours ';
   html+='(goal: &gt;90% &mdash; '+(agg.goal75>=0.9?'<strong style="color:var(--green)">On track</strong>':'<strong style="color:'+(agg.goal75>=0.7?'var(--amber)':'var(--red)')+'">Below goal</strong>')+').';
-  html+=' '+fn(Math.round(agg.gap))+'h of desired hours unmet this week.</div>';
+  html+=' '+fn(Math.round(agg.gap))+'h of desired hours unmet this week.';
+  if(agg.onLeave>0)html+=' <span style="color:var(--text2)">'+fn(agg.onLeave)+' on leave, excluded from utilization &amp; gap.</span>';
+  html+='</div>';
 
-  var unhappy=cgs.filter(function(c){return c.scheduledHrs<c.desiredHrs}).length;
+  var unhappy=cgs.filter(function(c){return !c.onLeave&&c.scheduledHrs<c.desiredHrs}).length;
   var unhappyPct=agg.total>0?unhappy/agg.total:0;
   html+='<div class="kg">';
-  html+='<div class="kpi"><div class="kl">Active Caregivers</div><div class="kv b">'+fn(agg.total)+'</div><div class="ks">'+navLabel()+'</div></div>';
-  html+='<div class="kpi"><div class="kl">Unhappy Caregivers</div><div class="kv r">'+fn(unhappy)+'</div><div class="ks">'+fp(unhappyPct)+' under desired hrs</div></div>';
+  html+='<div class="kpi"><div class="kl">Active Caregivers</div><div class="kv b">'+fn(agg.total)+'</div><div class="ks">'+navLabel()+(agg.onLeave>0?' &middot; '+fn(agg.onLeave)+' on leave':'')+'</div></div>';
+  html+='<div class="kpi"><div class="kl">Unhappy Caregivers</div><div class="kv r">'+fn(unhappy)+'</div><div class="ks">'+fp(unhappyPct)+' under desired hrs'+(agg.onLeave>0?' &middot; excl. on-leave':'')+'</div></div>';
   html+='<div class="kpi"><div class="kl">75%+ of Desired</div><div class="kv '+(agg.goal75>=0.9?'g':agg.goal75>=0.7?'a':'r')+'">'+fp(agg.goal75)+'</div><div class="ks" style="color:'+(agg.goal75>=0.9?'var(--green)':'var(--red)')+'">Goal: &gt;90%</div></div>';
   html+='<div class="kpi"><div class="kl">75-100% Goal</div><div class="kv '+(agg.goal75>=0.7?'g':'r')+'">'+fp(agg.goal75)+'</div><div class="ks" style="color:'+(agg.goal75>=0.7?'var(--green)':'var(--red)')+'">Goal: &gt;70%</div></div>';
   html+='<div class="kpi"><div class="kl">Hours Utilization</div><div class="kv '+(agg.util>=0.85?'g':agg.util>=0.7?'a':'r')+'">'+fp(agg.util)+'</div><div class="ks">'+fn(Math.round(agg.scheduled))+'h / '+fn(Math.round(agg.desired))+'h</div></div>';
@@ -438,8 +487,10 @@ function renderUtilization(){
   var pl=curStart+' to '+curEnd;
 
   function mktUtil(mktCgs){
-    var avail=mktCgs.reduce(function(s,c){return s+c.desiredHrs},0);
-    var sched=mktCgs.reduce(function(s,c){return s+c.scheduledHrs},0);
+    // On-leave caregivers kept in headcount but excluded from capacity/utilization.
+    var actv=mktCgs.filter(function(c){return !c.onLeave;});
+    var avail=actv.reduce(function(s,c){return s+c.desiredHrs},0);
+    var sched=actv.reduce(function(s,c){return s+c.scheduledHrs},0);
     var gap=Math.max(0,avail-sched);
     var util=avail>0?sched/avail:0;
     var count=mktCgs.length;
@@ -450,7 +501,9 @@ function renderUtilization(){
   var html='';
   html+='<div class="banner '+(overallAgg.util>=0.85?'':'w')+'"><div class="bl '+(overallAgg.util>=0.85?'':'w')+'">Caregiver Utilization &mdash; '+navLabel()+' &mdash; '+pl+'</div>';
   html+='Available capacity: '+fn(Math.round(overallAgg.desired))+'h desired &middot; '+fn(Math.round(overallAgg.scheduled))+'h scheduled &middot; <strong>'+fp(overallAgg.util)+'</strong> utilization. ';
-  html+=fn(Math.round(overallAgg.gap))+'h of caregiver capacity is going unused this week.</div>';
+  html+=fn(Math.round(overallAgg.gap))+'h of caregiver capacity is going unused this week.';
+  if(overallAgg.onLeave>0)html+=' <span style="color:var(--text2)">'+fn(overallAgg.onLeave)+' caregivers on leave are excluded from these figures.</span>';
+  html+='</div>';
 
   // Top KPIs
   html+='<div class="kg">';
@@ -458,7 +511,7 @@ function renderUtilization(){
   html+='<div class="kpi"><div class="kl">Scheduled Hours</div><div class="kv g">'+fn(Math.round(overallAgg.scheduled))+'h</div><div class="ks">Billable hours filled</div></div>';
   html+='<div class="kpi"><div class="kl">Utilization Rate</div><div class="kv '+(overallAgg.util>=0.85?'g':overallAgg.util>=0.7?'a':'r')+'">'+fp(overallAgg.util)+'</div><div class="ks">Scheduled &divide; available</div></div>';
   html+='<div class="kpi"><div class="kl">Unused Capacity</div><div class="kv r">'+fn(Math.round(overallAgg.gap))+'h</div><div class="ks">Hours going unfilled</div></div>';
-  html+='<div class="kpi"><div class="kl">Caregivers</div><div class="kv p">'+fn(overallAgg.total)+'</div><div class="ks">Active this week</div></div>';
+  html+='<div class="kpi"><div class="kl">Caregivers</div><div class="kv p">'+fn(overallAgg.total)+'</div><div class="ks">'+(overallAgg.onLeave>0?fn(overallAgg.onLeave)+' on leave (excluded)':'Active this week')+'</div></div>';
   html+='</div>';
 
   // Build market/state data based on nav
@@ -669,6 +722,7 @@ function renderHeatmap(){
   html+='<span><span style="display:inline-block;width:12px;height:12px;background:var(--amber);border-radius:2px;margin-right:4px;vertical-align:middle"></span>50-75%</span>';
   html+='<span><span style="display:inline-block;width:12px;height:12px;background:var(--red);border-radius:2px;margin-right:4px;vertical-align:middle"></span>25-50%</span>';
   html+='<span><span style="display:inline-block;width:12px;height:12px;background:var(--red);opacity:.55;border-radius:2px;margin-right:4px;vertical-align:middle"></span>0-25%</span>';
+  html+='<span><span style="display:inline-block;width:12px;height:12px;background:var(--blue);opacity:.45;border-radius:2px;margin-right:4px;vertical-align:middle"></span>On leave (excluded)</span>';
   html+='</div>';
 
   types.forEach(function(type){
@@ -680,10 +734,12 @@ function renderHeatmap(){
     html+='<div class="heatmap">';
     tcgs.sort(function(a,b){return a.happiness-b.happiness}).forEach(function(c){
       var h=c.happiness;
-      var col=h>=0.75?'var(--green)':h>=0.5?'var(--amber)':h>=0.25?'var(--red)':'rgba(224,75,74,0.55)';
+      // On-leave caregivers render neutral (not red) with an "On leave" tooltip.
+      var col=c.onLeave?'var(--blue)':h>=0.75?'var(--green)':h>=0.5?'var(--amber)':h>=0.25?'var(--red)':'rgba(224,75,74,0.55)';
       var pct=Math.round(h*100);
-      html+='<div class="hm-cell" style="background:'+col+'" title="'+c.name+'">';
-      html+='<div class="hm-tip">'+c.name+'<br>'+c.market+'<br>'+pct+'% happy<br>'+fh(c.scheduledHrs)+' / '+fh(c.desiredHrs)+(c.ptoHrs>0?'<br>'+fh(c.ptoHrs)+' PTO':'')+'</div>';
+      var line3=c.onLeave?'On leave':pct+'% happy';
+      html+='<div class="hm-cell" style="background:'+col+(c.onLeave?';opacity:.45':'')+'" title="'+c.name+(c.onLeave?' (on leave)':'')+'">';
+      html+='<div class="hm-tip">'+c.name+'<br>'+c.market+'<br>'+line3+'<br>'+fh(c.scheduledHrs)+' / '+fh(c.desiredHrs)+(c.ptoHrs>0?'<br>'+fh(c.ptoHrs)+' PTO':'')+'</div>';
       html+='</div>';
     });
     html+='</div></div>';
@@ -717,12 +773,11 @@ function renderMCE(){
     html+='<div id="'+id+'" class="mce-body">';
     html+='<table class="tbl"><thead><tr><th>Caregiver</th><th>Market</th><th>Type</th><th>Happiness</th><th>Scheduled</th><th>Desired</th><th>Gap</th><th>PTO</th></tr></thead><tbody>';
     mce.cgs.forEach(function(c){
-      var pct=Math.round(c.happiness*100);
       html+='<tr>';
       html+='<td>'+c.name+'</td>';
       html+='<td style="font-weight:normal;color:var(--text2)">'+c.market+'</td>';
       html+='<td style="font-weight:normal;color:var(--text2)">'+TYPE_ICONS[c.cgType]+' '+c.cgType+'</td>';
-      html+='<td><span class="bdg '+hapBdg(c.happiness)+'">'+pct+'%</span></td>';
+      html+='<td>'+hapCell(c)+'</td>';
       html+='<td>'+fh(c.scheduledHrs)+'</td>';
       html+='<td>'+fh(c.desiredHrs)+'</td>';
       html+='<td style="color:'+(c.differential>=0?'var(--green)':'var(--red)')+'">'+(c.differential>=0?'+':'')+fh(c.differential)+'</td>';
@@ -839,7 +894,7 @@ function renderTributeSecure(){
     html+='<td style="font-weight:normal;color:var(--text2)">'+c.assignee+'</td>';
     html+='<td style="font-weight:normal">'+TYPE_ICONS[c.cgType]+' '+c.cgType+'</td>';
     html+='<td style="color:var(--purple)">TS'+c.tsThreshold+'</td>';
-    html+='<td><span class="bdg '+hapBdg(c.happiness)+'">'+pct+'%</span></td>';
+    html+='<td>'+hapCell(c)+'</td>';
     html+='<td>'+fh(c.scheduledHrs)+'</td>';
     html+='<td>'+fh(c.desiredHrs)+'</td>';
     html+='<td style="color:'+(c.differential>=0?'var(--green)':'var(--red)')+'">'+(c.differential>=0?'+':'')+fh(c.differential)+'</td>';
@@ -938,7 +993,7 @@ function renderListTable(){
     html+='<td style="font-weight:normal;color:var(--text2)">'+c.assignee+'</td>';
     html+='<td style="font-weight:normal;font-size:11px;color:var(--text2)">'+hd+'</td>';
     html+='<td style="font-weight:normal;color:'+tsColor+'">'+tsLabel+'</td>';
-    html+='<td><span class="bdg '+hapBdg(c.happiness)+'">'+pct+'%</span></td>';
+    html+='<td>'+hapCell(c)+'</td>';
     html+='<td>'+fh(c.scheduledHrs)+'</td>';
     html+='<td>'+fh(c.desiredHrs)+'</td>';
     html+='<td style="color:'+(c.differential>=0?'var(--green)':'var(--red)')+'">'+(c.differential>=0?'+':'')+fh(c.differential)+'</td>';
@@ -1019,7 +1074,7 @@ function renderNewHires(){
       html+='<td style="font-weight:normal">'+TYPE_ICONS[c.cgType]+' '+c.cgType+'</td>';
       html+='<td style="font-weight:normal;color:var(--text2)">'+c.assignee+'</td>';
       html+='<td>Day '+c._daysSinceHire+'</td>';
-      html+='<td><span class="bdg '+hapBdg(c.happiness)+'">'+pct+'%</span></td>';
+      html+='<td>'+hapCell(c)+'</td>';
       html+='<td>'+fh(c.scheduledHrs)+'</td>';
       html+='<td>'+fh(c.desiredHrs)+'</td>';
       html+='<td style="color:'+(c.differential>=0?'var(--green)':'var(--red)')+'">'+(c.differential>=0?'+':'')+fh(c.differential)+'</td>';
