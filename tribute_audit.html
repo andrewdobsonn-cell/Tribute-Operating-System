@@ -386,8 +386,13 @@ function detectTravelTime(bookings) {
       ttExisting[b._cgid].push({s:b._start, e:b._end});
     }
   });
+  // b._cgid is '' on an OPEN (unassigned) visit, so without this guard every
+  // unassigned visit in the company collapses into one ''-keyed "caregiver" and
+  // any two of them an hour apart look like a back-to-back pair needing Travel
+  // Time — even across states. (Megan 2026-08-25: a Baltimore MD client and an
+  // MA client flagged as one 1.00h gap with a blank Caregiver cell.)
   const worked = bookings.filter(b =>
-    !b._cancelled && !EXCLUDE_VT.has(b._vt) && !b._is_office && b._start && b._end
+    !b._cancelled && !EXCLUDE_VT.has(b._vt) && !b._is_office && b._start && b._end && b._cgid
   ).sort((a,b) => a._cgid.localeCompare(b._cgid)||a._start-b._start);
 
   const issues = [];
@@ -423,12 +428,13 @@ function detectOrphanTravelTime(bookings) {
   // after an overnight would look orphaned. Orphaned = missing the before, the
   // after, or both.
   const AB = 45*60000; // abut tolerance (min) between a TT edge and its bracketing visit
-  const worked = bookings.filter(b => !b._cancelled && !EXCLUDE_VT.has(b._vt) && !b._is_office && b._start && b._end);
+  const worked = bookings.filter(b => !b._cancelled && !EXCLUDE_VT.has(b._vt) && !b._is_office && b._start && b._end && b._cgid);
   const byCg = {};
   worked.forEach(b => { (byCg[b._cgid]=byCg[b._cgid]||[]).push(b); });
   const issues = [];
   bookings.forEach(tt => {
     if (tt._vt!=='Travel Time' || tt._cancelled || !tt._start || !tt._end) return;
+    if (!tt._cgid) return; // unassigned Travel Time — no caregiver's day to bracket it against
     const w = byCg[tt._cgid] || [];
     const prior = w.some(x => x._start < tt._start && Math.abs(x._end - tt._start) <= AB);
     const next  = w.some(x => x._start > tt._start && Math.abs(x._start - tt._end) <= AB);
@@ -576,6 +582,7 @@ function detectOverlapsCG(bookings) {
   const byCG = {};
   bookings.forEach(b => {
     if (b._cancelled || EXCLUDE_VT.has(b._vt) || ABSENCE_VT.has(b._vt) || b._is_office || !b._start || !b._end) return;
+    if (!b._cgid) return; // open/unassigned visit — nobody to double-book
     if (!byCG[b._cgid]) byCG[b._cgid] = [];
     byCG[b._cgid].push(b);
   });
