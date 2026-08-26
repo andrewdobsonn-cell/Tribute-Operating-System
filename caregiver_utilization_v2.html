@@ -130,6 +130,7 @@ td.wr{white-space:normal;max-width:200px;overflow:hidden;text-overflow:ellipsis}
 <div class="stat-card"><div class="stat-label">PRN</div><div class="stat-value" id="k-prn">—</div></div>
 <div class="stat-card"><div class="stat-label">On PTO</div><div class="stat-value" id="k-pto">—</div></div>
 <div class="stat-card"><div class="stat-label">On Leave</div><div class="stat-value" id="k-leave">—</div></div>
+<div class="stat-card"><div class="stat-label">Restricted</div><div class="stat-value" id="k-restrict">—</div></div>
 </div>
 <div class="content" id="content">
 <div class="filter-bar">
@@ -182,7 +183,7 @@ const DAY_ABBREVS=["Su","Mo","Tu","We","Th","Fr","Sa"];
 const DAY_MAP={su:0,sun:0,sunday:0,mo:1,mon:1,monday:1,m:1,tu:2,tue:2,tuesday:2,t:2,we:3,wed:3,wednesday:3,w:3,th:4,thu:4,thursday:4,fr:5,fri:5,friday:5,f:5,sa:6,sat:6,saturday:6};
 const DAY_PAT=/(?:Su|Sun|Sunday|Mo|Mon|Monday|Tu|Tue|Tuesday|We|Wed|Wednesday|Th|Thu|Thursday|Fr|Fri|Friday|Sa|Sat|Saturday|M|T|W|F)/gi;
 
-let ACTIVE=[],PRN_R=[],PTO_R=[],LEAVE_R=[],TRAVEL=[],SCHED_RAW=[];
+let ACTIVE=[],PRN_R=[],PTO_R=[],LEAVE_R=[],RESTRICT_R=[],TRAVEL=[],SCHED_RAW=[];
 // Availability context beyond the schedule itself. Approved PTO already comes
 // through the schedule (ABSENCE_T -> ptoDayFlags); these two do NOT, and until
 // 2026-08-26 this page ignored both — so anyone on a temporary hold or on leave
@@ -190,7 +191,14 @@ let ACTIVE=[],PRN_R=[],PTO_R=[],LEAVE_R=[],TRAVEL=[],SCHED_RAW=[];
 // market and the company number down with them.
 let tuByCgV2={};              // cgId -> {from,until,returns,upcoming} (ET ISO dates)
 let onLeaveIdsV2={},onLeaveNamesV2={};   // -> {from,until} windows, ET ISO
-let AVAIL_CTX={tu:false,leave:false};  // did each adjustment actually load?
+// Medical restrictions. Confirmed 2026-08-26 (Khadijah Bangura) that they are
+// logged on the Viv HR work-related / non-work-related INJURY forms, which the
+// same cas_on_leave feed already returns — so this costs no extra call.
+// Andrew's call on treatment: the majority of restricted caregivers cannot work
+// with the current client base, so their capacity is not meaningfully sellable
+// and they are held OUT of the headline utilisation and reported separately.
+let restrictByCgV2={},restrictByNameV2={};
+let AVAIL_CTX={tu:false,leave:false,restrict:false};
 let tsAdminMapV2={},tsAdminKeyV2=null;  // authoritative TS owed (proxy ts_admin), cgId -> row
 let CURRENT_WEEK_KEY='';
 
@@ -222,6 +230,29 @@ function onLeaveWindowV2(cgId,first,last){
   if(!w){const n=normNameV2((first||'')+' '+(last||''));if(n)w=onLeaveNamesV2[n]}
   return w||null;
 }
+// Injury-form restriction state for the displayed week. Deliberately NOT
+// sub-classified into out-vs-limited: the forms carry no "restriction while
+// working" type (every Type of Absence option is a leave category) and the
+// actual limit sits in the free-text Narrative, which is medical detail we will
+// not read into a scheduling view. So we identify the COHORT and stop there.
+//   out_this_week  window covers the week on screen
+//   open_window    window still open (ends in the future)
+//   dates_unclear  form on record but no parseable window — cannot prove it ended
+//   ended          window clearly finished -> not restricted, no flag
+function _restrictFormState(f,weekKey){
+  const qa=(re)=>{const x=(f.fields||[]).find(y=>re.test(String(y.q||'')));return x?String(x.a==null?'':x.a).trim():''};
+  const s=Date.parse(qa(/anticipated first day/i)), e=Date.parse(qa(/anticipated return date/i));
+  if(isNaN(s)||isNaN(e))return'dates_unclear';
+  const ws=Date.parse(weekKey+'T00:00:00Z'), we=ws+7*86400000;
+  if(s<we&&e>=ws)return'out_this_week';
+  return e>=Date.now()?'open_window':'ended';
+}
+const _RESTRICT_RANK={out_this_week:3,open_window:2,dates_unclear:1};
+function restrictStateV2(cgId,first,last){
+  let r=cgId?restrictByCgV2[cgId]:null;
+  if(!r){const n=normNameV2((first||'')+' '+(last||''));if(n)r=restrictByNameV2[n]}
+  return r||null;
+}
 function isOnLeaveV2(cgId,first,last,weekKey,workedHrs){
   if(workedHrs>0)return false;
   const w=onLeaveWindowV2(cgId,first,last);
@@ -233,7 +264,8 @@ function isOnLeaveV2(cgId,first,last,weekKey,workedHrs){
 // that the adjustment did not apply, so the page can say so rather than quietly
 // reporting unadjusted numbers as if they were adjusted.
 async function loadAvailContextV2(weekKey,authH){
-  tuByCgV2={};onLeaveIdsV2={};onLeaveNamesV2={};AVAIL_CTX={tu:false,leave:false};
+  tuByCgV2={};onLeaveIdsV2={};onLeaveNamesV2={};
+  restrictByCgV2={};restrictByNameV2={};AVAIL_CTX={tu:false,leave:false,restrict:false};
   const tuP=fetch(API+'?endpoint=recurring_days',{headers:authH}).then(r=>r.json()).then(function(d){
     if(!d||!d.tempUnavail)throw new Error('no tempUnavail');
     tuByCgV2=d.tempUnavail;AVAIL_CTX.tu=true;
@@ -244,9 +276,24 @@ async function loadAvailContextV2(weekKey,authH){
         const w={from:(r.leave&&r.leave.from)||'',until:(r.leave&&r.leave.until)||''};
         if(r.id)onLeaveIdsV2[r.id]=w;
         if(r.name)onLeaveNamesV2[normNameV2(r.name)]=w;
+      }
+      // Medical restriction cohort, from the injury forms on the same row.
+      const injury=(r&&r.forms||[]).filter(f=>/Injury/i.test(f.title||''));
+      if(injury.length){
+        let best=null;
+        injury.forEach(function(f){
+          const st=_restrictFormState(f,weekKey);
+          if(st==='ended')return;
+          if(!best||_RESTRICT_RANK[st]>_RESTRICT_RANK[best.state])
+            best={state:st,title:f.title,updatedAt:f.updatedAt,submittedAt:f.submittedAt};
+        });
+        if(best){
+          if(r.id)restrictByCgV2[r.id]=best;
+          if(r.name)restrictByNameV2[normNameV2(r.name)]=best;
+        }
       }});
-    AVAIL_CTX.leave=true;
-  }).catch(function(e){console.warn('[util_v2] on-leave unavailable:',e.message)});
+    AVAIL_CTX.leave=true;AVAIL_CTX.restrict=true;
+  }).catch(function(e){console.warn('[util_v2] on-leave / restrictions unavailable:',e.message)});
   await Promise.all([tuP,lvP]);
 }
 
@@ -404,7 +451,7 @@ function processSchedule(dfSc){
 // ── Process Caregivers ──
 function processCaregivers(dfCg,sched,weekKey){
   const{typeHrs,typeVis,dayTypeHrs,ptoDayFlags,ptoDayHrs,cancelledHrs,payableHrs,billedHrs}=sched;
-  const activeRows=[],prnRows=[],ptoRows=[],leaveRows=[];
+  const activeRows=[],prnRows=[],ptoRows=[],leaveRows=[],restrictRows=[];
   for(const row of dfCg){
     const notes=(row['Caregiver Availability Notes']||'').trim();const tags=(row['Tags']||'').trim();const cgId=(row['Caregiver-Id']||'').trim();
     if(EX_NOTES.has(notes.toLowerCase()))continue;
@@ -470,11 +517,17 @@ function processCaregivers(dfCg,sched,weekKey){
     // entirely, the same way caregiver_hours.html does it, and surfaced in its
     // own bucket so the caregiver is not lost from the page.
     if(isOnLeaveV2(cgId,base.first,base.last,weekKey,worked)){leaveRows.push({...base,svcType:ptName});continue}
+    // Restricted: held out of the headline because most cannot be placed with the
+    // current client base. Unlike leave, worked hours do NOT return them to the
+    // headline — how much we still manage to use them is the point of the
+    // separate number, so their hours travel with them into this bucket.
+    const _rs=restrictStateV2(cgId,base.first,base.last);
+    if(_rs){restrictRows.push({...base,svcType:ptName,restrictState:_rs.state,restrictForm:_rs.title||''});continue}
     if(desired>0&&adjCap===0&&worked===0)ptoRows.push({...base,svcType:ptName});
     else if(desired===0&&worked>0)prnRows.push({...base,svcType:'PRN Worked'});
     else if(desired>0||worked>0)activeRows.push(base);
   }
-  return{activeRows,prnRows,ptoRows,leaveRows};
+  return{activeRows,prnRows,ptoRows,leaveRows,restrictRows};
 }
 
 // ── Travel Gaps ──
@@ -550,7 +603,8 @@ async function loadLiveWeek(weekKey){
     var sched=processSchedule(dfSc);
     var result=processCaregivers(dfCg,sched,weekKey);
     var travel=processTravelGaps(dfSc);
-    ACTIVE=result.activeRows;PRN_R=result.prnRows;PTO_R=result.ptoRows;LEAVE_R=result.leaveRows;TRAVEL=travel;
+    ACTIVE=result.activeRows;PRN_R=result.prnRows;PTO_R=result.ptoRows;LEAVE_R=result.leaveRows;
+    RESTRICT_R=result.restrictRows;TRAVEL=travel;
     showMeta(d.generatedAt||new Date().toISOString(),'Viv Report Builder','Viv Schedule API');
     popFilters();renderAll();
     fetchTsAdminV2(weekKey);
@@ -589,6 +643,8 @@ function updateKPIs(){
   let lv=LEAVE_R;if(s)lv=lv.filter(c=>c.state===s);if(m)lv=lv.filter(c=>c.market===m);
   document.getElementById('k-prn').textContent=pr.length;document.getElementById('k-pto').textContent=pt.length;
   document.getElementById('k-leave').textContent=AVAIL_CTX.leave?lv.length:'n/a';
+  let rx=RESTRICT_R;if(s)rx=rx.filter(c=>c.state===s);if(m)rx=rx.filter(c=>c.market===m);
+  document.getElementById('k-restrict').textContent=AVAIL_CTX.restrict?rx.length:'n/a';
   renderCapacityNote();
 }
 
@@ -602,15 +658,55 @@ function renderCapacityNote(){
   let h='<strong>What is taken out of capacity:</strong> approved time off (PTO, sick, turn-down) ';
   h+='and any day covered by a temporary unavailability hold. Caregivers on leave (14+ consecutive days) ';
   h+='are held out of the utilisation population altogether and counted under On Leave. ';
+  h+='Caregivers with a medical restriction on file are also excluded and reported separately below. ';
   h+='Capacity itself still comes from the declared availability notes, so a caregiver who lists six days ';
   h+='but will only work four still counts as six \u2014 open capacity is therefore an upper bound.';
   const warn=[];
   if(!AVAIL_CTX.tu)warn.push('temporary unavailability could not be loaded, so holds are NOT removed from capacity');
   if(!AVAIL_CTX.leave)warn.push('the on-leave list could not be loaded, so caregivers on leave are still counted');
+  if(!AVAIL_CTX.restrict)warn.push('medical restrictions could not be loaded, so restricted caregivers are still counted as deployable');
   if(warn.length)h='<strong>Heads up:</strong> '+warn.join('; ')+'. Numbers below are unadjusted for that. '+h;
   else if(AVAIL_CTX.tu)h+=' <em>'+tuCg+' caregivers have a hold covering part of this week.</em>';
   el.innerHTML=h;
   el.style.borderLeftColor=warn.length?'var(--amber,#B4690E)':'var(--gray-300,#d8d3cc)';
+}
+
+// Restricted caregivers get their own utilisation rather than being folded into
+// the headline. Their capacity is largely unsellable against the current client
+// base, so mixing it in understates deployment; but they are still being paid
+// and still want hours, so how much we DO use them is a number worth watching.
+// The combined figure is shown alongside for continuity with what the page
+// reported before this split.
+function renderRestrictedPanel(){
+  if(!AVAIL_CTX.restrict)return'';
+  const R=RESTRICT_R;
+  const rCap=R.reduce((s,r)=>s+r.adjCap,0), rWrk=R.reduce((s,r)=>s+Math.min(r.worked,r.adjCap>0?r.adjCap:r.worked),0);
+  const dCap=ACTIVE.reduce((s,r)=>s+r.adjCap,0), dWrk=ACTIVE.reduce((s,r)=>s+Math.min(r.worked,r.adjCap>0?r.adjCap:r.worked),0);
+  const both=(dCap+rCap)>0?(dWrk+rWrk)/(dCap+rCap):0;
+  const unclear=R.filter(r=>r.restrictState==='dates_unclear').length;
+  const outWk=R.filter(r=>r.restrictState==='out_this_week').length;
+  const noHours=R.filter(r=>r.worked===0).length;
+  const desired=R.reduce((s,r)=>s+r.desired,0);
+  let h='<div class="tc" style="margin-top:18px"><div class="tt">Restricted Caregivers &mdash; counted separately</div>';
+  h+='<div class="dash-kpis" style="margin:12px 0">';
+  h+='<div class="dash-kpi"><div class="kl">Deployable Util %</div><div class="kv">'+P(dCap>0?dWrk/dCap:0)+'</div><div class="ks">'+ACTIVE.length+' caregivers, restricted excluded</div></div>';
+  h+='<div class="dash-kpi"><div class="kl">Restricted Util %</div><div class="kv">'+P(rCap>0?rWrk/rCap:0)+'</div><div class="ks">'+R.length+' caregivers</div></div>';
+  h+='<div class="dash-kpi"><div class="kl">Combined Util %</div><div class="kv">'+P(both)+'</div><div class="ks">what this page showed before</div></div>';
+  h+='<div class="dash-kpi"><div class="kl">Restricted, no hours</div><div class="kv">'+noHours+'</div><div class="ks">of '+R.length+' this week</div></div>';
+  h+='</div>';
+  h+='<div class="ts"><table><thead><tr><th class="al">Market</th><th>Caregivers</th><th>Desired Hrs</th><th>Hrs Worked</th><th>Out this week</th><th>Dates unclear</th></tr></thead><tbody>';
+  for(const mkt of MKT_ORDER){
+    const rr=R.filter(r=>r.market===mkt);if(!rr.length)continue;
+    h+='<tr><td class="al">'+mkt+'</td><td>'+rr.length+'</td><td>'+H(rr.reduce((s,r)=>s+r.desired,0))+'</td><td>'+H(rr.reduce((s,r)=>s+r.worked,0))+'</td>'
+      +'<td>'+rr.filter(r=>r.restrictState==='out_this_week').length+'</td><td>'+rr.filter(r=>r.restrictState==='dates_unclear').length+'</td></tr>';
+  }
+  h+='</tbody><tfoot><tr><td class="al">Total</td><td>'+R.length+'</td><td>'+H(desired)+'</td><td>'+H(R.reduce((s,r)=>s+r.worked,0))+'</td><td>'+outWk+'</td><td>'+unclear+'</td></tr></tfoot></table></div>';
+  h+='<div class="cap-note" style="margin:14px 0 0">Sourced from the Viv HR work-related and non-work-related injury forms. '
+    +'A caregiver is counted here when their form has no clearly finished window &mdash; it covers this week, it is still open, or it carries no usable dates. '
+    +'<strong>'+unclear+' of '+R.length+' carry no usable dates</strong>, so we cannot confirm whether those restrictions are still current; chasing those forms is the fastest way to sharpen this number. '
+    +'The forms record ABSENCE, not working-with-limits &mdash; every absence type on them is a leave category &mdash; so this identifies who has a restriction, not what it is. '
+    +'The medical detail lives in the form narrative and is deliberately not read into this page.</div>';
+  return h+'</div>';
 }
 
 // ── Dashboard (matching Excel Dashboard tab) ──
@@ -623,8 +719,10 @@ function renderDashboard(){
   h+='<div class="dash-kpi"><div class="kl">PRN Worked</div><div class="kv">'+PRN_R.length+'</div><div class="ks">this week</div></div>';
   h+='<div class="dash-kpi"><div class="kl">On PTO</div><div class="kv">'+PTO_R.length+'</div><div class="ks">this week</div></div>';
   h+='<div class="dash-kpi"><div class="kl">On Leave</div><div class="kv">'+(AVAIL_CTX.leave?LEAVE_R.length:'n/a')+'</div><div class="ks">'+(AVAIL_CTX.leave?'excl. from util':'list unavailable')+'</div></div>';
+  h+='<div class="dash-kpi"><div class="kl">Restricted</div><div class="kv">'+(AVAIL_CTX.restrict?RESTRICT_R.length:'n/a')+'</div><div class="ks">excl. from util</div></div>';
   h+='<div class="dash-kpi"><div class="kl">Overall Util %</div><div class="kv">'+P(util)+'</div><div class="ks">this week</div></div>';
   h+='</div>';
+  h+=renderRestrictedPanel();
   // Market Utilization Heatmap
   h+='<div class="dash-grid"><div>';
   h+='<div class="tc"><div class="tt">Market Utilization Heatmap</div><div class="ts"><table><thead><tr><th class="al">Market</th><th>Overall</th><th>Long Hours</th><th>Overnight</th><th>Short Hours</th><th>Live-In</th></tr></thead><tbody>';
@@ -733,6 +831,8 @@ function renderSummary(pid,keyField,orderList,title,label){
       h+='<tr class="pto"><td></td><td class="al">  On PTO</td><td>'+ptoR.length+'</td><td colspan="9" class="al">'+parts.join(', ')+'</td></tr>'}
     let lvR=LEAVE_R.filter(r=>r[keyField]===key);if(keyField==='state'&&m)lvR=lvR.filter(r=>r.market===m);
     if(lvR.length){h+='<tr class="pto"><td></td><td class="al">  On Leave</td><td>'+lvR.length+'</td><td colspan="9" class="al">excluded from utilisation (14+ consecutive days off)</td></tr>'}
+    let rxR=RESTRICT_R.filter(r=>r[keyField]===key);if(keyField==='state'&&m)rxR=rxR.filter(r=>r.market===m);
+    if(rxR.length){h+='<tr class="pto"><td></td><td class="al">  Restricted</td><td>'+rxR.length+'</td><td colspan="9" class="al">excluded from utilisation &middot; medical restriction on file &middot; '+H(rxR.reduce((s,r)=>s+r.worked,0))+' worked</td></tr>'}
     h+='<tr class="sp"><td colspan="12"></td></tr>';
   }
   h+='</tbody></table></div></div>';document.getElementById('p-'+pid).innerHTML=h;
