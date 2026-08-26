@@ -51,6 +51,11 @@ body{font-family:'Inter',sans-serif;background:var(--cream);color:var(--charcoal
 .content.show{display:block}
 
 .filter-bar{display:flex;gap:14px;align-items:flex-end;margin-bottom:20px;flex-wrap:wrap}
+.cap-note{font-size:12.5px;line-height:1.55;color:var(--gray-text,#5c554c);background:var(--white,#fff);
+  border:1px solid var(--gray-200,#eae6e0);border-left:3px solid var(--gray-300,#d8d3cc);
+  border-radius:8px;padding:10px 14px;margin:0 0 16px}
+.cap-note:empty{display:none}
+.cap-note strong{color:var(--gray-900,#2b2620)}
 .filter-group{display:flex;flex-direction:column;gap:3px}
 .filter-group label{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--gray-text)}
 .filter-group select{padding:7px 28px 7px 10px;border:1px solid var(--gray-300);border-radius:7px;font-size:12px;font-family:inherit;background:var(--white);color:var(--charcoal);cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg width='10' height='6' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%236B6B6B'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center}
@@ -124,6 +129,7 @@ td.wr{white-space:normal;max-width:200px;overflow:hidden;text-overflow:ellipsis}
 <div class="stat-card"><div class="stat-label">Hrs Worked</div><div class="stat-value" id="k-wrk">—</div></div>
 <div class="stat-card"><div class="stat-label">PRN</div><div class="stat-value" id="k-prn">—</div></div>
 <div class="stat-card"><div class="stat-label">On PTO</div><div class="stat-value" id="k-pto">—</div></div>
+<div class="stat-card"><div class="stat-label">On Leave</div><div class="stat-value" id="k-leave">—</div></div>
 </div>
 <div class="content" id="content">
 <div class="filter-bar">
@@ -132,6 +138,7 @@ td.wr{white-space:normal;max-width:200px;overflow:hidden;text-overflow:ellipsis}
 <div class="filter-group"><label>Market</label><select id="f-mk"><option value="">All Markets</option></select></div>
 <div class="filter-group"><label>Service Type</label><select id="f-tp"><option value="">All Types</option><option value="0">Long Hours</option><option value="1">Overnight</option><option value="2">Short Hours</option><option value="3">Live-In</option></select></div>
 </div>
+<div class="cap-note" id="cap-note"></div>
 <div class="tab-bar">
 <button class="tab-btn active" data-t="dash">Dashboard</button>
 <button class="tab-btn" data-t="det">Caregiver Detail</button>
@@ -175,9 +182,58 @@ const DAY_ABBREVS=["Su","Mo","Tu","We","Th","Fr","Sa"];
 const DAY_MAP={su:0,sun:0,sunday:0,mo:1,mon:1,monday:1,m:1,tu:2,tue:2,tuesday:2,t:2,we:3,wed:3,wednesday:3,w:3,th:4,thu:4,thursday:4,fr:5,fri:5,friday:5,f:5,sa:6,sat:6,saturday:6};
 const DAY_PAT=/(?:Su|Sun|Sunday|Mo|Mon|Monday|Tu|Tue|Tuesday|We|Wed|Wednesday|Th|Thu|Thursday|Fr|Fri|Friday|Sa|Sat|Saturday|M|T|W|F)/gi;
 
-let ACTIVE=[],PRN_R=[],PTO_R=[],TRAVEL=[],SCHED_RAW=[];
+let ACTIVE=[],PRN_R=[],PTO_R=[],LEAVE_R=[],TRAVEL=[],SCHED_RAW=[];
+// Availability context beyond the schedule itself. Approved PTO already comes
+// through the schedule (ABSENCE_T -> ptoDayFlags); these two do NOT, and until
+// 2026-08-26 this page ignored both — so anyone on a temporary hold or on leave
+// kept their full declared capacity and read as under-utilised, dragging their
+// market and the company number down with them.
+let tuByCgV2={};              // cgId -> {from,until,returns,upcoming} (ET ISO dates)
+let onLeaveIdsV2={},onLeaveNamesV2={};
+let AVAIL_CTX={tu:false,leave:false};  // did each adjustment actually load?
 let tsAdminMapV2={},tsAdminKeyV2=null;  // authoritative TS owed (proxy ts_admin), cgId -> row
 let CURRENT_WEEK_KEY='';
+
+// ── Availability-context helpers ──
+function normNameV2(x){return(x||'').toLowerCase().trim()}
+function isoAddDays(weekKey,n){const d=new Date(weekKey+'T12:00:00');d.setDate(d.getDate()+n);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+// Which days of the DISPLAYED week fall inside a temporary-unavailability spell.
+// Day-level rather than a flat week fraction: a caregiver who declares Mon/Wed/Fri
+// and is out Thu-Sat loses Friday only, not 3/7 of everything. Compared as ET ISO
+// date strings because that is exactly how the proxy builds from/until.
+function tuDayMaskV2(cgId,weekKey){
+  const rec=tuByCgV2[cgId];
+  if(!rec||!rec.from||!rec.until||!weekKey)return null;
+  const mask=[false,false,false,false,false,false,false];let any=false;
+  for(let d=0;d<7;d++){const iso=isoAddDays(weekKey,d);
+    if(iso>=rec.from&&iso<=rec.until){mask[d]=true;any=true}}
+  return any?mask:null;
+}
+function isOnLeaveV2(cgId,first,last){
+  if(cgId&&onLeaveIdsV2[cgId])return true;
+  const n=normNameV2((first||'')+' '+(last||''));
+  return !!(n&&onLeaveNamesV2[n]);
+}
+// Both endpoints are gated; on ANY failure we leave the maps empty and record
+// that the adjustment did not apply, so the page can say so rather than quietly
+// reporting unadjusted numbers as if they were adjusted.
+async function loadAvailContextV2(weekKey,authH){
+  tuByCgV2={};onLeaveIdsV2={};onLeaveNamesV2={};AVAIL_CTX={tu:false,leave:false};
+  const tuP=fetch(API+'?endpoint=recurring_days',{headers:authH}).then(r=>r.json()).then(function(d){
+    if(!d||!d.tempUnavail)throw new Error('no tempUnavail');
+    tuByCgV2=d.tempUnavail;AVAIL_CTX.tu=true;
+  }).catch(function(e){console.warn('[util_v2] temp-unavail unavailable:',e.message)});
+  const lvP=fetch(API+'?endpoint=cas_on_leave',{headers:authH}).then(r=>r.json()).then(function(d){
+    ((d&&d.rows)||[]).forEach(function(r){
+      if(r&&r.onLeaveBySchedule===true){
+        if(r.id)onLeaveIdsV2[r.id]=true;
+        if(r.name)onLeaveNamesV2[normNameV2(r.name)]=true;
+      }});
+    AVAIL_CTX.leave=true;
+  }).catch(function(e){console.warn('[util_v2] on-leave unavailable:',e.message)});
+  await Promise.all([tuP,lvP]);
+}
 
 // ── Week helpers (Sunday–Saturday weeks) ──
 function getWeekStart(d){const dt=new Date(d);dt.setDate(dt.getDate()-dt.getDay());dt.setHours(0,0,0,0);return dt}
@@ -331,9 +387,9 @@ function processSchedule(dfSc){
 }
 
 // ── Process Caregivers ──
-function processCaregivers(dfCg,sched){
+function processCaregivers(dfCg,sched,weekKey){
   const{typeHrs,typeVis,dayTypeHrs,ptoDayFlags,ptoDayHrs,cancelledHrs,payableHrs,billedHrs}=sched;
-  const activeRows=[],prnRows=[],ptoRows=[];
+  const activeRows=[],prnRows=[],ptoRows=[],leaveRows=[];
   for(const row of dfCg){
     const notes=(row['Caregiver Availability Notes']||'').trim();const tags=(row['Tags']||'').trim();const cgId=(row['Caregiver-Id']||'').trim();
     if(EX_NOTES.has(notes.toLowerCase()))continue;
@@ -345,6 +401,10 @@ function processCaregivers(dfCg,sched){
     const cgTH=typeHrs[cgId]||[0,0,0,0],cgTV=typeVis[cgId]||[0,0,0,0];
     const cgDT=dayTypeHrs[cgId]||[[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]];
     const cgPF=ptoDayFlags[cgId]||[false,false,false,false,false,false,false];
+    // A day is unbookable if approved time off OR a temporary hold covers it.
+    const cgTU=tuDayMaskV2(cgId,weekKey);
+    const cgOFF=cgTU?cgPF.map((v,i)=>v||cgTU[i]):cgPF;
+    const tuDays=cgTU?cgTU.filter(Boolean).length:0;
     const cgPH=ptoDayHrs[cgId]||[0,0,0,0,0,0,0];
     const cgCan=cancelledHrs[cgId]||0;
     const cgPay=payableHrs[cgId]||0;
@@ -362,14 +422,14 @@ function processCaregivers(dfCg,sched){
     else if(primType===0){availDays=parseAvailDays(notes,'Long Hours');dailyRate=12}
     else if(primType===1){availDays=parseAvailDays(notes,'Overnight');dailyRate=12}
     else{availDays=parseAvailDays(notes,'Any');dailyRate=0}
-    let remainW=0;for(const d in availDays)if(!cgPF[d])remainW+=availDays[d];
+    let remainW=0;for(const d in availDays)if(!cgOFF[d])remainW+=availDays[d];
     let adjCap,capReason='';
     if(isLI&&!isMixed&&primType!==3){adjCap=worked;capReason='LI non-primary'}
     else if(dailyRate>0){const maxAch=remainW*dailyRate;adjCap=Math.max(Math.min(maxAch,desired),worked);capReason=adjCap===worked&&worked>0?'Floor=worked':adjCap===maxAch?'Avail×rate':'Desired'}
     else{adjCap=Math.max(desired,worked);capReason=adjCap===worked&&worked>desired?'Floor=worked':'Desired'}
     adjCap=Math.max(adjCap,0);const util=adjCap>0?worked/adjCap:null;
     const dayCap=[0,0,0,0,0,0,0],dayWorked=[0,0,0,0,0,0,0],dayAvail=[0,0,0,0,0,0,0];
-    if(dailyRate>0){for(let d=0;d<7;d++){const wt=availDays[d]||0;if(wt>0&&!cgPF[d]){dayCap[d]=dailyRate*wt;dayAvail[d]=wt}dayWorked[d]=cgDT[d][primType]}for(let d=0;d<7;d++)if(dayCap[d]===0&&dayWorked[d]>0){dayCap[d]=dailyRate;dayAvail[d]=1.0}}
+    if(dailyRate>0){for(let d=0;d<7;d++){const wt=availDays[d]||0;if(wt>0&&!cgOFF[d]){dayCap[d]=dailyRate*wt;dayAvail[d]=wt}dayWorked[d]=cgDT[d][primType]}for(let d=0;d<7;d++)if(dayCap[d]===0&&dayWorked[d]>0){dayCap[d]=dailyRate;dayAvail[d]=1.0}}
     const tcPto=cgPH.reduce((s,v)=>s+Math.min(v,10),0);
     let tsType=0;if(tags.toLowerCase().includes('tributesecure')){const tm=notes.match(/\bTS\s*(\d+)\b/i);tsType=tm?parseInt(tm[1],10):30}
     const anyDays=parseAvailDays(notes,'Any');const dayDisplay=[];
@@ -388,13 +448,18 @@ function processCaregivers(dfCg,sched){
       isLI:isLI?'Yes':'No',dayDisp:dayDisplay,notes,tags,hr:row['HR Assignee Name']||'',
       phone:row['Phone Number']||'',
       primType,dayCap,dayWorked,dayAvail,tsType,ptoHrs:tcPto,cgId,
+      tuDays,tuUntil:(tuByCgV2[cgId]&&tuByCgV2[cgId].until)||'',tuReturns:(tuByCgV2[cgId]&&tuByCgV2[cgId].returns)||'',
       typeHrs:cgTH,typeVis:cgTV,dayTypeHrs:cgDT,
       hireDate,daysSinceHire,isOT};
+    // On leave (14+ consecutive days) — held out of the utilisation population
+    // entirely, the same way caregiver_hours.html does it, and surfaced in its
+    // own bucket so the caregiver is not lost from the page.
+    if(isOnLeaveV2(cgId,base.first,base.last)){leaveRows.push({...base,svcType:ptName});continue}
     if(desired>0&&adjCap===0&&worked===0)ptoRows.push({...base,svcType:ptName});
     else if(desired===0&&worked>0)prnRows.push({...base,svcType:'PRN Worked'});
     else if(desired>0||worked>0)activeRows.push(base);
   }
-  return{activeRows,prnRows,ptoRows};
+  return{activeRows,prnRows,ptoRows,leaveRows};
 }
 
 // ── Travel Gaps ──
@@ -453,7 +518,14 @@ async function loadLiveWeek(weekKey){
   document.getElementById('stats-strip').classList.add('show');
   document.querySelectorAll('.tp').forEach(function(p){p.innerHTML='<div class="processing"><div class="spin"></div>Loading from Viv...</div>'});
   try{
-    var resp=await fetch(API+'?endpoint=utilization_live&week='+encodeURIComponent(weekKey));
+    var _tok=null;
+    try{_tok=(window.tributeKsfGate&&window.tributeKsfGate.getToken)?await window.tributeKsfGate.getToken():null}catch(e){_tok=null}
+    var _authH=_tok?{Authorization:'Bearer '+_tok}:{};
+    var _resPair=await Promise.all([
+      fetch(API+'?endpoint=utilization_live&week='+encodeURIComponent(weekKey)),
+      loadAvailContextV2(weekKey,_authH)
+    ]);
+    var resp=_resPair[0];
     var d=await resp.json();
     if(!d.caregivers||!d.schedule){document.querySelectorAll('.tp').forEach(function(p){p.innerHTML='<div class="empty">No data for this week</div>'});return}
     // Process raw data through existing pipeline
@@ -461,9 +533,9 @@ async function loadLiveWeek(weekKey){
     var dfSc=d.schedule;
     SCHED_RAW=dfSc;
     var sched=processSchedule(dfSc);
-    var result=processCaregivers(dfCg,sched);
+    var result=processCaregivers(dfCg,sched,weekKey);
     var travel=processTravelGaps(dfSc);
-    ACTIVE=result.activeRows;PRN_R=result.prnRows;PTO_R=result.ptoRows;TRAVEL=travel;
+    ACTIVE=result.activeRows;PRN_R=result.prnRows;PTO_R=result.ptoRows;LEAVE_R=result.leaveRows;TRAVEL=travel;
     showMeta(d.generatedAt||new Date().toISOString(),'Viv Report Builder','Viv Schedule API');
     popFilters();renderAll();
     fetchTsAdminV2(weekKey);
@@ -499,7 +571,30 @@ function updateKPIs(){
   let pr=PRN_R,pt=PTO_R;if(s){pr=pr.filter(c=>c.state===s);pt=pt.filter(c=>c.state===s)}if(m){pr=pr.filter(c=>c.market===m);pt=pt.filter(c=>c.market===m)}
   document.getElementById('k-active').textContent=r.length;document.getElementById('k-util').textContent=P(cap>0?wrk/cap:0);
   document.getElementById('k-cap').textContent=H(cap);document.getElementById('k-wrk').textContent=H(r.reduce((s,x)=>s+x.worked,0));
+  let lv=LEAVE_R;if(s)lv=lv.filter(c=>c.state===s);if(m)lv=lv.filter(c=>c.market===m);
   document.getElementById('k-prn').textContent=pr.length;document.getElementById('k-pto').textContent=pt.length;
+  document.getElementById('k-leave').textContent=AVAIL_CTX.leave?lv.length:'n/a';
+  renderCapacityNote();
+}
+
+// States plainly what is and is not removed from capacity, and says so loudly if
+// an adjustment failed to load — an unadjusted number that looks adjusted is
+// worse than no number.
+function renderCapacityNote(){
+  const el=document.getElementById('cap-note');if(!el)return;
+  const tuCg=Object.keys(tuByCgV2).length;
+  let h='<strong>What is taken out of capacity:</strong> approved time off (PTO, sick, turn-down) ';
+  h+='and any day covered by a temporary unavailability hold. Caregivers on leave (14+ consecutive days) ';
+  h+='are held out of the utilisation population altogether and counted under On Leave. ';
+  h+='Capacity itself still comes from the declared availability notes, so a caregiver who lists six days ';
+  h+='but will only work four still counts as six \u2014 open capacity is therefore an upper bound.';
+  const warn=[];
+  if(!AVAIL_CTX.tu)warn.push('temporary unavailability could not be loaded, so holds are NOT removed from capacity');
+  if(!AVAIL_CTX.leave)warn.push('the on-leave list could not be loaded, so caregivers on leave are still counted');
+  if(warn.length)h='<strong>Heads up:</strong> '+warn.join('; ')+'. Numbers below are unadjusted for that. '+h;
+  else if(AVAIL_CTX.tu)h+=' <em>'+tuCg+' caregivers have a hold on record this period.</em>';
+  el.innerHTML=h;
+  el.style.borderLeftColor=warn.length?'var(--amber,#B4690E)':'var(--gray-300,#d8d3cc)';
 }
 
 // ── Dashboard (matching Excel Dashboard tab) ──
@@ -511,6 +606,7 @@ function renderDashboard(){
   h+='<div class="dash-kpi"><div class="kl">Active Caregivers</div><div class="kv">'+ACTIVE.length+'</div><div class="ks">this week</div></div>';
   h+='<div class="dash-kpi"><div class="kl">PRN Worked</div><div class="kv">'+PRN_R.length+'</div><div class="ks">this week</div></div>';
   h+='<div class="dash-kpi"><div class="kl">On PTO</div><div class="kv">'+PTO_R.length+'</div><div class="ks">this week</div></div>';
+  h+='<div class="dash-kpi"><div class="kl">On Leave</div><div class="kv">'+(AVAIL_CTX.leave?LEAVE_R.length:'n/a')+'</div><div class="ks">'+(AVAIL_CTX.leave?'excl. from util':'list unavailable')+'</div></div>';
   h+='<div class="dash-kpi"><div class="kl">Overall Util %</div><div class="kv">'+P(util)+'</div><div class="ks">this week</div></div>';
   h+='</div>';
   // Market Utilization Heatmap
@@ -619,6 +715,8 @@ function renderSummary(pid,keyField,orderList,title,label){
     let ptoR=PTO_R.filter(r=>r[keyField]===key);if(keyField==='state'&&m)ptoR=ptoR.filter(r=>r.market===m);
     if(ptoR.length){const tc=[0,0,0,0];ptoR.forEach(r=>tc[r.primType]++);const parts=[];if(tc[0])parts.push(tc[0]+' LH');if(tc[1])parts.push(tc[1]+' ON');if(tc[2])parts.push(tc[2]+' SH');if(tc[3])parts.push(tc[3]+' LI');
       h+='<tr class="pto"><td></td><td class="al">  On PTO</td><td>'+ptoR.length+'</td><td colspan="9" class="al">'+parts.join(', ')+'</td></tr>'}
+    let lvR=LEAVE_R.filter(r=>r[keyField]===key);if(keyField==='state'&&m)lvR=lvR.filter(r=>r.market===m);
+    if(lvR.length){h+='<tr class="pto"><td></td><td class="al">  On Leave</td><td>'+lvR.length+'</td><td colspan="9" class="al">excluded from utilisation (14+ consecutive days off)</td></tr>'}
     h+='<tr class="sp"><td colspan="12"></td></tr>';
   }
   h+='</tbody></table></div></div>';document.getElementById('p-'+pid).innerHTML=h;
