@@ -239,6 +239,14 @@ function onLeaveWindowV2(cgId,first,last){
 //   open_window    window still open (ends in the future)
 //   dates_unclear  form on record but no parseable window — cannot prove it ended
 //   ended          window clearly finished -> not restricted, no flag
+// CAREFUL: a plain /Injury/i test also matches "HR Absence (leave - non-injury)",
+// which is the LEAVE form (parental, PTO, family medical) — that mistake swept
+// ordinary leave into the medical-restriction cohort and matched 105 of 107
+// forms. Keep Work-Related and Non-Work-RELATED Injury; drop "non-injury".
+function _isInjuryFormV2(title){
+  const t=String(title||'');
+  return /injury/i.test(t) && !/non-?injury/i.test(t);
+}
 function _restrictFormState(f,weekKey){
   const qa=(re)=>{const x=(f.fields||[]).find(y=>re.test(String(y.q||'')));return x?String(x.a==null?'':x.a).trim():''};
   const s=Date.parse(qa(/anticipated first day/i)), e=Date.parse(qa(/anticipated return date/i));
@@ -278,7 +286,7 @@ async function loadAvailContextV2(weekKey,authH){
         if(r.name)onLeaveNamesV2[normNameV2(r.name)]=w;
       }
       // Medical restriction cohort, from the injury forms on the same row.
-      const injury=(r&&r.forms||[]).filter(f=>/Injury/i.test(f.title||''));
+      const injury=(r&&r.forms||[]).filter(f=>_isInjuryFormV2(f.title));
       if(injury.length){
         let best=null;
         injury.forEach(function(f){
