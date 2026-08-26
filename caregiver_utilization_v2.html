@@ -247,6 +247,24 @@ function _isInjuryFormV2(title){
   const t=String(title||'');
   return /injury/i.test(t) && !/non-?injury/i.test(t);
 }
+// An injury form on file does NOT mean a restriction — it means an incident
+// happened. Verified 2026-08-26: of 21 injury forms answering "Is the Caregiver
+// able to meet all physical requirements of their position", 11 said No and 10
+// said Yes; the ones answering Yes work slightly ABOVE the company average.
+// That question is the restriction signal, and it independently picked out the
+// two caregivers Megan named as being on lifting restrictions (Christine Tekum,
+// Liza Francois Dolin) without being told about them.
+// Restrictions are NOT in the availability notes despite the form instructing
+// MCEs to put them there — 0 of 432 caregivers, verified across two endpoints
+// (the field caps at 101 chars and holds only the day pattern).
+const _RESTRICT_MAX_AGE_DAYS=365;
+function _formSaysRestricted(f){
+  const x=(f.fields||[]).find(y=>/able to meet all physical requirements/i.test(String(y.q||'')));
+  if(!x)return false;                                  // work-related forms use a different question set
+  if(!/^\s*no\b/i.test(String(x.a==null?'':x.a)))return false;
+  const t=Date.parse(f.submittedAt||'');               // an answer this old cannot be trusted as current
+  return isNaN(t)?false:(Date.now()-t)<=_RESTRICT_MAX_AGE_DAYS*86400000;
+}
 function _restrictFormState(f,weekKey){
   const qa=(re)=>{const x=(f.fields||[]).find(y=>re.test(String(y.q||'')));return x?String(x.a==null?'':x.a).trim():''};
   const s=Date.parse(qa(/anticipated first day/i)), e=Date.parse(qa(/anticipated return date/i));
@@ -286,7 +304,7 @@ async function loadAvailContextV2(weekKey,authH){
         if(r.name)onLeaveNamesV2[normNameV2(r.name)]=w;
       }
       // Medical restriction cohort, from the injury forms on the same row.
-      const injury=(r&&r.forms||[]).filter(f=>_isInjuryFormV2(f.title));
+      const injury=(r&&r.forms||[]).filter(f=>_isInjuryFormV2(f.title)&&_formSaysRestricted(f));
       if(injury.length){
         let best=null;
         injury.forEach(function(f){
@@ -698,22 +716,30 @@ function renderRestrictedPanel(){
   let h='<div class="tc" style="margin-top:18px"><div class="tt">Restricted Caregivers &mdash; counted separately</div>';
   h+='<div class="dash-kpis" style="margin:12px 0">';
   h+='<div class="dash-kpi"><div class="kl">Deployable Util %</div><div class="kv">'+P(dCap>0?dWrk/dCap:0)+'</div><div class="ks">'+ACTIVE.length+' caregivers, restricted excluded</div></div>';
+  const dDes=ACTIVE.reduce((s,r)=>s+r.desired,0), dGot=ACTIVE.reduce((s,r)=>s+Math.min(r.worked,r.desired||r.worked),0);
+  const rDes=R.reduce((s,r)=>s+r.desired,0), rGot=R.reduce((s,r)=>s+Math.min(r.worked,r.desired||r.worked),0);
   h+='<div class="dash-kpi"><div class="kl">Restricted Util %</div><div class="kv">'+P(rCap>0?rWrk/rCap:0)+'</div><div class="ks">'+R.length+' caregivers</div></div>';
+  h+='<div class="dash-kpi"><div class="kl">Restricted % of Desired</div><div class="kv">'+P(rDes>0?rGot/rDes:0)+'</div><div class="ks">vs '+P(dDes>0?dGot/dDes:0)+' deployable &mdash; the uncensored measure</div></div>';
   h+='<div class="dash-kpi"><div class="kl">Combined Util %</div><div class="kv">'+P(both)+'</div><div class="ks">what this page showed before</div></div>';
   h+='<div class="dash-kpi"><div class="kl">Restricted, no hours</div><div class="kv">'+noHours+'</div><div class="ks">of '+R.length+' this week</div></div>';
   h+='</div>';
-  h+='<div class="ts"><table><thead><tr><th class="al">Market</th><th>Caregivers</th><th>Desired Hrs</th><th>Hrs Worked</th><th>Out this week</th><th>Dates unclear</th></tr></thead><tbody>';
+  h+='<div class="ts"><table><thead><tr><th class="al">Market</th><th>Caregivers</th><th>Desired Hrs</th><th>Hrs Worked</th><th>% of Desired</th><th>No hours</th></tr></thead><tbody>';
   for(const mkt of MKT_ORDER){
     const rr=R.filter(r=>r.market===mkt);if(!rr.length)continue;
-    h+='<tr><td class="al">'+mkt+'</td><td>'+rr.length+'</td><td>'+H(rr.reduce((s,r)=>s+r.desired,0))+'</td><td>'+H(rr.reduce((s,r)=>s+r.worked,0))+'</td>'
-      +'<td>'+rr.filter(r=>r.restrictState==='out_this_week').length+'</td><td>'+rr.filter(r=>r.restrictState==='dates_unclear').length+'</td></tr>';
+    const rd=rr.reduce((s,r)=>s+r.desired,0);
+    h+='<tr><td class="al">'+mkt+'</td><td>'+rr.length+'</td><td>'+H(rd)+'</td><td>'+H(rr.reduce((s,r)=>s+r.worked,0))+'</td>'
+      +'<td>'+(rd>0?P(rr.reduce((s,r)=>s+Math.min(r.worked,r.desired||r.worked),0)/rd):'&mdash;')+'</td>'
+      +'<td>'+rr.filter(r=>r.worked===0).length+'</td></tr>';
   }
-  h+='</tbody><tfoot><tr><td class="al">Total</td><td>'+R.length+'</td><td>'+H(desired)+'</td><td>'+H(R.reduce((s,r)=>s+r.worked,0))+'</td><td>'+outWk+'</td><td>'+unclear+'</td></tr></tfoot></table></div>';
-  h+='<div class="cap-note" style="margin:14px 0 0">Sourced from the Viv HR work-related and non-work-related injury forms. '
-    +'A caregiver is counted here when their form has no clearly finished window &mdash; it covers this week, it is still open, or it carries no usable dates. '
-    +'<strong>'+unclear+' of '+R.length+' carry no usable dates</strong>, so we cannot confirm whether those restrictions are still current; chasing those forms is the fastest way to sharpen this number. '
-    +'The forms record ABSENCE, not working-with-limits &mdash; every absence type on them is a leave category &mdash; so this identifies who has a restriction, not what it is. '
-    +'The medical detail lives in the form narrative and is deliberately not read into this page.</div>';
+  h+='</tbody><tfoot><tr><td class="al">Total</td><td>'+R.length+'</td><td>'+H(desired)+'</td><td>'+H(R.reduce((s,r)=>s+r.worked,0))+'</td>'
+    +'<td>'+(desired>0?P(R.reduce((s,r)=>s+Math.min(r.worked,r.desired||r.worked),0)/desired):'&mdash;')+'</td><td>'+noHours+'</td></tr></tfoot></table></div>';
+  h+='<div class="cap-note" style="margin:14px 0 0">A caregiver is counted here when a Viv HR injury form within the last year answers <em>No</em> to '
+    +'&ldquo;Is the Caregiver able to meet all physical requirements of their position?&rdquo; &mdash; not merely because an injury form exists. '
+    +'An injury form on its own means an incident happened: caregivers with a form who <em>can</em> meet the physical requirements work slightly above the company average, '
+    +'so counting them as restricted hid the real effect. '
+    +'<strong>Coverage limit:</strong> only the non-work-related injury form asks that question, so a restricted caregiver whose only form is work-related will be missed here. '
+    +'The injury form carries no restriction start or end date &mdash; incident dates only &mdash; so currency is judged by form age. '
+    +'The nature of the restriction lives in the form narrative and is deliberately never read into this page.</div>';
   return h+'</div>';
 }
 
