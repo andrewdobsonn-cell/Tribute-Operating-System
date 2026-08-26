@@ -189,7 +189,7 @@ let ACTIVE=[],PRN_R=[],PTO_R=[],LEAVE_R=[],TRAVEL=[],SCHED_RAW=[];
 // kept their full declared capacity and read as under-utilised, dragging their
 // market and the company number down with them.
 let tuByCgV2={};              // cgId -> {from,until,returns,upcoming} (ET ISO dates)
-let onLeaveIdsV2={},onLeaveNamesV2={};
+let onLeaveIdsV2={},onLeaveNamesV2={};   // -> {from,until} windows, ET ISO
 let AVAIL_CTX={tu:false,leave:false};  // did each adjustment actually load?
 let tsAdminMapV2={},tsAdminKeyV2=null;  // authoritative TS owed (proxy ts_admin), cgId -> row
 let CURRENT_WEEK_KEY='';
@@ -210,10 +210,24 @@ function tuDayMaskV2(cgId,weekKey){
     if(iso>=rec.from&&iso<=rec.until){mask[d]=true;any=true}}
   return any?mask:null;
 }
-function isOnLeaveV2(cgId,first,last){
-  if(cgId&&onLeaveIdsV2[cgId])return true;
-  const n=normNameV2((first||'')+' '+(last||''));
-  return !!(n&&onLeaveNamesV2[n]);
+// On leave FOR THE WEEK BEING SHOWN — not merely on the leave list. The list is
+// "longest 14+ day gap on record", which includes windows that are upcoming or
+// already over, so a blanket exclusion pulled out people who were working.
+// Two guards: the window has to overlap the displayed week, and worked hours
+// always win. Live data 2026-08-23 had 7 of 38 flagged caregivers working 369h
+// (one at 168h across all 7 days) — worked hours are ground truth, so they stay
+// in the population no matter what the leave list says.
+function onLeaveWindowV2(cgId,first,last){
+  let w=cgId?onLeaveIdsV2[cgId]:null;
+  if(!w){const n=normNameV2((first||'')+' '+(last||''));if(n)w=onLeaveNamesV2[n]}
+  return w||null;
+}
+function isOnLeaveV2(cgId,first,last,weekKey,workedHrs){
+  if(workedHrs>0)return false;
+  const w=onLeaveWindowV2(cgId,first,last);
+  if(!w)return false;
+  if(!w.from||!w.until||!weekKey)return true;   // no window on record — trust the flag
+  return w.from<=isoAddDays(weekKey,6)&&w.until>=weekKey;
 }
 // Both endpoints are gated; on ANY failure we leave the maps empty and record
 // that the adjustment did not apply, so the page can say so rather than quietly
@@ -227,8 +241,9 @@ async function loadAvailContextV2(weekKey,authH){
   const lvP=fetch(API+'?endpoint=cas_on_leave',{headers:authH}).then(r=>r.json()).then(function(d){
     ((d&&d.rows)||[]).forEach(function(r){
       if(r&&r.onLeaveBySchedule===true){
-        if(r.id)onLeaveIdsV2[r.id]=true;
-        if(r.name)onLeaveNamesV2[normNameV2(r.name)]=true;
+        const w={from:(r.leave&&r.leave.from)||'',until:(r.leave&&r.leave.until)||''};
+        if(r.id)onLeaveIdsV2[r.id]=w;
+        if(r.name)onLeaveNamesV2[normNameV2(r.name)]=w;
       }});
     AVAIL_CTX.leave=true;
   }).catch(function(e){console.warn('[util_v2] on-leave unavailable:',e.message)});
@@ -454,7 +469,7 @@ function processCaregivers(dfCg,sched,weekKey){
     // On leave (14+ consecutive days) — held out of the utilisation population
     // entirely, the same way caregiver_hours.html does it, and surfaced in its
     // own bucket so the caregiver is not lost from the page.
-    if(isOnLeaveV2(cgId,base.first,base.last)){leaveRows.push({...base,svcType:ptName});continue}
+    if(isOnLeaveV2(cgId,base.first,base.last,weekKey,worked)){leaveRows.push({...base,svcType:ptName});continue}
     if(desired>0&&adjCap===0&&worked===0)ptoRows.push({...base,svcType:ptName});
     else if(desired===0&&worked>0)prnRows.push({...base,svcType:'PRN Worked'});
     else if(desired>0||worked>0)activeRows.push(base);
@@ -582,7 +597,8 @@ function updateKPIs(){
 // worse than no number.
 function renderCapacityNote(){
   const el=document.getElementById('cap-note');if(!el)return;
-  const tuCg=Object.keys(tuByCgV2).length;
+  let tuCg=0;
+  for(const _id of Object.keys(tuByCgV2))if(tuDayMaskV2(_id,CURRENT_WEEK_KEY))tuCg++;
   let h='<strong>What is taken out of capacity:</strong> approved time off (PTO, sick, turn-down) ';
   h+='and any day covered by a temporary unavailability hold. Caregivers on leave (14+ consecutive days) ';
   h+='are held out of the utilisation population altogether and counted under On Leave. ';
@@ -592,7 +608,7 @@ function renderCapacityNote(){
   if(!AVAIL_CTX.tu)warn.push('temporary unavailability could not be loaded, so holds are NOT removed from capacity');
   if(!AVAIL_CTX.leave)warn.push('the on-leave list could not be loaded, so caregivers on leave are still counted');
   if(warn.length)h='<strong>Heads up:</strong> '+warn.join('; ')+'. Numbers below are unadjusted for that. '+h;
-  else if(AVAIL_CTX.tu)h+=' <em>'+tuCg+' caregivers have a hold on record this period.</em>';
+  else if(AVAIL_CTX.tu)h+=' <em>'+tuCg+' caregivers have a hold covering part of this week.</em>';
   el.innerHTML=h;
   el.style.borderLeftColor=warn.length?'var(--amber,#B4690E)':'var(--gray-300,#d8d3cc)';
 }
