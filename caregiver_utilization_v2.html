@@ -137,6 +137,7 @@ td.wr{white-space:normal;max-width:200px;overflow:hidden;text-overflow:ellipsis}
 <div class="filter-group"><label>Week</label><div style="display:flex;gap:4px;align-items:center"><button id="wk-prev" style="padding:5px 10px;border:1px solid var(--gray-300);border-radius:6px;background:var(--white);cursor:pointer;font-size:14px;font-family:inherit" title="Previous week">◀</button><select id="f-wk" style="min-width:200px"><option value="">Loading...</option></select><button id="wk-next" style="padding:5px 10px;border:1px solid var(--gray-300);border-radius:6px;background:var(--white);cursor:pointer;font-size:14px;font-family:inherit" title="Next week">▶</button><input type="date" id="wk-pick" style="padding:5px 8px;border:1px solid var(--gray-300);border-radius:6px;font-size:11px;font-family:inherit;color:var(--gray-text)" title="Jump to any week"></div></div>
 <div class="filter-group"><label>State</label><select id="f-st"><option value="">All States</option></select></div>
 <div class="filter-group"><label>Market</label><select id="f-mk"><option value="">All Markets</option></select></div>
+<div class="filter-group"><label>Restricted caregivers</label><select id="f-rx" autocomplete="off"><option value="out" selected>Excluded from utilisation</option><option value="in">Included in utilisation</option></select></div>
 <div class="filter-group"><label>Service Type</label><select id="f-tp"><option value="">All Types</option><option value="0">Long Hours</option><option value="1">Overnight</option><option value="2">Short Hours</option><option value="3">Live-In</option></select></div>
 </div>
 <div class="cap-note" id="cap-note"></div>
@@ -184,6 +185,22 @@ const DAY_MAP={su:0,sun:0,sunday:0,mo:1,mon:1,monday:1,m:1,tu:2,tue:2,tuesday:2,
 const DAY_PAT=/(?:Su|Sun|Sunday|Mo|Mon|Monday|Tu|Tue|Tuesday|We|Wed|Wednesday|Th|Thu|Thursday|Fr|Fri|Friday|Sa|Sat|Saturday|M|T|W|F)/gi;
 
 let ACTIVE=[],PRN_R=[],PTO_R=[],LEAVE_R=[],RESTRICT_R=[],TRAVEL=[],SCHED_RAW=[];
+// The toggle Jen Kulig asked for (2026-08-26): flip the headline between
+// excluding and including restricted caregivers rather than forcing one view.
+// ACTIVE is rebuilt from these two bases so the 21 existing ACTIVE references
+// never have to learn about the toggle.
+let _BASE_ACTIVE=[],_BASE_RESTRICT=[];
+function restrictedIncluded(){const el=document.getElementById('f-rx');return !!(el&&el.value==='in')}
+function applyRestrictedToggle(){
+  ACTIVE=restrictedIncluded()?_BASE_ACTIVE.concat(_BASE_RESTRICT):_BASE_ACTIVE.slice();
+  RESTRICT_R=_BASE_RESTRICT.slice();
+  renderAll();
+}
+// Everyone the page can show, restricted included — for the individual caregiver
+// list, which must never silently drop them. Moving restricted rows out of
+// ACTIVE had exactly that effect on the roster people share with market teams.
+function rosterPopulation(){return _BASE_ACTIVE.concat(_BASE_RESTRICT)}
+function rxBadge(r){return r.restrictState?'<span class="badge" style="background:#F5E6E0;color:#9A3412">Restricted</span>':''}
 // Availability context beyond the schedule itself. Approved PTO already comes
 // through the schedule (ABSENCE_T -> ptoDayFlags); these two do NOT, and until
 // 2026-08-26 this page ignored both — so anyone on a temporary hold or on leave
@@ -369,6 +386,11 @@ document.getElementById('wk-pick').addEventListener('change',function(){
 document.querySelectorAll('.tab-btn').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.tab-btn').forEach(x=>x.classList.remove('active'));document.querySelectorAll('.tp').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.getElementById('p-'+b.dataset.t).classList.add('active')}));
 const fWk=document.getElementById('f-wk'),fSt=document.getElementById('f-st'),fMk=document.getElementById('f-mk'),fTp=document.getElementById('f-tp');
 [fSt,fMk,fTp].forEach(f=>f.addEventListener('change',renderAll));
+// Restricted toggle rebuilds the population, so it needs applyRestrictedToggle
+// rather than a bare renderAll. autocomplete=off on the control because Chrome
+// restores select values across a same-URL reload and fires change while doing it.
+const fRx=document.getElementById('f-rx');
+if(fRx)fRx.addEventListener('change',applyRestrictedToggle);
 fWk.addEventListener('change',function(){if(fWk.value&&fWk.value!==CURRENT_WEEK_KEY)loadLiveWeek(fWk.value)});
 
 // ── Sorting ──
@@ -629,8 +651,10 @@ async function loadLiveWeek(weekKey){
     var sched=processSchedule(dfSc);
     var result=processCaregivers(dfCg,sched,weekKey);
     var travel=processTravelGaps(dfSc);
-    ACTIVE=result.activeRows;PRN_R=result.prnRows;PTO_R=result.ptoRows;LEAVE_R=result.leaveRows;
-    RESTRICT_R=result.restrictRows;TRAVEL=travel;
+    _BASE_ACTIVE=result.activeRows;_BASE_RESTRICT=result.restrictRows;
+    ACTIVE=restrictedIncluded()?_BASE_ACTIVE.concat(_BASE_RESTRICT):_BASE_ACTIVE.slice();
+    PRN_R=result.prnRows;PTO_R=result.ptoRows;LEAVE_R=result.leaveRows;
+    RESTRICT_R=_BASE_RESTRICT.slice();TRAVEL=travel;
     showMeta(d.generatedAt||new Date().toISOString(),'Viv Report Builder','Viv Schedule API');
     popFilters();renderAll();
     fetchTsAdminV2(weekKey);
@@ -821,19 +845,19 @@ function renderDetail(){
   let pr=[...PRN_R];if(s)pr=pr.filter(c=>c.state===s);if(m)pr=pr.filter(c=>c.market===m);
   const mo=x=>{const i=MKT_ORDER.indexOf(x.market);return i>=0?i:99};
   rows.sort((a,b)=>mo(a)-mo(b)||a.last.localeCompare(b.last));pr.sort((a,b)=>mo(a)-mo(b)||a.last.localeCompare(b.last));
-  const hdrs=['CG#','First Name','Last Name','Market','State','Status','Desig','Service Type','Desired Hrs','Adj Capacity','Capacity Reason','Hrs Worked','Visits','Util %','LH Days','ON Days','SH Days','Live-In','Sun','Mon','Tue','Wed','Thu','Fri','Sat','Notes','Tags','HR Assignee'];
+  const hdrs=['CG#','First Name','Last Name','Market','State','Status','Desig','Service Type','Restriction','Desired Hrs','Adj Capacity','Capacity Reason','Hrs Worked','Visits','Util %','LH Days','ON Days','SH Days','Live-In','Sun','Mon','Tue','Wed','Thu','Fri','Sat','Notes','Tags','HR Assignee'];
   let h='<div class="tc"><div class="tt">Caregiver Utilization Report — Caregiver Detail</div><div class="ts"><table id="tbl-det"><thead><tr>';
   hdrs.forEach(c=>h+='<th'+(c.length>5?' class="al"':'')+'>'+c+'</th>');
   h+='</tr></thead><tbody>';
   for(const r of rows)h+=detRow(r,false);
   for(const r of pr)h+=detRow(r,true);
-  if(!rows.length&&!pr.length)h+='<tr><td colspan="28" class="empty">No caregivers match filters</td></tr>';
+  if(!rows.length&&!pr.length)h+='<tr><td colspan="29" class="empty">No caregivers match filters</td></tr>';
   h+='</tbody></table></div></div>';
   document.getElementById('p-det').innerHTML=h;addSort(document.getElementById('tbl-det'));
 }
 function detRow(r,isPRN){
   const cls=isPRN?'prn':'';let uCls='';if(!isPRN){if(r.util===0||r.util==null)uCls='uz';else if(r.util>1)uCls='uo'}
-  return'<tr class="'+cls+'"><td>'+r.cgNum+'</td><td class="al">'+E(r.first)+'</td><td class="al">'+E(r.last)+'</td><td>'+r.market+'</td><td>'+r.state+'</td><td>'+r.status+'</td><td>'+r.desig+'</td><td><span class="badge '+BC(r.primType)+'">'+r.svcType+'</span></td><td>'+H(r.desired)+'</td><td>'+H(r.adjCap)+'</td><td>'+E(r.capReason)+'</td><td>'+H(r.worked)+'</td><td>'+r.visits+'</td><td class="'+uCls+'">'+P(isPRN?null:r.util)+'</td><td>'+r.ldDays+'</td><td>'+r.odDays+'</td><td>'+r.sdDays+'</td><td>'+r.isLI+'</td>'+r.dayDisp.map(d=>'<td>'+d+'</td>').join('')+'<td class="al wr" title="'+E(r.notes)+'">'+E(r.notes)+'</td><td class="al wr" title="'+E(r.tags)+'">'+E(r.tags)+'</td><td class="al">'+E(r.hr)+'</td></tr>';
+  return'<tr class="'+cls+'"><td>'+r.cgNum+'</td><td class="al">'+E(r.first)+'</td><td class="al">'+E(r.last)+'</td><td>'+r.market+'</td><td>'+r.state+'</td><td>'+r.status+'</td><td>'+r.desig+'</td><td><span class="badge '+BC(r.primType)+'">'+r.svcType+'</span></td><td>'+(rxBadge(r)||'&mdash;')+'</td><td>'+H(r.desired)+'</td><td>'+H(r.adjCap)+'</td><td>'+E(r.capReason)+'</td><td>'+H(r.worked)+'</td><td>'+r.visits+'</td><td class="'+uCls+'">'+P(isPRN?null:r.util)+'</td><td>'+r.ldDays+'</td><td>'+r.odDays+'</td><td>'+r.sdDays+'</td><td>'+r.isLI+'</td>'+r.dayDisp.map(d=>'<td>'+d+'</td>').join('')+'<td class="al wr" title="'+E(r.notes)+'">'+E(r.notes)+'</td><td class="al wr" title="'+E(r.tags)+'">'+E(r.tags)+'</td><td class="al">'+E(r.hr)+'</td></tr>';
 }
 
 // ── Market/State Summary (12 cols matching Excel) ──
@@ -907,7 +931,7 @@ function renderRoster(){
   h+='<div id="ros-count" style="font-size:13px;color:var(--gray-text);padding:8px 0"></div>';
   h+='</div>';
   h+='<div class="tc"><div class="tt">Available Caregivers — Not Scheduled</div><div class="ts"><table id="tbl-ros"><thead><tr>';
-  const hdrs=['Caregiver','Phone','State','Market','Day','Service Type','Adj Capacity','Hrs Worked (Week)','Week Util %'];
+  const hdrs=['Caregiver','Phone','State','Market','Day','Service Type','Restriction','Adj Capacity','Hrs Worked (Week)','Week Util %'];
   hdrs.forEach(c=>h+='<th'+(c==='Caregiver'||c==='Phone'?' class="al"':'')+'>'+c+'</th>');
   h+='</tr></thead><tbody id="ros-body"></tbody></table></div></div>';
   document.getElementById('p-ros').innerHTML=h;
@@ -925,7 +949,7 @@ function fillRoster(){
   const order=m?[m]:(s?MKT_ORDER.filter(k=>getState(k)===s):MKT_ORDER);
   const rows=[];
   for(const mkt of order){
-    const mR=ACTIVE.filter(c=>c.market===mkt&&typeOrder.includes(c.primType));if(!mR.length)continue;
+    const mR=rosterPopulation().filter(c=>c.market===mkt&&typeOrder.includes(c.primType));if(!mR.length)continue;
     const mSt=getState(mkt);
     for(const d of days){
       for(const t of typeOrder){
@@ -936,11 +960,13 @@ function fillRoster(){
   }
   let h='';
   for(const{r,mSt,mkt,d,t}of rows){
-    h+='<tr class="'+RC(t)+'"><td class="al">'+E(r.first)+' '+E(r.last)+'</td><td class="al">'+fmtPhone(r.phone)+'</td><td>'+mSt+'</td><td>'+mkt+'</td><td>'+DAY_NAMES[d]+'</td><td><span class="badge '+BC(t)+'">'+TYPE_NAMES[t]+'</span></td><td>'+H(r.adjCap)+'</td><td>'+H(r.worked)+'</td><td>'+P(r.util)+'</td></tr>';
+    h+='<tr class="'+RC(t)+'"><td class="al">'+E(r.first)+' '+E(r.last)+'</td><td class="al">'+fmtPhone(r.phone)+'</td><td>'+mSt+'</td><td>'+mkt+'</td><td>'+DAY_NAMES[d]+'</td><td><span class="badge '+BC(t)+'">'+TYPE_NAMES[t]+'</span></td><td>'+(rxBadge(r)||'&mdash;')+'</td><td>'+H(r.adjCap)+'</td><td>'+H(r.worked)+'</td><td>'+P(r.util)+'</td></tr>';
   }
-  if(!rows.length)h='<tr><td colspan="9" class="empty">No available caregivers for this selection</td></tr>';
+  if(!rows.length)h='<tr><td colspan="10" class="empty">No available caregivers for this selection</td></tr>';
   document.getElementById('ros-body').innerHTML=h;
-  document.getElementById('ros-count').textContent=rows.length+' caregiver'+(rows.length!==1?'s':'')+' available';
+  const rxN=rows.filter(x=>x.r.restrictState).length;
+  document.getElementById('ros-count').textContent=rows.length+' caregiver'+(rows.length!==1?'s':'')+' available'
+    +(rxN?'  \u00b7  '+rxN+' with a restriction on file':'');
   addSort(document.getElementById('tbl-ros'));
 }
 
