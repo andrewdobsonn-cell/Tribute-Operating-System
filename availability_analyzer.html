@@ -459,7 +459,28 @@ async function loadData(){
     // Also build time-off map (cgid -> array of DOWs with PTO/sick 2+ weeks out)
     var recurringMap={};
     var timeOffMap={};
-    var tempUnavailMap={};  // cgid -> {until:'YYYY-MM-DD', returns:'YYYY-MM-DD'}
+    var tempUnavailMap={};  // cgid -> {from, until, returns, upcoming}
+    // Megan Stewart 2026-08-27: a caregiver should only be pulled out of the
+    // available list for EXTENDED time off — more than a week. Today any absence
+    // does it, and 114 of 183 spells on file are a week or less (60 are a single
+    // day, median 3), so someone off next Tuesday vanishes from a search for a
+    // case starting next month. Two different questions were sharing one flag:
+    //   "is this person away at some point soon?"  -> not what a lead taker asks
+    //   "can this person take this work?"          -> what we actually need
+    // So a long spell still hides the caregiver; a short one no longer does, and
+    // the specific dates stay blocked either way (see the Smart Stacker check).
+    var TU_LONG_DAYS=7;                       // "more than a week"
+    function tuSpanDays(tu){
+      if(!tu||!tu.from||!tu.until)return null;             // cannot measure it
+      var a=Date.parse(tu.from+'T00:00:00Z'), b=Date.parse(tu.until+'T00:00:00Z');
+      if(isNaN(a)||isNaN(b))return null;
+      return Math.round((b-a)/86400000)+1;                 // inclusive
+    }
+    function isLongTU(tu){
+      if(!tu)return false;
+      var n=tuSpanDays(tu);
+      return n===null ? true : n>TU_LONG_DAYS;             // unmeasurable stays hidden
+    }
     if(recurRes.ok){
       var recurData=await recurRes.json();
       recurringMap=recurData.recurringDays||{};
@@ -514,7 +535,9 @@ async function loadData(){
           worksCats:worksCats,
           smokingOk:smokingOk,
           gender:gender,
-          tempUnavail:tempUnavailMap[cg.id]||null,
+          tempUnavail:tempUnavailMap[cg.id]||null,          // every spell — blocks its own dates
+          tuLong:isLongTU(tempUnavailMap[cg.id])?(tempUnavailMap[cg.id]||null):null,  // only >1 week hides the person
+          tuDays:tuSpanDays(tempUnavailMap[cg.id]),
           lat:cg.lat||null,
           lng:cg.lng||null
         });
@@ -535,7 +558,7 @@ async function loadData(){
     finderStateEl.innerHTML='<option value="">Select state...</option>'+Array.from(finderStates).sort().map(function(s){return '<option value="'+s+'">'+s+'</option>';}).join('');
 
     // Stats — count only caregivers available today (temp-unavailable excluded)
-    var activeEntries=allEntries.filter(function(e){return !e.tempUnavail;});
+    var activeEntries=allEntries.filter(function(e){return !e.tuLong;});
     var uniqueNames=new Set(activeEntries.map(function(e){return e.name;}));
     document.getElementById('statAvailable').textContent=uniqueNames.size;
     document.getElementById('statOvernight').textContent=new Set(activeEntries.filter(function(e){return e.type==='Overnight';}).map(function(e){return e.name;})).size;
@@ -599,7 +622,7 @@ function getFiltered(){
   var gender=document.getElementById('filterGender').value;
   var showTempUnavail=document.getElementById('filterTempUnavail').checked;
   return allEntries.filter(function(e){
-    if(e.tempUnavail&&!showTempUnavail)return false;
+    if(e.tuLong&&!showTempUnavail)return false;
     if(gender!=='All'&&e.gender!==gender)return false;
     if(state!=='All'&&e.state!==state)return false;
     if(market!=='All'&&e.market!==market)return false;
@@ -643,19 +666,19 @@ function render(){
 // purple entries get their own "+ M temp unavailable" suffix when visible.
 function availCountLabel(entries){
   var avail=0,tu=0;
-  entries.forEach(function(e){if(e.tempUnavail)tu++;else avail++;});
+  entries.forEach(function(e){if(e.tuLong)tu++;else avail++;});
   var label=avail+' available';
   if(tu>0)label+=' <span style="color:var(--purple);font-weight:600">+ '+tu+' temp unavailable</span>';
   return label;
 }
 function renderDayTabs(filtered){
-  var allAvail=new Set(filtered.filter(function(e){return !e.tempUnavail;}).map(function(e){return e.name;})).size;
-  var allTu=new Set(filtered.filter(function(e){return e.tempUnavail;}).map(function(e){return e.name;})).size;
+  var allAvail=new Set(filtered.filter(function(e){return !e.tuLong;}).map(function(e){return e.name;})).size;
+  var allTu=new Set(filtered.filter(function(e){return e.tuLong;}).map(function(e){return e.name;})).size;
   var html='<div class="day-tab'+(selectedDay===null?' active':'')+'" onclick="selectDay(null)"><div class="day-tab-name">All Days</div><div class="day-tab-count">'+allAvail+' caregivers'+(allTu>0?' <span style="color:var(--purple)">+'+allTu+'</span>':'')+'</div></div>';
   for(var d=0;d<7;d++){
     var dayEntries=filtered.filter(function(e){return e.openDays.indexOf(d)>=0;});
-    var dAvail=new Set(dayEntries.filter(function(e){return !e.tempUnavail;}).map(function(e){return e.name;})).size;
-    var dTu=new Set(dayEntries.filter(function(e){return e.tempUnavail;}).map(function(e){return e.name;})).size;
+    var dAvail=new Set(dayEntries.filter(function(e){return !e.tuLong;}).map(function(e){return e.name;})).size;
+    var dTu=new Set(dayEntries.filter(function(e){return e.tuLong;}).map(function(e){return e.name;})).size;
     html+='<div class="day-tab'+(selectedDay===d?' active':'')+'" onclick="selectDay('+d+')"><div class="day-tab-name">'+DAYS[d]+'</div><div class="day-tab-count">'+dAvail+' avail'+(dTu>0?' <span style="color:var(--purple)">+'+dTu+'</span>':'')+'</div></div>';
   }
   document.getElementById('dayTabs').innerHTML=html;
@@ -667,18 +690,19 @@ function renderTypeGroups(entries){
     var typeEntries=entries.filter(function(e){return e.type===type;});
     if(typeEntries.length===0)return;
     var css=TYPE_CSS[type];
-    var tAvail=typeEntries.filter(function(e){return !e.tempUnavail;}).length;
+    var tAvail=typeEntries.filter(function(e){return !e.tuLong;}).length;
     var tTu=typeEntries.length-tAvail;
     html+='<div class="type-section"><div class="type-header"><div class="type-badge '+css+'">'+type+'</div><span class="type-count">'+tAvail+(tTu>0?' <span style="color:var(--purple);font-weight:600">+ '+tTu+' temp unavailable</span>':'')+'</span></div>';
     html+='<div class="cg-grid">';
     typeEntries.forEach(function(e){
       var openDayNames=e.openDays.map(function(d){return DAYS[d].slice(0,3);}).join(', ');
-      html+='<div class="cg-card '+css+(e.tempUnavail?' temp-unavail':'')+'"><div class="cg-card-name">'+(e.id?'<a href="https://tribute.mavencare.com/caregivers/'+esc(e.id)+'/dashboard/summary" target="_blank" style="color:inherit;text-decoration:none;border-bottom:1px dashed var(--gray-300)">'+esc(e.name)+'</a>':esc(e.name))+'</div>';
+      html+='<div class="cg-card '+css+(e.tuLong?' temp-unavail':'')+'"><div class="cg-card-name">'+(e.id?'<a href="https://tribute.mavencare.com/caregivers/'+esc(e.id)+'/dashboard/summary" target="_blank" style="color:inherit;text-decoration:none;border-bottom:1px dashed var(--gray-300)">'+esc(e.name)+'</a>':esc(e.name))+'</div>';
       html+='<div class="cg-card-row"><span class="cg-card-market">'+esc(e.market)+'</span><span class="cg-card-hrs">'+e.desiredHrs+'h desired</span>';
       if(e.phone)html+='<span class="cg-card-hrs"><a href="tel:'+esc(e.phone)+'" style="color:var(--orange);text-decoration:none">'+esc(e.phone)+'</a></span>';
       html+='</div>';
       html+='<div class="cg-card-row"><span class="cg-card-days">Open: '+openDayNames+'</span></div>';
-      if(e.tempUnavail)html+='<div class="cg-card-row"><span class="cg-card-return">🕐 Temp unavailable — returns '+fmtReturnDate(e.tempUnavail.returns)+'</span></div>';
+      if(e.tuLong)html+='<div class="cg-card-row"><span class="cg-card-return">🕐 Temp unavailable — returns '+fmtReturnDate(e.tuLong.returns)+'</span></div>';
+      else if(e.tempUnavail)html+='<div class="cg-card-row"><span style="font-size:11px;color:var(--gray-500)">Away '+fmtReturnDate(e.tempUnavail.from)+'–'+fmtReturnDate(e.tempUnavail.until)+(e.tuDays?' ('+e.tuDays+'d)':'')+' — available otherwise</span></div>';
       html+='<div class="cg-card-prefs">'+prefDot('🚗',e.drivesClients,'Drives')+prefDot('🐕',e.worksDogs,'Dogs')+prefDot('🐈',e.worksCats,'Cats')+prefDot('🚬',e.smokingOk,'Smoking')+'</div>';
       html+='</div>';
     });
@@ -803,7 +827,7 @@ async function runFinder(){
   // Filter candidates — STRICT state filtering
   var candidates=allEntries.filter(function(e){
     // Temp-unavailable caregivers are hidden unless explicitly included
-    if(e.tempUnavail&&!includeTempUnavail)return false;
+    if(e.tuLong&&!includeTempUnavail)return false;
     // State filter is REQUIRED — only show caregivers in same state
     if(state&&e.state!==state)return false;
     // Service type filter
@@ -947,12 +971,13 @@ function renderFinderResults(state){
       var matchDays=requestedDays.length>0?requestedDays.filter(function(d){return e.openDays.indexOf(d)>=0;}).map(function(d){return DAYS[d].slice(0,3);}).join(', '):e.openDays.map(function(d){return DAYS[d].slice(0,3);}).join(', ');
       var coverageText=requestedDays.length>0?(e._overlap+'/'+requestedDays.length+' days covered'):(e.openDays.length+' open days');
 
-      html+='<div class="result-card"'+(e.tempUnavail?' style="background:var(--purple-light);border-color:var(--purple)"':'')+'><div class="result-left">';
+      html+='<div class="result-card"'+(e.tuLong?' style="background:var(--purple-light);border-color:var(--purple)"':'')+'><div class="result-left">';
       html+='<div class="result-name">'+(e.id?'<a href="https://tribute.mavencare.com/caregivers/'+esc(e.id)+'/dashboard/summary" target="_blank" style="color:inherit;text-decoration:none;border-bottom:1px dashed var(--gray-300)">'+esc(e.name)+'</a>':esc(e.name))+'</div>';
       html+='<div class="result-meta">';
       html+='<span class="result-market">'+esc(e.market)+'</span>';
       html+='<span class="result-type-badge '+css+'">'+e.type+'</span>';
-      if(e.tempUnavail)html+='<span style="font-size:10px;font-weight:700;color:var(--purple)">🕐 Returns '+fmtReturnDate(e.tempUnavail.returns)+'</span>';
+      if(e.tuLong)html+='<span style="font-size:10px;font-weight:700;color:var(--purple)">🕐 Returns '+fmtReturnDate(e.tuLong.returns)+'</span>';
+      else if(e.tempUnavail)html+='<span style="font-size:10px;color:var(--gray-500)">Away '+fmtReturnDate(e.tempUnavail.from)+'–'+fmtReturnDate(e.tempUnavail.until)+'</span>';
       if(e.gender)html+='<span style="font-size:10px;color:var(--gray-light)">'+e.gender+'</span>';
       if(e.phone)html+='<span style="font-size:10px"><a href="tel:'+esc(e.phone)+'" style="color:var(--orange);text-decoration:none">'+esc(e.phone)+'</a></span>';
       if(e._distance!==null)html+='<span style="font-size:10px;font-weight:600;color:'+(e._distance<=15?'var(--green)':e._distance<=30?'var(--amber)':'var(--red)')+'">'+(e._distApprox?'~':'')+e._distance+' mi'+(e._distApprox?'':' drive')+'</span>';
@@ -1106,7 +1131,11 @@ async function runStacker(){
     if(seen[e.id]||seen[e.name])return;
     if(stateFilter&&e.state!==stateFilter)return;
     if(e.openDays.indexOf(targetDOW)<0)return;
-    if(e.tempUnavail&&dateStr<=e.tempUnavail.until)return; // still out on this date
+    // Deliberately e.tempUnavail, not e.tuLong: a one-day absence still blocks its
+    // own date even though it no longer hides the caregiver from the list. Also
+    // bounded by from, so a spell that has not started yet stops blocking today.
+    if(e.tempUnavail&&e.tempUnavail.from&&dateStr>=e.tempUnavail.from&&dateStr<=e.tempUnavail.until)return;
+    if(e.tempUnavail&&!e.tempUnavail.from&&dateStr<=e.tempUnavail.until)return;
     candidateList.push({cgid2:e.id||'',cg2:null,avail:e,weeklyHrs:0});
     if(e.id)seen[e.id]=true;
     seen[e.name]=true;
