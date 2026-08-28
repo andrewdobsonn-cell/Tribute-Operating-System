@@ -423,13 +423,21 @@ var TYPE_CSS={'Overnight':'overnight','Long Hours':'long-hours','Short Hours':'s
 var DAY_MAP={'su':0,'sun':0,'sunday':0,'m':1,'mo':1,'mon':1,'monday':1,'t':2,'tu':2,'tue':2,'tues':2,'tuesday':2,'w':3,'we':3,'wed':3,'wednesday':3,'th':4,'thu':4,'thur':4,'thurs':4,'thursday':4,'f':5,'fr':5,'fri':5,'friday':5,'sa':6,'sat':6,'saturday':6};
 
 function parseDays(str){
-  var days=new Set();
-  var tokens=str.replace(/e\/o\s*/gi,'').split(/[,;\s]+/);
-  tokens.forEach(function(t){
-    var tl=t.toLowerCase().replace(/[^a-z]/g,'');
-    if(DAY_MAP[tl]!==undefined)days.add(DAY_MAP[tl]);
+  // "e/o" is the house shorthand for every-other. It used to be stripped, which
+  // made an every-other-Saturday caregiver read as available EVERY Saturday --
+  // 38 caregivers write it, 34 of them in Maryland (Megan's question, 8/2026).
+  // Scope: e/o binds to the day token that immediately follows it. Where someone
+  // means it on more than one day they write it again ("e/o Su, e/o Sa"), so
+  // binding to the whole list would over-apply it.
+  var days=new Set(), eo=new Set();
+  str.split(/[,;]+/).forEach(function(seg){
+    var isEO=/\be\/o\b/i.test(seg);
+    seg.replace(/e\/o/gi,' ').split(/\s+/).forEach(function(t){
+      var tl=t.toLowerCase().replace(/[^a-z]/g,'');
+      if(DAY_MAP[tl]!==undefined){days.add(DAY_MAP[tl]); if(isEO)eo.add(DAY_MAP[tl]);}
+    });
   });
-  return Array.from(days);
+  return {days:Array.from(days), eoDays:Array.from(eo)};
 }
 
 function parseAvailNotes(notes){
@@ -446,13 +454,13 @@ function parseAvailNotes(notes){
     else if(rtl.includes('long'))type='Long Hours';
     else if(rtl.includes('short'))type='Short Hours';
     else if(rtl.includes('live'))type='Live-In';
-    var days=parseDays(rawDays);
-    if(days.length>0)entries.push({type:type,days:days});
+    var pd=parseDays(rawDays);
+    if(pd.days.length>0)entries.push({type:type,days:pd.days,eoDays:pd.eoDays});
   }
   if(entries.length===0){
     var nl=notes.toLowerCase().trim();
     if(nl==='live-in'||nl==='live in'){
-      entries.push({type:'Live-In',days:[0,1,2,3,4,5,6]});
+      entries.push({type:'Live-In',days:[0,1,2,3,4,5,6],eoDays:[]});
     }
   }
   return entries;
@@ -558,6 +566,7 @@ async function loadData(){
           worksCats:worksCats,
           smokingOk:smokingOk,
           gender:gender,
+          eoDays:block.eoDays||[],
           tags:cgTags(cg),
           certs:cgTags(cg).filter(function(t){return CERT_TAGS.indexOf(t)>=0;}),
           // Days already booked NEXT week. recurring_days only calls a day
@@ -731,12 +740,14 @@ function renderTypeGroups(entries){
     html+='<div class="cg-grid">';
     typeEntries.forEach(function(e){
       var shownDays=daysOf(e);
-      var openDayNames=shownDays.length?shownDays.map(function(d){return DAYS[d].slice(0,3);}).join(', '):'—';
+      var eoSet=e.eoDays||[];
+      var openDayNames=shownDays.length?shownDays.map(function(d){return DAYS[d].slice(0,3)+(eoSet.indexOf(d)>=0?' (e/o)':'');}).join(', '):'—';
       html+='<div class="cg-card '+css+(e.tuLong?' temp-unavail':'')+'"><div class="cg-card-name">'+(e.id?'<a href="https://tribute.mavencare.com/caregivers/'+esc(e.id)+'/dashboard/summary" target="_blank" style="color:inherit;text-decoration:none;border-bottom:1px dashed var(--gray-300)">'+esc(e.name)+'</a>':esc(e.name))+'</div>';
       html+='<div class="cg-card-row"><span class="cg-card-market">'+esc(e.market)+'</span><span class="cg-card-hrs">'+e.desiredHrs+'h desired</span>';
       if(e.phone)html+='<span class="cg-card-hrs"><a href="tel:'+esc(e.phone)+'" style="color:var(--orange);text-decoration:none">'+esc(e.phone)+'</a></span>';
       html+='</div>';
       html+='<div class="cg-card-row"><span class="cg-card-days">Open: '+openDayNames+'</span></div>';
+      if(eoSet.length)html+='<div class="cg-card-row"><span style="font-size:11px;color:var(--amber);font-weight:600">\u21bb Every other week on '+eoSet.map(function(d){return DAYS[d].slice(0,3);}).join(', ')+' \u2014 Viv does not record which week</span></div>';
       if(e.bookedOpenDays&&e.bookedOpenDays.length)html+='<div class="cg-card-row"><span style="font-size:11px;color:var(--amber);font-weight:600">📅 Already booked next wk: '+e.bookedOpenDays.map(function(d){return DAYS[d].slice(0,3);}).join(', ')+'</span></div>';
       if(e.certs&&e.certs.length)html+='<div class="cg-card-row"><span style="font-size:10px;font-weight:700;letter-spacing:.04em;color:var(--blue)">'+e.certs.map(function(c){return (CERT_LABEL[c]||c).toUpperCase();}).join(' · ')+'</span></div>';
       if(e.tuLong)html+='<div class="cg-card-row"><span class="cg-card-return">🕐 Temp unavailable — returns '+fmtReturnDate(e.tuLong.returns)+'</span></div>';
