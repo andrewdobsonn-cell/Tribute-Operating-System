@@ -316,23 +316,26 @@ function renderUrgencyList(d){
     if(filters.shifts[t]===false)return false;
     return true;
   });
-  var withAge=filtered.filter(function(r){return r.ageDays!==null;}).length;
+  var withAge=filtered.filter(function(r){return r.createdDaysAgo!==null;}).length;
   var html='<div class="fc"><div class="fc-head"><span class="fc-title">Open Visits by Urgency</span>'+
     '<span style="font-size:12px;color:var(--text3)">'+filtered.length+' shown'+
     (d.rowsTruncated?' \u2014 feed capped at 1000':'')+'</span></div>';
-  if(withAge<filtered.length)html+='<div style="padding:6px 12px;font-size:12px;color:var(--text3)">Age is unavailable for '+
-    (filtered.length-withAge)+' of '+filtered.length+' visits \u2014 those rows carry no usable id, so they show \u2014 rather than a guess.</div>';
+  html+='<div style="padding:6px 12px;font-size:12px;color:var(--text3)">Sorted soonest first. <b>Created</b> is how long ago the visit record was made, not time spent in a fill queue \u2014 recurring booking sets generate visits months ahead, so a large number means a long-standing recurring hole and a small one means a fresh gap.'+
+    (withAge<filtered.length?' Unavailable for '+(filtered.length-withAge)+' of '+filtered.length+' rows.':'')+'</div>';
   html+='<div style="overflow-x:auto"><table class="tbl"><thead><tr>'+
-    '<th class="no-sort">In</th><th class="no-sort">Open for</th><th class="no-sort">Date</th>'+
+    '<th class="no-sort">In</th><th class="no-sort">Created</th><th class="no-sort">Date</th>'+
     '<th class="no-sort">Client</th><th class="no-sort">Market</th><th class="no-sort">Type</th><th class="no-sort">Hrs</th>'+
     '</tr></thead><tbody>';
   filtered.slice(0,200).forEach(function(r){
     var du=r.daysUntil;
     var urg=du<=1?'br':du<=3?'ba':'bg';
     var inLbl=du<0?'past':du===0?'today':du===1?'tomorrow':du+'d';
-    var age=r.ageDays===null?'<span class="z">\u2014</span>':
-      (r.ageDays>=14?'<span class="bdg br">'+r.ageDays+'d</span>':
-       r.ageDays>=7?'<span class="bdg ba">'+r.ageDays+'d</span>':r.ageDays+'d');
+    // A chronic recurring hole (90d+) is different work from a fresh gap, so
+    // flag the extremes rather than treating every old record as urgent.
+    var cd=r.createdDaysAgo;
+    var age=cd===null?'<span class="z">\u2014</span>':
+      (cd>=90?'<span class="bdg br" title="Long-standing recurring hole">'+cd+'d</span>':
+       cd<=7?'<span class="bdg bg" title="Fresh gap">'+cd+'d</span>':cd+'d');
     var typeCls={long:'sp-long',short:'sp-short',overnight:'sp-overnight',live_in:'sp-livein'}[r.type]||'';
     var typeLbl={long:'Long',short:'Short',overnight:'Overnight',live_in:'Live-In'}[r.type]||'?';
     html+='<tr><td><span class="bdg '+urg+'">'+inLbl+'</span></td><td>'+age+'</td>'+
