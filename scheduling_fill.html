@@ -297,7 +297,54 @@ function renderOpenVisits(){
     html+='<tr><td><strong>'+s+'</strong></td><td>'+(n7?'<span class="bdg '+(n7>20?'br':n7>10?'ba':'bg')+'">'+n7+'</span>':'<span class="z">0</span>')+'</td><td>'+n30+'</td></tr>';
   });
   html+='</tbody></table></div></div>';
+  html+=renderUrgencyList(d);
   document.getElementById('ct').innerHTML=html;
+}
+
+// Per-visit worklist, most urgent first. Answers Megan's "show how long a visit
+// has been open ... so the list sorts by urgency rather than by client".
+// daysUntil always exists; ageDays is derived from the visit's ObjectId
+// timestamp and is genuinely unknown for rows that carry no usable id.
+function renderUrgencyList(d){
+  var rows=(d&&d.rows)||[];
+  if(!rows.length)return '<div class="fc"><div class="fc-head"><span class="fc-title">Open Visits by Urgency</span></div>'+
+    '<div style="padding:14px;color:var(--text3);font-size:13px">No per-visit rows in this feed yet \u2014 the API needs the deploy that adds them.</div></div>';
+  var filtered=rows.filter(function(r){
+    if(filters.state!=='all'&&r.state!==filters.state)return false;
+    if(filters.market!=='all'&&r.market!==filters.market)return false;
+    var t=r.type==='live_in'?'livein':r.type;
+    if(filters.shifts[t]===false)return false;
+    return true;
+  });
+  var withAge=filtered.filter(function(r){return r.ageDays!==null;}).length;
+  var html='<div class="fc"><div class="fc-head"><span class="fc-title">Open Visits by Urgency</span>'+
+    '<span style="font-size:12px;color:var(--text3)">'+filtered.length+' shown'+
+    (d.rowsTruncated?' \u2014 feed capped at 1000':'')+'</span></div>';
+  if(withAge<filtered.length)html+='<div style="padding:6px 12px;font-size:12px;color:var(--text3)">Age is unavailable for '+
+    (filtered.length-withAge)+' of '+filtered.length+' visits \u2014 those rows carry no usable id, so they show \u2014 rather than a guess.</div>';
+  html+='<div style="overflow-x:auto"><table class="tbl"><thead><tr>'+
+    '<th class="no-sort">In</th><th class="no-sort">Open for</th><th class="no-sort">Date</th>'+
+    '<th class="no-sort">Client</th><th class="no-sort">Market</th><th class="no-sort">Type</th><th class="no-sort">Hrs</th>'+
+    '</tr></thead><tbody>';
+  filtered.slice(0,200).forEach(function(r){
+    var du=r.daysUntil;
+    var urg=du<=1?'br':du<=3?'ba':'bg';
+    var inLbl=du<0?'past':du===0?'today':du===1?'tomorrow':du+'d';
+    var age=r.ageDays===null?'<span class="z">\u2014</span>':
+      (r.ageDays>=14?'<span class="bdg br">'+r.ageDays+'d</span>':
+       r.ageDays>=7?'<span class="bdg ba">'+r.ageDays+'d</span>':r.ageDays+'d');
+    var typeCls={long:'sp-long',short:'sp-short',overnight:'sp-overnight',live_in:'sp-livein'}[r.type]||'';
+    var typeLbl={long:'Long',short:'Short',overnight:'Overnight',live_in:'Live-In'}[r.type]||'?';
+    html+='<tr><td><span class="bdg '+urg+'">'+inLbl+'</span></td><td>'+age+'</td>'+
+      '<td>'+esc(r.date)+'</td>'+
+      '<td>'+(r.cid?'<a href="https://tribute.mavencare.com/clients/'+esc(r.cid)+'/dashboard/scheduling/visits" target="_blank" style="color:var(--blue);text-decoration:none">'+esc(r.client)+'</a>':esc(r.client))+'</td>'+
+      '<td style="color:var(--text3)">'+esc(r.market)+'</td>'+
+      '<td><span class="sp '+typeCls+'">'+typeLbl+'</span></td>'+
+      '<td>'+(r.hours||'\u2014')+'</td></tr>';
+  });
+  html+='</tbody></table></div>';
+  if(filtered.length>200)html+='<div style="padding:8px 12px;font-size:12px;color:var(--text3)">Showing the 200 most urgent of '+filtered.length+'.</div>';
+  return html+'</div>';
 }
 
 // ── OPEN BOOKING SETS ────────────────────────────────────────────────────────
