@@ -250,6 +250,8 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
           <div class="pref-chip"><span class="pref-chip-icon">🐈</span><select id="filterCats"><option value="All">All</option><option value="Yes">OK</option><option value="No">No</option></select></div>
           <div class="pref-chip"><span class="pref-chip-icon">🚬</span><select id="filterSmoke"><option value="All">All</option><option value="Yes">OK</option><option value="No">No</option></select></div>
           <div class="pref-chip"><span class="pref-chip-icon">👤</span><select id="filterGender"><option value="All">All</option><option value="female">Female</option><option value="male">Male</option></select></div>
+          <div class="pref-chip" title="Certification tags in Viv — Maryland only today"><span class="pref-chip-icon">🎓</span><select id="filterCert"><option value="All">All</option></select></div>
+          <label class="pref-chip" style="cursor:pointer" title="Net out days the caregiver is already booked next week, so a day only shows as open if it really is"><span class="pref-chip-icon">📅</span><input type="checkbox" id="filterHideBooked" checked style="accent-color:var(--amber);width:14px;height:14px;cursor:pointer"><span style="font-size:11px;font-weight:600;color:var(--amber)">Net out booked</span></label>
           <label class="pref-chip" style="cursor:pointer" title="Caregivers on temporary unavailability who return within 2 weeks"><span class="pref-chip-icon">🕐</span><input type="checkbox" id="filterTempUnavail" style="accent-color:var(--purple);width:14px;height:14px;cursor:pointer"><span style="font-size:11px;font-weight:600;color:var(--purple)">Temp Unavailable</span></label>
         </div>
       </div>
@@ -384,6 +386,17 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
 
 <script>
 var API='https://tribute-api-prod-bkc4hfcwf3f2f6bf.centralus-01.azurewebsites.net/api/vivProxy';
+// Viv tags arrive as one comma-joined string mixing markets, TS levels, pay type
+// and certifications. Only these two are certifications today (both Maryland).
+var CERT_TAGS=['med-tech','cna'];
+var CERT_LABEL={'med-tech':'Med-Tech','cna':'CNA'};
+function cgTags(cg){return String(cg.tags||'').split(',').map(function(t){return t.trim().toLowerCase();}).filter(Boolean);}
+// Which days to treat as open in Browse: with "Net out booked" on, days already
+// booked next week are removed. Finder and Stacker keep their own logic.
+function daysOf(e){
+  var el=document.getElementById('filterHideBooked');
+  return (el&&el.checked)?e.freeDays:e.openDays;
+}
 // 2026-07-09: every endpoint below now requires a real signed-in Tribute
 // account server-side. Wraps fetch() so every API call carries the token
 // without hand-editing each call site.
@@ -395,6 +408,8 @@ async function _authFetch(url, opts) {
 }
 
 var allEntries=[];
+var bookedNextWeekMap={};   // cgid -> [dow] already booked NEXT week
+var prnExcluded=0;          // PRN caregivers held out of the roster
 var genderMap={};  // name -> gender
 var selectedDay=null;
 var finderDays=new Set();
@@ -486,6 +501,7 @@ async function loadData(){
       recurringMap=recurData.recurringDays||{};
       timeOffMap=recurData.timeOffDays||{};
       tempUnavailMap=recurData.tempUnavail||{};
+      bookedNextWeekMap=recurData.bookedNextWeek||{};
     }
 
     // Build gender map from caregivers endpoint
@@ -498,7 +514,11 @@ async function loadData(){
     }
 
     allEntries=[];
+    prnExcluded=0;
     raw.filter(function(cg){return cg.status==='hired';}).forEach(function(cg){
+      // PRN caregivers do not give reliable ongoing availability, so they do not
+      // belong in a tool used to staff ongoing care teams (Megan, 8/2026).
+      if(cgTags(cg).indexOf('prn')>=0){prnExcluded++;return;}
       // Use recurring days + time-off days to determine unavailable DOWs
       var recurDays=recurringMap[cg.id]||[];
       var toDays=timeOffMap[cg.id]||[];
@@ -519,7 +539,10 @@ async function loadData(){
       parsed.forEach(function(block){
         var openDays=block.days.filter(function(d){return !busyDOW.has(d);});
         if(openDays.length===0)return;
+        var bkd=bookedNextWeekMap[cg.id]||[];
         allEntries.push({
+          freeDays:openDays.filter(function(d){return bkd.indexOf(d)<0;}),
+          bookedOpenDays:openDays.filter(function(d){return bkd.indexOf(d)>=0;}),
           name:cg.name||'',
           id:cg.id||'',
           phone:cg.phone||'',
@@ -535,6 +558,13 @@ async function loadData(){
           worksCats:worksCats,
           smokingOk:smokingOk,
           gender:gender,
+          tags:cgTags(cg),
+          certs:cgTags(cg).filter(function(t){return CERT_TAGS.indexOf(t)>=0;}),
+          // Days already booked NEXT week. recurring_days only calls a day
+          // "recurring" when it repeats in 2+ of 4 weeks, so a one-off booking
+          // never gets subtracted and the day still reads as open. freeDays is
+          // openDays with those real commitments removed.
+          bookedDays:bookedNextWeekMap[cg.id]||[],
           tempUnavail:tempUnavailMap[cg.id]||null,          // every spell — blocks its own dates
           tuLong:isLongTU(tempUnavailMap[cg.id])?(tempUnavailMap[cg.id]||null):null,  // only >1 week hides the person
           tuDays:tuSpanDays(tempUnavailMap[cg.id]),
@@ -551,6 +581,8 @@ async function loadData(){
     var markets=['All',...new Set(allEntries.map(function(c){return c.market;}).filter(Boolean))].sort();
     populateSelect('filterState',states);
     populateSelect('filterMarket',markets);
+    var certsPresent=CERT_TAGS.filter(function(t){return allEntries.some(function(e){return e.certs.indexOf(t)>=0;});});
+    document.getElementById('filterCert').innerHTML='<option value="All">All</option>'+certsPresent.map(function(t){return '<option value="'+t+'">'+(CERT_LABEL[t]||t)+'</option>';}).join('');
 
     // Populate finder state from available data
     var finderStates=new Set(allEntries.map(function(e){return e.state;}).filter(Boolean));
@@ -621,7 +653,9 @@ function getFiltered(){
   var smoke=document.getElementById('filterSmoke').value;
   var gender=document.getElementById('filterGender').value;
   var showTempUnavail=document.getElementById('filterTempUnavail').checked;
+  var cert=document.getElementById('filterCert').value;
   return allEntries.filter(function(e){
+    if(cert!=='All'&&e.certs.indexOf(cert)<0)return false;
     if(e.tuLong&&!showTempUnavail)return false;
     if(gender!=='All'&&e.gender!==gender)return false;
     if(state!=='All'&&e.state!==state)return false;
@@ -645,11 +679,11 @@ function render(){
   renderDayTabs(filtered);
   var html='';
   if(selectedDay!==null){
-    var showing=filtered.filter(function(e){return e.openDays.indexOf(selectedDay)>=0;});
+    var showing=filtered.filter(function(e){return daysOf(e).indexOf(selectedDay)>=0;});
     html+=renderTypeGroups(showing);
   } else {
     for(var d=0;d<7;d++){
-      var dayEntries=filtered.filter(function(e){return e.openDays.indexOf(d)>=0;});
+      var dayEntries=filtered.filter(function(e){return daysOf(e).indexOf(d)>=0;});
       if(dayEntries.length>0){
         html+='<div style="margin-bottom:32px">';
         html+='<div style="font-family:Space Grotesk,Georgia,serif;font-size:24px;color:var(--charcoal);margin-bottom:12px;padding-bottom:6px;border-bottom:2px solid var(--orange)">'+DAYS[d]+'<span style="font-family:Inter;font-size:13px;color:var(--gray-light);margin-left:10px;font-weight:400">'+availCountLabel(dayEntries)+'</span></div>';
@@ -672,11 +706,12 @@ function availCountLabel(entries){
   return label;
 }
 function renderDayTabs(filtered){
-  var allAvail=new Set(filtered.filter(function(e){return !e.tuLong;}).map(function(e){return e.name;})).size;
-  var allTu=new Set(filtered.filter(function(e){return e.tuLong;}).map(function(e){return e.name;})).size;
+  var withDays=filtered.filter(function(e){return daysOf(e).length>0;});
+  var allAvail=new Set(withDays.filter(function(e){return !e.tuLong;}).map(function(e){return e.name;})).size;
+  var allTu=new Set(withDays.filter(function(e){return e.tuLong;}).map(function(e){return e.name;})).size;
   var html='<div class="day-tab'+(selectedDay===null?' active':'')+'" onclick="selectDay(null)"><div class="day-tab-name">All Days</div><div class="day-tab-count">'+allAvail+' caregivers'+(allTu>0?' <span style="color:var(--purple)">+'+allTu+'</span>':'')+'</div></div>';
   for(var d=0;d<7;d++){
-    var dayEntries=filtered.filter(function(e){return e.openDays.indexOf(d)>=0;});
+    var dayEntries=filtered.filter(function(e){return daysOf(e).indexOf(d)>=0;});
     var dAvail=new Set(dayEntries.filter(function(e){return !e.tuLong;}).map(function(e){return e.name;})).size;
     var dTu=new Set(dayEntries.filter(function(e){return e.tuLong;}).map(function(e){return e.name;})).size;
     html+='<div class="day-tab'+(selectedDay===d?' active':'')+'" onclick="selectDay('+d+')"><div class="day-tab-name">'+DAYS[d]+'</div><div class="day-tab-count">'+dAvail+' avail'+(dTu>0?' <span style="color:var(--purple)">+'+dTu+'</span>':'')+'</div></div>';
@@ -695,12 +730,15 @@ function renderTypeGroups(entries){
     html+='<div class="type-section"><div class="type-header"><div class="type-badge '+css+'">'+type+'</div><span class="type-count">'+tAvail+(tTu>0?' <span style="color:var(--purple);font-weight:600">+ '+tTu+' temp unavailable</span>':'')+'</span></div>';
     html+='<div class="cg-grid">';
     typeEntries.forEach(function(e){
-      var openDayNames=e.openDays.map(function(d){return DAYS[d].slice(0,3);}).join(', ');
+      var shownDays=daysOf(e);
+      var openDayNames=shownDays.length?shownDays.map(function(d){return DAYS[d].slice(0,3);}).join(', '):'—';
       html+='<div class="cg-card '+css+(e.tuLong?' temp-unavail':'')+'"><div class="cg-card-name">'+(e.id?'<a href="https://tribute.mavencare.com/caregivers/'+esc(e.id)+'/dashboard/summary" target="_blank" style="color:inherit;text-decoration:none;border-bottom:1px dashed var(--gray-300)">'+esc(e.name)+'</a>':esc(e.name))+'</div>';
       html+='<div class="cg-card-row"><span class="cg-card-market">'+esc(e.market)+'</span><span class="cg-card-hrs">'+e.desiredHrs+'h desired</span>';
       if(e.phone)html+='<span class="cg-card-hrs"><a href="tel:'+esc(e.phone)+'" style="color:var(--orange);text-decoration:none">'+esc(e.phone)+'</a></span>';
       html+='</div>';
       html+='<div class="cg-card-row"><span class="cg-card-days">Open: '+openDayNames+'</span></div>';
+      if(e.bookedOpenDays&&e.bookedOpenDays.length)html+='<div class="cg-card-row"><span style="font-size:11px;color:var(--amber);font-weight:600">📅 Already booked next wk: '+e.bookedOpenDays.map(function(d){return DAYS[d].slice(0,3);}).join(', ')+'</span></div>';
+      if(e.certs&&e.certs.length)html+='<div class="cg-card-row"><span style="font-size:10px;font-weight:700;letter-spacing:.04em;color:var(--blue)">'+e.certs.map(function(c){return (CERT_LABEL[c]||c).toUpperCase();}).join(' · ')+'</span></div>';
       if(e.tuLong)html+='<div class="cg-card-row"><span class="cg-card-return">🕐 Temp unavailable — returns '+fmtReturnDate(e.tuLong.returns)+'</span></div>';
       else if(e.tempUnavail)html+='<div class="cg-card-row"><span style="font-size:11px;color:var(--gray-500)">Away '+fmtReturnDate(e.tempUnavail.from)+'–'+fmtReturnDate(e.tempUnavail.until)+(e.tuDays?' ('+e.tuDays+'d)':'')+' — available otherwise</span></div>';
       html+='<div class="cg-card-prefs">'+prefDot('🚗',e.drivesClients,'Drives')+prefDot('🐕',e.worksDogs,'Dogs')+prefDot('🐈',e.worksCats,'Cats')+prefDot('🚬',e.smokingOk,'Smoking')+'</div>';
@@ -796,7 +834,9 @@ async function runFinder(){
   var includeTempUnavail=document.getElementById('finderIncludeTempUnavail').checked;
   var requestedDays=Array.from(finderDays);
 
-  // Build list of acceptable types
+  // Find Care Team scores and displays against freeDays, not openDays: a day the
+  // caregiver is already booked next week is not a day we can offer a new client.
+  // (Smart Stacker deliberately keeps openDays — it reconciles real visits itself.)
   var acceptedTypes=[];
   if(needOvernight)acceptedTypes.push('Overnight');
   if(needLong)acceptedTypes.push('Long Hours');
@@ -843,7 +883,7 @@ async function runFinder(){
     if(needsDriver&&e.drivesClients!=='yes')return false;
     // Must have at least one requested day open
     if(requestedDays.length>0){
-      var hasOverlap=requestedDays.some(function(d){return e.openDays.indexOf(d)>=0;});
+      var hasOverlap=requestedDays.some(function(d){return e.freeDays.indexOf(d)>=0;});
       if(!hasOverlap)return false;
     }
     return true;
@@ -902,11 +942,11 @@ async function runFinder(){
 
     // Schedule overlap (most important): how many requested days can they cover?
     if(requestedDays.length>0){
-      var overlap=requestedDays.filter(function(d){return e.openDays.indexOf(d)>=0;}).length;
+      var overlap=requestedDays.filter(function(d){return e.freeDays.indexOf(d)>=0;}).length;
       score+=overlap*30;
       if(overlap===requestedDays.length)score+=20;
     } else {
-      score+=e.openDays.length*10;
+      score+=e.freeDays.length*10;
     }
 
     // Distance score — closer is better
@@ -927,7 +967,7 @@ async function runFinder(){
     if(needFemale&&e.gender==='female')score+=10;
 
     e._score=score;
-    e._overlap=requestedDays.length>0?requestedDays.filter(function(d){return e.openDays.indexOf(d)>=0;}).length:e.openDays.length;
+    e._overlap=requestedDays.length>0?requestedDays.filter(function(d){return e.freeDays.indexOf(d)>=0;}).length:e.freeDays.length;
   });
 
   // Store candidates for re-sorting
@@ -968,8 +1008,8 @@ function renderFinderResults(state){
     html+='</div>';
     candidates.forEach(function(e){
       var css=TYPE_CSS[e.type];
-      var matchDays=requestedDays.length>0?requestedDays.filter(function(d){return e.openDays.indexOf(d)>=0;}).map(function(d){return DAYS[d].slice(0,3);}).join(', '):e.openDays.map(function(d){return DAYS[d].slice(0,3);}).join(', ');
-      var coverageText=requestedDays.length>0?(e._overlap+'/'+requestedDays.length+' days covered'):(e.openDays.length+' open days');
+      var matchDays=requestedDays.length>0?requestedDays.filter(function(d){return e.freeDays.indexOf(d)>=0;}).map(function(d){return DAYS[d].slice(0,3);}).join(', '):e.freeDays.map(function(d){return DAYS[d].slice(0,3);}).join(', ');
+      var coverageText=requestedDays.length>0?(e._overlap+'/'+requestedDays.length+' days covered'):(e.freeDays.length+' open days');
 
       html+='<div class="result-card"'+(e.tuLong?' style="background:var(--purple-light);border-color:var(--purple)"':'')+'><div class="result-left">';
       html+='<div class="result-name">'+(e.id?'<a href="https://tribute.mavencare.com/caregivers/'+esc(e.id)+'/dashboard/summary" target="_blank" style="color:inherit;text-decoration:none;border-bottom:1px dashed var(--gray-300)">'+esc(e.name)+'</a>':esc(e.name))+'</div>';
@@ -1010,7 +1050,7 @@ function fmtReturnDate(iso){
 }
 
 // Wire browse filters
-['filterState','filterMarket','filterType','filterDrives','filterDogs','filterCats','filterSmoke','filterGender','filterTempUnavail'].forEach(function(id){
+['filterState','filterMarket','filterType','filterDrives','filterDogs','filterCats','filterSmoke','filterGender','filterTempUnavail','filterCert','filterHideBooked'].forEach(function(id){
   document.getElementById(id).addEventListener('change',function(){
     if(id==='filterState'){
       var state=document.getElementById('filterState').value;
