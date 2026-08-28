@@ -87,6 +87,9 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
 .cg-card-market{font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--gray-text)}
 .cg-card-hrs{font-size:10px;color:var(--gray-light)}
 .cg-card-days{font-size:10px;color:var(--green);font-weight:600}
+.booked-note{font-size:12.5px;line-height:1.5;color:var(--gray-text);background:var(--gray-50,#faf8f5);border:1px solid var(--gray-200);border-radius:6px;padding:9px 13px;margin:0 0 12px}
+.booked-note b{color:var(--charcoal)}
+.booked-note .bn-k{color:var(--amber);font-weight:700}
 .cg-card-prefs{display:flex;gap:3px;margin-top:4px}
 .pref-dot{width:18px;height:18px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:9px}
 .pref-dot.yes{background:var(--green-light)}
@@ -251,10 +254,11 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
           <div class="pref-chip"><span class="pref-chip-icon">🚬</span><select id="filterSmoke"><option value="All">All</option><option value="Yes">OK</option><option value="No">No</option></select></div>
           <div class="pref-chip"><span class="pref-chip-icon">👤</span><select id="filterGender"><option value="All">All</option><option value="female">Female</option><option value="male">Male</option></select></div>
           <div class="pref-chip" title="Certification tags in Viv — Maryland only today"><span class="pref-chip-icon">🎓</span><select id="filterCert"><option value="All">All</option></select></div>
-          <label class="pref-chip" style="cursor:pointer" title="Net out days the caregiver is already booked next week, so a day only shows as open if it really is"><span class="pref-chip-icon">📅</span><input type="checkbox" id="filterHideBooked" checked style="accent-color:var(--amber);width:14px;height:14px;cursor:pointer"><span style="font-size:11px;font-weight:600;color:var(--amber)">Net out booked</span></label>
+          <label class="pref-chip" style="cursor:pointer"><span class="pref-chip-icon">📅</span><input type="checkbox" id="filterHideBooked" checked style="accent-color:var(--amber);width:14px;height:14px;cursor:pointer"><span style="font-size:11px;font-weight:600;color:var(--amber)">Hide booked days</span></label>
           <label class="pref-chip" style="cursor:pointer" title="Caregivers on temporary unavailability who return within 2 weeks"><span class="pref-chip-icon">🕐</span><input type="checkbox" id="filterTempUnavail" style="accent-color:var(--purple);width:14px;height:14px;cursor:pointer"><span style="font-size:11px;font-weight:600;color:var(--purple)">Temp Unavailable</span></label>
         </div>
       </div>
+      <div id="bookedNote" class="booked-note"></div>
       <div class="day-tabs" id="dayTabs"></div>
       <div id="dayContent"></div>
     </div>
@@ -391,7 +395,7 @@ var API='https://tribute-api-prod-bkc4hfcwf3f2f6bf.centralus-01.azurewebsites.ne
 var CERT_TAGS=['med-tech','cna'];
 var CERT_LABEL={'med-tech':'Med-Tech','cna':'CNA'};
 function cgTags(cg){return String(cg.tags||'').split(',').map(function(t){return t.trim().toLowerCase();}).filter(Boolean);}
-// Which days to treat as open in Browse: with "Net out booked" on, days already
+// Which days to treat as open in Browse: with "Hide booked days" on, days already
 // booked next week are removed. Finder and Stacker keep their own logic.
 function daysOf(e){
   var el=document.getElementById('filterHideBooked');
@@ -409,6 +413,7 @@ async function _authFetch(url, opts) {
 
 var allEntries=[];
 var bookedNextWeekMap={};   // cgid -> [dow] already booked NEXT week
+var bookedWeekStarts=null;  // ['thisWeekSun','nextWeekSun',...] from recurring_days
 var prnExcluded=0;          // PRN caregivers held out of the roster
 var genderMap={};  // name -> gender
 var selectedDay=null;
@@ -510,6 +515,7 @@ async function loadData(){
       timeOffMap=recurData.timeOffDays||{};
       tempUnavailMap=recurData.tempUnavail||{};
       bookedNextWeekMap=recurData.bookedNextWeek||{};
+      bookedWeekStarts=recurData.weekStarts||null;
     }
 
     // Build gender map from caregivers endpoint
@@ -683,8 +689,44 @@ function getFiltered(){
   });
 }
 
+// The toggle's label can only ever be a handle. This says, in words, what the
+// list on screen currently represents and how many people it affects -- named
+// dates rather than "next week", and a live count rather than a claim.
+function renderBookedNote(filtered){
+  var el=document.getElementById('bookedNote');
+  if(!el)return;
+  var on=(document.getElementById('filterHideBooked')||{}).checked;
+  var range=bookedWeekRangeLabel();
+  var affected=filtered.filter(function(e){return e.bookedOpenDays&&e.bookedOpenDays.length;});
+  var people=new Set(affected.map(function(e){return e.name;})).size;
+  var closed=new Set(filtered.filter(function(e){return e.freeDays.length===0&&e.openDays.length>0;}).map(function(e){return e.name;})).size;
+  var html;
+  if(on){
+    html='<b>Showing only days a caregiver is genuinely free.</b> A day they already have a visit on '+
+      (range?'in the week of '+range:'next week')+' is not counted as open, even if their availability says they work that day. '+
+      (people? '<span class="bn-k">'+people+'</span> caregiver'+(people===1?'':'s')+' '+(people===1?'has':'have')+' at least one day removed'+
+        (closed?', and <span class="bn-k">'+closed+'</span> '+(closed===1?'is':'are')+' fully booked': '')+'. Each card lists which days.'
+        : 'Nobody in the current filter is affected right now.')+
+      ' Untick <b>Hide booked days</b> to see everything they declared.';
+  } else {
+    html='<b>Showing everything caregivers declared</b>, including days they are already booked '+
+      (range?'in the week of '+range:'next week')+'. Some of these people cannot actually take a new visit on the day shown \u2014 '+
+      'their card says <span class="bn-k">Already booked next wk</span> where that applies. '+
+      'Tick <b>Hide booked days</b> to see only genuinely open days.';
+  }
+  el.innerHTML=html;
+}
+function bookedWeekRangeLabel(){
+  if(!bookedWeekStarts||!bookedWeekStarts[1])return '';
+  var a=new Date(bookedWeekStarts[1]+'T12:00:00');
+  var b=new Date(a.getTime()+6*86400000);
+  var f=function(d){return d.toLocaleDateString('en-US',{month:'short',day:'numeric'});};
+  return f(a)+' \u2013 '+f(b);
+}
+
 function render(){
   var filtered=getFiltered();
+  renderBookedNote(filtered);
   renderDayTabs(filtered);
   var html='';
   if(selectedDay!==null){
