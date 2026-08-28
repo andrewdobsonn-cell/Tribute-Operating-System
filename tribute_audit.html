@@ -1242,8 +1242,29 @@ async function runDashboard() {
     const wk = weekLabel(bookings);
     const geos = [...new Set(bookings.map(b=>b._geo).filter(Boolean))].sort();
 
+    // Uber exports carry guest NAMES only, no Viv ids, so those audit rows used to
+    // render without a working link -- the "some links just pull up a general Viv
+    // tab" note from Megan. Resolve names against this week's bookings, which
+    // already carry both. Unmatched rows stay unlinked on purpose: a deep link to
+    // the wrong caregiver is worse than no link.
+    const _nk = n => String(n||'').toLowerCase()
+      .replace(/['"\u2018\u2019\u201c\u201d]/g,'')      // drop quotes
+      .replace(/\s*\([^)]*\)\s*/g,' ')                  // drop (parentheticals)
+      .replace(/[^a-z\s-]/g,' ').replace(/\s+/g,' ').trim();
+    const _stripNick = n => {
+      const parts = _nk(n).split(' ').filter(Boolean);
+      return parts.length>2 ? parts[0]+' '+parts[parts.length-1] : parts.join(' ');
+    };
+    const cgIdByName = {}, cidByName = {};
+    [...bookings, ...liveInContext].forEach(b => {
+      if (b._cgid && b._cg_name) { cgIdByName[_nk(b._cg_name)] = b._cgid; cgIdByName[_stripNick(b._cg_name)] = b._cgid; }
+      if (b._cid  && b._client)  { cidByName[_nk(b._client)]   = b._cid;  cidByName[_stripNick(b._client)]  = b._cid;  }
+    });
+    const _lookup = (idx, name) => idx[_nk(name)] || idx[_stripNick(name)] || '';
+
     // Build Client-Paid Uber rows for the week from uber_trips.clientRows
     const uberClientRows = [];
+    let _uberLinked = 0, _uberUnlinked = 0;
     if (uberData && Array.isArray(uberData.clientRows)) {
       const inRange = d => {
         if (!d) return false;
@@ -1263,6 +1284,9 @@ async function runDashboard() {
         // Tribute convention: Guest First Name = caregiver, Guest Last Name = client.
         const caregiver = (r['Guest First Name']||'').trim() || '(unknown)';
         const client    = (r['Guest Last Name'] ||'').trim() || '(unknown)';
+        const _uCgid = _lookup(cgIdByName, caregiver);
+        const _uCid  = _lookup(cidByName,  client);
+        if (_uCgid || _uCid) _uberLinked++; else _uberUnlinked++;
         uberClientRows.push({
           'Date': d,
           'Market': r._market || '',
@@ -1273,11 +1297,13 @@ async function runDashboard() {
           'Amount': `$${amt.toFixed(2)}`,
           'Action': 'Bill to client',
           severity: 'warn',
-          geo: r._market || ''
+          geo: r._market || '',
+          _cgid: _uCgid,
+          _cid: _uCid
         });
       });
     }
-    logLine(`Uber client-paid rides this week: ${uberClientRows.length}`);
+    logLine(`Uber client-paid rides this week: ${uberClientRows.length} (${_uberLinked} linked to Viv, ${_uberUnlinked} name not matched)`);
 
     // Fetch expense line-items for the week and detect double-charges (non-blocking)
     let dupExpenseRows = [];
