@@ -316,13 +316,18 @@ function renderOpenVisits(){
  * existed; nothing has been able to put them together until open_visits started
  * returning individual visits.
  *
- * MATCHING POOL IS THE STATE, NOT THE MARKET (Andrew, 2026-08-28). A South of
- * Boston client is routinely staffed by caregivers from Boston, MetroWest or
- * North of Boston; Baltimore / Annapolis / Bethesda pool the same way. Matching
- * on the fine market silently empties the candidate list and then reads as a
- * supply shortage that isn't there. The fine market is for DISPLAY and RANKING:
- * same-market candidates sort first, and a cross-market name is labelled with
- * where they travel from so an SP can judge it themselves.
+ * MATCHING POOL IS NEIGHBOURING MARKETS (Andrew, 2026-08-28). Two corrections,
+ * in order. Matching on the exact market is too tight -- a South of Boston client
+ * is routinely staffed from Boston, and filtering to SOB-only invented a supply
+ * shortage that wasn't there. Pooling the whole state is too loose -- "we aren't
+ * going to staff caregivers living in Worcester to Taunton".
+ *
+ * So the pool is a market plus the markets that actually border it. REACH below
+ * is a judgement about the operating reality, not something derived from data;
+ * it is deliberately in one place so it is cheap to correct. The proper version
+ * is real distance from the client's address -- open_visits does not carry client
+ * coordinates today, and client_addr_cache exists to join against, so that is the
+ * next step rather than a limitation to live with.
  *
  * A caregiver is offered for a hole only when all of these hold:
  *   - same state (any market within it)
@@ -337,6 +342,25 @@ function renderOpenVisits(){
  * which week they are on.
  */
 var supplyIndex=null;
+
+/* Which markets can staff which. Symmetric by construction. ASSUMPTION, to be
+ * confirmed: Boston borders all three of its neighbours; MetroWest and South of
+ * Boston do not reach each other (Worcester-to-Taunton), nor do North and South
+ * of Boston (across the city). Baltimore reaches Annapolis; Bethesda is its own
+ * travel area. Chicago stands alone. */
+var REACH={
+  'Boston':['Boston','MetroWest Boston','North of Boston','South of Boston'],
+  'MetroWest Boston':['MetroWest Boston','Boston','North of Boston'],
+  'North of Boston':['North of Boston','Boston','MetroWest Boston'],
+  'South of Boston':['South of Boston','Boston'],
+  'Baltimore':['Baltimore','Annapolis'],
+  'Annapolis':['Annapolis','Baltimore'],
+  'Bethesda':['Bethesda'],
+  'Chicago':['Chicago']
+};
+function reachFrom(mkt){
+  return REACH[mkt] || (mkt?[mkt]:[]);   // an unmapped market only ever staffs itself
+}
 
 var FILL_TYPE_OK={
   overnight:['Overnight'],
@@ -380,8 +404,10 @@ function candidatesFor(row){
   var A=window.TributeAvailability;
   var dow=new Date(row.date+'T12:00:00').getDay();
   var okTypes=FILL_TYPE_OK[row.type]||FILL_TYPE_OK.unknown;
+  var reach=reachFrom(row.market);
   var out=supplyIndex.people.filter(function(p){
-    if(p.state!==row.state)return false;
+    if(p.state!==row.state)return false;          // never cross a state line
+    if(reach.indexOf(p.market)<0)return false;    // nor an unreachable market
     if(okTypes.indexOf(p.type)<0)return false;
     if(p.freeDays.indexOf(dow)<0)return false;
     if(A.awayOnDate(p.hold,row.date))return false;
@@ -446,8 +472,9 @@ function renderUrgencyList(d){
   html+='<div style="padding:0 12px 8px;font-size:12px;color:var(--text3)">'+
     (!supplyIndex?'Checking who is available \u2026'
      : supplyIndex.error?'<b>Who could take it</b> is unavailable \u2014 '+esc(supplyIndex.error)+'.'
-     : '<b>Who could take it</b> lists caregivers anywhere in the same state whose availability covers that day and who are not already booked, on leave, or away on that date \u2014 '+
-       'we staff across markets, so a name from a neighbouring market shows where they travel from. Local candidates come first. '+
+     : '<b>Who could take it</b> lists caregivers whose availability covers that day and who are not already booked, on leave, or away on that date \u2014 '+
+       'drawn from that market <b>and the markets next to it</b>, since we staff across neighbouring markets but not across a whole state. '+
+       'A name from a neighbouring market shows where it travels from; local candidates come first. '+
        '<span style="color:var(--amber);font-weight:700">\u21bb</span> means every other week \u2014 confirm which week before you offer it. Hover a name for why they came up.')+
     '</div>';
   html+='<div style="overflow-x:auto"><table class="tbl"><thead><tr>'+
