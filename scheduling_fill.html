@@ -316,8 +316,16 @@ function renderOpenVisits(){
  * existed; nothing has been able to put them together until open_visits started
  * returning individual visits.
  *
+ * MATCHING POOL IS THE STATE, NOT THE MARKET (Andrew, 2026-08-28). A South of
+ * Boston client is routinely staffed by caregivers from Boston, MetroWest or
+ * North of Boston; Baltimore / Annapolis / Bethesda pool the same way. Matching
+ * on the fine market silently empties the candidate list and then reads as a
+ * supply shortage that isn't there. The fine market is for DISPLAY and RANKING:
+ * same-market candidates sort first, and a cross-market name is labelled with
+ * where they travel from so an SP can judge it themselves.
+ *
  * A caregiver is offered for a hole only when all of these hold:
- *   - same market
+ *   - same state (any market within it)
  *   - their availability names that day of the week
  *   - the day is not already taken by a recurring commitment, booked visit or
  *     time off (freeDays, exactly as the Availability Analyzer computes it)
@@ -358,7 +366,7 @@ function buildSupplyIndex(supply,recur){
     blocks.forEach(function(b){
       var free=b.days.filter(function(d){return !taken[d];});
       if(!free.length)return;
-      people.push({id:cg.id,name:cg.name,market:cg.market,phone:cg.phone,
+      people.push({id:cg.id,name:cg.name,market:cg.market,state:cg.state,phone:cg.phone,
         type:b.type,freeDays:free,eoDays:b.eoDays||[],hold:hold,
         desired:cg.desiredHrs||0,scheduled:cg.scheduledHrs||0,
         certs:A.certsOf(cg),drives:String(cg.driveClients||'').toLowerCase().indexOf('yes')===0});
@@ -373,7 +381,7 @@ function candidatesFor(row){
   var dow=new Date(row.date+'T12:00:00').getDay();
   var okTypes=FILL_TYPE_OK[row.type]||FILL_TYPE_OK.unknown;
   var out=supplyIndex.people.filter(function(p){
-    if(p.market!==row.market)return false;
+    if(p.state!==row.state)return false;
     if(okTypes.indexOf(p.type)<0)return false;
     if(p.freeDays.indexOf(dow)<0)return false;
     if(A.awayOnDate(p.hold,row.date))return false;
@@ -382,9 +390,11 @@ function candidatesFor(row){
   // Prefer an exact type match, then the caregiver furthest below their desired
   // hours -- filling a hole with someone who wants hours beats spreading it thin.
   out.sort(function(a,b){
+    var am=(a.market===row.market?0:1), bm=(b.market===row.market?0:1);
+    if(am!==bm)return am-bm;                                  // local first
     var ax=(a.type===okTypes[0]?0:1), bx=(b.type===okTypes[0]?0:1);
-    if(ax!==bx)return ax-bx;
-    return (b.desired-b.scheduled)-(a.desired-a.scheduled);
+    if(ax!==bx)return ax-bx;                                  // then exact type
+    return (b.desired-b.scheduled)-(a.desired-a.scheduled);   // then hours gap
   });
   return {list:out, dow:dow};
 }
@@ -398,12 +408,14 @@ function candidateCell(row){
     var eo=p.eoDays.indexOf(c.dow)>=0;
     var gap=Math.round(p.desired-p.scheduled);
     var bits=[];
+    if(p.market!==row.market)bits.push('travels from '+p.market);
     if(eo)bits.push('every other week — confirm the week');
     if(gap>0)bits.push(gap+'h below desired');
     if(p.certs.length)bits.push(p.certs.map(function(x){return A.CERT_LABEL[x]||x;}).join(', '));
     var label=esc(p.name.replace(/\s*'[^']*'\s*/,' ').trim());
     return '<a href="https://tribute.mavencare.com/caregivers/'+esc(p.id)+'/dashboard/summary" target="_blank" '+
       'style="color:var(--blue);text-decoration:none" title="'+esc(bits.join(' · ')||p.type)+'">'+label+'</a>'+
+      (p.market!==row.market?'<span style="font-size:11px;color:var(--text3)"> · '+esc(p.market)+'</span>':'')+
       (eo?'<span style="color:var(--amber);font-weight:700" title="Every other week — Viv does not record which week"> ↻</span>':'');
   }).join('<br>');
   var more=c.list.length>3?'<div style="font-size:11px;color:var(--text3);margin-top:2px">+'+(c.list.length-3)+' more</div>':'';
@@ -434,7 +446,8 @@ function renderUrgencyList(d){
   html+='<div style="padding:0 12px 8px;font-size:12px;color:var(--text3)">'+
     (!supplyIndex?'Checking who is available \u2026'
      : supplyIndex.error?'<b>Who could take it</b> is unavailable \u2014 '+esc(supplyIndex.error)+'.'
-     : '<b>Who could take it</b> lists caregivers in the same market whose availability covers that day and who are not already booked, on leave, or away on that date. '+
+     : '<b>Who could take it</b> lists caregivers anywhere in the same state whose availability covers that day and who are not already booked, on leave, or away on that date \u2014 '+
+       'we staff across markets, so a name from a neighbouring market shows where they travel from. Local candidates come first. '+
        '<span style="color:var(--amber);font-weight:700">\u21bb</span> means every other week \u2014 confirm which week before you offer it. Hover a name for why they came up.')+
     '</div>';
   html+='<div style="overflow-x:auto"><table class="tbl"><thead><tr>'+
