@@ -388,13 +388,14 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
   </div>
 </div>
 
+<script src="availability_core.js"></script>
 <script>
 var API='https://tribute-api-prod-bkc4hfcwf3f2f6bf.centralus-01.azurewebsites.net/api/vivProxy';
-// Viv tags arrive as one comma-joined string mixing markets, TS levels, pay type
-// and certifications. Only these two are certifications today (both Maryland).
-var CERT_TAGS=['med-tech','cna'];
-var CERT_LABEL={'med-tech':'Med-Tech','cna':'CNA'};
-function cgTags(cg){return String(cg.tags||'').split(',').map(function(t){return t.trim().toLowerCase();}).filter(Boolean);}
+// Availability parsing, the e/o shorthand and the extended-time-off rule live in
+// availability_core.js so this page and Scheduling Fill cannot drift apart.
+var _AC=window.TributeAvailability;
+var CERT_TAGS=_AC.CERT_TAGS, CERT_LABEL=_AC.CERT_LABEL;
+var cgTags=_AC.cgTags;
 // Which days to treat as open in Browse: with "Hide booked days" on, days already
 // booked next week are removed. Finder and Stacker keep their own logic.
 function daysOf(e){
@@ -425,51 +426,10 @@ var DAYS=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'
 var TYPES=['Overnight','Long Hours','Short Hours','Live-In'];
 var TYPE_CSS={'Overnight':'overnight','Long Hours':'long-hours','Short Hours':'short-hours','Live-In':'live-in'};
 
-var DAY_MAP={'su':0,'sun':0,'sunday':0,'m':1,'mo':1,'mon':1,'monday':1,'t':2,'tu':2,'tue':2,'tues':2,'tuesday':2,'w':3,'we':3,'wed':3,'wednesday':3,'th':4,'thu':4,'thur':4,'thurs':4,'thursday':4,'f':5,'fr':5,'fri':5,'friday':5,'sa':6,'sat':6,'saturday':6};
+var DAY_MAP=_AC.DAY_MAP;
 
-function parseDays(str){
-  // "e/o" is the house shorthand for every-other. It used to be stripped, which
-  // made an every-other-Saturday caregiver read as available EVERY Saturday --
-  // 38 caregivers write it, 34 of them in Maryland (Megan's question, 8/2026).
-  // Scope: e/o binds to the day token that immediately follows it. Where someone
-  // means it on more than one day they write it again ("e/o Su, e/o Sa"), so
-  // binding to the whole list would over-apply it.
-  var days=new Set(), eo=new Set();
-  str.split(/[,;]+/).forEach(function(seg){
-    var isEO=/\be\/o\b/i.test(seg);
-    seg.replace(/e\/o/gi,' ').split(/\s+/).forEach(function(t){
-      var tl=t.toLowerCase().replace(/[^a-z]/g,'');
-      if(DAY_MAP[tl]!==undefined){days.add(DAY_MAP[tl]); if(isEO)eo.add(DAY_MAP[tl]);}
-    });
-  });
-  return {days:Array.from(days), eoDays:Array.from(eo)};
-}
-
-function parseAvailNotes(notes){
-  if(!notes)return [];
-  var entries=[];
-  var typePattern=/((?:TS\d+\s+)?(?:Overnight|Long\s*[Hh]our(?:\s*[Dd]ay)?|Short\s*[Hh]our(?:\s*[Dd]ay)?|Live[\s-]?[Ii]n)s?)[\s:=]+([^;]*?)(?=(?:(?:TS\d+\s+)?(?:Overnight|Long\s*[Hh]our|Short\s*[Hh]our|Live[\s-]?[Ii]n))|$)/gi;
-  var match;
-  while((match=typePattern.exec(notes))!==null){
-    var rawType=match[1].trim();
-    var rawDays=match[2].trim();
-    var type='Short Hours';
-    var rtl=rawType.toLowerCase();
-    if(rtl.includes('overnight'))type='Overnight';
-    else if(rtl.includes('long'))type='Long Hours';
-    else if(rtl.includes('short'))type='Short Hours';
-    else if(rtl.includes('live'))type='Live-In';
-    var pd=parseDays(rawDays);
-    if(pd.days.length>0)entries.push({type:type,days:pd.days,eoDays:pd.eoDays});
-  }
-  if(entries.length===0){
-    var nl=notes.toLowerCase().trim();
-    if(nl==='live-in'||nl==='live in'){
-      entries.push({type:'Live-In',days:[0,1,2,3,4,5,6],eoDays:[]});
-    }
-  }
-  return entries;
-}
+var parseDays=_AC.parseDays;
+var parseAvailNotes=_AC.parseAvailNotes;
 
 async function loadData(){
   try{
@@ -497,18 +457,7 @@ async function loadData(){
     //   "can this person take this work?"          -> what we actually need
     // So a long spell still hides the caregiver; a short one no longer does, and
     // the specific dates stay blocked either way (see the Smart Stacker check).
-    var TU_LONG_DAYS=7;                       // "more than a week"
-    function tuSpanDays(tu){
-      if(!tu||!tu.from||!tu.until)return null;             // cannot measure it
-      var a=Date.parse(tu.from+'T00:00:00Z'), b=Date.parse(tu.until+'T00:00:00Z');
-      if(isNaN(a)||isNaN(b))return null;
-      return Math.round((b-a)/86400000)+1;                 // inclusive
-    }
-    function isLongTU(tu){
-      if(!tu)return false;
-      var n=tuSpanDays(tu);
-      return n===null ? true : n>TU_LONG_DAYS;             // unmeasurable stays hidden
-    }
+    var tuSpanDays=_AC.tuSpanDays, isLongTU=_AC.isLongTU;
     if(recurRes.ok){
       var recurData=await recurRes.json();
       recurringMap=recurData.recurringDays||{};

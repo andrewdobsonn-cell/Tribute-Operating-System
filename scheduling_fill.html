@@ -3,6 +3,7 @@
 <head>
 <script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@3.28.1/lib/msal-browser.min.js"></script>
 <script src="./entra-auth.js?v=2026-07-07c"></script>
+<script src="./availability_core.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Tribute Home Care · Scheduling Fill</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
@@ -182,6 +183,15 @@ function loadAll(){
   }).then(function(r){
     timeoffData=r;
     render();
+    // Who could take each hole. Fetched last and rendered in when it lands, so a
+    // slow or failed supply pull never holds up the counts above it.
+    loading('');
+    return Promise.all([
+      safeFetch(API+'?endpoint=caregiver_supply','caregiver_supply'),
+      safeFetch(API+'?endpoint=recurring_days','recurring_days')
+    ]);
+  }).then(function(pair){
+    if(pair){buildSupplyIndex(pair[0],pair[1]); if(curTab==='open')render();}
   }).catch(function(e){showErr('Error: '+e.message);});
 }
 
@@ -301,6 +311,105 @@ function renderOpenVisits(){
   document.getElementById('ct').innerHTML=html;
 }
 
+/* ── WHO COULD TAKE IT ──────────────────────────────────────────────────────
+ * Joins the open-visit rows to caregiver availability. Both halves already
+ * existed; nothing has been able to put them together until open_visits started
+ * returning individual visits.
+ *
+ * A caregiver is offered for a hole only when all of these hold:
+ *   - same market
+ *   - their availability names that day of the week
+ *   - the day is not already taken by a recurring commitment, booked visit or
+ *     time off (freeDays, exactly as the Availability Analyzer computes it)
+ *   - they are not away on that specific date
+ *   - they are not out on extended leave (over a week)
+ *   - the visit type matches what they do, with Long Hours allowed to cover a
+ *     Short Hours visit but never the reverse
+ * Every-other-week days are offered but labelled, because Viv cannot tell us
+ * which week they are on.
+ */
+var supplyIndex=null;
+
+var FILL_TYPE_OK={
+  overnight:['Overnight'],
+  live_in:['Live-In'],
+  long:['Long Hours'],
+  short:['Short Hours','Long Hours'],   // a long-hours caregiver can take a short visit
+  unknown:['Overnight','Long Hours','Short Hours','Live-In']
+};
+
+function buildSupplyIndex(supply,recur){
+  if(!supply||supply.error||!supply.caregivers){supplyIndex={error:(supply&&supply.error)||'no supply data'};return;}
+  var A=window.TributeAvailability;
+  var rec=(recur&&recur.recurringDays)||{}, toff=(recur&&recur.timeOffDays)||{},
+      tu=(recur&&recur.tempUnavail)||{}, booked=(recur&&recur.bookedNextWeek)||{};
+  var people=[];
+  supply.caregivers.forEach(function(cg){
+    if(cg.status!=='hired')return;
+    if(A.isPRN(cg))return;
+    var blocks=A.parseAvailNotes(cg.availNotes||'');
+    if(!blocks.length)return;
+    var hold=tu[cg.id]||null;
+    if(A.isLongTU(hold))return;                       // out over a week
+    var taken={};
+    (rec[cg.id]||[]).forEach(function(d){taken[d]=1;});
+    (toff[cg.id]||[]).forEach(function(d){taken[d]=1;});
+    (booked[cg.id]||[]).forEach(function(d){taken[d]=1;});
+    blocks.forEach(function(b){
+      var free=b.days.filter(function(d){return !taken[d];});
+      if(!free.length)return;
+      people.push({id:cg.id,name:cg.name,market:cg.market,phone:cg.phone,
+        type:b.type,freeDays:free,eoDays:b.eoDays||[],hold:hold,
+        desired:cg.desiredHrs||0,scheduled:cg.scheduledHrs||0,
+        certs:A.certsOf(cg),drives:String(cg.driveClients||'').toLowerCase().indexOf('yes')===0});
+    });
+  });
+  supplyIndex={people:people,count:people.length};
+}
+
+function candidatesFor(row){
+  if(!supplyIndex||supplyIndex.error)return null;
+  var A=window.TributeAvailability;
+  var dow=new Date(row.date+'T12:00:00').getDay();
+  var okTypes=FILL_TYPE_OK[row.type]||FILL_TYPE_OK.unknown;
+  var out=supplyIndex.people.filter(function(p){
+    if(p.market!==row.market)return false;
+    if(okTypes.indexOf(p.type)<0)return false;
+    if(p.freeDays.indexOf(dow)<0)return false;
+    if(A.awayOnDate(p.hold,row.date))return false;
+    return true;
+  });
+  // Prefer an exact type match, then the caregiver furthest below their desired
+  // hours -- filling a hole with someone who wants hours beats spreading it thin.
+  out.sort(function(a,b){
+    var ax=(a.type===okTypes[0]?0:1), bx=(b.type===okTypes[0]?0:1);
+    if(ax!==bx)return ax-bx;
+    return (b.desired-b.scheduled)-(a.desired-a.scheduled);
+  });
+  return {list:out, dow:dow};
+}
+
+function candidateCell(row){
+  var c=candidatesFor(row);
+  if(!c)return '<span class="z">…</span>';
+  if(!c.list.length)return '<span class="bdg br" title="Nobody in this market is available that day">none</span>';
+  var A=window.TributeAvailability;
+  var top=c.list.slice(0,3).map(function(p){
+    var eo=p.eoDays.indexOf(c.dow)>=0;
+    var gap=Math.round(p.desired-p.scheduled);
+    var bits=[];
+    if(eo)bits.push('every other week — confirm the week');
+    if(gap>0)bits.push(gap+'h below desired');
+    if(p.certs.length)bits.push(p.certs.map(function(x){return A.CERT_LABEL[x]||x;}).join(', '));
+    var label=esc(p.name.replace(/\s*'[^']*'\s*/,' ').trim());
+    return '<a href="https://tribute.mavencare.com/caregivers/'+esc(p.id)+'/dashboard/summary" target="_blank" '+
+      'style="color:var(--blue);text-decoration:none" title="'+esc(bits.join(' · ')||p.type)+'">'+label+'</a>'+
+      (eo?'<span style="color:var(--amber);font-weight:700" title="Every other week — Viv does not record which week"> ↻</span>':'');
+  }).join('<br>');
+  var more=c.list.length>3?'<div style="font-size:11px;color:var(--text3);margin-top:2px">+'+(c.list.length-3)+' more</div>':'';
+  return top+more;
+}
+
 // Per-visit worklist, most urgent first. Answers Megan's "show how long a visit
 // has been open ... so the list sorts by urgency rather than by client".
 // daysUntil always exists; ageDays is derived from the visit's ObjectId
@@ -322,9 +431,16 @@ function renderUrgencyList(d){
     (d.rowsTruncated?' \u2014 feed capped at 1000':'')+'</span></div>';
   html+='<div style="padding:6px 12px;font-size:12px;color:var(--text3)">Sorted soonest first. <b>Created</b> is how long ago the visit record was made, not time spent in a fill queue \u2014 recurring booking sets generate visits months ahead, so a large number means a long-standing recurring hole and a small one means a fresh gap.'+
     (withAge<filtered.length?' Unavailable for '+(filtered.length-withAge)+' of '+filtered.length+' rows.':'')+'</div>';
+  html+='<div style="padding:0 12px 8px;font-size:12px;color:var(--text3)">'+
+    (!supplyIndex?'Checking who is available \u2026'
+     : supplyIndex.error?'<b>Who could take it</b> is unavailable \u2014 '+esc(supplyIndex.error)+'.'
+     : '<b>Who could take it</b> lists caregivers in the same market whose availability covers that day and who are not already booked, on leave, or away on that date. '+
+       '<span style="color:var(--amber);font-weight:700">\u21bb</span> means every other week \u2014 confirm which week before you offer it. Hover a name for why they came up.')+
+    '</div>';
   html+='<div style="overflow-x:auto"><table class="tbl"><thead><tr>'+
     '<th class="no-sort">In</th><th class="no-sort">Created</th><th class="no-sort">Date</th>'+
     '<th class="no-sort">Client</th><th class="no-sort">Market</th><th class="no-sort">Type</th><th class="no-sort">Hrs</th>'+
+    '<th class="no-sort">Who could take it</th>'+
     '</tr></thead><tbody>';
   filtered.slice(0,200).forEach(function(r){
     var du=r.daysUntil;
@@ -343,7 +459,8 @@ function renderUrgencyList(d){
       '<td>'+(r.cid?'<a href="https://tribute.mavencare.com/clients/'+esc(r.cid)+'/dashboard/scheduling/visits" target="_blank" style="color:var(--blue);text-decoration:none">'+esc(r.client)+'</a>':esc(r.client))+'</td>'+
       '<td style="color:var(--text3)">'+esc(r.market)+'</td>'+
       '<td><span class="sp '+typeCls+'">'+typeLbl+'</span></td>'+
-      '<td>'+(r.hours||'\u2014')+'</td></tr>';
+      '<td>'+(r.hours||'\u2014')+'</td>'+
+      '<td style="font-size:13px;line-height:1.5">'+candidateCell(r)+'</td></tr>';
   });
   html+='</tbody></table></div>';
   if(filtered.length>200)html+='<div style="padding:8px 12px;font-size:12px;color:var(--text3)">Showing the 200 most urgent of '+filtered.length+'.</div>';
