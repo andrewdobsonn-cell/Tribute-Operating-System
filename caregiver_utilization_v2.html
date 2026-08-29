@@ -768,6 +768,71 @@ function renderRestrictedPanel(){
 }
 
 // ── Dashboard (matching Excel Dashboard tab) ──
+/* WHO HAS ROOM. Andrew, 2026-08-28, correcting the framing of this whole page:
+ * "a caregiver has desired hours and specific days they want each week. If their
+ * desired hours are capped, then they are red."
+ *
+ * So there is no market benchmark to hit. The unit is the caregiver, the measure
+ * is desired hours against what they actually worked, and RED MEANS AT CAPACITY
+ * -- no room left to give -- not poor performance. That inverts how a
+ * utilisation number is normally read, which is exactly why it is spelled out on
+ * the page rather than left to the colour.
+ *
+ * This is the same question as "under-utilised caregivers with open
+ * availability": the useful output is who we can still offer work to.
+ */
+function capacityRows(){
+  return rosterPopulation()
+    .filter(function(r){return r.desired>0;})               // no desired hours = nothing to measure against
+    .map(function(r){
+      var room=r.desired-r.worked;
+      return {r:r, room:room, capped:room<=0, over:r.worked>r.desired};
+    });
+}
+function renderCapacity(){
+  var rows=capacityRows();
+  if(!rows.length)return'';
+  var withRoom=rows.filter(function(x){return !x.capped;}).sort(function(a,b){return b.room-a.room;});
+  var capped=rows.filter(function(x){return x.capped;});
+  var over=rows.filter(function(x){return x.over;});
+  var roomHrs=withRoom.reduce(function(t,x){return t+x.room;},0);
+
+  var h='<div class="tc" style="margin-top:18px"><div class="tt">Capacity &mdash; who has room this week</div>';
+  h+='<div style="font-size:12.5px;color:var(--gray-text);line-height:1.55;margin:6px 0 12px">'
+   +'Measured per caregiver against the hours <em>they</em> asked for, not against a target. '
+   +'<span class="badge" style="background:var(--orange-fill);color:#9A3412">At capacity</span> means '
+   +'their desired hours are already met &mdash; there is nothing more to offer them, which is a reason '
+   +'to look elsewhere, not a performance problem.</div>';
+  h+='<div class="dash-kpis" style="margin:12px 0">';
+  h+='<div class="dash-kpi"><div class="kl">Have room</div><div class="kv">'+withRoom.length+'</div><div class="ks">of '+rows.length+' with desired hours set</div></div>';
+  h+='<div class="dash-kpi"><div class="kl">Hours available</div><div class="kv">'+H(roomHrs)+'</div><div class="ks">desired but not worked</div></div>';
+  h+='<div class="dash-kpi"><div class="kl">At capacity</div><div class="kv">'+capped.length+'</div><div class="ks">nothing more to offer</div></div>';
+  h+='<div class="dash-kpi"><div class="kl">Over desired</div><div class="kv">'+over.length+'</div><div class="ks">worked past what they asked for</div></div>';
+  h+='</div>';
+
+  h+='<div class="tw"><table class="tbl"><thead><tr><th class="al">Caregiver</th><th>Market</th><th>Type</th>'
+   +'<th>Wants</th><th>Worked</th><th>Room</th><th class="al">Open days</th></tr></thead><tbody>';
+  withRoom.slice(0,40).forEach(function(x){
+    var r=x.room>=8?'g':x.room>=4?'a':'';
+    h+='<tr><td class="al">'+E(r_name(x.r))+'</td><td>'+E(x.r.market)+'</td>'
+      +'<td><span class="badge '+BC(x.r.primType)+'">'+E(x.r.svcType)+'</span></td>'
+      +'<td>'+H(x.r.desired)+'</td><td>'+H(x.r.worked)+'</td>'
+      +'<td><strong>'+H(x.room)+'</strong></td>'
+      +'<td class="al" style="font-size:11px;color:var(--gray-text)">'+E(openDayText(x.r))+'</td></tr>';
+  });
+  h+='</tbody></table></div>';
+  if(withRoom.length>40)h+='<div style="font-size:12px;color:var(--gray-text);padding:8px 2px">Showing the 40 with the most room, of '+withRoom.length+'.</div>';
+  return h+'</div>';
+}
+function r_name(r){return((r.first||'')+' '+(r.last||'')).trim();}
+function openDayText(r){
+  if(!r.dayDisp)return '';
+  var D=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  var out=[];
+  r.dayDisp.forEach(function(v,i){ if(String(v)==='Y')out.push(D[i]); });
+  return out.join(', ');
+}
+
 function renderDashboard(){
   const cap=ACTIVE.reduce((s,r)=>s+r.adjCap,0);
   const wrk=ACTIVE.reduce((s,r)=>s+Math.min(r.worked,r.adjCap>0?r.adjCap:r.worked),0);
@@ -834,6 +899,7 @@ function renderDashboard(){
   if(!hasAlert)h+='<tr><td colspan="5" class="empty">No capacity alerts</td></tr>';
   h+='</tbody></table></div></div>';
   h+='</div></div>';
+  h+=renderCapacity();
   document.getElementById('p-dash').innerHTML=h;
 }
 function hmCls(v){if(v==null)return'hm-none';if(v>=1)return'hm-full';if(v>=.9)return'hm-high';if(v>=.75)return'hm-good';if(v>=.5)return'hm-med';return'hm-low'}
@@ -856,7 +922,13 @@ function renderDetail(){
   document.getElementById('p-det').innerHTML=h;addSort(document.getElementById('tbl-det'));
 }
 function detRow(r,isPRN){
-  const cls=isPRN?'prn':'';let uCls='';if(!isPRN){if(r.util===0||r.util==null)uCls='uz';else if(r.util>1)uCls='uo'}
+  // Capped = desired hours met, i.e. no room left to offer. Same colour meaning
+  // as the Capacity panel: orange is "nothing more to give", not "underperforming".
+  const cls=isPRN?'prn':'';let uCls='';
+  if(!isPRN){
+    if(r.util===0||r.util==null)uCls='uz';
+    else if(r.desired>0&&r.worked>=r.desired)uCls='uo';
+  }
   return'<tr class="'+cls+'"><td>'+r.cgNum+'</td><td class="al">'+E(r.first)+'</td><td class="al">'+E(r.last)+'</td><td>'+r.market+'</td><td>'+r.state+'</td><td>'+r.status+'</td><td>'+r.desig+'</td><td><span class="badge '+BC(r.primType)+'">'+r.svcType+'</span></td><td>'+(rxBadge(r)||'&mdash;')+'</td><td>'+H(r.desired)+'</td><td>'+H(r.adjCap)+'</td><td>'+E(r.capReason)+'</td><td>'+H(r.worked)+'</td><td>'+r.visits+'</td><td class="'+uCls+'">'+P(isPRN?null:r.util)+'</td><td>'+r.ldDays+'</td><td>'+r.odDays+'</td><td>'+r.sdDays+'</td><td>'+r.isLI+'</td>'+r.dayDisp.map(d=>'<td>'+d+'</td>').join('')+'<td class="al wr" title="'+E(r.notes)+'">'+E(r.notes)+'</td><td class="al wr" title="'+E(r.tags)+'">'+E(r.tags)+'</td><td class="al">'+E(r.hr)+'</td></tr>';
 }
 
