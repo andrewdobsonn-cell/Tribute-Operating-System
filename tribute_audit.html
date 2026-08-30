@@ -360,9 +360,44 @@ function loadTags(tagsObj) {
 }
 
 // ── LOAD RATE TABLE ────────────────────────────────────────────────────────
+/* Client rate rules, indexed for point-in-time lookup.
+ *
+ * GRANDFATHERED RATES ARE THE REASON THIS IS PER CLIENT AND PER DATE
+ * (Andrew, 2026-08-29: "some clients have grandfathered rates"). A long-standing
+ * client legitimately bills an older rate, so comparing against a market
+ * standard would flag every one of them. Comparing against that client's OWN
+ * rule -- the one in force on the visit date -- treats grandfathering as the
+ * correct answer rather than an exception, which is what it is.
+ *
+ * So the lookup is: among the rules for (client, booking type), take the one
+ * with the LATEST start date that is still on or before the visit. Taking the
+ * newest rule outright would flag exactly the grandfathered clients we must not
+ * flag.
+ */
 function loadRateTable(rateHistory) {
-  // Rate history is empty for now from the API
-  return { active: {}, allEver: {} };
+  const byKey = {};
+  (rateHistory || []).forEach(r => {
+    if (!r || !r.cid || !r.bookingType || !(r.rate > 0)) return;
+    const k = r.cid + '|' + String(r.bookingType).trim().toLowerCase();
+    (byKey[k] = byKey[k] || []).push({
+      start: r.start || '', rate: r.rate, payor: r.payor || '',
+      source: r.source || '', client: r.client || ''
+    });
+  });
+  // Newest first, so the first rule at or before the visit date wins.
+  Object.values(byKey).forEach(list => list.sort((a, b) => (b.start || '').localeCompare(a.start || '')));
+  return { byKey, count: (rateHistory || []).length, keys: Object.keys(byKey).length };
+}
+
+// The rule in force for this client + booking type on this date, or null.
+function rateRuleFor(table, cid, visitType, dateISO) {
+  if (!table || !table.byKey || !cid || !visitType) return null;
+  const list = table.byKey[cid + '|' + String(visitType).trim().toLowerCase()];
+  if (!list || !list.length) return null;
+  if (!dateISO) return list[0];
+  // Rules with no start date are treated as always-in-force.
+  const applicable = list.filter(r => !r.start || r.start <= dateISO);
+  return applicable.length ? applicable[0] : null;
 }
 
 // ── WEEK LABEL ─────────────────────────────────────────────────────────────
@@ -497,10 +532,78 @@ function detectLiveIn(bookings) {
 // the pattern behind Jennifer's "bill $65/hr not $59/hr" catches. A clean forward rate
 // change (all deviating visits at the tail, none of the norm rate on/after them) is a
 // legitimate increase and is NOT flagged.
-function detectClientRate(bookings) {
+/* Two checks in one, and the page says which produced each row.
+ *
+ * Where the client has a rate rule in force we compare against it -- exact, and
+ * catchable on a single visit. Where there is no rule we fall back to the old
+ * inference (the mode of that client's own visits for that type) so coverage
+ * does not regress, but the row is labelled as inferred so nobody treats a guess
+ * as the standard.
+ *
+ * The fallback exists because the rule check is structurally better in a way
+ * worth stating: the mode CANNOT see a client billed wrong on every visit -- the
+ * wrong rate simply becomes the mode. That whole class of error was invisible.
+ */
+function detectClientRate(bookings, rateTable) {
+  const issues = [];
+  let ruleChecked = 0, ruleFlagged = 0, noRule = 0;
+
+  /* One row per client + visit type + wrong rate, not per visit. A client billed
+   * at the wrong rate across twenty visits is ONE thing to fix in Viv -- either
+   * correct the rate or correct the rule -- so twenty identical rows would be
+   * twenty people looking at the same action. The row carries how many visits it
+   * covers and the date range, so nothing is hidden by the grouping. */
+  const grouped = {};
+  bookings.forEach(b => {
+    if (b._cancelled || EXCLUDE_VT.has(b._vt) || b._is_office || !b._start || !(b._cl_rate > 0)) return;
+    const dateISO = new Date(b._start).toISOString().slice(0, 10);
+    const rule = rateRuleFor(rateTable, b._cid, b._vt, dateISO);
+    if (!rule) { noRule++; return; }
+    ruleChecked++;
+    const actual = Math.round(b._cl_rate * 100) / 100;
+    const expect = Math.round(rule.rate * 100) / 100;
+    if (Math.abs(actual - expect) <= 0.01) return;
+    ruleFlagged++;
+    const k = b._cid + '|' + b._vt + '|' + actual + '|' + expect;
+    const gr = grouped[k] || (grouped[k] = { b: b, rule: rule, actual: actual, expect: expect,
+                                             n: 0, first: dateISO, last: dateISO });
+    gr.n++;
+    if (dateISO < gr.first) gr.first = dateISO;
+    if (dateISO > gr.last) { gr.last = dateISO; }
+  });
+
+  Object.values(grouped).forEach(gr => {
+    const b = gr.b, rule = gr.rule;
+    const delta = gr.actual - gr.expect;
+    const span = gr.first === gr.last ? gr.first : `${gr.first} to ${gr.last}`;
+    issues.push({
+      'Client': b._client, 'Market': b._geo, 'Date': span, 'Visit Type': b._vt,
+      'Visits': String(gr.n),
+      'Billed Rate': `$${gr.actual.toFixed(2)}`, 'Client Norm': `$${gr.expect.toFixed(2)}`,
+      'Why Flagged': `${gr.n} visit${gr.n === 1 ? '' : 's'} billed $${gr.actual.toFixed(2)} against this client's rate rule of $${gr.expect.toFixed(2)}`
+        + (rule.payor ? ` (${rule.payor})` : '') + (rule.start ? `, in force since ${rule.start}` : '')
+        + ` — ${delta > 0 ? 'over' : 'under'} by $${Math.abs(delta).toFixed(2)} per visit`,
+      'Action': `Correct to $${gr.expect.toFixed(2)} or update the rate rule in Viv`,
+      'Basis': 'Rate rule',
+      severity: 'error', geo: b._geo, _cid: b._cid, _cgid: b._cgid, _bid: b._bid
+    });
+  });
+
+  // Inferred fallback, only for clients with no rule on file.
+  const inferred = detectClientRateInferred(bookings, rateTable);
+  issues.push(...inferred);
+
+  issues._coverage = { ruleChecked, ruleFlagged, noRule, inferredFlagged: inferred.length,
+                       rulesLoaded: (rateTable && rateTable.count) || 0 };
+  return issues;
+}
+
+function detectClientRateInferred(bookings, rateTable) {
   const g = {};
   bookings.forEach(b => {
     if (b._cancelled || EXCLUDE_VT.has(b._vt) || b._is_office || !b._start || !(b._cl_rate>0)) return;
+    const dISO = new Date(b._start).toISOString().slice(0,10);
+    if (rateRuleFor(rateTable, b._cid, b._vt, dISO)) return;   // the rule check owns these
     const k = b._cid+'|'+b._vt;
     (g[k] = g[k] || []).push(b);
   });
@@ -520,7 +623,8 @@ function detectClientRate(bookings) {
         'Billed Rate':`$${r.toFixed(2)}`,'Client Norm':`$${mode.toFixed(2)}`,
         'Why Flagged':`Billed $${r.toFixed(2)}/hr — this client's other ${rows.length-1} "${b._vt}" visits bill $${mode.toFixed(2)}/hr`,
         'Action':`Verify client rate — should likely be $${mode.toFixed(2)}/hr`,
-        severity:'error', geo:b._geo, _cid:b._cid});
+        'Basis':'Inferred — no rate rule on file',
+        severity:'warn', geo:b._geo, _cid:b._cid, _cgid:b._cgid, _bid:b._bid});
     });
   });
   return issues;
@@ -1303,6 +1407,11 @@ async function runDashboard() {
         });
       });
     }
+    {
+      const _rt=loadRateTable(apiData.rateHistory||[]);
+      logLine(`Client rate rules: ${_rt.count} rows, ${_rt.keys} client+type combinations`
+        + (_rt.count===0?' — rate check falls back to inferred norms':''));
+    }
     logLine(`Uber client-paid rides this week: ${uberClientRows.length} (${_uberLinked} linked to Viv, ${_uberUnlinked} name not matched)`);
 
     // Fetch expense line-items for the week and detect double-charges (non-blocking)
@@ -1395,10 +1504,10 @@ async function runDashboard() {
        desc:'Client rates that have never appeared in the full rate history for that market.',
        data:detectInvalidRates(bookings,rateTable),
        cols:['Market','Visit Type','Invalid Rate','Current Rate','Visits','Clients','Action']},
-      {id:'clrate',   name:'Client Rate Inconsistency', icon:'🏷️', red:true,
-       desc:'A single visit billed at a different client rate than that client\'s other visits of the same type — the pattern behind "bill $65/hr not $59/hr" corrections. A clean forward rate increase (all later visits at the new rate) is treated as legitimate and not flagged.',
-       data:detectClientRate(bookings),
-       cols:['Client','Market','Date','Visit Type','Billed Rate','Client Norm','Why Flagged','Action']},
+      {id:'clrate',   name:'Client Rate vs Rate Rule', icon:'🏷️', red:true,
+       desc:'Each visit\'s billed rate against that client\'s rate rule in Viv — the payor rate table entry for that booking type, as in force on the visit date. Point-in-time on purpose: a grandfathered client legitimately bills an older rate, so comparing against their own dated rule treats grandfathering as correct rather than flagging it. Rows are grouped per client, visit type and wrong rate, because that is one fix in Viv rather than one per visit. Where a client has no rule on file the older inferred check still runs (the mode of that client\'s own visits) and those rows are labelled Inferred — note that inference cannot see a client billed wrong on EVERY visit, since the wrong rate becomes the norm.',
+       data:detectClientRate(bookings,rateTable),
+       cols:['Client','Market','Date','Visit Type','Visits','Billed Rate','Client Norm','Basis','Why Flagged','Action']},
       {id:'livein',   name:'Live-In Hourly Review',   icon:'🏠', red:true,
        desc:'Live-In visits under 24h — if CG works ≤48h/wk on Live-In, pay hourly up to 16h/day.',
        data:detectLiveInHourly(bookings, liveInContext, startDate, endDate),
