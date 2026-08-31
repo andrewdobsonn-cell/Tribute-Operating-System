@@ -524,6 +524,16 @@ function getFilteredBookingSets(){
   });
 }
 
+/* Days since this slot last had a REGULAR caregiver.
+ *
+ * Andrew, 2026-08-31: "we always cover all our visits. It's about, when is the
+ * last time we had a care team member (a recurring person) for that day of the
+ * week." So coverage is not the signal -- continuity is. A regular means one
+ * caregiver held the weekday for three consecutive weeks; the end of the most
+ * recent such run is the date below. null means no run anywhere in the 12-week
+ * lookback, which is a floor, not an exact age.
+ *
+ * Old note, kept because it still applies: */
 /* Days since a caregiver was last on THIS recurring slot.
  *
  * Andrew, 2026-08-31: "how long has there not been a caregiver on there as a
@@ -534,8 +544,8 @@ function getFilteredBookingSets(){
  * null means nobody was on it inside the lookback window, which is a FLOOR, not
  * an exact age. We never print pattern age as if it were vacancy. */
 function daysSinceCovered(s){
-  if(!s.lastCovered)return null;
-  var a=Date.parse(s.lastCovered+'T00:00:00Z'), n=Date.parse(new Date().toISOString().slice(0,10)+'T00:00:00Z');
+  if(!s.lastRegular)return null;
+  var a=Date.parse(s.lastRegular+'T00:00:00Z'), n=Date.parse(new Date().toISOString().slice(0,10)+'T00:00:00Z');
   if(isNaN(a))return null;
   return Math.max(0,Math.round((n-a)/86400000));
 }
@@ -603,18 +613,16 @@ function renderBookingSets(){
   if(editMode)html+='<span style="font-size:10px;color:var(--amber);margin-left:8px">&#9998; Click any cell to edit · Toggle hide to remove from CSV</span>';
   html+='</div>';
   html+='<div style="padding:6px 12px 10px;font-size:12px;color:var(--text3);line-height:1.5">'
-    +'<b>Every set here has no caregiver assigned to it</b>, so any visit that got worked was a fill-in, not the slot being staffed. '
-    +'The column says how many different people have been plugging it over the last 30 days &mdash; '
-    +'<span class="bdg ba">1</span> means the same person keeps taking it and it is worth making that a real assignment; '
-    +'<span class="bdg br">2+</span> means it is being passed around. Hover any cell for the detail. '
-    +(_chronic?'<span class="bdg br">'+_chronic+'</span> had nobody at all. ':'')
-    +(_patched?_patched+' of '+_wOpen.length+' are being held together by fill-ins'+(_passed?', '+_passed+' of them by more than one person':'')+'. ':'')
+    +'<b>Last regular</b> is how long since one caregiver held these weekdays three weeks running &mdash; a care team member, '
+    +'not somebody who covered a visit. Coverage is not the measure here; the visits get worked either way. '
+    +'<span class="bdg br">never in 12w</span> means no weekday on this set has had a consistent person all quarter. '
+    +(_chronic?'<span class="bdg br">'+_chronic+'</span> of '+_wOpen.length+' are in that state. ':'')
     +(_future?_future+' set'+(_future===1?'':'s')+' have not started yet and sort last &mdash; upcoming demand rather than a hole we have failed to fill.':'')
     +'</div>';
   html+='<table class="tbl"><thead><tr>';
   html+=th('clientName','Client');
   html+=th('accountManager','Account Manager');
-  html+=th('openDays','Fill-in cover');
+  html+=th('openDays','Last regular');
   html+='<th class="no-sort">Days Open</th>';
   html+='<th class="no-sort">Nights Open</th>';
   html+=th('market','Market');
@@ -651,24 +659,19 @@ function renderBookingSets(){
     } else if(s.openDays==null){
       openCell='<span class="z" title="No start date on the recurring pattern">—</span>';
     } else if(_since!=null){
-      /* Covered, but NOT staffed. This set has no assigned caregiver, so every
-       * worked occurrence is a fill-in. What matters is whether one person keeps
-       * taking it (worth formalising into a real assignment) or it is passed
-       * around every week (a hole being papered over). */
-      var f=s.fillIns||{};
-      var oneHand=(f.caregivers===1);
-      var t='No caregiver assigned to this slot. '
-           +(f.occurrences||0)+' visit'+((f.occurrences===1)?'':'s')+' filled in by '
-           +(f.caregivers||0)+' caregiver'+((f.caregivers===1)?'':'s')+' over the last 30 days'
-           +(f.topShare?', top one covering '+f.topShare+'%':'')
-           +' · last filled '+esc(s.lastCovered)+' · pattern began '+esc(s.openSince||'?');
-      var label=(f.caregivers||0)+' filling in';
-      openCell='<span class="bdg '+(oneHand?'ba':'br')+'" title="'+t+'">'+esc(label)+'</span>';
+      // Had a regular at some point in the lookback; say how long ago that ended.
+      var wk=Math.floor(_since/7);
+      var t='Last had a regular caregiver on '+esc(s.lastRegular)
+           +(s.daysWithoutRegular?' · '+s.daysWithoutRegular+' of '+(s.weekdayCount||'?')+' weekdays have had none at all in 12 weeks':'')
+           +' · pattern began '+esc(s.openSince||'?');
+      openCell='<span class="bdg '+(_since>=28?'br':'ba')+'" title="'+t+'">'+(wk>=1?wk+'w ago':_since+'d ago')+'</span>';
     } else {
       // Nobody worked it inside the lookback — a floor, so say "30d+", not "736d".
-      var t2='No caregiver on this recurring slot since at least '+esc(s.coverLookbackFrom||'the lookback window')
+      var t2='No regular caregiver on any of these weekdays since at least '
+            +esc(s.regularLookbackFrom||'the lookback window')
+            +' — visits are being covered, but by nobody consistently'
             +' · pattern began '+esc(s.openSince||'?')+(_age!=null?' ('+_age+'d ago)':'');
-      openCell='<span class="bdg br" title="'+t2+'">'+esc(String(s.coverLookbackFrom?'30d+':'30d+'))+'</span>';
+      openCell='<span class="bdg br" title="'+t2+'">never in 12w</span>';
     }
 
     if(s.state!==curState&&filters.state==='all'&&filters.market==='all'){
