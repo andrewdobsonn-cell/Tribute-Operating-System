@@ -524,6 +524,28 @@ function getFilteredBookingSets(){
   });
 }
 
+/* Days since a caregiver was last on THIS recurring slot.
+ *
+ * Andrew, 2026-08-31: "how long has there not been a caregiver on there as a
+ * recurring thing". Visits carry bsid, so this counts occurrences of the actual
+ * booking set that had a caregiver -- a one-off fill-in elsewhere in the client's
+ * week does not count as the slot being staffed.
+ *
+ * null means nobody was on it inside the lookback window, which is a FLOOR, not
+ * an exact age. We never print pattern age as if it were vacancy. */
+function daysSinceCovered(s){
+  if(!s.lastCovered)return null;
+  var a=Date.parse(s.lastCovered+'T00:00:00Z'), n=Date.parse(new Date().toISOString().slice(0,10)+'T00:00:00Z');
+  if(isNaN(a))return null;
+  return Math.max(0,Math.round((n-a)/86400000));
+}
+function uncoveredScore(s){
+  if(s.openDays==null)return -1;                 // not started yet — sorts last
+  var d=daysSinceCovered(s);
+  if(d!=null)return d;                           // covered recently — rank by how recently
+  return 100000+(s.patternAgeDays||s.openDays||0); // never covered in window — above all of those
+}
+
 function renderBookingSets(){
   var d=bookingData;
   if(!d){loading('Loading booking sets...');return;}
@@ -538,10 +560,12 @@ function renderBookingSets(){
      * Sets whose pattern has not started yet are upcoming demand rather than a
      * hole we have failed to fill, so they sort last however soon they begin. */
     if(sortCol==='openDays'){
-      // Same comparator convention as every other column here, so the header
-      // toggle behaves consistently. Sets that have not started yet score -1 and
-      // therefore fall to the bottom; among them, soonest-starting first.
-      var ad=(a.openDays==null?-1:a.openDays), bd=(b.openDays==null?-1:b.openDays);
+      /* Rank on how long since the slot was ACTUALLY worked, not on how old the
+       * recurring pattern is. A pattern that began in 2024 but was covered last
+       * Tuesday is not a two-year hole -- Viv clears cgid on the existing set when
+       * a caregiver comes off, so pattern age cannot tell those apart on its own.
+       * Uncovered-in-the-window scores highest; among those, older pattern first. */
+      var ad=uncoveredScore(a), bd=uncoveredScore(b);
       if(ad<bd)return sortDir;
       if(ad>bd)return -sortDir;
       var as=(a.startsInDays==null?99999:a.startsInDays), bs=(b.startsInDays==null?99999:b.startsInDays);
@@ -571,21 +595,22 @@ function renderBookingSets(){
   function th(col,label){return '<th onclick="sortCol=\''+col+'\';sortDir=(sortCol===\''+col+'\')?-sortDir:-1;render()">'+label+si(col)+'</th>';}
 
   var _wOpen=filtered.filter(function(x){return x.openDays!=null;});
-  var _chronic=_wOpen.filter(function(x){return x.openDays>=90;}).length;
+  var _chronic=_wOpen.filter(function(x){return daysSinceCovered(x)==null;}).length;
   var _future=filtered.filter(function(x){return x.openDays==null&&x.startsInDays!=null;}).length;
   html+='<div class="fc"><div class="fc-head"><span class="fc-title">Open Booking Sets</span>';
   if(editMode)html+='<span style="font-size:10px;color:var(--amber);margin-left:8px">&#9998; Click any cell to edit · Toggle hide to remove from CSV</span>';
   html+='</div>';
   html+='<div style="padding:6px 12px 10px;font-size:12px;color:var(--text3);line-height:1.5">'
-    +'Sorted longest-open first. <b>Open For</b> is how long the recurring pattern has been running with no caregiver on it '
-    +'&mdash; not how long anyone has been working the fill. '
-    +(_chronic?'<span class="bdg br">'+_chronic+'</span> open 90 days or more. ':'')
+    +'Sorted by how long the recurring slot has gone without a caregiver on it. <b>Uncovered</b> counts from the last time '
+    +'someone actually held this booking set &mdash; not from when the pattern was created, because Viv clears the caregiver off '
+    +'the existing set, so an old pattern filled last week is not an old hole. '
+    +(_chronic?'<span class="bdg br">'+_chronic+'</span> had no caregiver on the recurring slot at all in the last 30 days; hover for when the pattern began. ':'')
     +(_future?_future+' set'+(_future===1?'':'s')+' have not started yet and sort last &mdash; upcoming demand rather than a hole we have failed to fill.':'')
     +'</div>';
   html+='<table class="tbl"><thead><tr>';
   html+=th('clientName','Client');
   html+=th('accountManager','Account Manager');
-  html+=th('openDays','Open For');
+  html+=th('openDays','Uncovered');
   html+='<th class="no-sort">Days Open</th>';
   html+='<th class="no-sort">Nights Open</th>';
   html+=th('market','Market');
@@ -615,14 +640,22 @@ function renderBookingSets(){
     // 90d+ is a chronic hole; a set that has not started yet is upcoming demand,
     // not a fill failure, so it reads as "starts in Nd" rather than a zero.
     var openCell;
-    if(s.openDays!=null){
-      openCell = s.openDays>=90 ? '<span class="bdg br" title="Open since '+esc(s.openSince||'')+'">'+s.openDays+'d</span>'
-               : s.openDays>=30 ? '<span class="bdg ba" title="Open since '+esc(s.openSince||'')+'">'+s.openDays+'d</span>'
-               : '<span title="Open since '+esc(s.openSince||'')+'">'+s.openDays+'d</span>';
-    } else if(s.startsInDays!=null){
-      openCell = '<span class="z" title="Pattern begins '+esc(s.openSince||'')+'">starts in '+s.startsInDays+'d</span>';
+    var _since=daysSinceCovered(s);
+    var _age=(s.patternAgeDays!=null?s.patternAgeDays:s.openDays);
+    if(s.openDays==null&&s.startsInDays!=null){
+      openCell='<span class="z" title="Pattern begins '+esc(s.openSince||'')+'">starts in '+s.startsInDays+'d</span>';
+    } else if(s.openDays==null){
+      openCell='<span class="z" title="No start date on the recurring pattern">—</span>';
+    } else if(_since!=null){
+      // Someone was on it recently, so the pattern's age is not the vacancy.
+      var t='A caregiver was last on this recurring slot '+esc(s.lastCovered)
+           +' · pattern began '+esc(s.openSince||'?');
+      openCell=(_since>=14?'<span class="bdg ba" title="'+t+'">':'<span title="'+t+'">')+_since+'d</span>';
     } else {
-      openCell = '<span class="z" title="No start date on the recurring pattern">—</span>';
+      // Nobody worked it inside the lookback — a floor, so say "30d+", not "736d".
+      var t2='No caregiver on this recurring slot since at least '+esc(s.coverLookbackFrom||'the lookback window')
+            +' · pattern began '+esc(s.openSince||'?')+(_age!=null?' ('+_age+'d ago)':'');
+      openCell='<span class="bdg br" title="'+t2+'">'+esc(String(s.coverLookbackFrom?'30d+':'30d+'))+'</span>';
     }
 
     if(s.state!==curState&&filters.state==='all'&&filters.market==='all'){
