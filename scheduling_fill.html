@@ -605,7 +605,8 @@ function renderBookingSets(){
   function th(col,label){return '<th onclick="sortCol=\''+col+'\';sortDir=(sortCol===\''+col+'\')?-sortDir:-1;render()">'+label+si(col)+'</th>';}
 
   var _wOpen=filtered.filter(function(x){return x.openDays!=null;});
-  var _chronic=_wOpen.filter(function(x){return daysSinceCovered(x)==null;}).length;
+  var _pending=_wOpen.some(function(x){return x.regularsPending;});
+  var _chronic=_wOpen.filter(function(x){return !x.regularsPending&&daysSinceCovered(x)==null;}).length;
   var _patched=_wOpen.filter(function(x){return daysSinceCovered(x)!=null;}).length;
   var _passed=_wOpen.filter(function(x){var f=x.fillIns||{};return f.caregivers>1;}).length;
   var _future=filtered.filter(function(x){return x.openDays==null&&x.startsInDays!=null;}).length;
@@ -616,7 +617,8 @@ function renderBookingSets(){
     +'<b>Last regular</b> is how long since one caregiver held these weekdays three weeks running &mdash; a care team member, '
     +'not somebody who covered a visit. Coverage is not the measure here; the visits get worked either way. '
     +'<span class="bdg br">never in 12w</span> means no weekday on this set has had a consistent person all quarter. '
-    +(_chronic?'<span class="bdg br">'+_chronic+'</span> of '+_wOpen.length+' are in that state. ':'')
+    +(_pending?'<b>Not computed yet</b> \u2014 the regular-caregiver history is rebuilt on a schedule and has not run since the last change. '
+             :(_chronic?'<span class="bdg br">'+_chronic+'</span> of '+_wOpen.length+' are in that state. ':''))
     +(_future?_future+' set'+(_future===1?'':'s')+' have not started yet and sort last &mdash; upcoming demand rather than a hole we have failed to fill.':'')
     +'</div>';
   html+='<table class="tbl"><thead><tr>';
@@ -658,6 +660,11 @@ function renderBookingSets(){
       openCell='<span class="z" title="Pattern begins '+esc(s.openSince||'')+'">starts in '+s.startsInDays+'d</span>';
     } else if(s.openDays==null){
       openCell='<span class="z" title="No start date on the recurring pattern">—</span>';
+    } else if(s.regularsPending){
+      // Index not built yet. "Not computed" must never render as "no regular" --
+      // that would be a confident wrong answer, which is the failure this column
+      // has already been through twice.
+      openCell='<span class="z" title="The regular-caregiver history has not been built yet">not computed</span>';
     } else if(_since!=null){
       // Had a regular at some point in the lookback; say how long ago that ended.
       var wk=Math.floor(_since/7);
