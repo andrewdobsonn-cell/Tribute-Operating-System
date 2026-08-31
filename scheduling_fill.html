@@ -130,7 +130,7 @@ async function _authFetch(url, opts) {
 var curTab='open';
 var openData=null,bookingData=null,timeoffData=null;
 var filters={state:'all',market:'all',shifts:{long:true,short:true,overnight:true,livein:true}};
-var sortCol='openVisitCount',sortDir=-1;
+var sortCol='openDays',sortDir=1;   // longest-open first (Megan, 2026-08-31)
 var editMode=false;
 // Manual overrides: {cid: {hide:bool, clientName, accountManager, daysNote, nightsNote}}
 var overrides={};
@@ -533,6 +533,20 @@ function renderBookingSets(){
   filtered.sort(function(a,b){
     var ov=overrides;
     var av,bv;
+    /* Longest open first, by default. Megan, 2026-08-31: "I'd like the list of
+     * open booking sets to be sorted by how long they've been open."
+     * Sets whose pattern has not started yet are upcoming demand rather than a
+     * hole we have failed to fill, so they sort last however soon they begin. */
+    if(sortCol==='openDays'){
+      // Same comparator convention as every other column here, so the header
+      // toggle behaves consistently. Sets that have not started yet score -1 and
+      // therefore fall to the bottom; among them, soonest-starting first.
+      var ad=(a.openDays==null?-1:a.openDays), bd=(b.openDays==null?-1:b.openDays);
+      if(ad<bd)return sortDir;
+      if(ad>bd)return -sortDir;
+      var as=(a.startsInDays==null?99999:a.startsInDays), bs=(b.startsInDays==null?99999:b.startsInDays);
+      return as-bs;
+    }
     if(sortCol==='clientName'){av=(overrides[a.cid]&&overrides[a.cid].clientName)||a.clientName;bv=(overrides[b.cid]&&overrides[b.cid].clientName)||b.clientName;}
     else if(sortCol==='accountManager'){av=(overrides[a.cid]&&overrides[a.cid].accountManager)||a.accountManager;bv=(overrides[b.cid]&&overrides[b.cid].accountManager)||b.accountManager;}
     else if(sortCol==='market'){av=a.market;bv=b.market;}
@@ -556,12 +570,22 @@ function renderBookingSets(){
   function si(col){if(sortCol!==col)return '<span class="si">⇅</span>';return '<span class="si">'+(sortDir===-1?'↓':'↑')+'</span>';}
   function th(col,label){return '<th onclick="sortCol=\''+col+'\';sortDir=(sortCol===\''+col+'\')?-sortDir:-1;render()">'+label+si(col)+'</th>';}
 
+  var _wOpen=filtered.filter(function(x){return x.openDays!=null;});
+  var _chronic=_wOpen.filter(function(x){return x.openDays>=90;}).length;
+  var _future=filtered.filter(function(x){return x.openDays==null&&x.startsInDays!=null;}).length;
   html+='<div class="fc"><div class="fc-head"><span class="fc-title">Open Booking Sets</span>';
   if(editMode)html+='<span style="font-size:10px;color:var(--amber);margin-left:8px">&#9998; Click any cell to edit · Toggle hide to remove from CSV</span>';
   html+='</div>';
+  html+='<div style="padding:6px 12px 10px;font-size:12px;color:var(--text3);line-height:1.5">'
+    +'Sorted longest-open first. <b>Open For</b> is how long the recurring pattern has been running with no caregiver on it '
+    +'&mdash; not how long anyone has been working the fill. '
+    +(_chronic?'<span class="bdg br">'+_chronic+'</span> open 90 days or more. ':'')
+    +(_future?_future+' set'+(_future===1?'':'s')+' have not started yet and sort last &mdash; upcoming demand rather than a hole we have failed to fill.':'')
+    +'</div>';
   html+='<table class="tbl"><thead><tr>';
   html+=th('clientName','Client');
   html+=th('accountManager','Account Manager');
+  html+=th('openDays','Open For');
   html+='<th class="no-sort">Days Open</th>';
   html+='<th class="no-sort">Nights Open</th>';
   html+=th('market','Market');
@@ -588,20 +612,35 @@ function renderBookingSets(){
     if(ov.daysNote)daySlots=[ov.daysNote];
     if(ov.nightsNote)nightSlots=[ov.nightsNote];
 
+    // 90d+ is a chronic hole; a set that has not started yet is upcoming demand,
+    // not a fill failure, so it reads as "starts in Nd" rather than a zero.
+    var openCell;
+    if(s.openDays!=null){
+      openCell = s.openDays>=90 ? '<span class="bdg br" title="Open since '+esc(s.openSince||'')+'">'+s.openDays+'d</span>'
+               : s.openDays>=30 ? '<span class="bdg ba" title="Open since '+esc(s.openSince||'')+'">'+s.openDays+'d</span>'
+               : '<span title="Open since '+esc(s.openSince||'')+'">'+s.openDays+'d</span>';
+    } else if(s.startsInDays!=null){
+      openCell = '<span class="z" title="Pattern begins '+esc(s.openSince||'')+'">starts in '+s.startsInDays+'d</span>';
+    } else {
+      openCell = '<span class="z" title="No start date on the recurring pattern">—</span>';
+    }
+
     if(s.state!==curState&&filters.state==='all'&&filters.market==='all'){
       curState=s.state;
-      html+='<tr><td colspan="'+(editMode?7:6)+'" class="state-header">'+curState+'</td></tr>';
+      html+='<tr><td colspan="'+(editMode?8:7)+'" class="state-header">'+curState+'</td></tr>';
     }
 
     html+='<tr data-cid="'+s.cid+'">';
     if(editMode){
       html+='<td class="editable" onclick="editCell(this,\'clientName\',\''+s.cid+'\')">'+esc(clientName)+'</td>';
       html+='<td class="editable" onclick="editCell(this,\'accountManager\',\''+s.cid+'\')">'+esc(accountManager||'<span class=\'z\'>—</span>')+'</td>';
+      html+='<td>'+openCell+'</td>';
       html+='<td class="editable" onclick="editCell(this,\'daysNote\',\''+s.cid+'\')">'+(daySlots.length?daySlots.join(', '):'<span class=\'z\'>—</span>')+'</td>';
       html+='<td class="editable" onclick="editCell(this,\'nightsNote\',\''+s.cid+'\')">'+(nightSlots.length?nightSlots.join(', '):'<span class=\'z\'>—</span>')+'</td>';
     } else {
       html+='<td><strong>'+esc(clientName)+'</strong></td>';
       html+='<td style="color:var(--text2)">'+esc(accountManager||'<span class="z">—</span>')+'</td>';
+      html+='<td>'+openCell+'</td>';
       html+='<td>'+(daySlots.length?'<span class="sp sp-long">'+daySlots.join(', ')+'</span>':'<span class="z">—</span>')+'</td>';
       html+='<td>'+(nightSlots.length?'<span class="sp sp-overnight">'+nightSlots.join(', ')+'</span>':'<span class="z">—</span>')+'</td>';
     }
