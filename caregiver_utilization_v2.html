@@ -847,6 +847,19 @@ function openDayText(r){
 
 /* Says so when the selected week cannot produce a comparable number: the current
  * week is only part-worked, a future week has nothing in it at all. */
+/* The KPI sublabels used to read "this week" unconditionally, which became a
+ * plain falsehood once the page started defaulting to the previous week. Name the
+ * week on screen instead. */
+function wkTag(){
+  var k=CURRENT_WEEK_KEY;
+  if(!k)return '';
+  var thisWk=fmtWeekKey(new Date());
+  if(k===thisWk)return 'this week (partial)';
+  var d=new Date(k+'T12:00:00'), e=new Date(d.getTime()+6*86400000);
+  var f=function(x){return (x.getMonth()+1)+'/'+x.getDate();};
+  return 'wk '+f(d)+'\u2013'+f(e);
+}
+
 function weekCompletenessNote(weekKey){
   if(!weekKey)return '';
   var thisWk=fmtWeekKey(new Date());
@@ -871,12 +884,12 @@ function renderDashboard(){
   const wrk=ACTIVE.reduce((s,r)=>s+Math.min(r.worked,r.adjCap>0?r.adjCap:r.worked),0);
   const util=cap>0?wrk/cap:0;
   let h='<div class="dash-kpis">';
-  h+='<div class="dash-kpi"><div class="kl">Active Caregivers</div><div class="kv">'+ACTIVE.length+'</div><div class="ks">this week</div></div>';
-  h+='<div class="dash-kpi"><div class="kl">PRN Worked</div><div class="kv">'+PRN_R.length+'</div><div class="ks">this week</div></div>';
-  h+='<div class="dash-kpi"><div class="kl">On PTO</div><div class="kv">'+PTO_R.length+'</div><div class="ks">this week</div></div>';
+  h+='<div class="dash-kpi"><div class="kl">Active Caregivers</div><div class="kv">'+ACTIVE.length+'</div><div class="ks">'+wkTag()+'</div></div>';
+  h+='<div class="dash-kpi"><div class="kl">PRN Worked</div><div class="kv">'+PRN_R.length+'</div><div class="ks">'+wkTag()+'</div></div>';
+  h+='<div class="dash-kpi"><div class="kl">On PTO</div><div class="kv">'+PTO_R.length+'</div><div class="ks">'+wkTag()+'</div></div>';
   h+='<div class="dash-kpi"><div class="kl">On Leave</div><div class="kv">'+(AVAIL_CTX.leave?LEAVE_R.length:'n/a')+'</div><div class="ks">'+(AVAIL_CTX.leave?'excl. from util':'list unavailable')+'</div></div>';
   h+='<div class="dash-kpi"><div class="kl">Restricted</div><div class="kv">'+(AVAIL_CTX.restrict?RESTRICT_R.length:'n/a')+'</div><div class="ks">excl. from util</div></div>';
-  h+='<div class="dash-kpi"><div class="kl">Overall Util %</div><div class="kv">'+P(util)+'</div><div class="ks">this week</div></div>';
+  h+='<div class="dash-kpi"><div class="kl">Overall Util %</div><div class="kv">'+P(util)+'</div><div class="ks">'+wkTag()+'</div></div>';
   h+='</div>';
   h+=renderRestrictedPanel();
   // Market Utilization Heatmap
