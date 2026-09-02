@@ -127,6 +127,11 @@
         <div class="tile-name">Scheduling Fill</div>
         <div class="tile-desc">Open visits, open booking sets and caregiver time off</div>
       </div>
+      <div class="dash-tile rise" style="animation-delay:.50s" onclick="loadDash('weekly_audit',this)">
+        <div class="tile-icon">&#9989;</div>
+        <div class="tile-name">Weekly Audit</div>
+        <div class="tile-desc">Exceptions on the closed week &mdash; rates, travel, EVV, coverage</div>
+      </div>
     </div>
 
     <!-- Active dashboard frame -->
@@ -165,6 +170,9 @@ var DASHES = {
   availability_analyzer:  { title:'Availability Analyzer',   file:'availability_analyzer.html' },
   caregiver_utilization:  { title:'Caregiver Utilization',   file:'caregiver_utilization_v2.html' },
   scheduling_fill:        { title:'Scheduling Fill',         file:'scheduling_fill.html' },
+  // Was reachable only by raw URL, which is Megan's "one front door" complaint
+  // verbatim: "Weekly Audit and Call Intelligence still live on their own URLs".
+  weekly_audit:           { title:'Weekly Audit',            file:'tribute_audit.html' },
 };
 
 function setEl(id,v){ var e=document.getElementById(id); if(e)e.textContent=v; }
