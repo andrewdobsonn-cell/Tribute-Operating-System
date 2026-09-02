@@ -132,6 +132,12 @@
         <div class="tile-name">Weekly Audit</div>
         <div class="tile-desc">Exceptions on the closed week &mdash; rates, travel, EVV, coverage</div>
       </div>
+      <div class="dash-tile rise" style="animation-delay:.56s" onclick="loadDash('call_intelligence',this)"
+           title="Opens in a new tab — separate sign-in">
+        <div class="tile-icon">&#128222;</div>
+        <div class="tile-name">Call Intelligence &#8599;</div>
+        <div class="tile-desc">Recorded calls, summaries and follow-ups &mdash; opens in a new tab</div>
+      </div>
     </div>
 
     <!-- Active dashboard frame -->
@@ -173,6 +179,15 @@ var DASHES = {
   // Was reachable only by raw URL, which is Megan's "one front door" complaint
   // verbatim: "Weekly Audit and Call Intelligence still live on their own URLs".
   weekly_audit:           { title:'Weekly Audit',            file:'tribute_audit.html' },
+  /* Call Intelligence cannot be embedded: it sits on its own container app behind
+   * HTTP basic auth (401 + WWW-Authenticate: Basic), and Chrome will not prompt
+   * for basic-auth credentials inside a cross-origin iframe -- a framed tile would
+   * just render a 401. So it opens in a new tab. That still answers the actual
+   * complaint, which is "one front door", not "one iframe". The real fix is moving
+   * it onto Entra like everything else here; until then a link-out is honest and a
+   * fake embed is not. */
+  call_intelligence:      { title:'Call Intelligence',
+                            external:'https://tribute-call-intel-app.agreeablefield-f3120a94.centralus.azurecontainerapps.io/' },
 };
 
 function setEl(id,v){ var e=document.getElementById(id); if(e)e.textContent=v; }
@@ -199,6 +214,13 @@ function loadDash(key, tile){
   }
 
   var cfg=DASHES[key]; if(!cfg)return;
+  // External dashboards open in a new tab rather than the frame (see the note on
+  // call_intelligence above). Leave the previously loaded frame as it was.
+  if(cfg.external){
+    window.open(cfg.external,'_blank','noopener');
+    if(tile)tile.classList.remove('active');
+    return;
+  }
   var url=BASE+cfg.file;
 
   setEl('frameTitle', cfg.title);
