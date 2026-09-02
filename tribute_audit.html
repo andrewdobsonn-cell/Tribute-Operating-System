@@ -554,11 +554,27 @@ function detectClientRate(bookings, rateTable) {
    * twenty people looking at the same action. The row carries how many visits it
    * covers and the date range, so nothing is hidden by the grouping. */
   const grouped = {};
+  const missing = {};
   bookings.forEach(b => {
     if (b._cancelled || EXCLUDE_VT.has(b._vt) || b._is_office || !b._start || !(b._cl_rate > 0)) return;
     const dateISO = new Date(b._start).toISOString().slice(0, 10);
     const rule = rateRuleFor(rateTable, b._cid, b._vt, dateISO);
-    if (!rule) { noRule++; return; }
+    if (!rule) {
+      noRule++;
+      // A visit billing real money with no contracted rate behind it. Skipping
+      // these silently was hiding the only thing this check actually found on the
+      // first live run: 26 visits across 11 client/type pairs with no rule at all,
+      // while every visit that HAD a rule matched it exactly. Verified these are
+      // genuinely missing, not a string mismatch -- normalising whitespace and
+      // dashes rescues none of them.
+      const nk = b._cid + '|' + b._vt;
+      const ng = missing[nk] || (missing[nk] = { b: b, n: 0, first: dateISO, last: dateISO, rates: {} });
+      ng.n++;
+      ng.rates[Math.round(b._cl_rate * 100) / 100] = 1;
+      if (dateISO < ng.first) ng.first = dateISO;
+      if (dateISO > ng.last) ng.last = dateISO;
+      return;
+    }
     ruleChecked++;
     const actual = Math.round(b._cl_rate * 100) / 100;
     const expect = Math.round(rule.rate * 100) / 100;
@@ -589,11 +605,42 @@ function detectClientRate(bookings, rateTable) {
     });
   });
 
+  /* Only claim "no rule on file" when we actually loaded rules. If the feed
+   * failed, rulesLoaded is 0 and EVERY client would be flagged as uncontracted --
+   * blaming the client for our own missing data. In that case stay silent here
+   * and let the inferred check carry the week, exactly as it did before rules
+   * existed. Same distinction as pending-vs-absent elsewhere: not knowing is not
+   * the same as knowing there is nothing. */
+  const haveRules = (rateTable && rateTable.count) > 0;
+  (haveRules ? Object.values(missing) : []).forEach(ng => {
+    const b = ng.b;
+    const rates = Object.keys(ng.rates).map(Number).sort((x, y) => x - y);
+    const span = ng.first === ng.last ? ng.first : `${ng.first} to ${ng.last}`;
+    issues.push({
+      'Client': b._client, 'Market': b._geo, 'Date': span, 'Visit Type': b._vt,
+      'Visits': String(ng.n),
+      'Billed Rate': rates.map(r => `$${r.toFixed(2)}`).join(', '),
+      'Client Norm': '—',
+      'Why Flagged': `${ng.n} visit${ng.n === 1 ? '' : 's'} billed at `
+        + rates.map(r => `$${r.toFixed(2)}`).join(' / ')
+        + ` with no rate rule on file for this client and visit type`,
+      'Action': 'Add the rate rule in Viv, or correct the visit type on these visits',
+      'Basis': 'No rate rule',
+      severity: 'warn', geo: b._geo, _cid: b._cid, _cgid: b._cgid, _bid: b._bid
+    });
+  });
+
   // Inferred fallback, only for clients with no rule on file.
-  const inferred = detectClientRateInferred(bookings, rateTable);
+  // detectClientRateInferred also targets rule-less visits, so it would restate
+  // the same clients from a weaker basis. Keep it only for clients the missing-rule
+  // pass did not already name.
+  const named = new Set(haveRules ? Object.values(missing).map(g => g.b._cid + '|' + g.b._vt) : []);
+  const inferred = detectClientRateInferred(bookings, rateTable)
+    .filter(x => !named.has(x._cid + '|' + x['Visit Type']));
   issues.push(...inferred);
 
-  issues._coverage = { ruleChecked, ruleFlagged, noRule, inferredFlagged: inferred.length,
+  issues._coverage = { ruleChecked, ruleFlagged, noRule, missingRuleGroups: Object.keys(missing).length,
+                       inferredFlagged: inferred.length,
                        rulesLoaded: (rateTable && rateTable.count) || 0 };
   return issues;
 }
@@ -1505,7 +1552,7 @@ async function runDashboard() {
        data:detectInvalidRates(bookings,rateTable),
        cols:['Market','Visit Type','Invalid Rate','Current Rate','Visits','Clients','Action']},
       {id:'clrate',   name:'Client Rate vs Rate Rule', icon:'🏷️', red:true,
-       desc:'Each visit\'s billed rate against that client\'s rate rule in Viv — the payor rate table entry for that booking type, as in force on the visit date. Point-in-time on purpose: a grandfathered client legitimately bills an older rate, so comparing against their own dated rule treats grandfathering as correct rather than flagging it. Rows are grouped per client, visit type and wrong rate, because that is one fix in Viv rather than one per visit. Where a client has no rule on file the older inferred check still runs (the mode of that client\'s own visits) and those rows are labelled Inferred — note that inference cannot see a client billed wrong on EVERY visit, since the wrong rate becomes the norm.',
+       desc:'Each visit\'s billed rate against that client\'s rate rule in Viv — the payor rate table entry for that booking type, as in force on the visit date. Point-in-time on purpose: a grandfathered client legitimately bills an older rate, so comparing against their own dated rule treats grandfathering as correct rather than flagging it. Rows are grouped per client, visit type and wrong rate, because that is one fix in Viv rather than one per visit. Visits billed with no rate rule at all are flagged separately as No rate rule \u2014 real money with no contracted rate behind it. Where a client has no rule on file the older inferred check still runs (the mode of that client\'s own visits) and those rows are labelled Inferred — note that inference cannot see a client billed wrong on EVERY visit, since the wrong rate becomes the norm.',
        data:detectClientRate(bookings,rateTable),
        cols:['Client','Market','Date','Visit Type','Visits','Billed Rate','Client Norm','Basis','Why Flagged','Action']},
       {id:'livein',   name:'Live-In Hourly Review',   icon:'🏠', red:true,
