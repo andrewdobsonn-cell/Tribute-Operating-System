@@ -190,6 +190,7 @@ let ACTIVE=[],PRN_R=[],PTO_R=[],LEAVE_R=[],RESTRICT_R=[],TRAVEL=[],SCHED_RAW=[];
 // ACTIVE is rebuilt from these two bases so the 21 existing ACTIVE references
 // never have to learn about the toggle.
 let _BASE_ACTIVE=[],_BASE_RESTRICT=[];
+let SCHED_HAS_FUTURE=false;   // set per week while parsing the schedule feed
 function restrictedIncluded(){const el=document.getElementById('f-rx');return !!(el&&el.value==='in')}
 function applyRestrictedToggle(){
   ACTIVE=restrictedIncluded()?_BASE_ACTIVE.concat(_BASE_RESTRICT):_BASE_ACTIVE.slice();
@@ -473,6 +474,18 @@ function getDayIdx(dt){if(!(dt instanceof Date)||isNaN(dt))return -1;return dt.g
 
 // ── Process Schedule ──
 function processSchedule(dfSc){
+  // Does this week's feed include anything after now? If not, the tail of the
+  // week is missing rather than unstaffed — see weekCompletenessNote.
+  SCHED_HAS_FUTURE=false;
+  {
+    const _now=Date.now();
+    for(const _r of dfSc){
+      const _st=_r['Scheduled Start Time'];
+      if(!_st)continue;
+      const _d=new Date(_st);
+      if(!isNaN(_d)&&_d.getTime()>_now){SCHED_HAS_FUTURE=true;break;}
+    }
+  }
   const typeHrs={},typeVis={},dayTypeHrs={},ptoDayFlags={},ptoDayHrs={},cancelledHrs={},payableHrs={},billedHrs={};
   const g4=()=>[0,0,0,0],g7b=()=>[false,false,false,false,false,false,false],g7n=()=>[0,0,0,0,0,0,0],g7x4=()=>[g4(),g4(),g4(),g4(),g4(),g4(),g4()];
   for(const row of dfSc){
@@ -860,6 +873,17 @@ function wkTag(){
   return 'wk '+f(d)+'\u2013'+f(e);
 }
 
+/* Warn on the DATA, not the calendar.
+ *
+ * The in-progress week used to arrive truncated — the visits report stopped at
+ * today, so Wed-Sat were absent and utilization read 41.4% against a full week of
+ * capacity. Andrew widened the report's date range on 2026-09-02 and the feed now
+ * carries all seven days (820 rows -> 1847, 834 future visits), so the current
+ * week reads 82.7% against the closed week's 82.9%.
+ *
+ * Warning on "is it the current week" would now tell people to distrust a good
+ * number. So test whether the feed actually contains the rest of the week, and
+ * only warn when it does not. SCHED_HAS_FUTURE is set when the week is parsed. */
 function weekCompletenessNote(weekKey){
   if(!weekKey)return '';
   var thisWk=fmtWeekKey(new Date());
@@ -869,6 +893,8 @@ function weekCompletenessNote(weekKey){
       +'Pick a closed week to compare.</div>';
   }
   if(weekKey===thisWk){
+    // Feed carries the remaining days — the figure is comparable, say nothing.
+    if(SCHED_HAS_FUTURE)return '';
     var today=new Date();
     var elapsed=today.getDay();                 // 0=Sun … days already finished
     return '<div class="tc" style="margin-bottom:14px;border-left:3px solid var(--amber)">'
