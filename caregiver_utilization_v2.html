@@ -872,9 +872,12 @@ function weekCompletenessNote(weekKey){
     var today=new Date();
     var elapsed=today.getDay();                 // 0=Sun … days already finished
     return '<div class="tc" style="margin-bottom:14px;border-left:3px solid var(--amber)">'
-      +'<b>This week is still running &mdash; '+elapsed+' of 7 days worked so far.</b> '
-      +'Utilization divides worked hours by a full week of capacity, so this figure is mechanically low and '
-      +'<b>cannot be compared to a closed week</b>. For the real number, pick the previous week.</div>';
+      +'<b>This week is still running, and this figure understates it.</b> '
+      +'The live feed only carries visits that have already happened &mdash; measured 2026-09-02, it returned '
+      +'Sunday, Monday and Tuesday and nothing for Wednesday onward, while Viv had the full week on the books. '
+      +'So the numerator is '+elapsed+' of 7 days and the denominator is a whole week of capacity. '
+      +'<b>The rest of the week is already scheduled</b>; it just is not in this feed yet, so the number is not a '
+      +'drop in utilization and cannot be compared to a closed week. For the real figure, pick the previous week.</div>';
   }
   return '';
 }
