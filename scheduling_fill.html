@@ -551,6 +551,7 @@ function daysSinceCovered(s){
 }
 function uncoveredScore(s){
   if(s.openDays==null)return -1;                 // not started yet — sorts last
+  if(s.tooNewForRegular)return -0.5;             // too new to judge — above unstarted, below any real gap
   var d=daysSinceCovered(s);
   if(d!=null)return d;                           // covered recently — rank by how recently
   return 100000+(s.patternAgeDays||s.openDays||0); // never covered in window — above all of those
@@ -606,7 +607,9 @@ function renderBookingSets(){
 
   var _wOpen=filtered.filter(function(x){return x.openDays!=null;});
   var _pending=_wOpen.some(function(x){return x.regularsPending;});
-  var _chronic=_wOpen.filter(function(x){return !x.regularsPending&&daysSinceCovered(x)==null;}).length;
+  var _chronic=_wOpen.filter(function(x){return !x.regularsPending&&!x.tooNewForRegular&&daysSinceCovered(x)==null;}).length;
+  var _tooNew=_wOpen.filter(function(x){return !x.regularsPending&&x.tooNewForRegular;}).length;
+  var _lookbackW=(_wOpen.find(function(x){return x.regularLookbackWeeks;})||{}).regularLookbackWeeks||8;
   var _patched=_wOpen.filter(function(x){return daysSinceCovered(x)!=null;}).length;
   var _passed=_wOpen.filter(function(x){var f=x.fillIns||{};return f.caregivers>1;}).length;
   var _future=filtered.filter(function(x){return x.openDays==null&&x.startsInDays!=null;}).length;
@@ -616,9 +619,12 @@ function renderBookingSets(){
   html+='<div style="padding:6px 12px 10px;font-size:12px;color:var(--text3);line-height:1.5">'
     +'<b>Last regular</b> is how long since one caregiver held these weekdays three weeks running &mdash; a care team member, '
     +'not somebody who covered a visit. Coverage is not the measure here; the visits get worked either way. '
-    +'<span class="bdg br">never in 12w</span> means no weekday on this set has had a consistent person all quarter. '
+    +'<span class="bdg br">none in '+_lookbackW+'w</span> means no weekday on this set has had a consistent person in that window. '
+    +'<b>Too new to tell</b> means the slot itself is under three weeks old, so nobody could have held it that long yet '
+    +'\u2014 a new client, not a gap. '
     +(_pending?'<b>Not computed yet</b> \u2014 the regular-caregiver history is rebuilt on a schedule and has not run since the last change. '
-             :(_chronic?'<span class="bdg br">'+_chronic+'</span> of '+_wOpen.length+' are in that state. ':''))
+             :((_chronic?'<span class="bdg br">'+_chronic+'</span> of '+_wOpen.length+' are in that state. ':'')
+               +(_tooNew?_tooNew+' '+(_tooNew===1?'is':'are')+' too new to judge. ':'')))
     +(_future?_future+' set'+(_future===1?'':'s')+' have not started yet and sort last &mdash; upcoming demand rather than a hole we have failed to fill.':'')
     +'</div>';
   html+='<table class="tbl"><thead><tr>';
@@ -672,13 +678,20 @@ function renderBookingSets(){
            +(s.daysWithoutRegular?' · '+s.daysWithoutRegular+' of '+(s.weekdayCount||'?')+' weekdays have had none at all in 12 weeks':'')
            +' · pattern began '+esc(s.openSince||'?');
       openCell='<span class="bdg '+(_since>=28?'br':'ba')+'" title="'+t+'">'+(wk>=1?wk+'w ago':_since+'d ago')+'</span>';
+    } else if(s.tooNewForRegular){
+      // Arithmetically impossible, not a failure: a slot younger than the run
+      // requirement cannot yet have had anyone hold it that many weeks.
+      var wkReq=s.regularWeeksRequired||3;
+      openCell='<span class="z" title="This slot started '+esc(s.openSince||'recently')
+        +', under '+wkReq+' weeks ago \u2014 nobody could have held it for '+wkReq+' consecutive weeks yet">'
+        +'too new to tell</span>';
     } else {
-      // Nobody worked it inside the lookback — a floor, so say "30d+", not "736d".
-      var t2='No regular caregiver on any of these weekdays since at least '
-            +esc(s.regularLookbackFrom||'the lookback window')
-            +' — visits are being covered, but by nobody consistently'
-            +' · pattern began '+esc(s.openSince||'?')+(_age!=null?' ('+_age+'d ago)':'');
-      openCell='<span class="bdg br" title="'+t2+'">never in 12w</span>';
+      // Nobody held it inside the lookback — a floor, not an exact age.
+      var lw=s.regularLookbackWeeks||8;
+      var t2='No regular caregiver on any of these weekdays in the last '+lw+' weeks'
+            +' \u2014 visits are being covered, but by nobody consistently'
+            +' \u00b7 pattern began '+esc(s.openSince||'?')+(_age!=null?' ('+_age+'d ago)':'');
+      openCell='<span class="bdg br" title="'+t2+'">none in '+lw+'w</span>';
     }
 
     if(s.state!==curState&&filters.state==='all'&&filters.market==='all'){
