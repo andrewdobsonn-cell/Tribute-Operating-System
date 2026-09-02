@@ -609,11 +609,23 @@ function filterScheduleByWeek(dfSc,weekKey){
   });
 }
 
-// ── Auto-load on page load ──
-(function(){
-  var thisWeek=fmtWeekKey(new Date());
-  loadLiveWeek(thisWeek);
-})();
+/* Open on the last CLOSED week, not the current one.
+ *
+ * Utilization is worked hours over capacity. Mid-week, "worked" covers only the
+ * days that have happened while capacity counts all seven, so the number is
+ * mechanically low and reads as a collapse: on Wednesday 2026-09-02 the current
+ * week showed 41.4% while the closed week showed 82.9%. Andrew read the 41% as
+ * utilization falling off a cliff, which is what anyone would do.
+ *
+ * A number nobody can read correctly at a glance is worse than one week of lag,
+ * so the page opens on settled data. The in-progress week is still selectable and
+ * now says plainly that it is partial. */
+function lastClosedWeekKey(){
+  var d=getWeekStart(new Date());
+  d.setDate(d.getDate()-7);
+  return fmtWeekKey(d);
+}
+(function(){ loadLiveWeek(lastClosedWeekKey()); })();
 function popFilters(){const states=new Set(),markets=new Set();[...ACTIVE,...PRN_R,...PTO_R].forEach(r=>{states.add(r.state);markets.add(r.market)});fSt.innerHTML='<option value="">All States</option>';fMk.innerHTML='<option value="">All Markets</option>';ST_ORDER.forEach(s=>{if(states.has(s)){const o=document.createElement('option');o.value=s;o.textContent=s;fSt.appendChild(o)}});MKT_ORDER.forEach(m=>{if(markets.has(m)){const o=document.createElement('option');o.value=m;o.textContent=m;fMk.appendChild(o)}})}
 function showMeta(ts,cn,sn){const d=new Date(ts);document.getElementById('upload-meta').innerHTML='Data published <strong>'+d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'})+' at '+d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})+'</strong> — '+cn+' + '+sn;document.getElementById('upload-meta').style.display='block'}
 
@@ -833,6 +845,27 @@ function openDayText(r){
   return out.join(', ');
 }
 
+/* Says so when the selected week cannot produce a comparable number: the current
+ * week is only part-worked, a future week has nothing in it at all. */
+function weekCompletenessNote(weekKey){
+  if(!weekKey)return '';
+  var thisWk=fmtWeekKey(new Date());
+  if(weekKey>thisWk){
+    return '<div class="tc" style="margin-bottom:14px;border-left:3px solid var(--amber)">'
+      +'<b>This week has not happened yet.</b> Nothing is worked, so utilization here is not a low number &mdash; it is no number. '
+      +'Pick a closed week to compare.</div>';
+  }
+  if(weekKey===thisWk){
+    var today=new Date();
+    var elapsed=today.getDay();                 // 0=Sun … days already finished
+    return '<div class="tc" style="margin-bottom:14px;border-left:3px solid var(--amber)">'
+      +'<b>This week is still running &mdash; '+elapsed+' of 7 days worked so far.</b> '
+      +'Utilization divides worked hours by a full week of capacity, so this figure is mechanically low and '
+      +'<b>cannot be compared to a closed week</b>. For the real number, pick the previous week.</div>';
+  }
+  return '';
+}
+
 function renderDashboard(){
   const cap=ACTIVE.reduce((s,r)=>s+r.adjCap,0);
   const wrk=ACTIVE.reduce((s,r)=>s+Math.min(r.worked,r.adjCap>0?r.adjCap:r.worked),0);
@@ -900,7 +933,7 @@ function renderDashboard(){
   h+='</tbody></table></div></div>';
   h+='</div></div>';
   h+=renderCapacity();
-  document.getElementById('p-dash').innerHTML=h;
+  document.getElementById('p-dash').innerHTML=weekCompletenessNote(CURRENT_WEEK_KEY)+h;
 }
 function hmCls(v){if(v==null)return'hm-none';if(v>=1)return'hm-full';if(v>=.9)return'hm-high';if(v>=.75)return'hm-good';if(v>=.5)return'hm-med';return'hm-low'}
 
