@@ -190,6 +190,7 @@ let ACTIVE=[],PRN_R=[],PTO_R=[],LEAVE_R=[],RESTRICT_R=[],TRAVEL=[],SCHED_RAW=[];
 // ACTIVE is rebuilt from these two bases so the 21 existing ACTIVE references
 // never have to learn about the toggle.
 let _BASE_ACTIVE=[],_BASE_RESTRICT=[];
+let EXITED_N=0;   // caregivers dropped for sitting in an exited market
 let SCHED_HAS_FUTURE=false;   // set per week while parsing the schedule feed
 function restrictedIncluded(){const el=document.getElementById('f-rx');return !!(el&&el.value==='in')}
 function applyRestrictedToggle(){
@@ -430,6 +431,15 @@ function fmtTime(d){if(!(d instanceof Date)||isNaN(d))return'';let h=d.getHours(
 function fmtDate(d){if(!(d instanceof Date)||isNaN(d))return'';return(d.getMonth()+1)+'/'+d.getDate()+'/'+d.getFullYear()}
 function getMarket(tags){const tl=tags.toLowerCase();for(const tag of MKT_PRI){if(tl.includes(tag.toLowerCase())){const idx=MKT_TAGS.findIndex(t=>t.toLowerCase()===tag.toLowerCase());return MKT_NAMES[idx]}}return'Unknown'}
 function getState(mkt){return STATE_MAP[mkt]||'Unknown'}
+/* Northern Virginia is an exited market. Those caregivers still carry a
+ * Northern-VA tag, which matches none of our markets, so getMarket returned
+ * 'Unknown' and they landed in the Unknown bucket — inflating headcount and
+ * dragging the Unknown row through every summary. Drop them outright. */
+const EXITED_MKT_TAGS=['northern-va','northern va','nva','virginia'];
+function isExitedMarket(tags){
+  const tl=String(tags||'').toLowerCase();
+  return EXITED_MKT_TAGS.some(t=>tl.includes(t));
+}
 function tagHasMarket(tags){const tl=tags.toLowerCase();return MKT_TAGS.some(t=>tl.includes(t.toLowerCase()))}
 
 // ── CSV Parser ──
@@ -513,8 +523,10 @@ function processSchedule(dfSc){
 function processCaregivers(dfCg,sched,weekKey){
   const{typeHrs,typeVis,dayTypeHrs,ptoDayFlags,ptoDayHrs,cancelledHrs,payableHrs,billedHrs}=sched;
   const activeRows=[],prnRows=[],ptoRows=[],leaveRows=[],restrictRows=[];
+  let exitedCount=0;   // Northern Virginia — exited market, dropped entirely
   for(const row of dfCg){
     const notes=(row['Caregiver Availability Notes']||'').trim();const tags=(row['Tags']||'').trim();const cgId=(row['Caregiver-Id']||'').trim();
+    if(isExitedMarket(tags)){exitedCount++;continue}   // Northern Virginia — exited market
     if(EX_NOTES.has(notes.toLowerCase()))continue;
     if(!tagHasMarket(tags)&&['unset','','nan'].includes(notes.toLowerCase()))continue;
     if(tags.toLowerCase().includes('prn'))continue;
@@ -588,7 +600,7 @@ function processCaregivers(dfCg,sched,weekKey){
     else if(desired===0&&worked>0)prnRows.push({...base,svcType:'PRN Worked'});
     else if(desired>0||worked>0)activeRows.push(base);
   }
-  return{activeRows,prnRows,ptoRows,leaveRows,restrictRows};
+  return{activeRows,prnRows,ptoRows,leaveRows,restrictRows,exitedCount};
 }
 
 // ── Travel Gaps ──
@@ -640,7 +652,7 @@ function lastClosedWeekKey(){
 }
 (function(){ loadLiveWeek(lastClosedWeekKey()); })();
 function popFilters(){const states=new Set(),markets=new Set();[...ACTIVE,...PRN_R,...PTO_R].forEach(r=>{states.add(r.state);markets.add(r.market)});fSt.innerHTML='<option value="">All States</option>';fMk.innerHTML='<option value="">All Markets</option>';ST_ORDER.forEach(s=>{if(states.has(s)){const o=document.createElement('option');o.value=s;o.textContent=s;fSt.appendChild(o)}});MKT_ORDER.forEach(m=>{if(markets.has(m)){const o=document.createElement('option');o.value=m;o.textContent=m;fMk.appendChild(o)}})}
-function showMeta(ts,cn,sn){const d=new Date(ts);document.getElementById('upload-meta').innerHTML='Data published <strong>'+d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'})+' at '+d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})+'</strong> — '+cn+' + '+sn;document.getElementById('upload-meta').style.display='block'}
+function showMeta(ts,cn,sn){const d=new Date(ts);document.getElementById('upload-meta').innerHTML='Data published <strong>'+d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'})+' at '+d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})+'</strong> — '+cn+' + '+sn+(EXITED_N?' — '+EXITED_N+' Northern Virginia caregiver'+(EXITED_N===1?'':'s')+' excluded (exited market)':'');document.getElementById('upload-meta').style.display='block'}
 
 // ── Week loading (live API) ──
 function updateWeekDropdown(weekKey){
@@ -676,6 +688,7 @@ async function loadLiveWeek(weekKey){
     var sched=processSchedule(dfSc);
     var result=processCaregivers(dfCg,sched,weekKey);
     var travel=processTravelGaps(dfSc);
+    EXITED_N=result.exitedCount||0;
     _BASE_ACTIVE=result.activeRows;_BASE_RESTRICT=result.restrictRows;
     ACTIVE=restrictedIncluded()?_BASE_ACTIVE.concat(_BASE_RESTRICT):_BASE_ACTIVE.slice();
     PRN_R=result.prnRows;PTO_R=result.ptoRows;LEAVE_R=result.leaveRows;
@@ -807,7 +820,15 @@ function renderRestrictedPanel(){
  * availability": the useful output is who we can still offer work to.
  */
 function capacityRows(){
-  return rosterPopulation()
+  // Respect the State / Market / Service Type filters, exactly as every other
+  // section does. This panel read the unfiltered base population, so narrowing to
+  // one market left the "who has room" list unchanged — reported by Andrew.
+  var s=fSt.value,m=fMk.value,t=fTp.value;
+  var pop=rosterPopulation();
+  if(s)pop=pop.filter(function(c){return c.state===s;});
+  if(m)pop=pop.filter(function(c){return c.market===m;});
+  if(t!=='')pop=pop.filter(function(c){return c.primType===parseInt(t);});
+  return pop
     .filter(function(r){return r.desired>0;})               // no desired hours = nothing to measure against
     .map(function(r){
       var room=r.desired-r.worked;
@@ -906,6 +927,57 @@ function weekCompletenessNote(weekKey){
       +'drop in utilization and cannot be compared to a closed week. For the real figure, pick the previous week.</div>';
   }
   return '';
+}
+
+/* Over their OWN asked-for hours — the count that was always zero.
+ *
+ * The summary counted r.worked > r.adjCap, but adjCap is built as
+ * Math.max(desired, worked): capacity is floored at hours worked, so that test
+ * is arithmetically impossible and the column could only ever read 0. Andrew
+ * spotted the empty bucket and guessed the cause exactly.
+ *
+ * The floor itself is deliberate and stays — it stops stale availability notes
+ * producing 300% utilisation. But it means the utilisation PERCENTAGE can never
+ * exceed 100%, so overrun has to be counted against desired hours instead.
+ *
+ * Live-in is excluded: a live-in week is recorded as 168h (24x7) against a
+ * desired figure often set at 112h (16x7 paid), so every live-in caregiver looks
+ * permanently over by 56h. That is a recording convention, not overtime.
+ * Measured 2026-08-30: 112 over desired, of which 21 live-in — 91 real. */
+function isLiveInRow(r){
+  return r.isLI==='Yes' || r.primType===3 || /live/i.test(r.svcType||'');
+}
+
+/* Andrew's definition, 2026-09-09: take their desired hours, subtract the time
+ * they were not available, subtract what they worked — if that goes negative,
+ * they are over.
+ *
+ * Comparing against raw desired would be unfair to anyone who took time off:
+ * someone who wants 40h, was out two of their five days, and worked 30h has
+ * genuinely been pushed past what was possible, and a raw comparison misses it.
+ *
+ * Temp-unavailability days are valued at that caregiver's own average declared
+ * day (desired / declared days), so the target shrinks in proportion to the days
+ * they were actually out. */
+function overHeadroom(r){
+  if(!(r.desired>0))return null;
+  var declaredDays=(r.dayAvail||[]).filter(function(w){return w>0;}).length;
+  var perDay=declaredDays>0?(r.desired/declaredDays):0;
+  var offHours=(r.ptoHrs||0)+((r.tuDays||0)*perDay);
+  var target=Math.max(0,r.desired-offHours);
+  return target-r.worked;              // negative = over
+}
+
+/* Live-in is excluded from the count: a live-in week records as 168h (24x7)
+ * against a desired figure often set at 112h (16x7 paid), so every live-in
+ * caregiver would sit permanently over by 56h. That is a recording convention,
+ * not overtime. Measured 2026-08-30: 112 over raw desired, 21 of them live-in. */
+function overDesiredCount(rows){
+  return rows.filter(function(r){
+    if(isLiveInRow(r))return false;
+    var h=overHeadroom(r);
+    return h!==null && h<0;
+  }).length;
 }
 
 function renderDashboard(){
@@ -1010,7 +1082,7 @@ function detRow(r,isPRN){
 // ── Market/State Summary (12 cols matching Excel) ──
 function renderSummary(pid,keyField,orderList,title,label){
   const s=fSt.value,m=fMk.value,t=fTp.value;
-  const hdrs=[label,'Service Type','Count','Desired Hrs','Adj Capacity','Hrs Worked','Hrs Payable','Hrs Billed','Util %','Over 100%','Zero Util','# Working'];
+  const hdrs=[label,'Service Type','Count','Desired Hrs','Adj Capacity','Hrs Worked','Hrs Payable','Hrs Billed','Util %','Over Desired','Zero Util','# Working'];
   let h='<div class="tc"><div class="tt">Caregiver Utilization Report — '+title+'</div><div class="ts"><table id="tbl-'+pid+'"><thead><tr>';
   hdrs.forEach(c=>h+='<th'+(c===label||c==='Service Type'?' class="al"':'')+'>'+c+'</th>');
   h+='</tr></thead><tbody>';
@@ -1023,12 +1095,12 @@ function renderSummary(pid,keyField,orderList,title,label){
     const cnt=rows.length,des=rows.reduce((s,r)=>s+r.desired,0),cap=rows.reduce((s,r)=>s+r.adjCap,0);
     const wrk=rows.reduce((s,r)=>s+r.worked,0),pay=rows.reduce((s,r)=>s+(r.payable||0),0),bil=rows.reduce((s,r)=>s+(r.billed||0),0);
     const wc=rows.reduce((s,r)=>s+(r.adjCap>0?Math.min(r.worked,r.adjCap):r.worked),0);
-    const util=cap>0?wc/cap:null,ov=rows.filter(r=>r.adjCap>0&&r.worked>r.adjCap).length,zr=rows.filter(r=>r.adjCap>0&&r.worked===0).length;
+    const util=cap>0?wc/cap:null,ov=overDesiredCount(rows),zr=rows.filter(r=>r.adjCap>0&&r.worked===0).length;
     h+=sRow(key,'Active Caregivers',cnt,des,cap,wrk,pay,bil,util,ov,zr,'ov');
     for(let ti=0;ti<4;ti++){if(t!==''&&parseInt(t)!==ti)continue;const tr=rows.filter(r=>r.primType===ti);if(!tr.length)continue;
       const tc=tr.length,td=tr.reduce((s,r)=>s+r.desired,0),tca=tr.reduce((s,r)=>s+r.adjCap,0),tw=tr.reduce((s,r)=>s+r.worked,0),tp2=tr.reduce((s,r)=>s+(r.payable||0),0),tb=tr.reduce((s,r)=>s+(r.billed||0),0);
       const twc=tr.reduce((s,r)=>s+(r.adjCap>0?Math.min(r.worked,r.adjCap):r.worked),0);
-      h+=sRow('','  '+TYPE_NAMES[ti],tc,td,tca,tw,tp2,tb,tca>0?twc/tca:null,tr.filter(r=>r.adjCap>0&&r.worked>r.adjCap).length,tr.filter(r=>r.adjCap>0&&r.worked===0).length,RC(ti))}
+      h+=sRow('','  '+TYPE_NAMES[ti],tc,td,tca,tw,tp2,tb,tca>0?twc/tca:null,overDesiredCount(tr),tr.filter(r=>r.adjCap>0&&r.worked===0).length,RC(ti))}
     let prnR=PRN_R.filter(r=>r[keyField]===key);if(keyField==='state'&&m)prnR=prnR.filter(r=>r.market===m);
     h+=sRow('','  PRN Worked',prnR.length,0,0,prnR.reduce((s,r)=>s+r.worked,0),0,0,null,0,0,'prn');
     let ptoR=PTO_R.filter(r=>r[keyField]===key);if(keyField==='state'&&m)ptoR=ptoR.filter(r=>r.market===m);
