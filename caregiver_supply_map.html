@@ -420,7 +420,7 @@ function renderMarkers(){
     var color=cgColor(cg),status=cgStatus(cg);
     if(status==='green'){green++;gHrs+=cg.gap;}else if(status==='yellow'){yellow++;yHrs+=cg.gap;}else red++;
     var m=L.marker([lat,lng],{icon:makeIcon(color)});
-    var p='<div style="font-family:'Inter',-apple-system,sans-serif;min-width:200px;">';
+    var p='<div style="font-family:Inter,-apple-system,sans-serif;min-width:200px;">';
     p+='<div style="font-weight:700;font-size:13px;margin-bottom:6px">'+esc(cg.name)+'</div>';
     p+='<div style="font-size:11px;color:#888;margin-bottom:8px">'+esc(cg.market)+'</div>';
     p+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:12px;margin-bottom:8px;">';
