@@ -404,7 +404,24 @@ function cgOverallMatch(cg,reqs){
 }
 function initMap(){
   map=L.map('map',{zoomControl:true}).setView([40.5,-74],5);
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{attribution:'©OpenStreetMap ©CartoDB',maxZoom:19}).addTo(map);
+  // Esri's dark canvas, not CartoDB: carto now stamps "API KEY REQUIRED" across
+  // every tile served without a key. Esri is keyless and needs no account, and
+  // splits into a base and a labels layer where carto's dark_all carried both.
+  var ESRI='https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/';
+  L.tileLayer(ESRI+'World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+    {attribution:'Tiles © Esri',maxZoom:16}).addTo(map);
+  L.tileLayer(ESRI+'World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}',
+    {maxZoom:16,pane:'shadowPane'}).addTo(map);
+
+  // Leaflet measures its container on construction, and here that runs before
+  // layout has settled -- getSize() was 0x0, so it requested a single tile and
+  // the map stayed blank. Re-measure once painted, and again whenever the
+  // container changes (window resize, panel collapse).
+  requestAnimationFrame(function(){map.invalidateSize();});
+  if(window.ResizeObserver){
+    new ResizeObserver(function(){map.invalidateSize();})
+      .observe(document.getElementById('map'));
+  }
 }
 function makeIcon(color){
   return L.divIcon({className:'',html:'<div style="width:12px;height:12px;border-radius:50%;background:'+color+';border:2px solid rgba(255,255,255,.3);box-shadow:0 0 4px rgba(0,0,0,.5);"></div>',iconSize:[12,12],iconAnchor:[6,6],popupAnchor:[0,-8]});
