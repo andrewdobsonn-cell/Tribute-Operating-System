@@ -487,20 +487,55 @@ function focusCG(lat,lng,name){
   markers.forEach(function(m){if(Math.abs(m.getLatLng().lat-lat)<0.001&&Math.abs(m.getLatLng().lng-lng)<0.001)m.openPopup();});
 }
 var geocodeQueue=[],geocoding=false;
+
+/* Persisting geocodes.
+ *
+ * Two rules here, both learned the hard way.
+ *
+ * FLUSH AS WE GO. This used to POST once, when the queue finally drained --
+ * roughly 28 minutes at Nominatim's one-request-per-second courtesy limit.
+ * Nobody sits on a map that long, so the tab always closed first and nothing
+ * was ever saved; every visitor re-geocoded the whole roster from zero. The
+ * server merges into the existing blob, so partial writes are safe and each
+ * one is permanent progress.
+ *
+ * NEVER PERSIST A FALLBACK. When Nominatim finds nothing we drop a jittered
+ * point near the market hub so the caregiver is still visible on the map.
+ * That coordinate is invented. Writing it to the cache would freeze a fiction
+ * in place -- and the Intake Matcher sorts caregivers by distance from the
+ * client's address, so an invented location produces a confidently wrong
+ * recommendation. Fallbacks stay in memory for this session only, and the
+ * caregiver is re-tried on the next load.
+ */
+var GEO_FLUSH_EVERY=25;
+var geoPending=[];
+function geoFlush(force){
+  if(!geoPending.length)return;
+  if(!force&&geoPending.length<GEO_FLUSH_EVERY)return;
+  var batch=geoPending;geoPending=[];
+  _authFetch(API+'?endpoint=store_geocache',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({updates:batch})}).catch(function(){});
+}
+// Last chance to bank whatever this session resolved.
+window.addEventListener('pagehide',function(){geoFlush(true);});
+
 function geocodeNext(){
   if(geocoding||!geocodeQueue.length)return;
   geocoding=true;var item=geocodeQueue.shift();
   fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q='+encodeURIComponent(item.addr),{headers:{'User-Agent':'TributeHomeCare/1.0'}})
     .then(function(r){return r.json();})
     .then(function(res){
-      if(res&&res.length){item.cg.lat=parseFloat(res[0].lat);item.cg.lng=parseFloat(res[0].lon);item.resolve({lat:item.cg.lat,lng:item.cg.lng});}
-      else{var hub=MARKET_COORDS[item.cg.market];if(hub){item.cg.lat=hub.lat+(Math.random()-.5)*0.08;item.cg.lng=hub.lng+(Math.random()-.5)*0.08;item.resolve({lat:item.cg.lat,lng:item.cg.lng,fallback:true});}else item.resolve(null);}
+      if(res&&res.length){
+        item.cg.lat=parseFloat(res[0].lat);item.cg.lng=parseFloat(res[0].lon);item.cg._geoReal=true;
+        geoPending.push({id:item.cg.id,lat:item.cg.lat,lng:item.cg.lng,addr:item.cg.addrStr});
+        geoFlush(false);
+        item.resolve({lat:item.cg.lat,lng:item.cg.lng});
+      }
+      else{var hub=MARKET_COORDS[item.cg.market];if(hub){item.cg.lat=hub.lat+(Math.random()-.5)*0.08;item.cg.lng=hub.lng+(Math.random()-.5)*0.08;item.cg._geoReal=false;item.resolve({lat:item.cg.lat,lng:item.cg.lng,fallback:true});}else item.resolve(null);}
       geocoding=false;
       document.getElementById('geoProgressText').textContent='Geocoding… '+geocodeQueue.length+' remaining';
       if(!geocodeQueue.length){
         document.getElementById('geoProgress').classList.remove('show');
-        var updates=apiData.caregivers.filter(function(c){return c.lat&&c.lng;}).map(function(c){return{id:c.id,lat:c.lat,lng:c.lng,addr:c.addrStr};});
-        _authFetch(API+'?endpoint=store_geocache',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({updates:updates})}).catch(function(){});
+        geoFlush(true);
         applyFilters();
       }
       setTimeout(geocodeNext,1100);
@@ -570,7 +605,13 @@ function renderResults(list,reqs,maxMiles){
     html+='<div class="cg-card" onclick="focusCG('+cg.lat+','+cg.lng+',\''+esc(cg.name)+'\')">';
     html+='<div class="cg-card-top">';
     html+='<div><div class="cg-name">'+esc(cg.name)+'</div><div class="cg-meta">'+esc(cg.market)+'</div></div>';
-    html+='<div class="cg-dist">'+x.miles.toFixed(1)+' mi</div>';
+    // An unresolved address is drawn near the market hub with a little jitter,
+    // so its distance is a guess. Say so rather than sorting someone into third
+    // place on a number we invented.
+    // Cached coordinates are always real now (fallbacks are never persisted),
+    // so only a fallback resolved in THIS session is approximate.
+    var approx=x.cg._geoReal===false;
+    html+='<div class="cg-dist"'+(approx?' title="Address could not be geocoded — distance is approximate, measured from the market center"':'')+'>'+(approx?'~':'')+x.miles.toFixed(1)+' mi'+(approx?' *':'')+'</div>';
     html+='</div>';
     html+='<div class="cg-badges">';
     html+='<span class="badge '+gc+'">'+cg.gap+'h avail</span>';
