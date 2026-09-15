@@ -905,6 +905,16 @@ function renderTributeSecure(){
   document.getElementById('ct').innerHTML=html;
 }
 
+// Availability (Desired Hours r5): compact "Mon 7a–3p · Tue 7a–3p" from the
+// structured windows the API now emits; older cached payloads lack the field.
+var DOW_SHORT=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+function _availT(t){ var m=String(t||'').match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i); if(!m)return t||''; var h=parseInt(m[1],10), mm=m[2], ap=m[3].toLowerCase()[0]; if(mm==='59'&&h===11&&ap==='p')return 'midnight'; return h+(mm!=='00'?':'+mm:'')+ap; }
+function availSummary(c){
+  var w=c&&c.availWindows; if(!Array.isArray(w))return null;
+  if(!w.length)return 'No availability listed';
+  return w.map(function(x){return DOW_SHORT[x.dow]+' '+_availT(x.start)+'–'+_availT(x.end);}).join(' · ');
+}
+function availCell(c){ var a=availSummary(c); if(a===null)return '<span style="color:var(--text3)">—</span>'; var days=(c.availWindows||[]).length; return '<span title="'+a.replace(/"/g,'&quot;')+'" style="font-weight:normal;font-size:11px;color:'+(days?'var(--text2)':'var(--text3)')+'">'+(days?days+' day'+(days===1?'':'s')+' · '+a.slice(0,42)+(a.length>42?'…':''):'none listed')+'</span>'; }
 function renderList(){
   var html='';
   html+='<div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">';
@@ -974,6 +984,7 @@ function renderListTable(){
   html+=thSort('MCE','assignee');
   html+=thSort('Hire Date','hireDate');
   html+=thSort('TS','tsThreshold');
+  html+='<th style="text-align:left">Availability</th>';
   html+=thSort('Happiness','happiness');
   html+=thSort('Scheduled','scheduledHrs');
   html+=thSort('Desired','desiredHrs');
@@ -993,6 +1004,7 @@ function renderListTable(){
     html+='<td style="font-weight:normal;color:var(--text2)">'+c.assignee+'</td>';
     html+='<td style="font-weight:normal;font-size:11px;color:var(--text2)">'+hd+'</td>';
     html+='<td style="font-weight:normal;color:'+tsColor+'">'+tsLabel+'</td>';
+    html+='<td>'+availCell(c)+'</td>';
     html+='<td>'+hapCell(c)+'</td>';
     html+='<td>'+fh(c.scheduledHrs)+'</td>';
     html+='<td>'+fh(c.desiredHrs)+'</td>';
@@ -1485,7 +1497,9 @@ function renderDHTrendUI(weekData){
     if(globalMCE)cgs=cgs.filter(function(c){return(c.assignee||c.adminName||'')===globalMCE;});
     cgs.forEach(function(c){
       var key=c.id||c.name;
-      if(!cgTrends[key])cgTrends[key]={name:c.name,assignee:c.assignee||c.adminName||'',market:c.market||'',state:c.state||'',weeks:[]};
+      if(!cgTrends[key])cgTrends[key]={name:c.name,assignee:c.assignee||c.adminName||'',market:c.market||'',state:c.state||'',hireDate:c.hireDate||null,availWindows:c.availWindows,weeks:[]};
+      if(!cgTrends[key].hireDate&&c.hireDate)cgTrends[key].hireDate=c.hireDate;
+      if(!cgTrends[key].availWindows&&c.availWindows)cgTrends[key].availWindows=c.availWindows;
       cgTrends[key].weeks.push({week:wd.week,happiness:c.happiness,scheduled:c.scheduledHrs,desired:c.desiredHrs,bucket:c.bucket});
     });
   });
@@ -1539,6 +1553,8 @@ function renderDHTrendUI(weekData){
     var meta=[];
     if(cg.assignee)meta.push(cg.assignee);
     if(cg.market)meta.push(cg.market);
+    if(cg.hireDate)meta.push('hired '+new Date(cg.hireDate+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}));
+    var _av=availSummary(cg); if(_av!==null)meta.push('avail: '+_av);
     html+='<div style="font-size:11px;color:var(--text3);margin-top:1px">';
     if(meta.length>0)html+=meta.join(' · ')+' · ';
     html+=fh(cg.currentScheduled)+' / '+fh(cg.currentDesired)+' desired';
@@ -1550,10 +1566,18 @@ function renderDHTrendUI(weekData){
     // Expandable week-by-week detail
     html+='<div class="mce-body" id="'+rid+'" style="display:none">';
     html+='<table class="tbl" style="font-size:11px"><thead><tr><th style="text-align:left">Week</th><th>Scheduled</th><th>Desired</th><th>Happiness</th><th>Bucket</th></tr></thead><tbody>';
+    var hireWk=cg.hireDate?new Date(cg.hireDate+'T12:00:00'):null;
     cg.weeks.slice().reverse().forEach(function(w){
       var wLabel=new Date(w.week+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'});
-      html+='<tr>';
-      html+='<td>'+wLabel+'</td>';
+      var wEnd=new Date(w.week+'T12:00:00'); wEnd.setDate(wEnd.getDate()+6);
+      var preHire=hireWk&&wEnd<hireWk;                      // whole week before the hire date
+      var hireInWeek=hireWk&&!preHire&&hireWk>=new Date(w.week+'T12:00:00');
+      if(preHire){
+        html+='<tr style="opacity:.55"><td>'+wLabel+'</td><td colspan="4" style="text-align:left;font-size:11px;color:var(--text3)">Before hire date · desired 0</td></tr>';
+        return;
+      }
+      html+='<tr'+(hireInWeek?' style="background:var(--bg2)"':'')+'>';
+      html+='<td>'+wLabel+(hireInWeek?' <span class="bdg" style="background:var(--purple);color:#fff">hired</span>':'')+'</td>';
       html+='<td>'+fh(w.scheduled)+'</td>';
       html+='<td>'+fh(w.desired)+'</td>';
       html+='<td><span class="bdg '+hapBdg(w.happiness)+'">'+Math.round(w.happiness*100)+'%</span></td>';
