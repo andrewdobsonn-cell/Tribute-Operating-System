@@ -135,6 +135,62 @@ const LH = 'Long Hours', ON = 'Overnight';
     G(r, 'free', 'central', 'Sunday', ON) - G(r, 'open', 'central', 'Sunday', ON) === 0);
 }
 
+// ── By address ──────────────────────────────────────────────────────────────
+// The address view scopes by DISTANCE alone. Market and state are description.
+// A Framingham address draws on four markets and a Bethesda one crosses into
+// Virginia, so filtering by either would drop reachable caregivers.
+function seedAddress(caregivers, sets, cgMiles, clMiles, recur) {
+  vm.runInContext(
+    'data.supply = ' + JSON.stringify({ caregivers, marketCenters: CENTERS, generatedAt: '2026-10-15T00:00:00Z' }) + ';' +
+    'data.sets = ' + JSON.stringify({ bookingSets: sets || [], marketCenters: CENTERS, generatedAt: '2026-10-15T00:00:00Z' }) + ';' +
+    'data.recur = ' + JSON.stringify(recur || { recurringDays: {}, timeOffDays: {}, tempUnavail: {} }) + ';' +
+    'addrResult = ' + JSON.stringify({ query: { address: 'x', display: 'x', radius: 25 },
+      caregiverMiles: cgMiles, clientMiles: clMiles || {}, stats: {} }) + ';' +
+    "state.view = 'address'; null", ctx);
+  return vm.runInContext('computeAddress()', ctx);
+}
+{
+  // Four caregivers in three markets and two states; only the three with a
+  // mileage are in range. Market and state must not exclude anyone.
+  const r = seedAddress([
+    cg('a', { market: 'Baltimore', state: 'Maryland' }),
+    cg('b', { market: 'Bethesda',  state: 'Maryland' }),
+    cg('c', { market: 'Virginia',  state: 'Virginia' }),
+    cg('d', { market: 'Boston',    state: 'Massachusetts' })
+  ], [], { a: 5, b: 9, c: 18 }, {});
+  t('counts everyone in range regardless of market', r.counts.people === 3);
+  t('a different state is still counted', !!r.byState.Virginia);
+  t('out-of-range caregivers are dropped', !r.byMarket.Boston);
+  t('three markets reported as description', Object.keys(r.byMarket).length === 3);
+  t('supply totals across markets', r.free.Weekday['Long Hours'] === 9);
+}
+{
+  // The net is the point: nearby vacancies are already chasing these people.
+  const sets = [{ cid: 'c1', market: 'Boston', dayPattern: { Sunday: { long: 2 } } },
+                { cid: 'c2', market: 'Boston', dayPattern: { Sunday: { long: 1 } } }];
+  const r = seedAddress([cg('a', { availNotes: 'Long Hour Days = Su, M' })],
+                        sets, { a: 4 }, { c1: 6, c2: 11 });
+  t('both nearby vacancies counted', r.counts.sets === 2);
+  t('free Sunday slot is 1', r.free.Sunday['Long Hours'] === 1);
+  t('demand Sunday is 3', r.open.Sunday['Long Hours'] === 3);
+  t('net is negative, so we cannot take it',
+    r.free.Sunday['Long Hours'] - r.open.Sunday['Long Hours'] === -2);
+}
+{
+  // A booking set out of range must not reduce the answer.
+  const r = seedAddress([cg('a', { availNotes: 'Long Hour Days = M' })],
+                        [{ cid: 'far', market: 'Boston', dayPattern: { Monday: { long: 5 } } }],
+                        { a: 3 }, {});
+  t('a vacancy outside the radius does not compete', r.counts.sets === 0 && r.open.Weekday['Long Hours'] === 0);
+}
+{
+  // Same hold-out rules as the market view.
+  const r = seedAddress([cg('a'), cg('p', { tags: 'prn' }), cg('n', { availNotes: '' })],
+                        [], { a: 2, p: 3, n: 4 }, {});
+  t('PRN and unparseable notes held out by address too',
+    r.counts.people === 1 && r.counts.prn === 1 && r.counts.noNotes === 1);
+}
+
 // ── The sign convention ─────────────────────────────────────────────────────
 // Galip's sheet writes "Open + Not Working + Starting". Run his own worked
 // example that way and it does not reconcile; open has to subtract.

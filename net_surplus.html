@@ -37,6 +37,15 @@ select,input[type=number]{font-family:inherit;font-size:13px;padding:6px 10px;bo
 .btn{font-family:inherit;font-size:12px;font-weight:600;padding:7px 14px;border-radius:8px;border:1px solid var(--gray-300);background:var(--white);color:var(--charcoal-mid);cursor:pointer}
 .btn:hover{border-color:var(--orange);color:var(--orange)}
 
+.tabs{display:flex;gap:4px;margin-bottom:14px;border-bottom:1px solid var(--gray-200)}
+.tab{font-family:inherit;font-size:13px;font-weight:600;padding:9px 18px;border:none;background:none;color:var(--gray-text);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tab:hover{color:var(--charcoal)}
+.tab.on{color:var(--orange);border-bottom-color:var(--orange)}
+.sub{font-size:12px;color:var(--gray-text);padding:10px 20px;border-bottom:1px solid var(--gray-100);background:var(--gray-100)}
+.verdict{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:3px 10px;border-radius:999px;margin-left:8px}
+.v-yes{background:var(--green-light);color:var(--green)}
+.v-tight{background:var(--amber-light);color:var(--amber)}
+.v-no{background:var(--red-light);color:var(--red)}
 .note{border-radius:var(--r);padding:12px 16px;margin-bottom:16px;font-size:13px;line-height:1.55}
 .note-warn{background:var(--amber-light);border:1px solid #f0d9a0;color:#7a4e06}
 .note-info{background:var(--orange-50);border:1px solid var(--orange-pale);color:var(--charcoal-mid)}
@@ -78,7 +87,12 @@ thead th{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppe
 </div>
 
 <div class="wrap">
-  <div class="controls">
+  <div class="tabs">
+    <button class="tab on" id="tabMarket" onclick="setView('market')">By market</button>
+    <button class="tab" id="tabAddress" onclick="setView('address')">By address</button>
+  </div>
+
+  <div class="controls" id="ctlMarket">
     <span class="ctl-label">Market</span>
     <select id="mkt" onchange="render()"></select>
     <span class="ctl-label" style="margin-left:10px">Central within</span>
@@ -88,6 +102,18 @@ thead th{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppe
     <span style="flex:1"></span>
     <button class="btn" onclick="exportCsv()">Export CSV</button>
   </div>
+
+  <div class="controls" id="ctlAddress" hidden>
+    <span class="ctl-label">Address</span>
+    <input type="text" id="addr" placeholder="Street, town, state" style="flex:1;min-width:240px"
+           onkeydown="if(event.key==='Enter')checkAddress()">
+    <span class="ctl-label" style="margin-left:4px">Within</span>
+    <span class="chip" id="ar25" onclick="setRadius(25)">25 mi</span>
+    <span class="chip" id="ar30" onclick="setRadius(30)">30 mi</span>
+    <input type="number" id="arCustom" min="1" max="120" style="width:68px" onchange="setRadius(this.value)" title="Any radius, in driving miles">
+    <button class="btn" onclick="checkAddress()">Check capacity</button>
+  </div>
+
   <div id="banner"></div>
   <div id="ct"><div class="loading">Loading supply, demand and driving distances...</div></div>
 </div>
@@ -118,7 +144,8 @@ var SECTIONS = [
 var ZONES = ['central', 'edges', 'unknown'];
 var ZONE_LABEL = { central:'Central', edges:'Edges', unknown:'Distance unknown' };
 
-var state = { radius: A.DEFAULT_RADIUS_MILES, market: null, driveMode: 'pending' };
+var state = { radius: A.DEFAULT_RADIUS_MILES, market: null, driveMode: 'pending', view: 'market' };
+var addrResult = null;   // last capacity_at response
 var centers = {};   // market -> {lat,lng,note}, from the feed
 var data = { supply:null, recur:null, sets:null };
 var miles = { cg:{}, client:{} };   // id -> driving miles from its market center
@@ -212,8 +239,23 @@ function buildMarkets() {
   document.getElementById('mkt').onchange = function () { state.market = this.value; render(); };
 }
 
+// Both control rows carry the same radius chips, so keep them in step.
+function syncRadiusChips() {
+  [['r25','r30','rCustom'], ['ar25','ar30','arCustom']].forEach(function (ids) {
+    var c25 = document.getElementById(ids[0]), c30 = document.getElementById(ids[1]),
+        cx = document.getElementById(ids[2]);
+    if (!c25) return;
+    c25.classList.toggle('on', state.radius === 25);
+    c30.classList.toggle('on', state.radius === 30);
+    if (cx) cx.value = (state.radius === 25 || state.radius === 30) ? '' : state.radius;
+  });
+}
+
 function setRadius(r) {
   state.radius = Math.max(1, Number(r) || A.DEFAULT_RADIUS_MILES);
+  syncRadiusChips();
+  // The address answer was measured at the old radius, so it is now stale.
+  if (state.view === 'address' && addrResult) { checkAddress(); return; }
   render();
 }
 
@@ -295,14 +337,150 @@ function netCell(v) {
   return '<td class="' + cls + '">' + txt + '</td>';
 }
 
+
+/* ── By address ────────────────────────────────────────────────────────────
+ *
+ * Andrew, 2026-10-15. The market tab answers "where are we structurally
+ * short"; this one answers "can we take THIS client", which is a different
+ * question with a different catchment.
+ *
+ * Market is the wrong boundary for it. A Framingham address draws on four
+ * markets -- 94 Boston, 40 MetroWest, 38 South of Boston, 28 North of Boston
+ * -- so scoping to the client's market hides 153 reachable caregivers. State
+ * is better and still wrong where the line runs through a service area: a
+ * Bethesda address draws 22 caregivers and 4 of them are tagged Virginia.
+ *
+ * So nothing is filtered by market or state. Distance from the address is the
+ * only boundary; market and state are shown underneath as description.
+ *
+ * The NET is what keeps this honest and makes it more than a caregiver count.
+ * Free caregivers near an address are also the answer for every other vacant
+ * booking set near that address, so counting them alone double-promises
+ * people. Quincy has 5.5 free Sunday day-slots and 7.5 already spoken for by
+ * nearby vacancies: the honest answer there is no, and a raw count says yes.
+ */
+function setView(v) {
+  state.view = v;
+  document.getElementById('tabMarket').classList.toggle('on', v === 'market');
+  document.getElementById('tabAddress').classList.toggle('on', v === 'address');
+  document.getElementById('ctlMarket').hidden = (v !== 'market');
+  document.getElementById('ctlAddress').hidden = (v !== 'address');
+  render();
+}
+
+async function checkAddress() {
+  var addr = document.getElementById('addr').value.trim();
+  if (!addr) return;
+  document.getElementById('ct').innerHTML =
+    '<div class="loading">Measuring driving distance from ' + esc(addr) + '...</div>';
+  try {
+    var r = await _authFetch(API + '?endpoint=capacity_at&address=' + encodeURIComponent(addr) +
+                             '&radius=' + state.radius);
+    var out = await r.json();
+    if (!r.ok || out.error) {
+      document.getElementById('ct').innerHTML =
+        '<div class="loading">' + esc(out.error || ('Lookup failed (HTTP ' + r.status + ').')) + '</div>';
+      return;
+    }
+    addrResult = out;
+  } catch (e) {
+    document.getElementById('ct').innerHTML = '<div class="loading">Lookup failed: ' + esc(e.message) + '</div>';
+    return;
+  }
+  render();
+}
+
+// Supply and demand within the radius of the checked address.
+function computeAddress() {
+  var cgMi = addrResult.caregiverMiles || {}, clMi = addrResult.clientMiles || {};
+  var free = A.emptyGrid(), open = A.emptyGrid();
+  var tu = data.recur.tempUnavail || {}, recurring = data.recur.recurringDays || {},
+      timeoff = data.recur.timeOffDays || {};
+  var counts = { people: 0, prn: 0, longTU: 0, noNotes: 0, sets: 0 };
+  var byMarket = {}, byState = {};
+
+  (data.supply.caregivers || []).forEach(function (c) {
+    if (c.status !== 'hired') return;
+    if (cgMi[c.id] == null) return;              // outside the radius, or unmeasured
+    if (A.isPRN(c)) { counts.prn++; return; }
+    if (A.isLongTU(tu[c.id])) { counts.longTU++; return; }
+    var entries = A.parseAvailNotes(c.availNotes);
+    if (!entries.length) { counts.noNotes++; return; }
+    var grid = A.supplySlots(entries, (recurring[c.id] || []).concat(timeoff[c.id] || []));
+    var any = A.DAY_BUCKETS.some(function (b) { return A.LH_TYPES.some(function (t) { return grid[b][t] > 0; }); });
+    if (!any) return;
+    counts.people++;
+    byMarket[c.market || 'Untagged'] = (byMarket[c.market || 'Untagged'] || 0) + 1;
+    byState[c.state || 'Untagged'] = (byState[c.state || 'Untagged'] || 0) + 1;
+    A.addGrid(free, grid);
+  });
+
+  (data.sets.bookingSets || []).forEach(function (bs) {
+    if (clMi[bs.cid] == null) return;
+    counts.sets++;
+    A.addGrid(open, A.demandSlots(bs.dayPattern));
+  });
+
+  return { free: free, open: open, counts: counts, byMarket: byMarket, byState: byState };
+}
+
+function renderAddress() {
+  if (!addrResult) {
+    document.getElementById('ct').innerHTML =
+      '<div class="loading">Enter a prospective client’s address to see what capacity is actually within reach of it.</div>';
+    return;
+  }
+  var r = computeAddress(), q = addrResult.query, st = addrResult.stats || {};
+  var html = '<div class="card">';
+  html += '<div class="card-head"><div class="card-title">Within ' + q.radius + ' driving miles</div>' +
+          '<div class="card-meta">' + esc((q.display || q.address).slice(0, 90)) + '</div></div>';
+  html += '<div class="sub">' + r.counts.people + ' caregivers with free long-hours day-slots, and ' +
+          r.counts.sets + ' vacant booking set' + (r.counts.sets === 1 ? '' : 's') +
+          ' already competing for them.</div>';
+
+  html += '<table><thead><tr><th>Day-slots per week</th>' +
+          '<th class="grp">Wk day</th><th>Sat day</th><th>Sun day</th>' +
+          '<th class="grp">Wk night</th><th>Sat night</th><th>Sun night</th></tr></thead><tbody>';
+  [['Caregivers not working', r.free], ['Open booking sets nearby', r.open]].forEach(function (row) {
+    html += '<tr><td>' + row[0] + '</td>';
+    A.LH_TYPES.forEach(function (t) {
+      A.DAY_BUCKETS.forEach(function (b, bi) {
+        var v = row[1][b][t];
+        html += '<td class="' + (bi === 0 ? 'grp' : '') + (v ? '' : ' z') + '">' + (Math.round(v * 10) / 10) + '</td>';
+      });
+    });
+    html += '</tr>';
+  });
+  html += '<tr class="net"><td>Net surplus</td>';
+  A.LH_TYPES.forEach(function (t) {
+    A.DAY_BUCKETS.forEach(function (b) { html += netCell(r.free[b][t] - r.open[b][t]); });
+  });
+  html += '</tr></tbody></table>';
+
+  // Which teams these people belong to. Description, never a filter -- the
+  // whole point is that the catchment crosses market and state lines.
+  var mk = Object.entries(r.byMarket).sort(function (a, b) { return b[1] - a[1]; });
+  var sts = Object.entries(r.byState).sort(function (a, b) { return b[1] - a[1]; });
+  html += '<div class="foot">Drawn from <b>' + mk.length + '</b> market' + (mk.length === 1 ? '' : 's') +
+          ': ' + mk.map(function (x) { return esc(x[0]) + ' ' + x[1]; }).join(', ') + '.' +
+          (sts.length > 1 ? ' Across <b>' + sts.length + '</b> states: ' +
+            sts.map(function (x) { return esc(x[0]) + ' ' + x[1]; }).join(', ') + '.' : '') +
+          ' Held out: ' + r.counts.prn + ' PRN, ' + r.counts.longTU + ' on time off over a week, ' +
+          r.counts.noNotes + ' with unparseable availability notes.' +
+          ' Measured ' + (st.measured || 0) + ' of ' + (st.prefiltered || 0) + ' candidates' +
+          (st.newElements ? ', ' + st.newElements + ' newly' : ', all from cache') + '.' +
+          '<br>This counts capacity, not consent. To find out who specifically would take it, ' +
+          'open <a href="availability_analyzer.html" style="color:var(--orange)">Find Care Team</a> ' +
+          'with the same address.</div>';
+  html += '</div>';
+  document.getElementById('ct').innerHTML = html;
+}
+
 function render() {
   if (!data.supply) return;
-  ['r25','r30'].forEach(function (id) { document.getElementById(id).classList.remove('on'); });
-  if (state.radius === 25) document.getElementById('r25').classList.add('on');
-  else if (state.radius === 30) document.getElementById('r30').classList.add('on');
-  else document.getElementById('rCustom').value = state.radius;
-
   document.getElementById('banner').innerHTML = bannerHtml();
+  if (state.view === 'address') { renderAddress(); return; }
+  syncRadiusChips();
 
   var market = state.market;
   var r = compute(market);
