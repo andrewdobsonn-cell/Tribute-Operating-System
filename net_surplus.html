@@ -383,15 +383,18 @@ function setView(v) {
 
 /* ── Address typeahead ─────────────────────────────────────────────────────
  *
- * Each suggestion carries its nearest market and the miles to it, because the
- * town name alone does not tell you whether we could ever staff it. Picking
- * one also hands over its coordinates, so the capacity lookup skips geocoding
- * entirely -- Google has already located it.
+ * Laid out the way Google Maps lays its own out: the street line, then the
+ * town and state underneath. Backed by Places Autocomplete, because the
+ * searchText API this started on searches businesses and points of interest
+ * and returned nothing for a private home, which is the whole use case.
+ *
+ * Autocomplete carries no coordinates, so a pick passes the placeId and the
+ * server resolves the point with one Place Details call.
  *
  * Debounced, and nothing is sent under four characters: every keystroke past
  * that is a billed Places call.
  */
-var suggTimer = null, suggItems = [], suggIdx = -1, pickedPoint = null;
+var suggTimer = null, suggItems = [], suggIdx = -1, pickedPlaceId = null;
 
 function hideSuggest() {
   var el = document.getElementById('sugg');
@@ -399,7 +402,7 @@ function hideSuggest() {
 }
 
 function onAddrInput() {
-  pickedPoint = null;                      // typing invalidates an earlier pick
+  pickedPlaceId = null;                    // typing invalidates an earlier pick
   var q = document.getElementById('addr').value.trim();
   if (suggTimer) clearTimeout(suggTimer);
   if (q.length < 4) { hideSuggest(); return; }
@@ -426,8 +429,8 @@ function drawSuggest() {
   }
   el.innerHTML = suggItems.map(function (s, i) {
     return '<div class="ac-item' + (i === suggIdx ? ' sel' : '') + '" onmousedown="pickSuggest(' + i + ')">' +
-           '<div class="ac-addr">' + esc(s.address) + '</div>' +
-           '<div class="ac-near">' + s.near.miles + ' mi from ' + esc(s.near.market) + '</div></div>';
+           '<div class="ac-addr">' + esc(s.main || s.address) + '</div>' +
+           (s.secondary ? '<div class="ac-near">' + esc(s.secondary) + '</div>' : '') + '</div>';
   }).join('');
   el.hidden = false;
 }
@@ -435,8 +438,8 @@ function drawSuggest() {
 function pickSuggest(i) {
   var s = suggItems[i];
   if (!s) return;
-  document.getElementById('addr').value = s.address;
-  pickedPoint = { lat: s.lat, lng: s.lng };
+  document.getElementById('addr').value = s.address || ((s.main || '') + (s.secondary ? ', ' + s.secondary : ''));
+  pickedPlaceId = s.placeId;
   hideSuggest();
   checkAddress();
 }
@@ -464,8 +467,9 @@ async function checkAddress() {
     '<div class="loading">Measuring driving distance from ' + esc(addr) + '...</div>';
   try {
     var qs = API + '?endpoint=capacity_at&address=' + encodeURIComponent(addr) + '&radius=' + state.radius;
-    // A chosen suggestion already carries its coordinates, so skip the geocode.
-    if (pickedPoint) qs += '&lat=' + pickedPoint.lat + '&lng=' + pickedPoint.lng;
+    // A chosen suggestion is already identified, so the server resolves it
+    // straight to a point instead of guessing from the text.
+    if (pickedPlaceId) qs += '&placeId=' + encodeURIComponent(pickedPlaceId);
     var r = await _authFetch(qs);
     var out = await r.json();
     if (!r.ok || out.error) {
