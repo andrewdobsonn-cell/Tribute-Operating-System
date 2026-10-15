@@ -1,0 +1,147 @@
+/* Net Surplus page — assertions against the SHIPPED inline script.
+ *
+ * Run: node tests/net-surplus-page.test.js
+ *
+ * tests/net-surplus.test.js covers the model in availability_core.js. This
+ * covers the part that only exists on the page: which caregivers are held out,
+ * how the three sections combine into a net, and the handling of a caregiver
+ * whose distance we do not know.
+ *
+ * Fixtures are synthetic. Real feeds carry caregiver and client names, and
+ * those do not belong in the repo.
+ */
+const fs = require('fs'), vm = require('vm'), path = require('path');
+const root = path.join(__dirname, '..');
+require(path.join(root, 'availability_core.js'));
+const A = globalThis.TributeAvailability;
+
+const html = fs.readFileSync(path.join(root, 'net_surplus.html'), 'utf8');
+const src = html.match(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/)[1];
+
+const els = {};
+const el = id => els[id] || (els[id] = { id, value: '', innerHTML: '', textContent: '',
+  style: {}, classList: { add() {}, remove() {} }, appendChild() {}, addEventListener() {} });
+const ctx = {
+  console, Date, Math, JSON, Set, Array, String, Number, Object, Boolean,
+  isFinite, isNaN, parseInt, parseFloat, Promise, URL: { createObjectURL: () => '' }, Blob: function () {},
+  document: { getElementById: el, createElement: () => ({ style: {}, click() {} }) },
+  localStorage: { getItem: () => null, setItem() {} },
+  fetch: async () => ({ ok: false, status: 0 })
+};
+ctx.window = ctx;
+ctx.globalThis = ctx;
+ctx.window.TributeAvailability = A;
+vm.createContext(ctx);
+vm.runInContext(src, ctx, { timeout: 5000 });
+
+let pass = 0, fail = 0;
+const t = (n, c) => { c ? pass++ : (fail++, console.log('  FAIL: ' + n)); };
+
+// ── Fixtures ────────────────────────────────────────────────────────────────
+// Boston's center is downtown. "near" is a couple of miles out, "far" is well
+// past any radius we would use.
+const NEAR = 4.2;     // driving miles from downtown Boston
+const FAR  = 48.0;
+
+const cg = (id, o) => Object.assign({
+  id, name: 'CG ' + id, market: 'Boston', state: 'Massachusetts', status: 'hired',
+  availNotes: 'Long Hour Days = M, T, W', tags: '', driveMiles: NEAR
+}, o || {});
+
+// Centres and driveMiles both arrive on the feed now, exactly as the server
+// sends them, so the page never computes a distance of its own.
+const CENTERS = { Boston: { lat: 42.3601, lng: -71.0589, note: 'Downtown Boston' },
+                  Baltimore: { lat: 39.2904, lng: -76.6122, note: 'Downtown Baltimore' } };
+
+function seed(caregivers, sets, recur) {
+  vm.runInContext(
+    'data.supply = ' + JSON.stringify({ caregivers, marketCenters: CENTERS, generatedAt: '2026-10-15T00:00:00Z' }) + ';' +
+    'data.sets = ' + JSON.stringify({ bookingSets: sets || [], generatedAt: '2026-10-15T00:00:00Z' }) + ';' +
+    'data.recur = ' + JSON.stringify(recur || { recurringDays: {}, timeOffDays: {}, tempUnavail: {} }) + ';' +
+    'state.market = "Boston"; state.radius = 25; miles.cg = {}; miles.client = {}; null', ctx);
+  vm.runInContext('readDistances(); null', ctx);
+  return vm.runInContext('compute("Boston")', ctx);
+}
+
+const G = (r, section, zone, bucket, type) => r.grid[section][zone][bucket][type];
+const LH = 'Long Hours', ON = 'Overnight';
+
+// ── Who is held out, and why ────────────────────────────────────────────────
+{
+  const r = seed([
+    cg('a'),
+    cg('b', { tags: 'prn, MWB' }),                       // PRN: no reliable ongoing availability
+    cg('c', { availNotes: '' }),                         // nothing parseable
+    cg('d', { status: 'terminated' }),                   // not on the roster
+    cg('e', { market: 'Baltimore' })                     // another market
+  ], [], { recurringDays: {}, timeOffDays: {}, tempUnavail: {} });
+  t('only the one eligible caregiver counts', r.counts.people === 1);
+  t('PRN held out and counted', r.counts.prn === 1);
+  t('unparseable notes held out and counted', r.counts.noNotes === 1);
+  t('three weekday slots from one caregiver', G(r, 'free', 'central', 'Weekday', LH) === 3);
+}
+{
+  // Long temp unavailability hides someone; a short hold does not. Megan
+  // Stewart's rule, 2026-08-27 — most holds on file are a week or less.
+  const longHold  = { from: '2026-10-01', until: '2026-11-30' };
+  const shortHold = { from: '2026-10-20', until: '2026-10-22' };
+  const r = seed([cg('a'), cg('b')], [], {
+    recurringDays: {}, timeOffDays: {}, tempUnavail: { a: longHold, b: shortHold }
+  });
+  t('a hold over a week removes the caregiver', r.counts.longTU === 1);
+  t('a short hold leaves them in', r.counts.people === 1 && G(r, 'free', 'central', 'Weekday', LH) === 3);
+}
+{
+  // The Analyzer's own busy set. A day already carrying a recurring visit is
+  // not spare, and neither is a day with time off booked.
+  const r = seed([cg('a')], [], {
+    recurringDays: { a: [1, 2] }, timeOffDays: { a: [3] }, tempUnavail: {}
+  });
+  t('recurring and time-off days both drop out', G(r, 'free', 'central', 'Weekday', LH) === 0);
+}
+
+// ── Central, edges, and unknown ─────────────────────────────────────────────
+{
+  const r = seed([
+    cg('near'),
+    cg('far', { driveMiles: FAR }),
+    cg('nogeo', { driveMiles: null })
+  ], [], null);
+  t('a nearby caregiver is central', G(r, 'free', 'central', 'Weekday', LH) === 3);
+  t('a distant caregiver is edges', G(r, 'free', 'edges', 'Weekday', LH) === 3);
+  t('a caregiver with no drive figure is unknown, not edges',
+    G(r, 'free', 'unknown', 'Weekday', LH) === 3 && r.counts.unknownZone === 1);
+  t('unknown is never folded into edges', G(r, 'free', 'edges', 'Weekday', LH) === 3);
+}
+
+// ── Demand, and the subtraction ─────────────────────────────────────────────
+{
+  const sets = [{
+    cid: 'c1', market: 'Boston', state: 'Massachusetts', driveMiles: NEAR,
+    dayPattern: {
+      Monday: { long: 1, short: 2, overnight: 0, livein: 0, biweekly: false },
+      Sunday: { long: 0, short: 0, overnight: 1, livein: 0, biweekly: false }
+    }
+  }];
+  const r = seed([cg('a', { availNotes: 'Long Hour Days = M, T, W; Overnights = Su' })], sets, null);
+  t('open long-hours demand lands', G(r, 'open', 'central', 'Weekday', LH) === 1);
+  t('open overnight demand lands on Sunday', G(r, 'open', 'central', 'Sunday', ON) === 1);
+  t('short hours never enter the model', G(r, 'open', 'central', 'Weekday', ON) === 0);
+  // The semicolon fix matters here: without it the Long Hour Days entry is lost
+  // and weekday supply silently reads zero.
+  t('supply parsed across the semicolon', G(r, 'free', 'central', 'Weekday', LH) === 3);
+  t('net weekday day is +2', G(r, 'free', 'central', 'Weekday', LH) - G(r, 'open', 'central', 'Weekday', LH) === 2);
+  t('net Sunday night is zero, which is the signal',
+    G(r, 'free', 'central', 'Sunday', ON) - G(r, 'open', 'central', 'Sunday', ON) === 0);
+}
+
+// ── The sign convention ─────────────────────────────────────────────────────
+// Galip's sheet writes "Open + Not Working + Starting". Run his own worked
+// example that way and it does not reconcile; open has to subtract.
+{
+  const signs = vm.runInContext('SECTIONS.map(function(s){return s.key+":"+s.sign;}).join(",")', ctx);
+  t('open subtracts, the two supply rows add', signs === 'open:-1,free:1,starting:1');
+}
+
+console.log((fail ? 'FAIL' : 'PASS') + ' — ' + pass + ' passed, ' + fail + ' failed');
+process.exit(fail ? 1 : 0);

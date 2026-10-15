@@ -64,10 +64,24 @@
     return { days: Array.from(days), eoDays: Array.from(eo) };
   }
 
+  /* A note names a type, then the days for it, and may name several.
+   *
+   * The day list stops at a semicolon, at the next type keyword, or at the end.
+   * The semicolon used to be missing from that list, and because the day
+   * capture cannot cross one, the whole entry before it failed to match and was
+   * dropped in silence -- "Overnights = Su, M, F, Sa; Long Hour Days = W, Th"
+   * read as overnights only, losing two long-hour days. Three caregivers on
+   * file were written that way (2026-10-15).
+   *
+   * Note what is NOT fixed here. Six caregivers write "Overnights and/or Long
+   * Hour Days = ...", and only the last type is taken. That one is left alone
+   * on purpose: those days are ONE slot the caregiver will fill one way, so
+   * crediting both types would invent capacity that does not exist.
+   */
   function parseAvailNotes(notes) {
     if (!notes) return [];
     var entries = [];
-    var typePattern = /((?:TS\d+\s+)?(?:Overnight|Long\s*[Hh]our(?:\s*[Dd]ay)?|Short\s*[Hh]our(?:\s*[Dd]ay)?|Live[\s-]?[Ii]n)s?)[\s:=]+([^;]*?)(?=(?:(?:TS\d+\s+)?(?:Overnight|Long\s*[Hh]our|Short\s*[Hh]our|Live[\s-]?[Ii]n))|$)/gi;
+    var typePattern = /((?:TS\d+\s+)?(?:Overnight|Long\s*[Hh]our(?:\s*[Dd]ay)?|Short\s*[Hh]our(?:\s*[Dd]ay)?|Live[\s-]?[Ii]n)s?)[\s:=]+([^;]*?)(?=\s*;|(?:(?:TS\d+\s+)?(?:Overnight|Long\s*[Hh]our|Short\s*[Hh]our|Live[\s-]?[Ii]n))|$)/gi;
     var match;
     while ((match = typePattern.exec(notes)) !== null) {
       var rawType = match[1].trim();
@@ -122,12 +136,171 @@
     }).join(', ');
   }
 
+  /* ── Net surplus model (Galip Gencer, 2026-10-14) ──────────────────────────
+   *
+   * Supply and demand in one unit: DAY-SLOTS PER WEEK. A client pattern
+   * needing Tue and Thu is 2 weekday slots; a caregiver free Mon/Wed/Fri is 3.
+   * They subtract because this model is long-hours only, where one caregiver
+   * covers one visit on a day. It would be wrong for short hours, where one
+   * person covers several.
+   *
+   * The two sides already share a vocabulary and that is not an accident:
+   * parseAvailNotes above reads "Long Hours" and "Overnight" off the caregiver,
+   * and open_booking_sets classifies each vacant pattern into the same words.
+   * Keep them spelled the same or the subtraction silently reads zero.
+   */
+
+  var DAY_BUCKETS = ['Weekday', 'Saturday', 'Sunday'];
+
+  // Galip's sheet counts a day as a weekday, a Saturday or a Sunday. The two
+  // weekend days stay apart because they behave nothing alike: Sunday is where
+  // the surplus collapses and Saturday usually has room.
+  function dayBucket(dow) {
+    var d = Number(dow);
+    if (d === 0) return 'Sunday';
+    if (d === 6) return 'Saturday';
+    return 'Weekday';
+  }
+
+  // Booking sets name their days ('Sunday'...), caregivers number them (0..6).
+  function dowOf(day) {
+    if (typeof day === 'number') return day;
+    var i = DAYS.indexOf(String(day));
+    if (i >= 0) return i;
+    var m = DAY_MAP[String(day).toLowerCase().replace(/[^a-z]/g, '')];
+    return m === undefined ? null : m;
+  }
+
+  // Long hours, split day from night. The caregiver's note carries a CATEGORY
+  // and never a duration, so the 10-hour cut Galip's sheet asks for cannot be
+  // applied to supply at all -- there is no number there to test. Both sides
+  // therefore use the booking-set classifier's own thresholds: overnight is 9h+
+  // starting in the evening or crossing midnight, long is 5h+ in the day.
+  var LH_TYPES = ['Long Hours', 'Overnight'];
+  var LH_DEMAND_KEY = { 'Long Hours': 'long', 'Overnight': 'overnight' };
+
+  function emptyGrid() {
+    var g = {};
+    DAY_BUCKETS.forEach(function (b) {
+      g[b] = {};
+      LH_TYPES.forEach(function (t) { g[b][t] = 0; });
+    });
+    return g;
+  }
+
+  function addGrid(into, from) {
+    DAY_BUCKETS.forEach(function (b) {
+      LH_TYPES.forEach(function (t) { into[b][t] += from[b][t]; });
+    });
+    return into;
+  }
+
+  /* Free long-hours day-slots for one caregiver.
+   *
+   * `entries` is parseAvailNotes output; `busyDows` is the Analyzer's own
+   * recurringDays + timeOffDays. Deliberately the Analyzer's definition and not
+   * a second one: a day already carrying a recurring visit is not spare
+   * capacity, and a day with time off booked is not either.
+   *
+   * An every-other-week day is half a slot. 38 caregivers write "e/o", 34 of
+   * them in Maryland, and counting those whole would invent a weekly caregiver
+   * out of a fortnightly one.
+   */
+  function supplySlots(entries, busyDows) {
+    var grid = emptyGrid();
+    var busy = {};
+    (busyDows || []).forEach(function (d) { busy[dowOf(d)] = true; });
+    (entries || []).forEach(function (e) {
+      if (LH_TYPES.indexOf(e.type) < 0) return;
+      (e.days || []).forEach(function (d) {
+        if (busy[d]) return;
+        var eo = (e.eoDays || []).indexOf(d) >= 0;
+        grid[dayBucket(d)][e.type] += eo ? 0.5 : 1;
+      });
+    });
+    return grid;
+  }
+
+  /* Vacant long-hours day-slots for one open booking set.
+   *
+   * `dayPattern` comes straight off open_booking_sets: per weekday, a count of
+   * unassigned patterns by type plus a biweekly flag. Biweekly halves for the
+   * same reason e/o does on the supply side.
+   */
+  function demandSlots(dayPattern) {
+    var grid = emptyGrid();
+    Object.keys(dayPattern || {}).forEach(function (day) {
+      var d = dowOf(day);
+      if (d === null) return;
+      var p = dayPattern[day] || {};
+      var w = p.biweekly ? 0.5 : 1;
+      LH_TYPES.forEach(function (t) {
+        var n = p[LH_DEMAND_KEY[t]] || 0;
+        if (n) grid[dayBucket(d)][t] += n * w;
+      });
+    });
+    return grid;
+  }
+
+  /* Market centres are NOT here.
+   *
+   * They live server-side in vivProxy and ride down on the feeds as
+   * `marketCenters`, together with a `driveMiles` already computed for every
+   * caregiver and every booking set. Two reasons, and the second is the one
+   * that matters.
+   *
+   * Speed: a page that held its own centres would have to fetch the feeds,
+   * work out which distances it needed, and then ask for them -- a second
+   * round trip on the critical path before anything can render.
+   *
+   * Agreement: there were two copies of this table in this repo, in
+   * caregiver_supply_map.html and availability_analyzer.html, and they had
+   * drifted ~7 and ~12 miles apart. Harmless while the number only sorted a
+   * list; not harmless when it decides whether a caregiver is central or
+   * edges. One copy, on the server, is the only arrangement that cannot drift.
+   * Those two pages still carry their own and should be moved onto the feed.
+   */
+
+  var DEFAULT_RADIUS_MILES = 25;
+
+  /* Central or edges, by DRIVING miles from the market center.
+   *
+   * Andrew, 2026-10-15: driving distance, not straight line. A caregiver 20
+   * miles away across a harbor is not 20 minutes away, and the whole point of
+   * the bucket is whether somebody can realistically work the case.
+   *
+   * Returns 'unknown' when we have no drive figure, and 'unknown' must never be
+   * folded into 'edges': an unmeasured caregiver is not a far one.
+   */
+  function zoneOf(driveMiles, radiusMiles) {
+    if (driveMiles === null || driveMiles === undefined || isNaN(driveMiles)) return 'unknown';
+    return Number(driveMiles) <= (radiusMiles || DEFAULT_RADIUS_MILES) ? 'central' : 'edges';
+  }
+
+  // Straight-line miles. Kept only as a labelled fallback for records with
+  // coordinates but no drive figure yet -- never silently mixed into a column
+  // of driving miles.
+  function haversineMiles(lat1, lng1, lat2, lng2) {
+    if ([lat1, lng1, lat2, lng2].some(function (v) { return v === null || v === undefined || isNaN(v); })) return null;
+    var R = 3958.8, toRad = function (d) { return d * Math.PI / 180; };
+    var dLat = toRad(lat2 - lat1), dLng = toRad(lng2 - lng1);
+    var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+    return Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)) * 10) / 10;
+  }
+
   root.TributeAvailability = {
     DAYS: DAYS, DAY_ABBR: DAY_ABBR, DAY_MAP: DAY_MAP, TYPES: TYPES,
     CERT_TAGS: CERT_TAGS, CERT_LABEL: CERT_LABEL, TU_LONG_DAYS: TU_LONG_DAYS,
     cgTags: cgTags, certsOf: certsOf, isPRN: isPRN,
     parseDays: parseDays, parseAvailNotes: parseAvailNotes,
     tuSpanDays: tuSpanDays, isLongTU: isLongTU, awayOnDate: awayOnDate,
-    dayNames: dayNames
+    dayNames: dayNames,
+    DAY_BUCKETS: DAY_BUCKETS, LH_TYPES: LH_TYPES, LH_DEMAND_KEY: LH_DEMAND_KEY,
+    DEFAULT_RADIUS_MILES: DEFAULT_RADIUS_MILES,
+    dayBucket: dayBucket, dowOf: dowOf,
+    emptyGrid: emptyGrid, addGrid: addGrid,
+    supplySlots: supplySlots, demandSlots: demandSlots,
+    zoneOf: zoneOf, haversineMiles: haversineMiles
   };
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@3.28.1/lib/msal-browser.min.js"></script>
+<script src="./entra-auth.js?v=2026-07-07c"></script>
+<script src="./availability_core.js?v=2026-10-15"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Net Surplus — Tribute OS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--orange:#FF5A1F;--orange-dark:#E25309;--orange-pale:#FBEADF;--orange-50:#FEF6F1;--charcoal:#1C1A17;--charcoal-mid:#3A362F;--gray-text:#8C857B;--gray-light:#B7B0A6;--gray-100:#F6F3EE;--gray-200:#EAE6DF;--gray-300:#E0DACE;--white:#FFFFFF;--cream:#FAF8F4;--green:#0F8F6B;--green-light:#dcfce7;--red:#C8362B;--red-light:#fee2e2;--purple:#7c3aed;--purple-light:#ede9fe;--amber:#d97706;--amber-light:#fef3c7;--blue:#2563eb;--blue-light:#dbeafe;--shadow-sm:0 1px 2px rgba(28,26,23,0.04);--shadow-md:0 6px 24px -8px rgba(28,26,23,0.10),0 2px 6px -2px rgba(28,26,23,0.04);--r:12px;--rl:18px}
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:var(--cream);color:var(--charcoal);min-height:100vh;font-size:14px;line-height:1.6;-webkit-font-smoothing:antialiased}
+
+.topbar{background:rgba(250,248,244,0.85);backdrop-filter:saturate(1.4) blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--gray-200);padding:0 48px;display:flex;align-items:center;justify-content:space-between;height:64px;position:sticky;top:0;z-index:100}
+.topbar-tribute{font-family:'Space Grotesk',Inter,sans-serif;font-size:22px;font-weight:700;letter-spacing:-.02em;color:var(--charcoal);text-decoration:none}
+.topbar-sub{font-size:10px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--gray-light);margin-left:8px}
+.topbar-right{display:flex;align-items:center;gap:16px;font-size:11px;color:var(--gray-text)}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--green);display:inline-block;margin-right:6px;animation:pulse 2.5s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+.hero{background:var(--white);padding:36px 48px 30px;border-bottom:1px solid var(--gray-200);position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;top:0;left:0;width:4px;height:100%;background:var(--orange)}
+.hero-eyebrow{font-size:10px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--orange);margin-bottom:8px;padding-left:20px}
+.hero-title{font-family:'Space Grotesk',Georgia,serif;font-size:34px;color:var(--charcoal);line-height:1.1;letter-spacing:-.025em;margin-bottom:8px;padding-left:20px}
+.hero-sub{font-size:14px;color:var(--gray-text);max-width:760px;padding-left:20px}
+
+.wrap{padding:28px 48px 80px;max-width:1400px}
+.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;background:var(--white);border:1px solid var(--gray-200);border-radius:var(--r);padding:12px 16px;margin-bottom:20px;box-shadow:var(--shadow-sm)}
+.ctl-label{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--gray-light);margin-right:2px}
+select,input[type=number]{font-family:inherit;font-size:13px;padding:6px 10px;border:1px solid var(--gray-300);border-radius:8px;background:var(--white);color:var(--charcoal)}
+.chip{font-size:12px;font-weight:600;padding:6px 12px;border-radius:999px;border:1px solid var(--gray-300);background:var(--white);color:var(--gray-text);cursor:pointer}
+.chip.on{background:var(--orange);border-color:var(--orange);color:var(--white)}
+.btn{font-family:inherit;font-size:12px;font-weight:600;padding:7px 14px;border-radius:8px;border:1px solid var(--gray-300);background:var(--white);color:var(--charcoal-mid);cursor:pointer}
+.btn:hover{border-color:var(--orange);color:var(--orange)}
+
+.note{border-radius:var(--r);padding:12px 16px;margin-bottom:16px;font-size:13px;line-height:1.55}
+.note-warn{background:var(--amber-light);border:1px solid #f0d9a0;color:#7a4e06}
+.note-info{background:var(--orange-50);border:1px solid var(--orange-pale);color:var(--charcoal-mid)}
+
+.card{background:var(--white);border:1px solid var(--gray-200);border-radius:var(--rl);margin-bottom:22px;overflow:hidden;box-shadow:var(--shadow-sm)}
+.card-head{padding:14px 20px;border-bottom:1px solid var(--gray-200);display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.card-title{font-family:'Space Grotesk',sans-serif;font-size:17px;font-weight:600;letter-spacing:-.01em}
+.card-meta{font-size:11px;color:var(--gray-light)}
+
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{padding:8px 12px;text-align:right;border-bottom:1px solid var(--gray-100);white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+thead th{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--gray-light);background:var(--gray-100);border-bottom:1px solid var(--gray-200)}
+.grp{border-left:2px solid var(--gray-200)}
+.sec td{background:var(--orange-50);font-weight:600;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--orange-dark)}
+.net td{font-weight:700;border-top:2px solid var(--gray-300);background:var(--gray-100)}
+.pos{color:var(--green)}
+.neg{color:var(--red)}
+.zero{color:var(--amber);font-weight:700}
+.z{color:var(--gray-light)}
+.edit{border:1px dashed var(--gray-300);border-radius:6px;width:54px;padding:3px 6px;text-align:right;font-family:inherit;font-size:13px}
+
+.foot{font-size:12px;color:var(--gray-text);line-height:1.6;padding:14px 20px;border-top:1px solid var(--gray-100);background:var(--gray-100)}
+.foot b{color:var(--charcoal-mid)}
+.loading{padding:60px;text-align:center;color:var(--gray-text)}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div><a href="index_live.html" class="topbar-tribute">Tribute</a><span class="topbar-sub">Operating System</span></div>
+  <div class="topbar-right"><span><span class="live-dot"></span>Live</span><span id="asOf"></span></div>
+</div>
+
+<div class="hero">
+  <div class="hero-eyebrow">Scheduling</div>
+  <h1 class="hero-title">Net Surplus</h1>
+  <p class="hero-sub">Long-hours capacity against long-hours demand, in day-slots per week. Vacant recurring bookings on one side, caregivers free that day on the other, split central and edges by driving distance from the market center.</p>
+</div>
+
+<div class="wrap">
+  <div class="controls">
+    <span class="ctl-label">Market</span>
+    <select id="mkt" onchange="render()"></select>
+    <span class="ctl-label" style="margin-left:10px">Central within</span>
+    <span class="chip" id="r25" onclick="setRadius(25)">25 mi</span>
+    <span class="chip" id="r30" onclick="setRadius(30)">30 mi</span>
+    <input type="number" id="rCustom" min="1" max="120" style="width:68px" onchange="setRadius(this.value)" title="Any radius, in driving miles">
+    <span style="flex:1"></span>
+    <button class="btn" onclick="exportCsv()">Export CSV</button>
+  </div>
+  <div id="banner"></div>
+  <div id="ct"><div class="loading">Loading supply, demand and driving distances...</div></div>
+</div>
+
+<script>
+var A = window.TributeAvailability;
+var API = 'https://tribute-api-prod-bkc4hfcwf3f2f6bf.centralus-01.azurewebsites.net/api/vivProxy';
+
+async function _authFetch(url, opts) {
+  opts = opts || {};
+  var t = (window.tributeKsfGate && window.tributeKsfGate.getToken) ? await window.tributeKsfGate.getToken() : null;
+  if (t) { opts = Object.assign({}, opts); opts.headers = Object.assign({}, opts.headers || {}, {Authorization: 'Bearer ' + t}); }
+  return fetch(url, opts);
+}
+
+/* The three tables are Galip Gencer's, from AvailibilityDiscussion.xlsx
+ * (2026-10-14). Open booking sets, caregivers not working, caregivers starting
+ * next week, then the net. His sheet adds all three; run his own worked example
+ * that way and it does not reconcile. It only works as SUPPLY MINUS DEMAND, so
+ * open booking sets subtract here and the Sunday column is what it was built to
+ * show.
+ */
+var SECTIONS = [
+  { key:'open',     label:'Open booking sets',          sign:-1 },
+  { key:'free',     label:'Caregivers not working',     sign:+1 },
+  { key:'starting', label:'Caregivers starting next week', sign:+1 }
+];
+var ZONES = ['central', 'edges', 'unknown'];
+var ZONE_LABEL = { central:'Central', edges:'Edges', unknown:'Distance unknown' };
+
+var state = { radius: A.DEFAULT_RADIUS_MILES, market: null, driveMode: 'pending' };
+var centers = {};   // market -> {lat,lng,note}, from the feed
+var data = { supply:null, recur:null, sets:null };
+var miles = { cg:{}, client:{} };   // id -> driving miles from its market center
+var stats = {};
+var starters = {};                  // market -> zone -> bucket -> type -> count
+
+// ── Starters, entered by hand ───────────────────────────────────────────────
+// There is no feed for this. hireDate is never in the future (0 of 498 on
+// 2026-10-15), and a new starter is the person least likely to have
+// availability notes written yet, so the Analyzer logic would drop them even if
+// we found them. An honest blank beats a derived number that silently omits
+// every new hire.
+function loadStarters() {
+  try { starters = JSON.parse(localStorage.getItem('tribute_net_surplus_starters') || '{}'); }
+  catch (e) { starters = {}; }
+}
+function saveStarters() {
+  try { localStorage.setItem('tribute_net_surplus_starters', JSON.stringify(starters)); } catch (e) {}
+}
+function starterVal(mkt, zone, bucket, type) {
+  return ((((starters[mkt] || {})[zone] || {})[bucket] || {})[type]) || 0;
+}
+function setStarter(mkt, zone, bucket, type, v) {
+  var n = Math.max(0, Number(v) || 0);
+  starters[mkt] = starters[mkt] || {};
+  starters[mkt][zone] = starters[mkt][zone] || {};
+  starters[mkt][zone][bucket] = starters[mkt][zone][bucket] || {};
+  starters[mkt][zone][bucket][type] = n;
+  saveStarters();
+  render();
+}
+
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+
+// ── Load ────────────────────────────────────────────────────────────────────
+async function load() {
+  var res = await Promise.all([
+    _authFetch(API + '?endpoint=caregiver_supply'),
+    _authFetch(API + '?endpoint=recurring_days'),
+    _authFetch(API + '?endpoint=open_booking_sets')
+  ]);
+  for (var i = 0; i < res.length; i++) {
+    if (!res[i].ok) { document.getElementById('ct').innerHTML = '<div class="loading">Could not load feed ' + (i+1) + ' (HTTP ' + res[i].status + ').</div>'; return; }
+  }
+  data.supply = await res[0].json();
+  data.recur  = await res[1].json();
+  data.sets   = await res[2].json();
+  document.getElementById('asOf').textContent = 'as of ' + new Date(data.sets.generatedAt || Date.now()).toLocaleString();
+  readDistances();
+  buildMarkets();
+  render();
+}
+
+/* No distance round trip.
+ *
+ * Driving miles arrive already computed on both feeds, as `driveMiles` on each
+ * caregiver and each booking set, with the market centres beside them. The
+ * server pays Google once per coordinate pair and caches it forever, so this
+ * page renders as soon as its three parallel fetches land -- about half a
+ * second warm -- instead of fetching, working out what it needs, and asking
+ * again.
+ *
+ * null driveMiles means UNKNOWN and is shown in its own row. It never becomes
+ * "edges": an unmeasured caregiver is not a distant one, and a Google outage
+ * must not quietly grow the surplus at the edge of every market.
+ */
+function readDistances() {
+  centers = (data.supply && data.supply.marketCenters) || (data.sets && data.sets.marketCenters) || {};
+  var measured = 0, total = 0;
+  (data.supply.caregivers || []).forEach(function (c) {
+    if (c.status !== 'hired') return;
+    total++; miles.cg[c.id] = (c.driveMiles == null ? null : c.driveMiles);
+    if (c.driveMiles != null) measured++;
+  });
+  (data.sets.bookingSets || []).forEach(function (s) {
+    miles.client[s.cid] = (s.driveMiles == null ? null : s.driveMiles);
+  });
+  state.driveMode = total && measured === 0 ? 'none' : (measured < total ? 'partial' : 'drive');
+  stats.measured = measured; stats.total = total;
+}
+
+function buildMarkets() {
+  var seen = {};
+  (data.supply.caregivers || []).forEach(function (c) { if (c.market) seen[c.market] = 1; });
+  (data.sets.bookingSets || []).forEach(function (s) { if (s.market) seen[s.market] = 1; });
+  var ms = Object.keys(seen).filter(function (m) { return centers[m]; }).sort();
+  state.market = state.market || (ms.indexOf('Boston') >= 0 ? 'Boston' : ms[0]);
+  document.getElementById('mkt').innerHTML = ms.map(function (m) {
+    return '<option value="' + esc(m) + '"' + (m === state.market ? ' selected' : '') + '>' + esc(m) + '</option>';
+  }).join('');
+  document.getElementById('mkt').onchange = function () { state.market = this.value; render(); };
+}
+
+function setRadius(r) {
+  state.radius = Math.max(1, Number(r) || A.DEFAULT_RADIUS_MILES);
+  render();
+}
+
+// ── The model ───────────────────────────────────────────────────────────────
+function compute(market) {
+  var out = {};
+  SECTIONS.forEach(function (s) {
+    out[s.key] = {};
+    ZONES.forEach(function (z) { out[s.key][z] = A.emptyGrid(); });
+  });
+
+  var tu = (data.recur.tempUnavail) || {};
+  var recurring = (data.recur.recurringDays) || {};
+  var timeoff = (data.recur.timeOffDays) || {};
+  var counts = { prn:0, noNotes:0, longTU:0, noGeo:0, people:0, bothZones:0, unknownZone:0 };
+
+  (data.supply.caregivers || []).forEach(function (c) {
+    if (c.status !== 'hired' || c.market !== market) return;
+    if (A.isPRN(c)) { counts.prn++; return; }
+    if (A.isLongTU(tu[c.id])) { counts.longTU++; return; }
+    var entries = A.parseAvailNotes(c.availNotes);
+    if (!entries.length) { counts.noNotes++; return; }
+    var busy = (recurring[c.id] || []).concat(timeoff[c.id] || []);
+    var grid = A.supplySlots(entries, busy);
+    var any = A.DAY_BUCKETS.some(function (b) { return A.LH_TYPES.some(function (t) { return grid[b][t] > 0; }); });
+    if (!any) return;
+    var zone = A.zoneOf(miles.cg[c.id], state.radius);
+    if (zone === 'unknown') counts.unknownZone++;
+    if (!isFinite(c.lat)) counts.noGeo++;
+    counts.people++;
+    A.addGrid(out.free[zone], grid);
+  });
+
+  (data.sets.bookingSets || []).forEach(function (s) {
+    if (s.market !== market) return;
+    var grid = A.demandSlots(s.dayPattern);
+    var zone = A.zoneOf(miles.client[s.cid], state.radius);
+    A.addGrid(out.open[zone], grid);
+  });
+
+  ZONES.forEach(function (z) {
+    A.DAY_BUCKETS.forEach(function (b) {
+      A.LH_TYPES.forEach(function (t) { out.starting[z][b][t] = starterVal(market, z, b, t); });
+    });
+  });
+
+  // A caregiver can sit inside two markets' radii at once. Galip asked for that
+  // to be visible rather than resolved, so count it and never double-credit.
+  counts.bothZones = countDualMarket(market);
+  return { grid: out, counts: counts };
+}
+
+function countDualMarket(market) {
+  var ctr = centers[market]; if (!ctr) return 0;
+  var n = 0;
+  (data.supply.caregivers || []).forEach(function (c) {
+    if (c.status !== 'hired' || c.market !== market || !isFinite(c.lat)) return;
+    var mine = miles.cg[c.id];
+    if (A.zoneOf(mine, state.radius) !== 'central') return;
+    Object.keys(centers).forEach(function (m) {
+      if (m === market || n < 0) return;
+      var o = centers[m];
+      // Straight-line here on purpose: this is a flag that somebody is near two
+      // centers, not a figure anyone schedules from.
+      if (A.haversineMiles(o.lat, o.lng, c.lat, c.lng) <= state.radius) { n++; }
+    });
+  });
+  return n;
+}
+
+// ── Render ──────────────────────────────────────────────────────────────────
+function cell(v, cls) {
+  if (!v) return '<td class="' + (cls || 'z') + '">' + (cls ? v : '0') + '</td>';
+  return '<td class="' + (cls || '') + '">' + (Math.round(v * 10) / 10) + '</td>';
+}
+function netCell(v) {
+  var cls = v > 0 ? 'pos' : (v < 0 ? 'neg' : 'zero');
+  var txt = v > 0 ? '+' + (Math.round(v * 10) / 10) : (Math.round(v * 10) / 10);
+  return '<td class="' + cls + '">' + txt + '</td>';
+}
+
+function render() {
+  if (!data.supply) return;
+  ['r25','r30'].forEach(function (id) { document.getElementById(id).classList.remove('on'); });
+  if (state.radius === 25) document.getElementById('r25').classList.add('on');
+  else if (state.radius === 30) document.getElementById('r30').classList.add('on');
+  else document.getElementById('rCustom').value = state.radius;
+
+  document.getElementById('banner').innerHTML = bannerHtml();
+
+  var market = state.market;
+  var r = compute(market);
+  var g = r.grid, c = r.counts;
+  var ctr = centers[market] || {};
+
+  var html = '<div class="card">';
+  html += '<div class="card-head"><div class="card-title">' + esc(market) + '</div>' +
+          '<div class="card-meta">Center: ' + esc(ctr.note || '') + ' &middot; central = within ' + state.radius +
+          ' ' + (state.driveMode === 'straight' ? 'straight-line' : 'driving') + ' miles</div></div>';
+
+  html += '<table><thead><tr><th>Day-slots per week</th>';
+  html += '<th class="grp">Wk day</th><th>Sat day</th><th>Sun day</th>';
+  html += '<th class="grp">Wk night</th><th>Sat night</th><th>Sun night</th></tr></thead><tbody>';
+
+  ZONES.forEach(function (z) {
+    var used = SECTIONS.some(function (s) {
+      return A.DAY_BUCKETS.some(function (b) { return A.LH_TYPES.some(function (t) { return g[s.key][z][b][t] > 0; }); });
+    });
+    if (z === 'unknown' && !used) return;
+    html += '<tr class="sec"><td colspan="7">' + ZONE_LABEL[z] + '</td></tr>';
+    SECTIONS.forEach(function (s) {
+      html += '<tr><td>' + s.label + '</td>';
+      A.LH_TYPES.forEach(function (t, ti) {
+        A.DAY_BUCKETS.forEach(function (b, bi) {
+          var v = g[s.key][z][b][t];
+          var klass = (bi === 0 ? 'grp' : '');
+          if (s.key === 'starting') {
+            html += '<td class="' + klass + '"><input class="edit" type="number" min="0" value="' + v +
+                    '" onchange="setStarter(\'' + esc(market) + '\',\'' + z + '\',\'' + b + '\',\'' + t + '\',this.value)"></td>';
+          } else {
+            html += '<td class="' + klass + (v ? '' : ' z') + '">' + (Math.round(v * 10) / 10) + '</td>';
+          }
+        });
+      });
+      html += '</tr>';
+    });
+    html += '<tr class="net"><td>Net surplus</td>';
+    A.LH_TYPES.forEach(function (t) {
+      A.DAY_BUCKETS.forEach(function (b) {
+        var net = 0;
+        SECTIONS.forEach(function (s) { net += s.sign * g[s.key][z][b][t]; });
+        html += netCell(net);
+      });
+    });
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+
+  html += '<div class="foot">' +
+    '<b>' + c.people + '</b> caregivers counted. Held out: <b>' + c.prn + '</b> PRN, <b>' + c.longTU +
+    '</b> on time off longer than a week, <b>' + c.noNotes + '</b> whose availability notes do not parse. ' +
+    (c.unknownZone ? '<b>' + c.unknownZone + '</b> have no distance and sit in their own row rather than being called edges. ' : '') +
+    (c.bothZones ? '<b>' + c.bothZones + '</b> are also within ' + state.radius + ' miles of another market center, counted once here. ' : '') +
+    '</div></div>';
+
+  document.getElementById('ct').innerHTML = html;
+}
+
+function bannerHtml() {
+  var h = '';
+  if (state.driveMode === 'none') {
+    h += '<div class="note note-warn"><b>No driving distances on this feed.</b> Central and edges cannot be split, ' +
+         'so everyone sits in one bucket. The numbers themselves are unaffected.</div>';
+  } else if (state.driveMode === 'partial') {
+    h += '<div class="note note-warn"><b>' + (stats.total - stats.measured) + ' of ' + stats.total +
+         ' caregivers have no driving distance yet</b> and sit in their own row rather than being called edges. ' +
+         'The route cache fills in over the next few builds.</div>';
+  }
+  h += '<div class="note note-info"><b>These are stated availability, so the surplus is a ceiling, not a forecast.</b> ' +
+       'A caregiver free on paper has not agreed to the visit. The figure to act on is the shape of the week, ' +
+       'especially a column at or below zero, rather than the size of a surplus.</div>';
+  return h;
+}
+
+// ── CSV ─────────────────────────────────────────────────────────────────────
+function exportCsv() {
+  var rows = [['Market','Zone','Section','Day','Type','Slots per week']];
+  Object.keys(centers).forEach(function (m) {
+    var any = (data.supply.caregivers || []).some(function (c) { return c.market === m; });
+    if (!any) return;
+    var g = compute(m).grid;
+    ZONES.forEach(function (z) {
+      SECTIONS.forEach(function (s) {
+        A.DAY_BUCKETS.forEach(function (b) {
+          A.LH_TYPES.forEach(function (t) {
+            rows.push([m, ZONE_LABEL[z], s.label, b, t, g[s.key][z][b][t]]);
+          });
+        });
+      });
+      A.DAY_BUCKETS.forEach(function (b) {
+        A.LH_TYPES.forEach(function (t) {
+          var net = 0;
+          SECTIONS.forEach(function (s) { net += s.sign * g[s.key][z][b][t]; });
+          rows.push([m, ZONE_LABEL[z], 'Net surplus', b, t, net]);
+        });
+      });
+    });
+  });
+  var csv = rows.map(function (r) {
+    return r.map(function (x) { return /[",]/.test(String(x)) ? '"' + String(x).replace(/"/g, '""') + '"' : x; }).join(',');
+  }).join('\n');
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv'}));
+  a.download = 'net-surplus-' + new Date().toISOString().slice(0, 10) + '.csv';
+  a.click();
+}
+
+loadStarters();
+if (window.tributeKsfGate && window.tributeKsfGate.onReady) window.tributeKsfGate.onReady(load);
+else load();
+</script>
+</body>
+</html>
