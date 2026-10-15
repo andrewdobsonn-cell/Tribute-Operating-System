@@ -25,6 +25,10 @@ const ctx = {
   console, Date, Math, JSON, Set, Array, String, Number, Object, Boolean,
   isFinite, isNaN, parseInt, parseFloat, Promise, URL: { createObjectURL: () => '' }, Blob: function () {},
   document: { getElementById: el, createElement: () => ({ style: {}, click() {} }) },
+  // The debounce is real behaviour; capture the pending callback instead of
+  // firing it, so a test can assert nothing was scheduled for a short query.
+  setTimeout: (fn, ms) => { ctx._pending = { fn, ms }; return 1; },
+  clearTimeout: () => { ctx._pending = null; },
   localStorage: { getItem: () => null, setItem() {} },
   fetch: async () => ({ ok: false, status: 0 })
 };
@@ -189,6 +193,63 @@ function seedAddress(caregivers, sets, cgMiles, clMiles, recur) {
                         [], { a: 2, p: 3, n: 4 }, {});
   t('PRN and unparseable notes held out by address too',
     r.counts.people === 1 && r.counts.prn === 1 && r.counts.noNotes === 1);
+}
+
+// ── Address typeahead ───────────────────────────────────────────────────────
+// Each suggestion carries the nearest market and its distance, because a town
+// name alone does not say whether we could staff it. Picking one hands over
+// coordinates so the capacity lookup skips geocoding.
+{
+  const SUGS = [
+    { address: '1305 Hancock St, Quincy, MA 02169, USA', lat: 42.25, lng: -71.00, near: { market: 'South of Boston', miles: 3 } },
+    { address: '657 Hancock St, Quincy, MA 02170, USA',  lat: 42.27, lng: -71.01, near: { market: 'South of Boston', miles: 4 } },
+    { address: 'Quincy, MA 02169, USA',                  lat: 42.25, lng: -71.00, near: { market: 'South of Boston', miles: 3 } }
+  ];
+  const setSugs = () => vm.runInContext('suggItems = ' + JSON.stringify(SUGS) + '; suggIdx = -1; null', ctx);
+
+  setSugs();
+  vm.runInContext('drawSuggest(); null', ctx);
+  const html = els['sugg'].innerHTML;
+  t('every suggestion shows its market and distance',
+    (html.match(/mi from South of Boston/g) || []).length === 3);
+  t('the address itself is shown', html.indexOf('1305 Hancock St') >= 0);
+
+  // Arrow keys wrap in both directions.
+  setSugs();
+  const key = k => vm.runInContext("onAddrKey({key:'" + k + "', preventDefault:function(){}}); suggIdx", ctx);
+  t('ArrowDown from nothing selects the first', key('ArrowDown') === 0);
+  t('ArrowDown advances', key('ArrowDown') === 1);
+  t('ArrowUp goes back', key('ArrowUp') === 0);
+  t('ArrowUp from the first wraps to the last', key('ArrowUp') === 2);
+  t('ArrowDown from the last wraps to the first', key('ArrowDown') === 0);
+
+  // Picking one captures its point and fills the box.
+  setSugs();
+  vm.runInContext('pickSuggest(1); null', ctx);
+  t('picking fills the input with the full address',
+    els['addr'].value === '657 Hancock St, Quincy, MA 02170, USA');
+  t('picking captures the coordinates so no geocode is needed',
+    vm.runInContext('pickedPoint && pickedPoint.lat === 42.27 && pickedPoint.lng === -71.01', ctx));
+  t('the list closes after a pick', els['sugg'].hidden === true);
+
+  // Typing again invalidates the captured point: the box no longer matches it.
+  vm.runInContext("document.getElementById('addr').value = '657 Hancock St, Quincy, MA 021'; onAddrInput(); null", ctx);
+  t('typing clears the captured point', vm.runInContext('pickedPoint === null', ctx));
+
+  // Nothing is sent for a short query; every keystroke past the floor is billed.
+  ctx._pending = null;
+  vm.runInContext("document.getElementById('addr').value = 'abc'; onAddrInput(); null", ctx);
+  t('under four characters schedules no lookup and closes the list',
+    els['sugg'].hidden === true && ctx._pending === null && vm.runInContext('suggItems.length', ctx) === 0);
+  ctx._pending = null;
+  vm.runInContext("document.getElementById('addr').value = '1305 Hancock'; onAddrInput(); null", ctx);
+  t('a long enough query is debounced, not sent at once',
+    ctx._pending !== null && ctx._pending.ms === 300);
+
+  // An empty result still offers the free-text escape hatch.
+  vm.runInContext('suggItems = []; drawSuggest(); null', ctx);
+  t('no matches still invites a direct search',
+    els['sugg'].innerHTML.indexOf('Press Enter to search it anyway') >= 0);
 }
 
 // ── The sign convention ─────────────────────────────────────────────────────

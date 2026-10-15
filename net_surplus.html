@@ -37,6 +37,15 @@ select,input[type=number]{font-family:inherit;font-size:13px;padding:6px 10px;bo
 .btn{font-family:inherit;font-size:12px;font-weight:600;padding:7px 14px;border-radius:8px;border:1px solid var(--gray-300);background:var(--white);color:var(--charcoal-mid);cursor:pointer}
 .btn:hover{border-color:var(--orange);color:var(--orange)}
 
+.ac{position:relative}
+.ac input{width:100%;font-family:inherit;font-size:13px;padding:6px 10px;border:1px solid var(--gray-300);border-radius:8px;background:var(--white);color:var(--charcoal)}
+.ac-list{position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:60;background:var(--white);border:1px solid var(--gray-300);border-radius:10px;box-shadow:var(--shadow-md);overflow:hidden}
+.ac-item{padding:8px 12px;cursor:pointer;border-bottom:1px solid var(--gray-100)}
+.ac-item:last-child{border-bottom:none}
+.ac-item:hover,.ac-item.sel{background:var(--orange-50)}
+.ac-addr{font-size:13px;color:var(--charcoal)}
+.ac-near{font-size:11px;color:var(--gray-light);margin-top:1px}
+.ac-empty{padding:9px 12px;font-size:12px;color:var(--gray-light)}
 .tabs{display:flex;gap:4px;margin-bottom:14px;border-bottom:1px solid var(--gray-200)}
 .tab{font-family:inherit;font-size:13px;font-weight:600;padding:9px 18px;border:none;background:none;color:var(--gray-text);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
 .tab:hover{color:var(--charcoal)}
@@ -105,8 +114,11 @@ thead th{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppe
 
   <div class="controls" id="ctlAddress" hidden>
     <span class="ctl-label">Address</span>
-    <input type="text" id="addr" placeholder="Street, town, state" style="flex:1;min-width:240px"
-           onkeydown="if(event.key==='Enter')checkAddress()">
+    <div class="ac" style="flex:1;min-width:240px">
+      <input type="text" id="addr" placeholder="Start typing an address" autocomplete="off"
+             oninput="onAddrInput()" onkeydown="onAddrKey(event)" onblur="setTimeout(hideSuggest,150)">
+      <div class="ac-list" id="sugg" hidden></div>
+    </div>
     <span class="ctl-label" style="margin-left:4px">Within</span>
     <span class="chip" id="ar25" onclick="setRadius(25)">25 mi</span>
     <span class="chip" id="ar30" onclick="setRadius(30)">30 mi</span>
@@ -368,14 +380,93 @@ function setView(v) {
   render();
 }
 
+
+/* ── Address typeahead ─────────────────────────────────────────────────────
+ *
+ * Each suggestion carries its nearest market and the miles to it, because the
+ * town name alone does not tell you whether we could ever staff it. Picking
+ * one also hands over its coordinates, so the capacity lookup skips geocoding
+ * entirely -- Google has already located it.
+ *
+ * Debounced, and nothing is sent under four characters: every keystroke past
+ * that is a billed Places call.
+ */
+var suggTimer = null, suggItems = [], suggIdx = -1, pickedPoint = null;
+
+function hideSuggest() {
+  var el = document.getElementById('sugg');
+  el.hidden = true; el.innerHTML = ''; suggItems = []; suggIdx = -1;
+}
+
+function onAddrInput() {
+  pickedPoint = null;                      // typing invalidates an earlier pick
+  var q = document.getElementById('addr').value.trim();
+  if (suggTimer) clearTimeout(suggTimer);
+  if (q.length < 4) { hideSuggest(); return; }
+  suggTimer = setTimeout(function () { fetchSuggestions(q); }, 300);
+}
+
+async function fetchSuggestions(q) {
+  try {
+    var r = await _authFetch(API + '?endpoint=address_suggest&q=' + encodeURIComponent(q));
+    if (!r.ok) { hideSuggest(); return; }
+    var out = await r.json();
+    // The box may have moved on while this was in flight.
+    if (document.getElementById('addr').value.trim() !== q) return;
+    suggItems = out.suggestions || [];
+    drawSuggest();
+  } catch (e) { hideSuggest(); }
+}
+
+function drawSuggest() {
+  var el = document.getElementById('sugg');
+  if (!suggItems.length) {
+    el.innerHTML = '<div class="ac-empty">No serviceable address matches that. Press Enter to search it anyway.</div>';
+    el.hidden = false; return;
+  }
+  el.innerHTML = suggItems.map(function (s, i) {
+    return '<div class="ac-item' + (i === suggIdx ? ' sel' : '') + '" onmousedown="pickSuggest(' + i + ')">' +
+           '<div class="ac-addr">' + esc(s.address) + '</div>' +
+           '<div class="ac-near">' + s.near.miles + ' mi from ' + esc(s.near.market) + '</div></div>';
+  }).join('');
+  el.hidden = false;
+}
+
+function pickSuggest(i) {
+  var s = suggItems[i];
+  if (!s) return;
+  document.getElementById('addr').value = s.address;
+  pickedPoint = { lat: s.lat, lng: s.lng };
+  hideSuggest();
+  checkAddress();
+}
+
+function onAddrKey(e) {
+  if (e.key === 'Escape') { hideSuggest(); return; }
+  if (!suggItems.length) { if (e.key === 'Enter') checkAddress(); return; }
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+    e.preventDefault();
+    suggIdx += (e.key === 'ArrowDown' ? 1 : -1);
+    if (suggIdx < 0) suggIdx = suggItems.length - 1;
+    if (suggIdx >= suggItems.length) suggIdx = 0;
+    drawSuggest(); return;
+  }
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    if (suggIdx >= 0) pickSuggest(suggIdx); else { hideSuggest(); checkAddress(); }
+  }
+}
+
 async function checkAddress() {
   var addr = document.getElementById('addr').value.trim();
   if (!addr) return;
   document.getElementById('ct').innerHTML =
     '<div class="loading">Measuring driving distance from ' + esc(addr) + '...</div>';
   try {
-    var r = await _authFetch(API + '?endpoint=capacity_at&address=' + encodeURIComponent(addr) +
-                             '&radius=' + state.radius);
+    var qs = API + '?endpoint=capacity_at&address=' + encodeURIComponent(addr) + '&radius=' + state.radius;
+    // A chosen suggestion already carries its coordinates, so skip the geocode.
+    if (pickedPoint) qs += '&lat=' + pickedPoint.lat + '&lng=' + pickedPoint.lng;
+    var r = await _authFetch(qs);
     var out = await r.json();
     if (!r.ok || out.error) {
       document.getElementById('ct').innerHTML =
