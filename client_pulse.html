@@ -145,9 +145,9 @@
         <button data-mkt="IL">Illinois</button>
       </div>
       <div class="seg" id="mdRiskSeg">
-        <button data-risk="" class="on">All risk</button>
-        <button data-risk="high">High</button>
-        <button data-risk="medium">Medium</button>
+        <button data-risk="high" class="on red">High</button>
+        <button data-risk="medium">Medium (watch)</button>
+        <button data-risk="">High + medium</button>
       </div>
       <select id="mdCatSel"><option value="">All categories</option>
         <option value="preventable">Preventable</option><option value="financial">Financial</option>
@@ -161,7 +161,7 @@
 
   <!-- PREDICTION VS OUTCOME -->
   <div id="poview" style="display:none;">
-    <div class="sub" style="margin:6px 0 14px;">How good is the pulse at seeing cancellations coming? Every morning's predictions are snapshotted, then scored against what actually happened in Viv. <b>Recall</b> = of the clients who cancelled, how many we flagged high/medium risk beforehand. A flagged client who stays is often a <b>save</b>, not a miss.</div>
+    <div class="sub" style="margin:6px 0 14px;">How good is the pulse at seeing cancellations coming? Every morning's predictions are snapshotted, then scored against what actually happened in Viv. <b>Recall</b> = of the clients who cancelled, how many we flagged <b>high</b> risk beforehand (the high flag is the cancellation signal; medium is shown as a watch level only). A flagged client who stays is often a <b>save</b>, not a miss.</div>
     <div class="kpis" id="poKpis"></div>
     <div id="poBody"><div class="loading">Loading…</div></div>
   </div>
@@ -270,7 +270,7 @@ function card(c){
 
 // ── Market Director — Retention Risk ──
 const MKT_STATE={'Boston':'MA','MetroWest Boston':'MA','Metro West Boston':'MA','North of Boston':'MA','North Boston':'MA','South of Boston':'MA','South Boston':'MA','Massachusetts':'MA','Baltimore':'MD','Bethesda':'MD','Annapolis':'MD','Maryland':'MD','Chicago':'IL','Illinois':'IL'};
-let MD={mkt:'MA',risk:'',cat:'',csm:''};
+let MD={mkt:'MA',risk:'high',cat:'',csm:''};
 let VIEW='pulse';
 const RISK_ORD={high:0,medium:1,low:2};
 const CAT_STYLE={preventable:['Preventable','#A4271E','#F8E5E2'],financial:['Financial','#92580B','#F8EEDB'],unavoidable:['Unavoidable','#2C5689','#E8EFF7'],competitive:['Competitive','#8A1A57','#F6E7EF']};
@@ -305,15 +305,19 @@ function drawPO(){
     return;
   }
   const s=PO.summary;
+  const cx=PO.cancelled||[];
+  const hiFlagged=cx.filter(c=>c.cancelRisk==='high').length, medFlagged=cx.filter(c=>c.cancelRisk==='medium').length;
+  const recallHigh=cx.length?Math.round(100*hiFlagged/cx.length):null;
   $('#poKpis').innerHTML=
     kpi('',s.trackedDays+'d','Tracking since '+esc(s.trackingSince))+
     kpi('',s.cancellations,'Cancellations observed')+
-    kpi(s.recallPct==null?'':(s.recallPct>=70?'teal':s.recallPct>=40?'amber':'red'),s.recallPct==null?'—':s.recallPct+'%','Flagged before cancelling (recall)')+
+    kpi(recallHigh==null?'':(recallHigh>=70?'teal':recallHigh>=40?'amber':'red'),recallHigh==null?'—':recallHigh+'%','Flagged high before cancelling (recall)')+
+    kpi('',medFlagged,'Flagged only medium (watch)')+
     kpi('amber',s.highRiskOpen,'High-risk clients still open');
   const cancelRows=(PO.cancelled||[]).map(c=>{
-    const flagged=c.cancelRisk==='high'||c.cancelRisk==='medium';
+    const flagged=c.cancelRisk==='high';
     return `<div class="inc"><div class="d">${esc(c.dischargedOn||'')} · predicted ${esc(c.predDate)} · ${esc(c.market||'')}${c.csm?' · '+esc(c.csm):''}</div>
-      <div class="t">${esc(c.name)} — ${flagged?'<span style="color:var(--teal-fg);font-weight:700;">✓ flagged '+esc(c.cancelRisk)+' ('+esc(c.cancelCategory)+')</span>':'<span style="color:var(--red-fg);font-weight:700;">✗ missed (predicted '+esc(c.cancelRisk||'low')+')</span>'}${c.daysToCancel!=null?' · '+c.daysToCancel+'d after prediction':''}</div>
+      <div class="t">${esc(c.name)} — ${flagged?'<span style="color:var(--teal-fg);font-weight:700;">✓ flagged '+esc(c.cancelRisk)+' ('+esc(c.cancelCategory)+')</span>':(c.cancelRisk==='medium'?'<span style="color:var(--amber-fg,#a16207);font-weight:700;">~ watch only (medium)</span>':'<span style="color:var(--red-fg);font-weight:700;">✗ missed (predicted '+esc(c.cancelRisk||'low')+')</span>')}${c.daysToCancel!=null?' · '+c.daysToCancel+'d after prediction':''}</div>
       ${(c.cancelDrivers&&c.cancelDrivers.length)?`<div class="x">${c.cancelDrivers.map(esc).join(' · ')}</div>`:''}</div>`;
   }).join('');
   const openRows=(PO.highOpen||[]).slice(0,40).map(c=>`<div class="inc"><div class="d">flagged ${esc(c.predDate)} · ${esc(c.market||'')}${c.csm?' · '+esc(c.csm):''}</div><div class="t">${esc(c.name)} <span style="color:var(--muted);font-weight:400;">(${esc(c.cancelCategory)})</span></div></div>`).join('');
@@ -340,13 +344,13 @@ function drawMD(){
   const sel=$('#mdCsmSel');const cur=sel.value;
   sel.innerHTML='<option value="">All CSMs</option>'+csms.map(m=>`<option>${esc(m)}</option>`).join('');sel.value=cur;
   const hi=all.filter(c=>c.cancelRisk==='high'),med=all.filter(c=>c.cancelRisk==='medium');
-  const prev=all.filter(c=>c.cancelRisk!=='low'&&c.cancelCategory==='preventable');
-  const fin=all.filter(c=>c.cancelRisk!=='low'&&c.cancelCategory==='financial');
+  const prev=hi.filter(c=>c.cancelCategory==='preventable');
+  const fin=hi.filter(c=>c.cancelCategory==='financial');
   $('#mdKpis').innerHTML=
     kpi('red',hi.length,'High cancel risk')+
-    kpi('amber',med.length,'Medium risk')+
-    kpi('red',prev.length,'Preventable — act now')+
-    kpi('',fin.length,'Financial');
+    kpi('amber',med.length,'Medium risk (watch)')+
+    kpi('red',prev.length,'High risk, preventable: act now')+
+    kpi('',fin.length,'High risk, financial');
   let rows=all.filter(c=>(MD.risk?c.cancelRisk===MD.risk:(c.cancelRisk==='high'||c.cancelRisk==='medium'))&&(!MD.cat||c.cancelCategory===MD.cat)&&(!MD.csm||c.csm===MD.csm));
   rows.sort((a,z)=>(RISK_ORD[a.cancelRisk]??2)-(RISK_ORD[z.cancelRisk]??2)||(z.score-a.score));
   $('#mdCount').textContent=rows.length+' shown';
@@ -354,7 +358,7 @@ function drawMD(){
   if(!rows.length){$('#mdList').innerHTML='<div class="loading">No clients match — nobody in this slice is at elevated cancellation risk. 🎉</div>';return;}
   $('#mdList').innerHTML=rows.map(c=>{
     const cat=CAT_STYLE[c.cancelCategory]||null;
-    const riskChip=c.cancelRisk==='high'?'<span class="lvl red">High cancel risk</span>':'<span class="lvl amber">Medium risk</span>';
+    const riskChip=c.cancelRisk==='high'?'<span class="lvl red">High cancel risk</span>':'<span class="lvl amber">Medium risk (watch)</span>';
     return `<div class="card ${c.cancelRisk==='high'?'red':'amber'}" onclick="this.classList.toggle('open')">
       <div class="row">
         <span class="pdot ${c.cancelRisk==='high'?'red':'amber'}"></span>
