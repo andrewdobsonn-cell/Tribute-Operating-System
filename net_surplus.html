@@ -64,8 +64,17 @@ select,input[type=number]{font-family:inherit;font-size:13px;padding:6px 10px;bo
 .card-title{font-family:'Space Grotesk',sans-serif;font-size:17px;font-weight:600;letter-spacing:-.01em}
 .card-meta{font-size:11px;color:var(--gray-light)}
 
-table{width:100%;border-collapse:collapse;font-size:13px}
-th,td{padding:8px 12px;text-align:right;border-bottom:1px solid var(--gray-100);white-space:nowrap}
+/* Seven days x two visit kinds is fourteen numeric columns. The table scrolls
+   in its own container so the page body never does, and the first column stays
+   put so a row label is still readable when scrolled. */
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px;min-width:860px}
+th:first-child,td:first-child{position:sticky;left:0;background:var(--white);z-index:2}
+thead th:first-child{background:var(--gray-100);z-index:3}
+tr.sec td:first-child{background:var(--orange-50)}
+tr.net td:first-child{background:var(--gray-100)}
+.th-sub{font-size:9px;font-weight:600;letter-spacing:.04em;color:var(--gray-light);text-transform:none;margin-top:-2px}
+th,td{padding:8px 10px;text-align:right;border-bottom:1px solid var(--gray-100);white-space:nowrap}
 th:first-child,td:first-child{text-align:left}
 thead th{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--gray-light);background:var(--gray-100);border-bottom:1px solid var(--gray-200)}
 .grp{border-left:2px solid var(--gray-200)}
@@ -149,10 +158,19 @@ async function _authFetch(url, opts) {
  * show.
  */
 var SECTIONS = [
-  { key:'open',     label:'Open booking sets',          sign:-1 },
-  { key:'free',     label:'Caregivers not working',     sign:+1 },
-  { key:'starting', label:'Caregivers starting next week', sign:+1 }
+  { key:'open', label:'Open booking sets',      sign:-1 },
+  { key:'free', label:'Caregivers not working', sign:+1 }
 ];
+/* Starters sit in their own section, below the main table (Andrew, 2026-10-16).
+ *
+ * They are a different kind of number and mixing them in read as though they
+ * were the same. The main net is the roster we actually have; a caregiver who
+ * has not started cannot cover anything this week, and they are the only row
+ * on the page that is typed in by hand rather than measured. Keeping them
+ * separate means the measured net is never quietly inflated by an estimate,
+ * and the combined line underneath still shows what they would change.
+ */
+var STARTING = { key:'starting', label:'Caregivers starting next week', sign:+1 };
 var ZONES = ['central', 'edges', 'unknown'];
 var ZONE_LABEL = { central:'Central', edges:'Edges', unknown:'Distance unknown' };
 
@@ -274,7 +292,7 @@ function setRadius(r) {
 // ── The model ───────────────────────────────────────────────────────────────
 function compute(market) {
   var out = {};
-  SECTIONS.forEach(function (s) {
+  SECTIONS.concat([STARTING]).forEach(function (s) {
     out[s.key] = {};
     ZONES.forEach(function (z) { out[s.key][z] = A.emptyGrid(); });
   });
@@ -533,24 +551,14 @@ function renderAddress() {
           r.counts.sets + ' vacant booking set' + (r.counts.sets === 1 ? '' : 's') +
           ' already competing for them.</div>';
 
-  html += '<table><thead><tr><th>Day-slots per week</th>' +
-          '<th class="grp">Wk day</th><th>Sat day</th><th>Sun day</th>' +
-          '<th class="grp">Wk night</th><th>Sat night</th><th>Sun night</th></tr></thead><tbody>';
+  html += dayHeader();
+  html += '<tbody>';
   [['Caregivers not working', r.free], ['Open booking sets nearby', r.open]].forEach(function (row) {
-    html += '<tr><td>' + row[0] + '</td>';
-    A.LH_TYPES.forEach(function (t) {
-      A.DAY_BUCKETS.forEach(function (b, bi) {
-        var v = row[1][b][t];
-        html += '<td class="' + (bi === 0 ? 'grp' : '') + (v ? '' : ' z') + '">' + (Math.round(v * 10) / 10) + '</td>';
-      });
-    });
-    html += '</tr>';
+    html += '<tr><td>' + row[0] + '</td>' + numCells(function (b, t) { return row[1][b][t]; }) + '</tr>';
   });
-  html += '<tr class="net"><td>Net surplus</td>';
-  A.LH_TYPES.forEach(function (t) {
-    A.DAY_BUCKETS.forEach(function (b) { html += netCell(r.free[b][t] - r.open[b][t]); });
-  });
-  html += '</tr></tbody></table>';
+  html += '<tr class="net"><td>Net surplus</td>' +
+          netCells(function (b, t) { return r.free[b][t] - r.open[b][t]; }) + '</tr>';
+  html += '</tbody></table></div>';
 
   // Which teams these people belong to. Description, never a filter -- the
   // whole point is that the catchment crosses market and state lines.
@@ -571,6 +579,77 @@ function renderAddress() {
   document.getElementById('ct').innerHTML = html;
 }
 
+
+/* ── Table helpers ─────────────────────────────────────────────────────────
+ * Seven days x two visit kinds is fourteen numeric columns, so the header and
+ * the cells are built in one place rather than spelled out per table.
+ */
+function dayHeader(firstCol) {
+  var h = '<div class="tbl-wrap"><table><thead><tr><th>' + (firstCol || 'Day-slots per week') + '</th>';
+  A.LH_TYPES.forEach(function (t) {
+    A.DAY_BUCKETS.forEach(function (b, bi) {
+      h += '<th' + (bi === 0 ? ' class="grp"' : '') + '>' + b.slice(0, 3) +
+           '<div class="th-sub">' + (t === 'Overnight' ? 'night' : 'day') + '</div></th>';
+    });
+  });
+  return h + '</tr></thead>';
+}
+function numCells(get) {
+  var out = '';
+  A.LH_TYPES.forEach(function (t) {
+    A.DAY_BUCKETS.forEach(function (b, bi) {
+      var v = get(b, t);
+      out += '<td class="' + (bi === 0 ? 'grp' : '') + (v ? '' : ' z') + '">' + (Math.round(v * 10) / 10) + '</td>';
+    });
+  });
+  return out;
+}
+function netCells(get) {
+  var out = '';
+  A.LH_TYPES.forEach(function (t) {
+    A.DAY_BUCKETS.forEach(function (b) { out += netCell(get(b, t)); });
+  });
+  return out;
+}
+function sectionNet(g, z, b, t) {
+  var n = 0;
+  SECTIONS.forEach(function (s) { n += s.sign * g[s.key][z][b][t]; });
+  return n;
+}
+
+/* Starters, in their own card.
+ *
+ * Hand-typed, and the only number on the page that is not measured. Keeping
+ * it out of the main table means the measured net is never quietly inflated
+ * by somebody's estimate; the combined row here shows what it would change.
+ */
+function startersCard(market, g, zonesShown) {
+  var zones = (zonesShown && zonesShown.length) ? zonesShown : ['central'];
+  var html = '<div class="card">';
+  html += '<div class="card-head"><div class="card-title">Starting next week</div>' +
+          '<div class="card-meta">Typed in by hand &mdash; there is no feed for who starts orientation</div></div>';
+  html += dayHeader('Day-slots per week');
+  html += '<tbody>';
+  zones.forEach(function (z) {
+    html += '<tr class="sec"><td colspan="' + (1 + A.DAY_BUCKETS.length * A.LH_TYPES.length) + '">' + ZONE_LABEL[z] + '</td></tr>';
+    html += '<tr><td>' + STARTING.label + '</td>';
+    A.LH_TYPES.forEach(function (t) {
+      A.DAY_BUCKETS.forEach(function (b, bi) {
+        var v = g[STARTING.key][z][b][t];
+        html += '<td class="' + (bi === 0 ? 'grp' : '') + '"><input class="edit" type="number" min="0" value="' + v +
+                '" onchange="setStarter(\'' + esc(market) + '\',\'' + z + '\',\'' + b + '\',\'' + t + '\',this.value)"></td>';
+      });
+    });
+    html += '</tr>';
+    html += '<tr class="net"><td>Net including them</td>' +
+            netCells(function (b, t) { return sectionNet(g, z, b, t) + g[STARTING.key][z][b][t]; }) + '</tr>';
+  });
+  html += '</tbody></table></div>';
+  html += '<div class="foot">A caregiver who has not started cannot cover anything this week, so the ' +
+          'net above the line is the roster we actually have. This row says what next week would add.</div>';
+  return html + '</div>';
+}
+
 function render() {
   if (!data.supply) return;
   document.getElementById('banner').innerHTML = bannerHtml();
@@ -587,43 +666,24 @@ function render() {
           '<div class="card-meta">Center: ' + esc(ctr.note || '') + ' &middot; central = within ' + state.radius +
           ' ' + (state.driveMode === 'straight' ? 'straight-line' : 'driving') + ' miles</div></div>';
 
-  html += '<table><thead><tr><th>Day-slots per week</th>';
-  html += '<th class="grp">Wk day</th><th>Sat day</th><th>Sun day</th>';
-  html += '<th class="grp">Wk night</th><th>Sat night</th><th>Sun night</th></tr></thead><tbody>';
+  html += dayHeader();
+  html += '<tbody>';
 
+  var zonesShown = [];
   ZONES.forEach(function (z) {
-    var used = SECTIONS.some(function (s) {
+    var used = SECTIONS.concat([STARTING]).some(function (s) {
       return A.DAY_BUCKETS.some(function (b) { return A.LH_TYPES.some(function (t) { return g[s.key][z][b][t] > 0; }); });
     });
     if (z === 'unknown' && !used) return;
-    html += '<tr class="sec"><td colspan="7">' + ZONE_LABEL[z] + '</td></tr>';
+    zonesShown.push(z);
+    html += '<tr class="sec"><td colspan="' + (1 + A.DAY_BUCKETS.length * A.LH_TYPES.length) + '">' + ZONE_LABEL[z] + '</td></tr>';
     SECTIONS.forEach(function (s) {
-      html += '<tr><td>' + s.label + '</td>';
-      A.LH_TYPES.forEach(function (t, ti) {
-        A.DAY_BUCKETS.forEach(function (b, bi) {
-          var v = g[s.key][z][b][t];
-          var klass = (bi === 0 ? 'grp' : '');
-          if (s.key === 'starting') {
-            html += '<td class="' + klass + '"><input class="edit" type="number" min="0" value="' + v +
-                    '" onchange="setStarter(\'' + esc(market) + '\',\'' + z + '\',\'' + b + '\',\'' + t + '\',this.value)"></td>';
-          } else {
-            html += '<td class="' + klass + (v ? '' : ' z') + '">' + (Math.round(v * 10) / 10) + '</td>';
-          }
-        });
-      });
-      html += '</tr>';
+      html += '<tr><td>' + s.label + '</td>' + numCells(function (b, t) { return g[s.key][z][b][t]; }) + '</tr>';
     });
-    html += '<tr class="net"><td>Net surplus</td>';
-    A.LH_TYPES.forEach(function (t) {
-      A.DAY_BUCKETS.forEach(function (b) {
-        var net = 0;
-        SECTIONS.forEach(function (s) { net += s.sign * g[s.key][z][b][t]; });
-        html += netCell(net);
-      });
-    });
-    html += '</tr>';
+    html += '<tr class="net"><td>Net surplus</td>' +
+            netCells(function (b, t) { return sectionNet(g, z, b, t); }) + '</tr>';
   });
-  html += '</tbody></table>';
+  html += '</tbody></table></div>';
 
   html += '<div class="foot">' +
     '<b>' + c.people + '</b> caregivers counted. Held out: <b>' + c.prn + '</b> PRN, <b>' + c.longTU +
@@ -632,6 +692,7 @@ function render() {
     (c.bothZones ? '<b>' + c.bothZones + '</b> are also within ' + state.radius + ' miles of another market center, counted once here. ' : '') +
     '</div></div>';
 
+  html += startersCard(market, g, zonesShown);
   document.getElementById('ct').innerHTML = html;
 }
 

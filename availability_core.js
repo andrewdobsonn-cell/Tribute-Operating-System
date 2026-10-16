@@ -150,16 +150,22 @@
    * Keep them spelled the same or the subtraction silently reads zero.
    */
 
-  var DAY_BUCKETS = ['Weekday', 'Saturday', 'Sunday'];
+  /* Every day of the week, not Weekday/Saturday/Sunday (Andrew, 2026-10-16).
+   *
+   * Galip's sheet collapsed Monday to Friday into one "Weekday" column. That
+   * hides the thing the model exists to find: a caregiver free Monday does
+   * nothing for a Thursday vacancy, and five days summed together cannot say
+   * which. The weekend days were already kept apart for exactly that reason,
+   * and the same reasoning applies to the rest of the week.
+   *
+   * Sunday first, matching DAY_ORDER in scheduling_fill.html and DAYS above,
+   * which is also Viv's own convention (Sunday = 0).
+   */
+  var DAY_BUCKETS = DAYS.slice();
 
-  // Galip's sheet counts a day as a weekday, a Saturday or a Sunday. The two
-  // weekend days stay apart because they behave nothing alike: Sunday is where
-  // the surplus collapses and Saturday usually has room.
   function dayBucket(dow) {
     var d = Number(dow);
-    if (d === 0) return 'Sunday';
-    if (d === 6) return 'Saturday';
-    return 'Weekday';
+    return (d >= 0 && d <= 6) ? DAYS[d] : null;
   }
 
   // Booking sets name their days ('Sunday'...), caregivers number them (0..6).
@@ -214,8 +220,10 @@
       if (LH_TYPES.indexOf(e.type) < 0) return;
       (e.days || []).forEach(function (d) {
         if (busy[d]) return;
+        var b = dayBucket(d);
+        if (!b) return;
         var eo = (e.eoDays || []).indexOf(d) >= 0;
-        grid[dayBucket(d)][e.type] += eo ? 0.5 : 1;
+        grid[b][e.type] += eo ? 0.5 : 1;
       });
     });
     return grid;
@@ -232,11 +240,13 @@
     Object.keys(dayPattern || {}).forEach(function (day) {
       var d = dowOf(day);
       if (d === null) return;
+      var b = dayBucket(d);
+      if (!b) return;
       var p = dayPattern[day] || {};
       var w = p.biweekly ? 0.5 : 1;
       LH_TYPES.forEach(function (t) {
         var n = p[LH_DEMAND_KEY[t]] || 0;
-        if (n) grid[dayBucket(d)][t] += n * w;
+        if (n) grid[b][t] += n * w;
       });
     });
     return grid;

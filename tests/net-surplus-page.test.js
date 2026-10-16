@@ -68,6 +68,12 @@ function seed(caregivers, sets, recur) {
 }
 
 const G = (r, section, zone, bucket, type) => r.grid[section][zone][bucket][type];
+// Monday to Friday summed. The grid is per-day now (Andrew, 2026-10-16); these
+// assertions are about the week's total, so they sum rather than read a
+// collapsed "Weekday" cell that no longer exists.
+const WD = (r, section, zone, type) =>
+  ['Monday','Tuesday','Wednesday','Thursday','Friday']
+    .reduce((n, d) => n + G(r, section, zone, d, type), 0);
 const LH = 'Long Hours', ON = 'Overnight';
 
 // ── Who is held out, and why ────────────────────────────────────────────────
@@ -82,7 +88,7 @@ const LH = 'Long Hours', ON = 'Overnight';
   t('only the one eligible caregiver counts', r.counts.people === 1);
   t('PRN held out and counted', r.counts.prn === 1);
   t('unparseable notes held out and counted', r.counts.noNotes === 1);
-  t('three weekday slots from one caregiver', G(r, 'free', 'central', 'Weekday', LH) === 3);
+  t('three weekday slots from one caregiver', WD(r, 'free', 'central', LH) === 3);
 }
 {
   // Long temp unavailability hides someone; a short hold does not. Megan
@@ -93,7 +99,7 @@ const LH = 'Long Hours', ON = 'Overnight';
     recurringDays: {}, timeOffDays: {}, tempUnavail: { a: longHold, b: shortHold }
   });
   t('a hold over a week removes the caregiver', r.counts.longTU === 1);
-  t('a short hold leaves them in', r.counts.people === 1 && G(r, 'free', 'central', 'Weekday', LH) === 3);
+  t('a short hold leaves them in', r.counts.people === 1 && WD(r, 'free', 'central', LH) === 3);
 }
 {
   // The Analyzer's own busy set. A day already carrying a recurring visit is
@@ -101,7 +107,7 @@ const LH = 'Long Hours', ON = 'Overnight';
   const r = seed([cg('a')], [], {
     recurringDays: { a: [1, 2] }, timeOffDays: { a: [3] }, tempUnavail: {}
   });
-  t('recurring and time-off days both drop out', G(r, 'free', 'central', 'Weekday', LH) === 0);
+  t('recurring and time-off days both drop out', WD(r, 'free', 'central', LH) === 0);
 }
 
 // ── Central, edges, and unknown ─────────────────────────────────────────────
@@ -111,11 +117,11 @@ const LH = 'Long Hours', ON = 'Overnight';
     cg('far', { driveMiles: FAR }),
     cg('nogeo', { driveMiles: null })
   ], [], null);
-  t('a nearby caregiver is central', G(r, 'free', 'central', 'Weekday', LH) === 3);
-  t('a distant caregiver is edges', G(r, 'free', 'edges', 'Weekday', LH) === 3);
+  t('a nearby caregiver is central', WD(r, 'free', 'central', LH) === 3);
+  t('a distant caregiver is edges', WD(r, 'free', 'edges', LH) === 3);
   t('a caregiver with no drive figure is unknown, not edges',
-    G(r, 'free', 'unknown', 'Weekday', LH) === 3 && r.counts.unknownZone === 1);
-  t('unknown is never folded into edges', G(r, 'free', 'edges', 'Weekday', LH) === 3);
+    WD(r, 'free', 'unknown', LH) === 3 && r.counts.unknownZone === 1);
+  t('unknown is never folded into edges', WD(r, 'free', 'edges', LH) === 3);
 }
 
 // ── Demand, and the subtraction ─────────────────────────────────────────────
@@ -128,13 +134,13 @@ const LH = 'Long Hours', ON = 'Overnight';
     }
   }];
   const r = seed([cg('a', { availNotes: 'Long Hour Days = M, T, W; Overnights = Su' })], sets, null);
-  t('open long-hours demand lands', G(r, 'open', 'central', 'Weekday', LH) === 1);
+  t('open long-hours demand lands', WD(r, 'open', 'central', LH) === 1);
   t('open overnight demand lands on Sunday', G(r, 'open', 'central', 'Sunday', ON) === 1);
-  t('short hours never enter the model', G(r, 'open', 'central', 'Weekday', ON) === 0);
+  t('short hours never enter the model', WD(r, 'open', 'central', ON) === 0);
   // The semicolon fix matters here: without it the Long Hour Days entry is lost
   // and weekday supply silently reads zero.
-  t('supply parsed across the semicolon', G(r, 'free', 'central', 'Weekday', LH) === 3);
-  t('net weekday day is +2', G(r, 'free', 'central', 'Weekday', LH) - G(r, 'open', 'central', 'Weekday', LH) === 2);
+  t('supply parsed across the semicolon', WD(r, 'free', 'central', LH) === 3);
+  t('net weekday day is +2', WD(r, 'free', 'central', LH) - WD(r, 'open', 'central', LH) === 2);
   t('net Sunday night is zero, which is the signal',
     G(r, 'free', 'central', 'Sunday', ON) - G(r, 'open', 'central', 'Sunday', ON) === 0);
 }
@@ -166,7 +172,7 @@ function seedAddress(caregivers, sets, cgMiles, clMiles, recur) {
   t('a different state is still counted', !!r.byState.Virginia);
   t('out-of-range caregivers are dropped', !r.byMarket.Boston);
   t('three markets reported as description', Object.keys(r.byMarket).length === 3);
-  t('supply totals across markets', r.free.Weekday['Long Hours'] === 9);
+  t('supply totals across markets', ['Monday','Tuesday','Wednesday','Thursday','Friday'].reduce((n,d)=>n+r.free[d]['Long Hours'],0) === 9);
 }
 {
   // The net is the point: nearby vacancies are already chasing these people.
@@ -185,7 +191,7 @@ function seedAddress(caregivers, sets, cgMiles, clMiles, recur) {
   const r = seedAddress([cg('a', { availNotes: 'Long Hour Days = M' })],
                         [{ cid: 'far', market: 'Boston', dayPattern: { Monday: { long: 5 } } }],
                         { a: 3 }, {});
-  t('a vacancy outside the radius does not compete', r.counts.sets === 0 && r.open.Weekday['Long Hours'] === 0);
+  t('a vacancy outside the radius does not compete', r.counts.sets === 0 && ['Monday','Tuesday','Wednesday','Thursday','Friday'].reduce((n,d)=>n+r.open[d]['Long Hours'],0) === 0);
 }
 {
   // Same hold-out rules as the market view.
@@ -264,7 +270,25 @@ function seedAddress(caregivers, sets, cgMiles, clMiles, recur) {
 // example that way and it does not reconcile; open has to subtract.
 {
   const signs = vm.runInContext('SECTIONS.map(function(s){return s.key+":"+s.sign;}).join(",")', ctx);
-  t('open subtracts, the two supply rows add', signs === 'open:-1,free:1,starting:1');
+  t('the main table is demand against the roster we have', signs === 'open:-1,free:1');
+  t('open subtracts', signs.indexOf('open:-1') >= 0);
+
+  // Starters are out of the main table (Andrew, 2026-10-16). They are the only
+  // hand-typed number on the page, and a caregiver who has not started cannot
+  // cover anything this week, so the measured net must not include them.
+  t('starters are not a main-table section',
+    signs.indexOf('starting') < 0 &&
+    vm.runInContext("STARTING.key === 'starting' && STARTING.sign === 1", ctx));
+
+  const r = seed([cg('a', { availNotes: 'Long Hour Days = M' })], [], null);
+  vm.runInContext("setStarter('Boston','central','Monday','Long Hours',3); null", ctx);
+  const r2 = vm.runInContext('compute("Boston")', ctx);
+  t('a typed starter reaches its own grid', G(r2, 'starting', 'central', 'Monday', LH) === 3);
+  t('the measured net ignores it',
+    vm.runInContext("sectionNet(compute('Boston').grid, 'central', 'Monday', 'Long Hours')", ctx) === 1);
+  t('the combined net includes it',
+    vm.runInContext("(function(){var g=compute('Boston').grid;" +
+      "return sectionNet(g,'central','Monday','Long Hours') + g.starting.central.Monday['Long Hours'];})()", ctx) === 4);
 }
 
 console.log((fail ? 'FAIL' : 'PASS') + ' — ' + pass + ' passed, ' + fail + ' failed');

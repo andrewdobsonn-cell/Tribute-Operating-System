@@ -46,8 +46,15 @@ t('and/or stays one entry, never two',
   A.parseAvailNotes('Overnights and/or Long Hour Days = Su, M, T').length === 1);
 
 // ── Day bucketing ───────────────────────────────────────────────────────────
+// Every day of the week stands alone (Andrew, 2026-10-16). Monday to Friday
+// used to collapse into one "Weekday" column, which hid the thing the model
+// exists to find: being free on Monday does nothing for a Thursday vacancy.
+t('seven buckets, Sunday first', A.DAY_BUCKETS.length === 7 && A.DAY_BUCKETS[0] === 'Sunday' && A.DAY_BUCKETS[6] === 'Saturday');
 t('Sunday is 0, Saturday is 6, Viv convention', A.dayBucket(0) === 'Sunday' && A.dayBucket(6) === 'Saturday');
-t('midweek is Weekday', [1, 2, 3, 4, 5].every(d => A.dayBucket(d) === 'Weekday'));
+t('each midweek day is its own bucket',
+  A.dayBucket(1) === 'Monday' && A.dayBucket(3) === 'Wednesday' && A.dayBucket(4) === 'Thursday');
+t('no Weekday bucket survives', A.DAY_BUCKETS.indexOf('Weekday') < 0);
+t('an out-of-range day is refused, not bucketed', A.dayBucket(7) === null && A.dayBucket(-1) === null);
 t('booking sets name their days', A.dowOf('Sunday') === 0 && A.dowOf('Saturday') === 6 && A.dowOf('Wednesday') === 3);
 t('caregivers number theirs', A.dowOf(0) === 0 && A.dowOf(6) === 6);
 
@@ -55,25 +62,33 @@ t('caregivers number theirs', A.dowOf(0) === 0 && A.dowOf(6) === 6);
 {
   const e = A.parseAvailNotes('Long Hours: M, W, F; Overnight: Sa, Su');
   const grid = A.supplySlots(e, []);
-  t('three weekdays long', g(grid, 'Weekday', 'Long Hours') === 3);
+  t('each named weekday carries its own slot',
+    g(grid, 'Monday', 'Long Hours') === 1 && g(grid, 'Wednesday', 'Long Hours') === 1 &&
+    g(grid, 'Friday', 'Long Hours') === 1);
+  t('days not named stay empty',
+    g(grid, 'Tuesday', 'Long Hours') === 0 && g(grid, 'Thursday', 'Long Hours') === 0);
   t('Saturday and Sunday split apart',
     g(grid, 'Saturday', 'Overnight') === 1 && g(grid, 'Sunday', 'Overnight') === 1);
   t('short hours never reach the long-hours grid',
-    g(A.supplySlots(A.parseAvailNotes('Short Hours: M, T, W'), []), 'Weekday', 'Long Hours') === 0);
+    g(A.supplySlots(A.parseAvailNotes('Short Hours: M, T, W'), []), 'Monday', 'Long Hours') === 0);
 }
 {
   // Every-other-week. 38 caregivers write it, 34 in Maryland; counting one
   // whole turns a fortnightly caregiver into a weekly one.
   const grid = A.supplySlots(A.parseAvailNotes('Long Hours: e/o Sa, M'), []);
   t('e/o Saturday is half a slot', g(grid, 'Saturday', 'Long Hours') === 0.5);
-  t('e/o binds only to the day it precedes', g(grid, 'Weekday', 'Long Hours') === 1);
+  t('e/o binds only to the day it precedes', g(grid, 'Monday', 'Long Hours') === 1);
 }
 {
   // A day already carrying a recurring visit is not spare capacity. This is the
   // Analyzer's own busy set (recurringDays + timeOffDays), not a second rule.
   const e = A.parseAvailNotes('Long Hours: M, W, F');
-  t('busy days drop out', g(A.supplySlots(e, [1, 3]), 'Weekday', 'Long Hours') === 1);
-  t('busy days accept day names too', g(A.supplySlots(e, ['Monday', 'Wednesday']), 'Weekday', 'Long Hours') === 1);
+  const afterBusy = A.supplySlots(e, [1, 3]);
+  t('busy days drop out, by day',
+    g(afterBusy, 'Monday', 'Long Hours') === 0 && g(afterBusy, 'Wednesday', 'Long Hours') === 0 &&
+    g(afterBusy, 'Friday', 'Long Hours') === 1);
+  t('busy days accept day names too',
+    g(A.supplySlots(e, ['Monday', 'Wednesday']), 'Friday', 'Long Hours') === 1);
 }
 
 // ── Demand ──────────────────────────────────────────────────────────────────
@@ -83,14 +98,16 @@ t('caregivers number theirs', A.dowOf(0) === 0 && A.dowOf(6) === 6);
     Thursday: { long: 1, short: 0, overnight: 0, livein: 0, biweekly: false },
     Sunday:   { long: 0, short: 0, overnight: 2, livein: 0, biweekly: false }
   });
-  t('two weekday long slots', g(grid, 'Weekday', 'Long Hours') === 2);
+  t('demand lands on the named days',
+    g(grid, 'Monday', 'Long Hours') === 1 && g(grid, 'Thursday', 'Long Hours') === 1 &&
+    g(grid, 'Tuesday', 'Long Hours') === 0);
   t('Sunday overnights counted', g(grid, 'Sunday', 'Overnight') === 2);
-  t('short hours excluded from demand too', g(grid, 'Weekday', 'Overnight') === 0);
+  t('short hours excluded from demand too', g(grid, 'Monday', 'Overnight') === 0);
   t('live-in is its own product, not long hours',
-    g(A.demandSlots({ Monday: { livein: 4 } }), 'Weekday', 'Long Hours') === 0);
+    g(A.demandSlots({ Monday: { livein: 4 } }), 'Monday', 'Long Hours') === 0);
 }
 t('a biweekly pattern is half a slot',
-  g(A.demandSlots({ Tuesday: { long: 1, biweekly: true } }), 'Weekday', 'Long Hours') === 0.5);
+  g(A.demandSlots({ Tuesday: { long: 1, biweekly: true } }), 'Tuesday', 'Long Hours') === 0.5);
 
 // ── The subtraction ─────────────────────────────────────────────────────────
 {
@@ -105,8 +122,19 @@ t('a biweekly pattern is half a slot',
   const supply = A.emptyGrid();
   A.addGrid(supply, A.supplySlots(A.parseAvailNotes('Long Hours: M, T, W'), []));
   A.addGrid(supply, A.supplySlots(A.parseAvailNotes('Long Hours: M, T, W, Sa'), []));
-  t('demand weekday 8, Sunday 4', g(demand, 'Weekday', 'Long Hours') === 8 && g(demand, 'Sunday', 'Long Hours') === 4);
-  t('supply weekday 6, Saturday 1', g(supply, 'Weekday', 'Long Hours') === 6 && g(supply, 'Saturday', 'Long Hours') === 1);
+  // Same totals as the collapsed version, now attributable to a day. Four
+  // clients needing Mon and Tue is 4 on Monday and 4 on Tuesday, not 8 lumped
+  // into a week -- and a caregiver free Wednesday answers neither.
+  t('demand is 4 on Monday, 4 on Tuesday, 4 on Sunday',
+    g(demand, 'Monday', 'Long Hours') === 4 && g(demand, 'Tuesday', 'Long Hours') === 4 &&
+    g(demand, 'Sunday', 'Long Hours') === 4);
+  t('demand totals still sum to the old weekday 8',
+    ['Monday','Tuesday','Wednesday','Thursday','Friday']
+      .reduce((n, d) => n + g(demand, d, 'Long Hours'), 0) === 8);
+  t('supply is 2 on Monday and 1 on Saturday',
+    g(supply, 'Monday', 'Long Hours') === 2 && g(supply, 'Saturday', 'Long Hours') === 1);
+  t('Wednesday supply answers no Monday or Tuesday demand',
+    g(supply, 'Wednesday', 'Long Hours') === 2 && g(demand, 'Wednesday', 'Long Hours') === 0);
   t('net Sunday is the finding: -4 before starters',
     g(supply, 'Sunday', 'Long Hours') - g(demand, 'Sunday', 'Long Hours') === -4);
 }
