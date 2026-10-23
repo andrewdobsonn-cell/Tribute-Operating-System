@@ -675,7 +675,7 @@ async function loadLiveWeek(weekKey){
     try{_tok=(window.tributeKsfGate&&window.tributeKsfGate.getToken)?await window.tributeKsfGate.getToken():null}catch(e){_tok=null}
     var _authH=_tok?{Authorization:'Bearer '+_tok}:{};
     var _resPair=await Promise.all([
-      fetch(API+'?endpoint=utilization_live&week='+encodeURIComponent(weekKey)),
+      fetch(API+'?endpoint=utilization_live&week='+encodeURIComponent(weekKey),{headers:_authH}),
       loadAvailContextV2(weekKey,_authH)
     ]);
     var resp=_resPair[0];
