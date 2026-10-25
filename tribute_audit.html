@@ -1476,14 +1476,19 @@ async function runDashboard() {
     const fmtHM=h=>{const t=Math.round((Number(h)||0)*60),hh=Math.floor(t/60),mm=t%60;return hh&&mm?`${hh}h ${mm}m`:mm?`${mm}m`:`${hh}h`;};
     const sections = [
       {id:'ts',       name:'TS Admin Time',          icon:'🛡️', red:true,
-       desc:'Tribute Secure guarantee vs. paid hours — only caregivers actually owed admin time are listed. Days off (approved Temporary Unavailability, Time Off bookings, OR a call-out/NCNS service exception on an unworked day) on committed availability days reduce the guarantee; a committed weekend taken off costs an extra 10h unless a weekend visit was worked. A caregiver is never owed admin time in their first employment week. Flags surface call-outs with no time off entered, double-entries, off-days on non-committed days, pending requests, and missing availability.',
-       data:(apiData.tsAdmin||[]).filter(r=>(r.owed!=null?r.owed:parseFloat(r['Hrs Owed']))>0).map(r=>{  // shared calc (proxy computeTsAdmin)
+       desc:'Tribute Secure guarantee vs. paid hours — caregivers owed admin time are listed first, then anyone owed nothing whose record needs a check (a ⚠ or call-out flag). Each day off on a committed availability day (approved Temporary Unavailability covering at least half that day\'s window, a Time Off booking, OR a call-out/NCNS service exception on a day with no worked or paid visit) removes one day\'s worth of the guarantee (10h at TS40/TS30) and nothing more. A caregiver is never owed admin time in their first employment week. Flags surface call-outs with no time off entered, double-entries, off-days on non-committed days, pending requests, and missing availability.',
+       // Owed rows, plus owed-0 rows carrying a review flag. Showing only owed>0 hid
+       // TaiKai White: a mis-dated call-out zeroed her and the flag saying so never
+       // reached anyone (weeks of 10/4 and 10/11/2026).
+       data:(apiData.tsAdmin||[]).map(r=>({r,o:(r.owed!=null?r.owed:parseFloat(r['Hrs Owed']))||0}))
+         .filter(x=>x.o>0||/⚠|Call-out/.test(x.r['Flags']||''))
+         .sort((a,b)=>(b.o>0)-(a.o>0)).map(x=>x.r).map(r=>{  // shared calc (proxy computeTsAdmin)
          const owedN=r.owed!=null?r.owed:parseFloat(r['Hrs Owed'])||0;
          const workedN=r.paid!=null?r.paid:parseFloat(r['Worked'])||0;
          const guarN=r.guarantee!=null?r.guarantee:parseFloat(r['Guarantee'])||0;
          return Object.assign({},r,{
            'Worked':fmtHM(workedN),'Guarantee':fmtHM(guarN),'Hrs Owed':fmtHM(owedN),
-           'Action':owedN>0?('Create '+fmtHM(owedN)+' TS Admin Time — '+(r['Client']||('Office'+(r.geo?' ('+r.geo+')':'')))):r['Action']
+           'Action':owedN>0?('Create '+fmtHM(owedN)+' TS Admin Time — '+(r['Client']||('Office'+(r.geo?' ('+r.geo+')':'')))):'Check the flags — nothing owed as recorded'
          });
        }),
        cols:['Caregiver','Market','Level','Committed','Worked','Days Off','Avail/Req','Guarantee','Hrs Owed','Client','Flags','Action']},
