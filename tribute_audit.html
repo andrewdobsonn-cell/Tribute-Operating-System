@@ -445,7 +445,8 @@ function detectTravelTime(bookings) {
       'Gap Start':fmtT(a._end),'Gap End':fmtT(b._start),'Gap Hrs':hrs.toFixed(2),
       'From → To':`${a._client} → ${b._client}`,'Visit Type':'Travel Time',
       'Action':`Create ${hrs.toFixed(2)}h Travel Time — ${office}`,
-      severity:'warn', geo:a._geo, _cgid:a._cgid});
+      severity:'warn', geo:a._geo, _cgid:a._cgid,
+      _ts:a._end.toISOString(), _te:b._start.toISOString(), _same:a._cid===b._cid});
   }
   return issues;
 }
@@ -1094,6 +1095,8 @@ function makeTable(cols, rows, sectionId) {
       const val = r[c]||'';
       if (c==='Action') {
         // TS rows owed admin time with no ⚠ flag get a one-click add (server re-checks everything).
+        if (sectionId==='tt' && ttAddable(r))
+          return `<td><button type="button" class="fixbtn ttadd" onclick="ttAdd(${ri},this)" title="Add this Travel Time to the caregiver's Viv schedule">➕ Add ${esc(r['Gap Hrs'])}h to Viv</button>${vivLink?` <a href="${vivLink}" target="_blank" style="font-size:11px;color:var(--t3)">open</a>`:''}</td>`;
         if (sectionId==='ts' && r._cgid && Number(r.owed)>0 && !/⚠/.test(r['Flags']||''))
           return `<td><button type="button" class="fixbtn tsadd" onclick="tsAdd(${ri},this)" title="Add this TS Admin Time to the caregiver's Viv schedule">➕ Add ${esc(val.replace(/^Create /,'').replace(/ TS Admin Time.*$/,''))} to Viv</button>${vivLink?` <a href="${vivLink}" target="_blank" style="font-size:11px;color:var(--t3)">open</a>`:''}</td>`;
         if (vivLink) return `<td><a href="${vivLink}" target="_blank" class="pill ${sev}" style="text-decoration:none" title="Open in Viv (scheduling → visits)">${esc(val)}</a></td>`;
@@ -1182,6 +1185,102 @@ async function tsAddAll(){
       if(stop){ ready.slice(i+1).forEach(x=>x.status='stopped, not added'); break; }
     }
     paint(`<b>Done: added ${done} caregiver${done!==1?'s':''}, ${Math.round(doneH*100)/100}h.</b> Re-run the audit to see the updated list.`);
+  };
+}
+
+// Travel Time, same pattern: one gap per row, filled on the market's Office
+// client. The server re-reads both visits from Viv before adding anything.
+const TT_ADD_URL='https://tribute-api-prod-bkc4hfcwf3f2f6bf.centralus-01.azurewebsites.net/api/vivProxy?endpoint=travel_time_add';
+const ttAddable=r=>r&&r._cgid&&r._ts&&r._te&&!r._same;
+async function ttAddCall(body){
+  const token=(window.tributeKsfGate&&window.tributeKsfGate.getToken)?await window.tributeKsfGate.getToken():null;
+  const res=await fetch(TT_ADD_URL,{method:'POST',headers:{'Content-Type':'application/json',...(token?{Authorization:'Bearer '+token}:{})},body:JSON.stringify(body)});
+  const out=await res.json().catch(()=>({error:'No response ('+res.status+')'}));
+  if(!res.ok||out.error) throw new Error(out.error||('Error '+res.status));
+  return out;
+}
+const ttBody=r=>({cgid:r._cgid,start:r._ts,end:r._te});
+async function ttAdd(ri, btn){
+  const r=((window._flagRows||{}).tt||[])[ri]; if(!r) return;
+  const tr=btn.closest('tr'); const meta=(window._flagMeta||{}).tt||{};
+  const old=tr.nextElementSibling; if(old&&old.classList.contains('fixrow')) old.remove();
+  const box=document.createElement('tr'); box.className='fixrow'; box.setAttribute('data-geo',tr.getAttribute('data-geo')||'');
+  box.innerHTML=`<td colspan="${(meta.cols?meta.cols.length:8)+1}" class="fixbox">Checking with Viv…</td>`; tr.after(box);
+  const cell=box.firstElementChild; btn.disabled=true;
+  try{
+    const p=await ttAddCall(ttBody(r));
+    const errs=(p.validation||[]).flatMap(v=>(v.errors||[]).map(e=>e.message||e.code||String(e)));
+    const warns=(p.validation||[]).flatMap(v=>v.warnings||[]).filter(Boolean);
+    cell.innerHTML=`<div><b>Add ${p.minutes} min of Travel Time for ${esc(p.caregiver)}</b> on <b>${esc(p.office)}</b>: ${esc(p.label)} (${esc(p.from)} → ${esc(p.to)})</div>
+      ${p.financeReview?'<div style="color:var(--yellow)">⚠ It is past Monday 9am. Finance may already be reviewing this pay period, so let them know.</div>':''}
+      ${warns.length?`<div style="color:var(--yellow)">Viv notes: ${esc(warns.join(' · '))}</div>`:''}
+      ${errs.length?`<div style="color:var(--red)">Viv would reject this: ${esc(errs.join(' · '))}</div>`:''}
+      <div style="margin-top:8px"><button type="button" class="fixbtn" ${errs.length?'disabled':''} data-act="go">Confirm and add to Viv</button>
+      <button type="button" class="fixbtn" data-act="cancel">Cancel</button></div>`;
+    cell.querySelector('[data-act=cancel]').onclick=()=>{box.remove();btn.disabled=false;};
+    cell.querySelector('[data-act=go]').onclick=async e=>{
+      e.target.disabled=true; e.target.textContent='Adding…';
+      try{
+        const c=await ttAddCall({...ttBody(r),confirm:true});
+        const rate=((c.created||[])[0]||{}).rate;
+        cell.innerHTML=`✓ Added ${c.minutes} min of Travel Time for ${esc(c.caregiver)} on ${esc(c.office)}`+(rate!=null?` at $${rate}/h`:'')+(c.mode==='dryRun'?' (test mode: nothing was written)':'')+'.';
+        btn.outerHTML='<span class="pill info">✓ Added</span>';
+      }catch(err){ cell.innerHTML=`<span style="color:var(--red)">Not added: ${esc(err.message)}</span>`; btn.disabled=false; }
+    };
+  }catch(err){ cell.innerHTML=`<span style="color:var(--red)">${esc(err.message)}</span>`; btn.disabled=false; }
+}
+function ttBulkBar(rows){
+  const el=rows.filter(ttAddable);
+  if(el.length<2) return '';
+  const h=Math.round(el.reduce((t,r)=>t+Number(r['Gap Hrs']||0),0)*100)/100;
+  return `<div style="margin:8px 0"><button type="button" class="fixbtn" id="tt-bulk-btn" onclick="ttAddAll()">➕ Add all to Viv (${el.length} gaps, ${h}h)</button>
+    <div id="tt-bulk-box" class="fixbox" style="display:none;margin-top:8px"></div></div>`;
+}
+async function ttAddAll(){
+  const rows=(window._flagRows||{}).tt||[];
+  const items=rows.map((r,ri)=>({r,ri})).filter(x=>ttAddable(x.r));
+  const btn=document.getElementById('tt-bulk-btn'), box=document.getElementById('tt-bulk-box');
+  btn.disabled=true; box.style.display='block';
+  const line=it=>`<tr><td>${esc(it.r.Caregiver)}</td><td>${esc(it.r.Date)} ${esc(it.r['Gap Start'])}–${esc(it.r['Gap End'])}</td><td>${esc(it.r['From → To'])}</td><td>${esc(it.r['Gap Hrs'])}h</td><td>${it.status}</td></tr>`;
+  const paint=(head,foot)=>{ box.innerHTML=`${head}<table style="width:100%;margin:6px 0"><tr><th>Caregiver</th><th>When</th><th>From → To</th><th>Hours</th><th>Status</th></tr>${items.map(line).join('')}</table>${foot||''}`; };
+  items.forEach(it=>it.status='waiting');
+  let finance=false;
+  for(const it of items){
+    it.status='checking with Viv…'; paint('<b>Preparing the plan. Nothing is written yet.</b>');
+    try{
+      const p=await ttAddCall(ttBody(it.r));
+      const errs=(p.validation||[]).flatMap(v=>(v.errors||[]).map(e=>e.message||e.code||String(e)));
+      if(errs.length) it.status=`<span style="color:var(--red)">Viv would reject: ${esc(errs.join(' · '))}</span>`;
+      else { it.ok=true; it.status='ready · '+esc(p.office); finance=finance||p.financeReview; }
+    }catch(err){ it.status=`<span style="color:var(--red)">${esc(err.message)}</span>`; }
+  }
+  const ready=items.filter(it=>it.ok);
+  if(!ready.length){ paint('<b>Nothing can be added.</b>'); btn.disabled=false; return; }
+  const rh=Math.round(ready.reduce((t,it)=>t+Number(it.r['Gap Hrs']||0),0)*100)/100;
+  paint(`<b>Ready to add ${ready.length} of ${items.length} (${rh}h).</b>`+
+    (finance?'<div style="color:var(--yellow)">⚠ It is past Monday 9am. Finance may already be reviewing this pay period, so let them know.</div>':''),
+    `<button type="button" class="fixbtn" id="tt-bulk-go">Confirm and add ${ready.length} to Viv</button> <button type="button" class="fixbtn" id="tt-bulk-cancel">Cancel</button>`);
+  document.getElementById('tt-bulk-cancel').onclick=()=>{ box.style.display='none'; btn.disabled=false; };
+  document.getElementById('tt-bulk-go').onclick=async()=>{
+    let stop=false, done=0, doneH=0;
+    for(let i=0;i<ready.length;i++){
+      const it=ready[i];
+      it.status='adding…';
+      paint(`<b>Adding ${i+1} of ${ready.length}…</b>`,'<button type="button" class="fixbtn" id="tt-bulk-stop">Stop after this one</button>');
+      document.getElementById('tt-bulk-stop').onclick=()=>{ stop=true; };
+      // Clear the audit's saved copy on the last row, and on the row where Stop
+      // was pressed, so an interrupted run never leaves the page stale.
+      const last=i===ready.length-1;
+      try{
+        const c=await ttAddCall({...ttBody(it.r),confirm:true,keepCache:!(last||stop)});
+        const rate=((c.created||[])[0]||{}).rate;
+        it.status=`<span style="color:var(--green)">✓ added${rate!=null?' at $'+rate+'/h':''}${c.mode==='dryRun'?' (test mode)':''}</span>`;
+        done++; doneH+=Number(c.hours)||0;
+        const rb=document.querySelector(`tr[data-sec="tt"][data-ri="${it.ri}"] .ttadd`); if(rb) rb.outerHTML='<span class="pill info">✓ Added</span>';
+      }catch(err){ it.status=`<span style="color:var(--red)">Not added: ${esc(err.message)}</span>`; }
+      if(stop){ ready.slice(i+1).forEach(x=>x.status='stopped, not added'); break; }
+    }
+    paint(`<b>Done: added ${done} gap${done!==1?'s':''}, ${Math.round(doneH*100)/100}h.</b> Re-run the audit to see the updated list.`);
   };
 }
 
@@ -1717,7 +1816,7 @@ async function runDashboard() {
         <div class="st"><span class="si">${s.icon}</span><span class="sn">${esc(s.name)}</span>
           <span class="sc ${cnt>0?'h':'n'}">${cnt} issue${cnt!==1?'s':''}</span></div>
         ${s.desc?`<div class="sd">${esc(s.desc)}</div>`:''}
-      </div>${rateHistoryNote}${s.id==='ts'?tsBulkBar(s.data):''}${makeTable(s.cols, s.data, s.id)}`;
+      </div>${rateHistoryNote}${s.id==='ts'?tsBulkBar(s.data):''}${s.id==='tt'?ttBulkBar(s.data):''}${makeTable(s.cols, s.data, s.id)}`;
       container.appendChild(div);
     });
 
