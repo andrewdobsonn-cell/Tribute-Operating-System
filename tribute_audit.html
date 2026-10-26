@@ -1212,6 +1212,7 @@ async function ttAdd(ri, btn){
     const errs=(p.validation||[]).flatMap(v=>(v.errors||[]).map(e=>e.message||e.code||String(e)));
     const warns=(p.validation||[]).flatMap(v=>v.warnings||[]).filter(Boolean);
     cell.innerHTML=`<div><b>Add ${p.minutes} min of Travel Time for ${esc(p.caregiver)}</b> on <b>${esc(p.office)}</b>: ${esc(p.label)} (${esc(p.from)} → ${esc(p.to)})</div>
+      ${p.marketSource&&p.marketSource!=='caregiver'?`<div style="color:var(--yellow)">This caregiver has no market on file, so the Office is the visit's market. Check it before confirming.</div>`:''}
       ${p.financeReview?'<div style="color:var(--yellow)">⚠ It is past Monday 9am. Finance may already be reviewing this pay period, so let them know.</div>':''}
       ${warns.length?`<div style="color:var(--yellow)">Viv notes: ${esc(warns.join(' · '))}</div>`:''}
       ${errs.length?`<div style="color:var(--red)">Viv would reject this: ${esc(errs.join(' · '))}</div>`:''}
@@ -1251,7 +1252,7 @@ async function ttAddAll(){
       const p=await ttAddCall(ttBody(it.r));
       const errs=(p.validation||[]).flatMap(v=>(v.errors||[]).map(e=>e.message||e.code||String(e)));
       if(errs.length) it.status=`<span style="color:var(--red)">Viv would reject: ${esc(errs.join(' · '))}</span>`;
-      else { it.ok=true; it.status='ready · '+esc(p.office); finance=finance||p.financeReview; }
+      else { it.ok=true; it.status='ready · '+esc(p.office)+(p.marketSource&&p.marketSource!=='caregiver'?' <span style="color:var(--yellow)">(visit market: caregiver has none on file)</span>':''); finance=finance||p.financeReview; }
     }catch(err){ it.status=`<span style="color:var(--red)">${esc(err.message)}</span>`; }
   }
   const ready=items.filter(it=>it.ok);
