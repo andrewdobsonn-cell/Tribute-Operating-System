@@ -1128,6 +1128,63 @@ async function tsAddCall(body){
   if(!res.ok||out.error) throw new Error(out.error||('Error '+res.status));
   return out;
 }
+// Bulk: every row that would get the per-row button. Same endpoint, one row at
+// a time, so every server guard still applies to each; preview all first,
+// nothing is written until Confirm.
+const tsAddable=r=>r&&r._cgid&&Number(r.owed)>0&&!/⚠/.test(r['Flags']||'');
+function tsBulkBar(rows){
+  const el=rows.map((r,ri)=>({r,ri})).filter(x=>tsAddable(x.r));
+  if(el.length<2) return '';
+  const h=Math.round(el.reduce((t,x)=>t+Number(x.r.owed),0)*100)/100;
+  return `<div style="margin:8px 0"><button type="button" class="fixbtn" id="ts-bulk-btn" onclick="tsAddAll()">➕ Add all to Viv (${el.length} caregivers, ${h}h)</button>
+    <div id="ts-bulk-box" class="fixbox" style="display:none;margin-top:8px"></div></div>`;
+}
+async function tsAddAll(){
+  const rows=(window._flagRows||{}).ts||[];
+  const items=rows.map((r,ri)=>({r,ri})).filter(x=>tsAddable(x.r));
+  const btn=document.getElementById('ts-bulk-btn'), box=document.getElementById('ts-bulk-box');
+  btn.disabled=true; box.style.display='block';
+  const line=it=>`<tr><td>${esc(it.r.Caregiver)}</td><td>${esc(it.r.Market||'')}</td><td>${it.r.owed}h</td><td>${it.where||''}</td><td>${it.status}</td></tr>`;
+  const paint=(head,foot)=>{ box.innerHTML=`${head}<table style="width:100%;margin:6px 0"><tr><th>Caregiver</th><th>Market</th><th>Hours</th><th>Where</th><th>Status</th></tr>${items.map(line).join('')}</table>${foot||''}`; };
+  items.forEach(it=>it.status='waiting');
+  let finance=false;
+  for(const it of items){
+    it.status='checking with Viv…'; paint('<b>Preparing the plan. Nothing is written yet.</b>');
+    try{
+      const p=await tsAddCall({weekStart:window._auditWeekStart,cgid:it.r._cgid,hours:Number(it.r.owed)});
+      const errs=(p.validation||[]).flatMap(v=>(v.errors||[]).map(e=>e.message||e.code||String(e)));
+      it.where=esc(p.office)+'<br>'+p.plan.map(x=>esc(x.label)).join('<br>');
+      if(errs.length){ it.status=`<span style="color:var(--red)">Viv would reject: ${esc(errs.join(' · '))}</span>`; }
+      else { it.ok=true; it.status='ready'; finance=finance||p.financeReview; }
+    }catch(err){ it.status=`<span style="color:var(--red)">${esc(err.message)}</span>`; }
+  }
+  const ready=items.filter(it=>it.ok);
+  const rh=Math.round(ready.reduce((t,it)=>t+Number(it.r.owed),0)*100)/100;
+  if(!ready.length){ paint('<b>Nothing can be added.</b>'); btn.disabled=false; return; }
+  paint(`<b>Ready to add ${ready.length} of ${items.length} (${rh}h).</b>`+
+    (finance?'<div style="color:var(--yellow)">⚠ It is past Monday 9am. Finance may already be reviewing this pay period, so let them know.</div>':''),
+    `<button type="button" class="fixbtn" id="ts-bulk-go">Confirm and add ${ready.length} to Viv</button> <button type="button" class="fixbtn" id="ts-bulk-cancel">Cancel</button>`);
+  document.getElementById('ts-bulk-cancel').onclick=()=>{ box.style.display='none'; btn.disabled=false; };
+  document.getElementById('ts-bulk-go').onclick=async()=>{
+    let stop=false, done=0, doneH=0;
+    for(let i=0;i<ready.length;i++){
+      const it=ready[i];
+      it.status='adding…';
+      paint(`<b>Adding ${i+1} of ${ready.length}…</b>`,'<button type="button" class="fixbtn" id="ts-bulk-stop">Stop after this one</button>');
+      document.getElementById('ts-bulk-stop').onclick=()=>{ stop=true; };
+      try{
+        const c=await tsAddCall({weekStart:window._auditWeekStart,cgid:it.r._cgid,hours:Number(it.r.owed),confirm:true,keepCache:i<ready.length-1});
+        const rates=[...new Set((c.created||[]).map(x=>x.rate).filter(x=>x!=null))];
+        it.status=`<span style="color:var(--green)">✓ added${rates.length?' at $'+rates.join(', $')+'/h':''}${c.mode==='dryRun'?' (test mode)':''}</span>`;
+        done++; doneH+=Number(c.hours)||0;
+        const rb=document.querySelector(`tr[data-sec="ts"][data-ri="${it.ri}"] .tsadd`); if(rb) rb.outerHTML='<span class="pill info">✓ Added</span>';
+      }catch(err){ it.status=`<span style="color:var(--red)">Not added: ${esc(err.message)}</span>`; }
+      if(stop){ ready.slice(i+1).forEach(x=>x.status='stopped, not added'); break; }
+    }
+    paint(`<b>Done: added ${done} caregiver${done!==1?'s':''}, ${Math.round(doneH*100)/100}h.</b> Re-run the audit to see the updated list.`);
+  };
+}
+
 async function tsAdd(ri, btn){
   const r=((window._flagRows||{}).ts||[])[ri]; if(!r) return;
   const tr=btn.closest('tr'); const meta=(window._flagMeta||{}).ts||{};
@@ -1660,7 +1717,7 @@ async function runDashboard() {
         <div class="st"><span class="si">${s.icon}</span><span class="sn">${esc(s.name)}</span>
           <span class="sc ${cnt>0?'h':'n'}">${cnt} issue${cnt!==1?'s':''}</span></div>
         ${s.desc?`<div class="sd">${esc(s.desc)}</div>`:''}
-      </div>${rateHistoryNote}${makeTable(s.cols, s.data, s.id)}`;
+      </div>${rateHistoryNote}${s.id==='ts'?tsBulkBar(s.data):''}${makeTable(s.cols, s.data, s.id)}`;
       container.appendChild(div);
     });
 
