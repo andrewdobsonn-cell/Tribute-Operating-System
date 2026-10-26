@@ -1093,6 +1093,9 @@ function makeTable(cols, rows, sectionId) {
     const cells = cols.map(c => {
       const val = r[c]||'';
       if (c==='Action') {
+        // TS rows owed admin time with no ⚠ flag get a one-click add (server re-checks everything).
+        if (sectionId==='ts' && r._cgid && Number(r.owed)>0 && !/⚠/.test(r['Flags']||''))
+          return `<td><button type="button" class="fixbtn tsadd" onclick="tsAdd(${ri},this)" title="Add this TS Admin Time to the caregiver's Viv schedule">➕ Add ${esc(val.replace(/^Create /,'').replace(/ TS Admin Time.*$/,''))} to Viv</button>${vivLink?` <a href="${vivLink}" target="_blank" style="font-size:11px;color:var(--t3)">open</a>`:''}</td>`;
         if (vivLink) return `<td><a href="${vivLink}" target="_blank" class="pill ${sev}" style="text-decoration:none" title="Open in Viv (scheduling → visits)">${esc(val)}</a></td>`;
         return `<td><span class="pill ${sev}">${esc(val)}</span></td>`;
       }
@@ -1111,6 +1114,52 @@ function makeTable(cols, rows, sectionId) {
 <thead><tr>${header}</tr></thead>
 <tbody>${bodyRows}</tbody>
 </table></div>`;
+}
+
+// One-click TS Admin Time. First click asks the server for the plan (where the
+// hours would go, on which Office client, and whether Viv would accept it);
+// nothing is written until Confirm. The server recomputes what is owed at that
+// moment and refuses closed weeks, flagged rows and repeat clicks.
+const TS_ADD_URL='https://tribute-api-prod-bkc4hfcwf3f2f6bf.centralus-01.azurewebsites.net/api/vivProxy?endpoint=ts_admin_add';
+async function tsAddCall(body){
+  const token=(window.tributeKsfGate&&window.tributeKsfGate.getToken)?await window.tributeKsfGate.getToken():null;
+  const res=await fetch(TS_ADD_URL,{method:'POST',headers:{'Content-Type':'application/json',...(token?{Authorization:'Bearer '+token}:{})},body:JSON.stringify(body)});
+  const out=await res.json().catch(()=>({error:'No response ('+res.status+')'}));
+  if(!res.ok||out.error) throw new Error(out.error||('Error '+res.status));
+  return out;
+}
+async function tsAdd(ri, btn){
+  const r=((window._flagRows||{}).ts||[])[ri]; if(!r) return;
+  const tr=btn.closest('tr'); const meta=(window._flagMeta||{}).ts||{};
+  const old=tr.nextElementSibling; if(old&&old.classList.contains('fixrow')) old.remove();
+  const box=document.createElement('tr'); box.className='fixrow'; box.setAttribute('data-geo',tr.getAttribute('data-geo')||'');
+  box.innerHTML=`<td colspan="${(meta.cols?meta.cols.length:12)+1}" class="fixbox">Checking with Viv…</td>`; tr.after(box);
+  const cell=box.firstElementChild; btn.disabled=true;
+  const body={weekStart:window._auditWeekStart,cgid:r._cgid,hours:Number(r.owed)};
+  try{
+    const p=await tsAddCall(body);
+    const pieces=p.plan.map(x=>`<li>${esc(x.label)} · <b>${x.hours}h</b></li>`).join('');
+    const warns=(p.validation||[]).flatMap(v=>v.warnings||[]).filter(Boolean);
+    const errs=(p.validation||[]).flatMap(v=>(v.errors||[]).map(e=>e.message||e.code||String(e)));
+    cell.innerHTML=`<div><b>Add ${p.hours}h of TS Admin Time for ${esc(p.caregiver)}</b> (${esc(p.level)}, week of ${esc(p.week)}) on <b>${esc(p.office)}</b>:</div>
+      <ul style="margin:6px 0 6px 18px">${pieces}</ul>
+      ${p.financeReview?'<div style="color:var(--yellow)">⚠ It is past Monday 9am. Finance may already be reviewing this pay period, so let them know.</div>':''}
+      ${warns.length?`<div style="color:var(--yellow)">Viv notes: ${esc(warns.join(' · '))}</div>`:''}
+      ${errs.length?`<div style="color:var(--red)">Viv would reject this: ${esc(errs.join(' · '))}</div>`:''}
+      <div style="margin-top:8px"><button type="button" class="fixbtn" ${errs.length?'disabled':''} data-act="go">Confirm and add to Viv</button>
+      <button type="button" class="fixbtn" data-act="cancel">Cancel</button></div>`;
+    cell.querySelector('[data-act=cancel]').onclick=()=>{box.remove();btn.disabled=false;};
+    cell.querySelector('[data-act=go]').onclick=async e=>{
+      e.target.disabled=true; e.target.textContent='Adding…';
+      try{
+        const c=await tsAddCall({...body,confirm:true});
+        const rates=[...new Set((c.created||[]).map(x=>x.rate).filter(x=>x!=null))];
+        cell.innerHTML=`✓ Added ${c.hours}h to ${esc(c.caregiver)}'s schedule on ${esc(c.office)}`+
+          (rates.length?` at $${rates.join(', $')}/h`:'')+(c.mode==='dryRun'?' (test mode: nothing was written)':'')+'.';
+        btn.outerHTML='<span class="pill info">✓ Added</span>';
+      }catch(err){ cell.innerHTML=`<span style="color:var(--red)">Not added: ${esc(err.message)}</span>`; btn.disabled=false; }
+    };
+  }catch(err){ cell.innerHTML=`<span style="color:var(--red)">${esc(err.message)}</span>`; btn.disabled=false; }
 }
 
 // On-demand LLM "Recommend fix" for a single already-flagged row. Lazy: one
@@ -1352,6 +1401,7 @@ async function runDashboard() {
     const formatDate = d => d.toISOString().split('T')[0];
     const startStr = formatDate(startDate);
     const endStr = formatDate(endDate);
+    window._auditWeekStart = startStr;   // the TS one-click add posts against this week
 
     logLine(`Fetching data for week ${startStr} to ${endStr}...`);
 
