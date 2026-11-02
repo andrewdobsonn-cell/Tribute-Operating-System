@@ -299,6 +299,59 @@
     return Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)) * 10) / 10;
   }
 
+  // ── Medical restrictions ─────────────────────────────────────────────────
+  // Same rule as Caregiver Utilization (2026-08-26, confirmed with Khadijah
+  // Bangura): a caregiver is restricted when an HR INJURY form answers No to
+  // "able to meet all physical requirements of their position". The leave form
+  // is titled "HR Absence (leave - non-injury)" and must NOT match — a plain
+  // /injury/ test pulled parental leave and PTO into the cohort. The
+  // work-related injury form never asks the question, so it never flags anyone.
+  // An answer older than a year is not trusted as current, and a form whose
+  // anticipated return date has passed is finished. The forms carry no
+  // restriction TYPE (the limit sits in free-text medical narrative, which is
+  // never read here): flag visible, reason restricted.
+  var RESTRICT_MAX_AGE_DAYS = 365;
+  function isInjuryForm(title) { var t = String(title || ''); return /injury/i.test(t) && !/non-?injury/i.test(t); }
+  function formAnswer(f, re) {
+    var x = (f && f.fields || []).filter(function (y) { return re.test(String(y.q || '')); })[0];
+    return x ? String(x.a == null ? '' : x.a).trim() : '';
+  }
+  function formSaysRestricted(f, nowMs) {
+    var a = formAnswer(f, /able to meet all physical requirements/i);
+    if (!/^\s*no\b/i.test(a)) return false;
+    var t = Date.parse((f && f.submittedAt) || '');
+    if (isNaN(t)) return false;
+    return ((nowMs || Date.now()) - t) <= RESTRICT_MAX_AGE_DAYS * 86400000;
+  }
+  function formEnded(f, nowMs) {
+    var e = Date.parse(formAnswer(f, /anticipated return date/i));
+    return !isNaN(e) && e < (nowMs || Date.now());
+  }
+  function normName(s) { return String(s || '').toLowerCase().replace(/['’"`.,-]/g, '').replace(/\s+/g, ' ').trim(); }
+  // cas_on_leave rows -> {byId: {vivId: {date}}, byName: {normName: {date}}}.
+  // `date` is the newest qualifying form's submit date, the only thing a
+  // scheduling page may show about it.
+  function restrictionsFromLeaveRows(rows, nowMs) {
+    var byId = {}, byName = {};
+    (rows || []).forEach(function (r) {
+      var inj = (r && r.forms || []).filter(function (f) {
+        return isInjuryForm(f.title) && formSaysRestricted(f, nowMs) && !formEnded(f, nowMs);
+      });
+      if (!inj.length) return;
+      inj.sort(function (a, b) { return String(b.submittedAt || '').localeCompare(String(a.submittedAt || '')); });
+      var rec = { date: String(inj[0].submittedAt || '').slice(0, 10) };
+      if (r.id) byId[r.id] = rec;
+      if (r.name) byName[normName(r.name)] = rec;
+    });
+    return { byId: byId, byName: byName };
+  }
+  function restrictionFor(maps, id, name) {
+    if (!maps) return null;
+    if (id && maps.byId[id]) return maps.byId[id];
+    var n = normName(name);
+    return (n && maps.byName[n]) || null;
+  }
+
   root.TributeAvailability = {
     DAYS: DAYS, DAY_ABBR: DAY_ABBR, DAY_MAP: DAY_MAP, TYPES: TYPES,
     CERT_TAGS: CERT_TAGS, CERT_LABEL: CERT_LABEL, TU_LONG_DAYS: TU_LONG_DAYS,
@@ -311,6 +364,9 @@
     dayBucket: dayBucket, dowOf: dowOf,
     emptyGrid: emptyGrid, addGrid: addGrid,
     supplySlots: supplySlots, demandSlots: demandSlots,
-    zoneOf: zoneOf, haversineMiles: haversineMiles
+    zoneOf: zoneOf, haversineMiles: haversineMiles,
+    RESTRICT_MAX_AGE_DAYS: RESTRICT_MAX_AGE_DAYS, isInjuryForm: isInjuryForm,
+    formSaysRestricted: formSaysRestricted, formEnded: formEnded, normName: normName,
+    restrictionsFromLeaveRows: restrictionsFromLeaveRows, restrictionFor: restrictionFor
   };
 })(typeof window !== 'undefined' ? window : globalThis);

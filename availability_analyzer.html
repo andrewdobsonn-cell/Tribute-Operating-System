@@ -82,6 +82,8 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
 .cg-card.live-in{border-left:3px solid var(--cyan)}
 .cg-card.temp-unavail{background:var(--purple-light);border-color:var(--purple);border-left:3px solid var(--purple)}
 .cg-card-return{font-size:10px;color:var(--purple);font-weight:700}
+.cg-card.restricted{border-left:3px solid var(--red)}
+.cg-card-restrict{font-size:10px;color:var(--red);font-weight:700}
 .cg-card-name{font-size:13px;font-weight:600;color:var(--charcoal)}
 .cg-card-row{display:flex;align-items:center;gap:8px;margin-top:3px;flex-wrap:wrap}
 .cg-card-market{font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--gray-text)}
@@ -256,6 +258,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
           <div class="pref-chip" title="Certification tags in Viv — Maryland only today"><span class="pref-chip-icon">🎓</span><select id="filterCert"><option value="All">All</option></select></div>
           <label class="pref-chip" style="cursor:pointer"><span class="pref-chip-icon">📅</span><input type="checkbox" id="filterHideBooked" checked style="accent-color:var(--amber);width:14px;height:14px;cursor:pointer"><span style="font-size:11px;font-weight:600;color:var(--amber)">Hide booked days</span></label>
           <label class="pref-chip" style="cursor:pointer" title="Caregivers on temporary unavailability who return within 2 weeks"><span class="pref-chip-icon">🕐</span><input type="checkbox" id="filterTempUnavail" style="accent-color:var(--purple);width:14px;height:14px;cursor:pointer"><span style="font-size:11px;font-weight:600;color:var(--purple)">Temp Unavailable</span></label>
+          <div class="pref-chip" id="restrictChip" title="Caregivers with a medical restriction on file (an HR injury form says they cannot meet all physical requirements). Same rule as Caregiver Utilization. The type of restriction is not recorded anywhere, so only the flag and the form date are shown."><span class="pref-chip-icon">⚕️</span><select id="filterRestricted"><option value="hide">Hide restricted</option><option value="show">Show restricted</option><option value="only">Only restricted</option></select></div>
         </div>
       </div>
       <div id="bookedNote" class="booked-note"></div>
@@ -313,6 +316,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
             <label class="finder-pref"><input type="checkbox" id="finderParking"><span class="finder-pref-label">Parking Available</span></label>
             <label class="finder-pref"><input type="checkbox" id="finderNeedsDriver"><span class="finder-pref-label">Client Requires Driver</span></label>
             <label class="finder-pref" title="Caregivers on temporary unavailability who return within 2 weeks"><input type="checkbox" id="finderIncludeTempUnavail" style="accent-color:var(--purple)"><span class="finder-pref-label" style="color:var(--purple)">Include Temp Unavailable</span></label>
+            <label class="finder-pref" title="Caregivers with a medical restriction on file (HR injury form). Same rule as Caregiver Utilization."><input type="checkbox" id="finderIncludeRestricted" style="accent-color:var(--red)"><span class="finder-pref-label" style="color:var(--red)">Include Restricted</span></label>
           </div>
 
           <div class="finder-actions">
@@ -414,6 +418,7 @@ async function _authFetch(url, opts) {
 
 var allEntries=[];
 var bookedNextWeekMap={};   // cgid -> [dow] already booked NEXT week
+var restrictMaps=null;      // {byId, byName} from cas_on_leave, or null when the feed failed
 var bookedWeekStarts=null;  // ['thisWeekSun','nextWeekSun',...] from recurring_days
 var prnExcluded=0;          // PRN caregivers held out of the roster
 var genderMap={};  // name -> gender
@@ -434,11 +439,25 @@ var parseAvailNotes=_AC.parseAvailNotes;
 async function loadData(){
   try{
     // Fetch all three endpoints in parallel
-    var [supplyRes, cgRes, recurRes]=await Promise.all([
+    // The on-leave feed carries the HR injury forms that mark a medical
+    // restriction (same feed and same rule as Caregiver Utilization). It is
+    // optional: if it fails the page still loads, nobody is flagged, and the
+    // chip says so rather than quietly showing everyone as unrestricted.
+    var [supplyRes, cgRes, recurRes, leaveRes]=await Promise.all([
       _authFetch(API+'?endpoint=caregiver_supply'),
       _authFetch(API+'?endpoint=caregivers'),
-      _authFetch(API+'?endpoint=recurring_days')
+      _authFetch(API+'?endpoint=recurring_days'),
+      _authFetch(API+'?endpoint=cas_on_leave').catch(function(e){return {ok:false,status:String(e&&e.message||e)};})
     ]);
+    restrictMaps=null;
+    if(leaveRes&&leaveRes.ok){
+      try{
+        var leaveData=await leaveRes.json();
+        restrictMaps=_AC.restrictionsFromLeaveRows((leaveData&&leaveData.rows)||[]);
+      }catch(e){console.warn('[analyzer] restrictions unreadable:',e.message);}
+    } else console.warn('[analyzer] on-leave feed unavailable:',leaveRes&&leaveRes.status);
+    var chip=document.getElementById('restrictChip');
+    if(chip&&!restrictMaps){chip.style.opacity='.55';chip.title='Restriction feed unavailable right now \u2014 nobody is flagged. Reload to try again.';}
     if(!supplyRes.ok)throw new Error('Supply API returned '+supplyRes.status);
     var supplyData=await supplyRes.json();
     var raw=supplyData.caregivers||[];
@@ -532,6 +551,7 @@ async function loadData(){
           tempUnavail:tempUnavailMap[cg.id]||null,          // every spell — blocks its own dates
           tuLong:isLongTU(tempUnavailMap[cg.id])?(tempUnavailMap[cg.id]||null):null,  // only >1 week hides the person
           tuDays:tuSpanDays(tempUnavailMap[cg.id]),
+          restricted:_AC.restrictionFor(restrictMaps,cg.id,cg.name),   // {date} or null; flag only, never the reason
           lat:cg.lat||null,
           lng:cg.lng||null
         });
@@ -617,10 +637,13 @@ function getFiltered(){
   var smoke=document.getElementById('filterSmoke').value;
   var gender=document.getElementById('filterGender').value;
   var showTempUnavail=document.getElementById('filterTempUnavail').checked;
+  var restrictedMode=document.getElementById('filterRestricted').value;
   var cert=document.getElementById('filterCert').value;
   return allEntries.filter(function(e){
     if(cert!=='All'&&e.certs.indexOf(cert)<0)return false;
     if(e.tuLong&&!showTempUnavail)return false;
+    if(restrictedMode==='hide'&&e.restricted)return false;
+    if(restrictedMode==='only'&&!e.restricted)return false;
     if(gender!=='All'&&e.gender!==gender)return false;
     if(state!=='All'&&e.state!==state)return false;
     if(market!=='All'&&e.market!==market)return false;
@@ -727,13 +750,14 @@ function renderTypeGroups(entries){
     var css=TYPE_CSS[type];
     var tAvail=typeEntries.filter(function(e){return !e.tuLong;}).length;
     var tTu=typeEntries.length-tAvail;
-    html+='<div class="type-section"><div class="type-header"><div class="type-badge '+css+'">'+type+'</div><span class="type-count">'+tAvail+(tTu>0?' <span style="color:var(--purple);font-weight:600">+ '+tTu+' temp unavailable</span>':'')+'</span></div>';
+    var tRx=typeEntries.filter(function(e){return e.restricted;}).length;
+    html+='<div class="type-section"><div class="type-header"><div class="type-badge '+css+'">'+type+'</div><span class="type-count">'+tAvail+(tTu>0?' <span style="color:var(--purple);font-weight:600">+ '+tTu+' temp unavailable</span>':'')+(tRx>0?' <span style="color:var(--red);font-weight:600">· '+tRx+' restricted</span>':'')+'</span></div>';
     html+='<div class="cg-grid">';
     typeEntries.forEach(function(e){
       var shownDays=daysOf(e);
       var eoSet=e.eoDays||[];
       var openDayNames=shownDays.length?shownDays.map(function(d){return DAYS[d].slice(0,3)+(eoSet.indexOf(d)>=0?' (e/o)':'');}).join(', '):'—';
-      html+='<div class="cg-card '+css+(e.tuLong?' temp-unavail':'')+'"><div class="cg-card-name">'+(e.id?'<a href="https://tribute.mavencare.com/caregivers/'+esc(e.id)+'/dashboard/summary" target="_blank" style="color:inherit;text-decoration:none;border-bottom:1px dashed var(--gray-300)">'+esc(e.name)+'</a>':esc(e.name))+'</div>';
+      html+='<div class="cg-card '+css+(e.tuLong?' temp-unavail':'')+(e.restricted?' restricted':'')+'"><div class="cg-card-name">'+(e.id?'<a href="https://tribute.mavencare.com/caregivers/'+esc(e.id)+'/dashboard/summary" target="_blank" style="color:inherit;text-decoration:none;border-bottom:1px dashed var(--gray-300)">'+esc(e.name)+'</a>':esc(e.name))+'</div>';
       html+='<div class="cg-card-row"><span class="cg-card-market">'+esc(e.market)+'</span><span class="cg-card-hrs">'+e.desiredHrs+'h desired</span>';
       if(e.phone)html+='<span class="cg-card-hrs"><a href="tel:'+esc(e.phone)+'" style="color:var(--orange);text-decoration:none">'+esc(e.phone)+'</a></span>';
       html+='</div>';
@@ -741,6 +765,7 @@ function renderTypeGroups(entries){
       if(eoSet.length)html+='<div class="cg-card-row"><span style="font-size:11px;color:var(--amber);font-weight:600">\u21bb Every other week on '+eoSet.map(function(d){return DAYS[d].slice(0,3);}).join(', ')+' \u2014 Viv does not record which week</span></div>';
       if(e.bookedOpenDays&&e.bookedOpenDays.length)html+='<div class="cg-card-row"><span style="font-size:11px;color:var(--amber);font-weight:600">📅 Already booked next wk: '+e.bookedOpenDays.map(function(d){return DAYS[d].slice(0,3);}).join(', ')+'</span></div>';
       if(e.certs&&e.certs.length)html+='<div class="cg-card-row"><span style="font-size:10px;font-weight:700;letter-spacing:.04em;color:var(--blue)">'+e.certs.map(function(c){return (CERT_LABEL[c]||c).toUpperCase();}).join(' · ')+'</span></div>';
+      if(e.restricted)html+='<div class="cg-card-row"><span class="cg-card-restrict">⚕️ Medical restriction on file'+(e.restricted.date?' (form '+fmtReturnDate(e.restricted.date)+')':'')+'</span></div>';
       if(e.tuLong)html+='<div class="cg-card-row"><span class="cg-card-return">🕐 Temp unavailable — returns '+fmtReturnDate(e.tuLong.returns)+'</span></div>';
       else if(e.tempUnavail)html+='<div class="cg-card-row"><span style="font-size:11px;color:var(--gray-500)">Away '+fmtReturnDate(e.tempUnavail.from)+'–'+fmtReturnDate(e.tempUnavail.until)+(e.tuDays?' ('+e.tuDays+'d)':'')+' — available otherwise</span></div>';
       html+='<div class="cg-card-prefs">'+prefDot('🚗',e.drivesClients,'Drives')+prefDot('🐕',e.worksDogs,'Dogs')+prefDot('🐈',e.worksCats,'Cats')+prefDot('🚬',e.smokingOk,'Smoking')+'</div>';
@@ -773,6 +798,7 @@ function clearFinder(){
   document.getElementById('finderParking').checked=false;
   document.getElementById('finderNeedsDriver').checked=false;
   document.getElementById('finderIncludeTempUnavail').checked=false;
+  document.getElementById('finderIncludeRestricted').checked=false;
   finderDays.clear();
   document.querySelectorAll('.finder-day-btn').forEach(function(b){b.classList.remove('selected');});
   document.getElementById('finderResults').innerHTML='';
@@ -834,6 +860,7 @@ async function runFinder(){
   var hasParking=document.getElementById('finderParking').checked;
   var needsDriver=document.getElementById('finderNeedsDriver').checked;
   var includeTempUnavail=document.getElementById('finderIncludeTempUnavail').checked;
+  var includeRestricted=document.getElementById('finderIncludeRestricted').checked;
   var requestedDays=Array.from(finderDays);
 
   // Find Care Team scores and displays against freeDays, not openDays: a day the
@@ -870,6 +897,7 @@ async function runFinder(){
   var candidates=allEntries.filter(function(e){
     // Temp-unavailable caregivers are hidden unless explicitly included
     if(e.tuLong&&!includeTempUnavail)return false;
+    if(e.restricted&&!includeRestricted)return false;
     // State filter is REQUIRED — only show caregivers in same state
     if(state&&e.state!==state)return false;
     // Service type filter
@@ -1018,6 +1046,7 @@ function renderFinderResults(state){
       html+='<div class="result-meta">';
       html+='<span class="result-market">'+esc(e.market)+'</span>';
       html+='<span class="result-type-badge '+css+'">'+e.type+'</span>';
+      if(e.restricted)html+='<span style="font-size:10px;font-weight:700;color:var(--red)">⚕️ Restricted</span>';
       if(e.tuLong)html+='<span style="font-size:10px;font-weight:700;color:var(--purple)">🕐 Returns '+fmtReturnDate(e.tuLong.returns)+'</span>';
       else if(e.tempUnavail)html+='<span style="font-size:10px;color:var(--gray-500)">Away '+fmtReturnDate(e.tempUnavail.from)+'–'+fmtReturnDate(e.tempUnavail.until)+'</span>';
       if(e.gender)html+='<span style="font-size:10px;color:var(--gray-light)">'+e.gender+'</span>';
@@ -1052,7 +1081,7 @@ function fmtReturnDate(iso){
 }
 
 // Wire browse filters
-['filterState','filterMarket','filterType','filterDrives','filterDogs','filterCats','filterSmoke','filterGender','filterTempUnavail','filterCert','filterHideBooked'].forEach(function(id){
+['filterState','filterMarket','filterType','filterDrives','filterDogs','filterCats','filterSmoke','filterGender','filterTempUnavail','filterRestricted','filterCert','filterHideBooked'].forEach(function(id){
   document.getElementById(id).addEventListener('change',function(){
     if(id==='filterState'){
       var state=document.getElementById('filterState').value;
