@@ -426,8 +426,18 @@ function detectTravelTime(bookings) {
   // any two of them an hour apart look like a back-to-back pair needing Travel
   // Time — even across states. (Megan 2026-08-25: a Baltimore MD client and an
   // MA client flagged as one 1.00h gap with a blank Caregiver cell.)
+  // The paid cancelled TAIL of a visit that was cut short is where the
+  // caregiver was, so it counts as a visit here. Without this Modou Jobe's
+  // 11:10-11:30 paid cancellation was skipped and the gap to his 1:30pm visit
+  // read as 2h20m, over the limit, so it was never flagged (Megan 2026-11-02).
+  // Only PARTIAL cancellations (abutting a worked part of the same client's
+  // visit) count: a visit cancelled outright but still paid was never
+  // travelled to, and this check suggests adding paid travel.
+  const isPartialPaidCancel = b => b._cancelled && b._pay_h>0 && bookings.some(o =>
+    !o._cancelled && o._cgid===b._cgid && o._cid===b._cid && o._start && o._end &&
+    (Math.abs(o._end-b._start)<=60000 || Math.abs(o._start-b._end)<=60000));
   const worked = bookings.filter(b =>
-    !b._cancelled && !EXCLUDE_VT.has(b._vt) && !b._is_office && b._start && b._end && b._cgid
+    (!b._cancelled || isPartialPaidCancel(b)) && !EXCLUDE_VT.has(b._vt) && !b._is_office && b._start && b._end && b._cgid
   ).sort((a,b) => a._cgid.localeCompare(b._cgid)||a._start-b._start);
 
   const issues = [];
@@ -437,7 +447,10 @@ function detectTravelTime(bookings) {
     if (etDate(a._start) !== etDate(b._start)) continue;
     const gapMins = (b._start - a._end) / 60000;
     if (gapMins <= 0 || gapMins > 120) continue;
-    const covered = (ttExisting[a._cgid]||[]).some(tt => tt.s >= a._end && tt.s < b._start);
+    // Any Travel Time overlapping the gap covers it. It can start before the
+    // gap when it was entered against the worked part of a visit that later
+    // got a paid cancelled tail (Modou Jobe, 10/31/2026).
+    const covered = (ttExisting[a._cgid]||[]).some(tt => tt.s < b._start && tt.e > a._end);
     if (covered) continue;
     const hrs = Math.round(gapMins/60*100)/100;
     const office = MKT_OFFICE[a._geo] || `Office (${a._geo})`;
@@ -456,7 +469,7 @@ function detectTravelTime(bookings) {
 // visits (from → to). If it has no client visit before it, none after it, or
 // the caregiver has ≤1 visit that day, it's orphaned and should be removed.
 // (Jennifer 2026-08-04: "remove travel time — only one visit that day", etc.)
-function detectOrphanTravelTime(bookings) {
+function detectOrphanTravelTime(bookings, weekStart) {
   // A valid Travel Time bridges two visits: a client visit ENDS where the TT
   // starts, and another client visit STARTS where the TT ends. We match by
   // actual clock time (NOT by calendar day) so overnight visits that end in the
@@ -464,7 +477,16 @@ function detectOrphanTravelTime(bookings) {
   // after an overnight would look orphaned. Orphaned = missing the before, the
   // after, or both.
   const AB = 45*60000; // abut tolerance (min) between a TT edge and its bracketing visit
-  const worked = bookings.filter(b => !b._cancelled && !EXCLUDE_VT.has(b._vt) && !b._is_office && b._start && b._end && b._cgid);
+  // Any paid cancellation counts here, partial or whole: this check suggests
+  // REMOVING travel, and travel a scheduler chose to pay next to a paid
+  // cancellation is not orphaned (5 such were flagged over 10/11-10/24).
+  const worked = bookings.filter(b => (!b._cancelled || b._pay_h>0) && !EXCLUDE_VT.has(b._vt) && !b._is_office && b._start && b._end && b._cgid);
+  // The audit loads one week of visits, so a visit on the other side of the
+  // week's edge is invisible. Mirlaine Polynice's Sunday 7am Travel Time was
+  // flagged because the overnight before it started Saturday, in last week
+  // (Megan 2026-11-02). Near either edge, a missing neighbour is not evidence.
+  const wkS = weekStart ? new Date(weekStart).getTime() : null;
+  const EDGE = 18*3600000;
   const byCg = {};
   worked.forEach(b => { (byCg[b._cgid]=byCg[b._cgid]||[]).push(b); });
   const issues = [];
@@ -474,7 +496,9 @@ function detectOrphanTravelTime(bookings) {
     const w = byCg[tt._cgid] || [];
     const prior = w.some(x => x._start < tt._start && Math.abs(x._end - tt._start) <= AB);
     const next  = w.some(x => x._start > tt._start && Math.abs(x._start - tt._end) <= AB);
-    if (prior && next) return;
+    const priorUnseen = !prior && wkS!=null && tt._start - wkS < EDGE;
+    const nextUnseen  = !next  && wkS!=null && (wkS + 7*86400000) - tt._end < EDGE;
+    if ((prior||priorUnseen) && (next||nextUnseen)) return;
     const dayVisits = w.filter(x => etDate(x._start)===etDate(tt._start)).length;
     let reason;
     if (!prior && !next) reason = dayVisits===0 ? 'No client visits that day — nothing to travel between'
@@ -1705,7 +1729,7 @@ async function runDashboard() {
        cols:['Caregiver','Market','Date','Gap Start','Gap End','Gap Hrs','From → To','Action']},
       {id:'ott',      name:'Orphaned Travel Time',    icon:'🧭', red:true,
        desc:'Travel Time visits that aren\'t bracketed by two client visits — no visit before or after, or the only visit that day — so they should be removed before visits lock. The inverse of the Missing Travel Time check.',
-       data:detectOrphanTravelTime(bookings),
+       data:detectOrphanTravelTime(bookings, startDate),
        cols:['Caregiver','Market','Date','Time','Duration','Day Visits','Why Orphaned','Action']},
       {id:'li',       name:'Live-In Coverage',        icon:'🏠', red:true,
        desc:'Live-In days that don\'t total ~24h — a short/gapped day (missing or incomplete caregiver switch) or an over-covered day where caregivers overlap. Each day is compared to that client\'s own Live-In norm, so legitimate 2-caregiver clients aren\'t flagged.',
