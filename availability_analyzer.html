@@ -392,7 +392,8 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:
   </div>
 </div>
 
-<script src="availability_core.js"></script>
+<!-- Versioned so a cached copy of the core cannot outlive the page that depends on it (bump when the core gains a function this page calls). -->
+<script src="availability_core.js?v=20261102"></script>
 <script>
 var API='https://tribute-api-prod-bkc4hfcwf3f2f6bf.centralus-01.azurewebsites.net/api/vivProxy';
 // Availability parsing, the e/o shorthand and the extended-time-off rule live in
@@ -453,7 +454,8 @@ async function loadData(){
     if(leaveRes&&leaveRes.ok){
       try{
         var leaveData=await leaveRes.json();
-        restrictMaps=_AC.restrictionsFromLeaveRows((leaveData&&leaveData.rows)||[]);
+        if(typeof _AC.restrictionsFromLeaveRows==='function')restrictMaps=_AC.restrictionsFromLeaveRows((leaveData&&leaveData.rows)||[]);
+        else console.warn('[analyzer] stale availability_core.js in cache; restrictions off until reload');
       }catch(e){console.warn('[analyzer] restrictions unreadable:',e.message);}
     } else console.warn('[analyzer] on-leave feed unavailable:',leaveRes&&leaveRes.status);
     var chip=document.getElementById('restrictChip');
@@ -551,7 +553,7 @@ async function loadData(){
           tempUnavail:tempUnavailMap[cg.id]||null,          // every spell — blocks its own dates
           tuLong:isLongTU(tempUnavailMap[cg.id])?(tempUnavailMap[cg.id]||null):null,  // only >1 week hides the person
           tuDays:tuSpanDays(tempUnavailMap[cg.id]),
-          restricted:_AC.restrictionFor(restrictMaps,cg.id,cg.name),   // {date} or null; flag only, never the reason
+          restricted:(restrictMaps&&typeof _AC.restrictionFor==='function')?_AC.restrictionFor(restrictMaps,cg.id,cg.name):null,   // {date} or null; flag only, never the reason
           lat:cg.lat||null,
           lng:cg.lng||null
         });
