@@ -1637,10 +1637,10 @@ function renderDHTrendUI(weekData){
     var order=rows.map(function(r,i){return i;});
     order.sort(function(a,b){
       var va=vals[a],vb=vals[b];
-      var ea=va.s==='',eb=vb.s==='';
+      var ea=va.s===''||(numeric&&va.n===null),eb=vb.s===''||(numeric&&vb.n===null);
       if(ea&&eb)return a-b;if(ea)return 1;if(eb)return -1;
       var c;
-      if(numeric){var na=va.n===null?-Infinity:va.n,nb=vb.n===null?-Infinity:vb.n;c=na-nb;}
+      if(numeric)c=va.n-vb.n;
       else c=va.s.localeCompare(vb.s,undefined,{numeric:true,sensitivity:'base'});
       if(c===0)return a-b;
       return dir==='asc'?c:-c;
