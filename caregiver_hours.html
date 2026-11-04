@@ -183,7 +183,9 @@ function fetchOnLeave(){
     .then(function(r){return r.json();})
     .then(function(d){
       ((d&&d.rows)||[]).forEach(function(r){
-        if(r&&r.onLeaveBySchedule===true){
+        // Khadijah 11/2: an open HR form with a future start date is NOT on leave yet.
+        var _started=!(r&&r.leave&&r.leave.from&&String(r.leave.from).slice(0,10)>new Date().toLocaleDateString('en-CA'));
+        if(r&&r.onLeaveBySchedule===true&&_started&&!(r.leave&&r.leave.upcoming)){
           if(r.id)onLeaveIds[r.id]=true;
           if(r.name)onLeaveNames[normName(r.name)]=true;
         }
@@ -748,6 +750,7 @@ function renderHeatmap(){
   document.getElementById('ct').innerHTML=html;
 }
 
+var mceSort='goal75';   // Tory 11/2026: By MCE can sort by hours gap
 function renderMCE(){
   var cgs=getFiltered();
   var assignees={};
@@ -757,17 +760,18 @@ function renderMCE(){
   });
   var mceList=Object.keys(assignees).map(function(a){
     return{name:a,cgs:assignees[a].sort(function(a,b){return a.happiness-b.happiness}),agg:aggregateGroup(assignees[a])};
-  }).sort(function(a,b){return a.agg.goal75-b.agg.goal75});
+  }).sort(function(a,b){return mceSort==='gap'?(b.agg.gap-a.agg.gap):(a.agg.goal75-b.agg.goal75)});
 
   var html='';
   html+='<div class="banner"><div class="bl">Manager of Caregiver Excellence &mdash; '+navLabel()+'</div>';
-  html+='Click any MCE to expand their caregiver list. Sorted worst first.</div>';
+  html+='Click any MCE to expand their caregiver list. Sorted '+(mceSort==='gap'?'by largest hours gap first':'worst 75%+ rate first')+'. '+
+    '<span style="margin-left:10px">Sort by: <select onchange="mceSort=this.value;renderMCE()" style="font:inherit;font-size:12px;padding:2px 6px"><option value="goal75"'+(mceSort==='goal75'?' selected':'')+'>75%+ rate</option><option value="gap"'+(mceSort==='gap'?' selected':'')+'>Hours gap</option></select></span></div>';
 
   mceList.forEach(function(mce,idx){
     var a=mce.agg;
     var id='mce-'+idx;
     html+='<div class="mce-block">';
-    html+='<div class="mce-hdr" onclick="toggleMCE(\''+id+'\')"><div style="display:flex;align-items:center;gap:10px"><div id="'+id+'-arr" style="font-size:10px;color:var(--text3)">&#9654;</div><div><div style="font-size:13px;font-weight:500">'+mce.name+'</div><div style="font-size:11px;color:var(--text3);margin-top:1px">Manager of Caregiver Excellence &middot; '+a.total+' caregivers &middot; '+fn(Math.round(a.scheduled))+'h / '+fn(Math.round(a.desired))+'h</div></div></div>';
+    html+='<div class="mce-hdr" onclick="toggleMCE(\''+id+'\')"><div style="display:flex;align-items:center;gap:10px"><div id="'+id+'-arr" style="font-size:10px;color:var(--text3)">&#9654;</div><div><div style="font-size:13px;font-weight:500">'+mce.name+'</div><div style="font-size:11px;color:var(--text3);margin-top:1px">Manager of Caregiver Excellence &middot; '+a.total+' caregivers &middot; '+fn(Math.round(a.scheduled))+'h / '+fn(Math.round(a.desired))+'h &middot; <span style="color:'+(a.gap>0?'var(--red)':'var(--green)')+';font-weight:600">gap '+fn(Math.round(a.gap))+'h</span></div></div></div>';
     html+='<div style="display:flex;align-items:center;gap:10px"><div style="font-size:11px;color:var(--text3)"><span style="color:var(--red)">'+(a.b0+a.b25)+' unhappy</span> &middot; <span style="color:var(--amber)">'+a.b50+' mid</span> &middot; <span style="color:var(--green)">'+a.b75+' happy</span></div><span class="bdg '+(a.goal75>=0.9?'bg':a.goal75>=0.7?'ba':'br')+'">'+fp(a.goal75)+'</span></div></div>';
     html+='<div style="padding:0 18px 10px">'+stackBar(a.b0,a.b25,a.b50,a.b75,a.total,12)+'</div>';
     html+='<div id="'+id+'" class="mce-body">';
