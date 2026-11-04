@@ -52,6 +52,9 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .tbl{width:100%;border-collapse:collapse;font-size:12px}
 .tbl th{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text2);padding:7px 10px;border-bottom:.5px solid var(--border2);text-align:right}
 .tbl th:first-child{text-align:left}
+.tbl th{cursor:pointer;user-select:none}
+.tbl th:hover,.tbl th.sorted{color:var(--text)}
+.tbl th .sortarrow{font-size:9px}
 .tbl td{padding:8px 10px;border-bottom:.5px solid var(--border);text-align:right;font-variant-numeric:tabular-nums}
 .tbl td:first-child{text-align:left;font-weight:500}
 .tbl tbody tr:last-child td{border-bottom:none}
@@ -1602,6 +1605,55 @@ function renderDHTrendUI(weekData){
   document.getElementById('cs').value=curStart;
   document.getElementById('ce').value=curEnd;
   fetchData();
+})();
+
+// Click any column heading to sort that table by that column. First click on a
+// numeric column puts the largest value first; on a text column, A to Z. A second
+// click flips it. The Caregiver List keeps its own sorter (th[data-sort]).
+(function(){
+  function cellVal(td){
+    if(!td)return {n:null,s:''};
+    var t=(td.getAttribute('data-val')||td.textContent||'').replace(/[\u2014\u2013]/g,'').trim();
+    if(!t)return {n:null,s:''};
+    var m=t.match(/^[+\-]?\$?\d[\d,]*\.?\d*/);
+    if(m){var n=parseFloat(m[0].replace(/[$,]/g,''));if(!isNaN(n))return {n:n,s:t};}
+    var dm=t.match(/^([A-Z][a-z]{2} \d{1,2}), ?(\d{2}|\d{4})$/);
+    if(dm){var d=Date.parse(dm[1]+', '+(dm[2].length===2?'20'+dm[2]:dm[2]));if(!isNaN(d))return {n:d,s:t};}
+    return {n:null,s:t};
+  }
+  document.addEventListener('click',function(ev){
+    var th=ev.target&&ev.target.closest?ev.target.closest('.tbl th'):null;
+    if(!th||th.hasAttribute('data-sort'))return;
+    var table=th.closest('table');var tbody=table?table.querySelector('tbody'):null;
+    if(!tbody)return;
+    var tr=th.parentNode;var idx=Array.prototype.indexOf.call(tr.children,th);
+    var rows=Array.prototype.filter.call(tbody.children,function(r){return r.tagName==='TR';});
+    if(rows.length<2)return;
+    var vals=rows.map(function(r){return cellVal(r.children[idx]);});
+    var filled=vals.filter(function(v){return v.s!=='';}).length;
+    var numeric=vals.filter(function(v){return v.n!==null;}).length>=filled/2;
+    var prev=table.getAttribute('data-sorted'),prevDir=table.getAttribute('data-sortdir');
+    var dir=(prev===String(idx))?(prevDir==='desc'?'asc':'desc'):(numeric?'desc':'asc');
+    var order=rows.map(function(r,i){return i;});
+    order.sort(function(a,b){
+      var va=vals[a],vb=vals[b];
+      var ea=va.s==='',eb=vb.s==='';
+      if(ea&&eb)return a-b;if(ea)return 1;if(eb)return -1;
+      var c;
+      if(numeric){var na=va.n===null?-Infinity:va.n,nb=vb.n===null?-Infinity:vb.n;c=na-nb;}
+      else c=va.s.localeCompare(vb.s,undefined,{numeric:true,sensitivity:'base'});
+      if(c===0)return a-b;
+      return dir==='asc'?c:-c;
+    });
+    order.forEach(function(i){tbody.appendChild(rows[i]);});
+    table.setAttribute('data-sorted',String(idx));table.setAttribute('data-sortdir',dir);
+    Array.prototype.forEach.call(tr.querySelectorAll('th'),function(h){
+      var a=h.querySelector('.sortarrow');if(a)a.remove();h.classList.remove('sorted');
+    });
+    var sp=document.createElement('span');sp.className='sortarrow';
+    sp.textContent=dir==='asc'?' \u25B2':' \u25BC';
+    th.appendChild(sp);th.classList.add('sorted');
+  });
 })();
 </script>
 
