@@ -159,7 +159,7 @@ var tsAdminMap={},tsAdminKey=null,tsAdminFetching=null;  // authoritative TS owe
 var globalMCE='';
 // On-leave caregivers (cas_on_leave endpoint). Excluded from utilization/gap/unhappy
 // while out, but kept in total headcount. Keyed by Viv id and by normalized name.
-var onLeaveIds={},onLeaveNames={},onLeaveLoaded=false,onLeaveFetching=false;
+var onLeaveIds={},onLeaveNames={},onLeaveLoaded=false,onLeaveFetching=false,onLeavePromise=null;
 
 var STATE_MARKETS={ma:['Boston','MetroWest Boston','North of Boston','South of Boston'],il:['Chicago'],md:['Baltimore','Annapolis','Bethesda']};
 var NAV_STATES={ma:'Massachusetts',il:'Illinois',md:'Maryland'};
@@ -180,13 +180,14 @@ function fmtDate(d){return d.toISOString().split('T')[0]}
 function normName(s){return(s||'').toLowerCase().trim();}
 // Fetch the on-leave set once (defensive: on failure nobody is treated as on-leave).
 function fetchOnLeave(){
-  if(onLeaveLoaded||onLeaveFetching)return Promise.resolve();
+  if(onLeaveLoaded)return Promise.resolve();
+  if(onLeaveFetching&&onLeavePromise)return onLeavePromise;   // share the in-flight fetch
   onLeaveFetching=true;
   // The Rise CAs on Leave tab can close a leave by hand ("Returned" / "Closed",
   // cas_leave_status). Honor that here too (Khadijah 11/9: Melrose Koroma was
   // closed in Rise on 11/9 but still read as on leave on this page).
   var closedIds={};
-  return _authFetch(API+'?endpoint=cas_leave_status')
+  onLeavePromise=_authFetch(API+'?endpoint=cas_leave_status')
     .then(function(r){return r.ok?r.json():{};}).catch(function(){return {};})
     .then(function(st){
       var m=(st&&st.status)||{};
@@ -207,6 +208,7 @@ function fetchOnLeave(){
       onLeaveLoaded=true;onLeaveFetching=false;
     })
     .catch(function(){onLeaveLoaded=true;onLeaveFetching=false;});
+  return onLeavePromise;
 }
 function isCgOnLeave(c){
   if(!c)return false;
@@ -297,7 +299,7 @@ function applyData(d){
   // Fetch the on-leave set once, then re-mark + re-render so on-leave caregivers
   // are excluded from utilization/gap/unhappy and shown with an "On leave" tag.
   if(!onLeaveLoaded){
-    fetchOnLeave().then(function(){if(data===d){markOnLeave();render();}});
+    fetchOnLeave().then(function(){if(data){markOnLeave();render();}});
   }
 }
 
