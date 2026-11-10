@@ -182,10 +182,21 @@ function normName(s){return(s||'').toLowerCase().trim();}
 function fetchOnLeave(){
   if(onLeaveLoaded||onLeaveFetching)return Promise.resolve();
   onLeaveFetching=true;
-  return _authFetch(API+'?endpoint=cas_on_leave')
+  // The Rise CAs on Leave tab can close a leave by hand ("Returned" / "Closed",
+  // cas_leave_status). Honor that here too (Khadijah 11/9: Melrose Koroma was
+  // closed in Rise on 11/9 but still read as on leave on this page).
+  var closedIds={};
+  return _authFetch(API+'?endpoint=cas_leave_status')
+    .then(function(r){return r.ok?r.json():{};}).catch(function(){return {};})
+    .then(function(st){
+      var m=(st&&st.status)||{};
+      Object.keys(m).forEach(function(id){ if(m[id]&&m[id].status==='closed')closedIds[id]=true; });
+      return _authFetch(API+'?endpoint=cas_on_leave');
+    })
     .then(function(r){return r.json();})
     .then(function(d){
       ((d&&d.rows)||[]).forEach(function(r){
+        if(r&&r.id&&closedIds[r.id])return;   // closed by hand in Rise: back at work
         // Khadijah 11/2: an open HR form with a future start date is NOT on leave yet.
         var _started=!(r&&r.leave&&r.leave.from&&String(r.leave.from).slice(0,10)>new Date().toLocaleDateString('en-CA'));
         if(r&&r.onLeaveBySchedule===true&&_started&&!(r.leave&&r.leave.upcoming)){
@@ -205,11 +216,20 @@ function isCgOnLeave(c){
 }
 function markOnLeave(){
   if(!data||!data.caregivers)return;
-  data.caregivers.forEach(function(c){c.onLeave=isCgOnLeave(c);});
+  data.caregivers.forEach(function(c){
+    c.leaveKind=null;
+    if(isCgOnLeave(c)){c.onLeave=true;c.leaveKind='leave';}
+    // Temp unavailability covering the whole selected week (Viv vacationRequests,
+    // sent by the API as c.tempUnavail when present). Treated like on leave:
+    // kept in headcount, excluded from utilization, gap and unhappy counts.
+    else if(c.tempUnavail&&c.tempUnavail.fullWeek){c.onLeave=true;c.leaveKind='temp';}
+    else c.onLeave=false;
+  });
 }
-// Per-caregiver happiness cell — shows an "On leave" badge instead of a red 0%.
+function leaveLabel(c){return c.leaveKind==='temp'?'Temp unavailable':'On leave';}
+// Per-caregiver happiness cell: shows an "On leave" badge instead of a red 0%.
 function hapCell(c){
-  if(c.onLeave)return '<span class="bdg bb">On leave</span>';
+  if(c.onLeave)return '<span class="bdg bb">'+leaveLabel(c)+'</span>';
   return '<span class="bdg '+hapBdg(c.happiness)+'">'+Math.round(c.happiness*100)+'%</span>';
 }
 
@@ -419,7 +439,7 @@ function renderOverview(){
 
   var html='';
   html+='<div class="banner '+bc+'"><div class="bl '+bc+'">'+navLabel()+' &mdash; '+pl+'</div>';
-  html+=fn(agg.total)+' active caregivers. '+fp(agg.goal75)+' receiving 75%+ of desired hours ';
+  html+=fn(agg.total-agg.onLeave)+' active caregivers'+(agg.onLeave>0?' ('+fn(agg.total)+' total)':'')+'. '+fp(agg.goal75)+' receiving 75%+ of desired hours ';
   html+='(goal: &gt;90% &mdash; '+(agg.goal75>=0.9?'<strong style="color:var(--green)">On track</strong>':'<strong style="color:'+(agg.goal75>=0.7?'var(--amber)':'var(--red)')+'">Below goal</strong>')+').';
   html+=' '+fn(Math.round(agg.gap))+'h of desired hours unmet this week.';
   if(agg.onLeave>0)html+=' <span style="color:var(--text2)">'+fn(agg.onLeave)+' on leave, excluded from utilization &amp; gap.</span>';
@@ -428,7 +448,8 @@ function renderOverview(){
   var unhappy=cgs.filter(function(c){return !c.onLeave&&c.scheduledHrs<c.desiredHrs}).length;
   var unhappyPct=agg.total>0?unhappy/agg.total:0;
   html+='<div class="kg">';
-  html+='<div class="kpi"><div class="kl">Active Caregivers</div><div class="kv b">'+fn(agg.total)+'</div><div class="ks">'+navLabel()+(agg.onLeave>0?' &middot; '+fn(agg.onLeave)+' on leave':'')+'</div></div>';
+  html+='<div class="kpi"><div class="kl">Total Caregivers</div><div class="kv p">'+fn(agg.total)+'</div><div class="ks">'+navLabel()+' &middot; everyone on the roster, incl. on leave</div></div>';
+  html+='<div class="kpi"><div class="kl">Active Caregivers</div><div class="kv b">'+fn(agg.total-agg.onLeave)+'</div><div class="ks">'+(agg.onLeave>0?fn(agg.onLeave)+' on leave or temp unavailable, not counted':'Nobody on leave this week')+'</div></div>';
   html+='<div class="kpi"><div class="kl">Unhappy Caregivers</div><div class="kv r">'+fn(unhappy)+'</div><div class="ks">'+fp(unhappyPct)+' under desired hrs'+(agg.onLeave>0?' &middot; excl. on-leave':'')+'</div></div>';
   html+='<div class="kpi"><div class="kl">75%+ of Desired</div><div class="kv '+(agg.goal75>=0.9?'g':agg.goal75>=0.7?'a':'r')+'">'+fp(agg.goal75)+'</div><div class="ks" style="color:'+(agg.goal75>=0.9?'var(--green)':'var(--red)')+'">Goal: &gt;90%</div></div>';
   html+='<div class="kpi"><div class="kl">75-100% Goal</div><div class="kv '+(agg.goal75>=0.7?'g':'r')+'">'+fp(agg.goal75)+'</div><div class="ks" style="color:'+(agg.goal75>=0.7?'var(--green)':'var(--red)')+'">Goal: &gt;70%</div></div>';
@@ -742,8 +763,8 @@ function renderHeatmap(){
       // On-leave caregivers render neutral (not red) with an "On leave" tooltip.
       var col=c.onLeave?'var(--blue)':h>=0.75?'var(--green)':h>=0.5?'var(--amber)':h>=0.25?'var(--red)':'rgba(224,75,74,0.55)';
       var pct=Math.round(h*100);
-      var line3=c.onLeave?'On leave':pct+'% happy';
-      html+='<div class="hm-cell" style="background:'+col+(c.onLeave?';opacity:.45':'')+'" title="'+c.name+(c.onLeave?' (on leave)':'')+'">';
+      var line3=c.onLeave?leaveLabel(c):pct+'% happy';
+      html+='<div class="hm-cell" style="background:'+col+(c.onLeave?';opacity:.45':'')+'" title="'+c.name+(c.onLeave?' ('+leaveLabel(c).toLowerCase()+')':'')+'">';
       html+='<div class="hm-tip">'+c.name+'<br>'+c.market+'<br>'+line3+'<br>'+fh(c.scheduledHrs)+' / '+fh(c.desiredHrs)+(c.ptoHrs>0?'<br>'+fh(c.ptoHrs)+' PTO':'')+'</div>';
       html+='</div>';
     });
