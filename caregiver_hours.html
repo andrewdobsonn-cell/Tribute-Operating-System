@@ -163,8 +163,8 @@ var onLeaveIds={},onLeaveNames={},onLeaveLoaded=false,onLeaveFetching=false,onLe
 
 var STATE_MARKETS={ma:['Boston','MetroWest Boston','North of Boston','South of Boston'],il:['Chicago'],md:['Baltimore','Annapolis','Bethesda']};
 var NAV_STATES={ma:'Massachusetts',il:'Illinois',md:'Maryland'};
-var TYPE_ICONS={'Live-In':'🏠','Overnight':'🌙','Long Hour':'⏰','Short Hour':'☀️','Standard':'📋'};
-var TYPE_COLORS={'Live-In':'#7B4FBE','Overnight':'#185FA5','Long Hour':'#1D9E75','Short Hour':'#EF9F27','Standard':'#9e9c96'};
+var TYPE_ICONS={'Live-In':'🏠','Overnight':'🌙','Long Hour':'⏰','Short Hour':'☀️','Standard':'📋','Unspecified':'📋'};
+var TYPE_COLORS={'Live-In':'#7B4FBE','Overnight':'#185FA5','Long Hour':'#1D9E75','Short Hour':'#EF9F27','Standard':'#9e9c96','Unspecified':'#9e9c96'};
 
 function fn(n){return Math.round(n).toLocaleString()}
 function fh(n){return parseFloat(n).toFixed(1)+'h'}
@@ -288,6 +288,9 @@ function setCache(endpoint,start,end,d){
 }
 
 function applyData(d){
+  // The hours type comes from the Viv availability notes; a caregiver whose notes name
+  // no type used to be dropped from every view as 'Standard'. Keep them, labeled Unspecified.
+  (d&&d.caregivers||[]).forEach(function(c){ if(!c.cgType||c.cgType==='Standard')c.cgType='Unspecified'; });
   data=d;
   var t=data.totals;
   document.getElementById('sl').innerHTML='<span class="dot"></span>Live &middot; Viv Technologies &middot; '+new Date().toLocaleTimeString();
@@ -355,7 +358,7 @@ function tsOwed(c){ var r=tsAdminMap[c.id]; return r?(parseFloat(r['Hrs Owed'])|
 // Filter data by current nav selection
 function getFiltered(){
   if(!data)return null;
-  var cgs=data.caregivers.filter(function(c){return c.cgType&&c.cgType!=='Standard';});
+  var cgs=data.caregivers.filter(function(c){return c.cgType;});
   if(curNav==='ma')cgs=cgs.filter(function(c){return c.state==='Massachusetts'});
   else if(curNav==='il')cgs=cgs.filter(function(c){return c.state==='Illinois'});
   else if(curNav==='md')cgs=cgs.filter(function(c){return c.state==='Maryland'});
@@ -1194,7 +1197,7 @@ function renderBarriersUI(d){
 
   // Merge Desired Hours barriers from caregiver_hours data
   if(data&&data.caregivers){
-    var hoursCGs=data.caregivers.filter(function(c){return c.cgType&&c.cgType!=='Standard';});
+    var hoursCGs=data.caregivers.filter(function(c){return c.cgType;});
     // Filter hours CGs by current state nav for Desired Hours
     if(curNav==='ma')hoursCGs=hoursCGs.filter(function(c){return c.state==='Massachusetts';});
     else if(curNav==='il')hoursCGs=hoursCGs.filter(function(c){return c.state==='Illinois';});
@@ -1418,8 +1421,8 @@ function renderDHTrendUI(weekData){
     if(curNav==='ma')cgs=cgs.filter(function(c){return c.state==='Massachusetts';});
     else if(curNav==='il')cgs=cgs.filter(function(c){return c.state==='Illinois';});
     else if(curNav==='md')cgs=cgs.filter(function(c){return c.state==='Maryland';});
-    // Filter out Standard type (same as getFiltered)
-    cgs=cgs.filter(function(c){return c.cgType&&c.cgType!=='Standard';});
+    // Every type is shown, including Unspecified (Khadijah 11/11: 16 of her 92 were hidden)
+    cgs=cgs.filter(function(c){return c.cgType;});
     if(globalMCE)cgs=cgs.filter(function(c){return(c.assignee||c.adminName||'')===globalMCE;});
     var total=cgs.length;
     var b0=cgs.filter(function(c){return c.bucket==='0-25';}).length;
@@ -1523,7 +1526,7 @@ function renderDHTrendUI(weekData){
     if(curNav==='ma')cgs=cgs.filter(function(c){return c.state==='Massachusetts';});
     else if(curNav==='il')cgs=cgs.filter(function(c){return c.state==='Illinois';});
     else if(curNav==='md')cgs=cgs.filter(function(c){return c.state==='Maryland';});
-    cgs=cgs.filter(function(c){return c.cgType&&c.cgType!=='Standard';});
+    cgs=cgs.filter(function(c){return c.cgType;});
     if(globalMCE)cgs=cgs.filter(function(c){return(c.assignee||c.adminName||'')===globalMCE;});
     cgs.forEach(function(c){
       var key=c.id||c.name;
