@@ -1006,7 +1006,8 @@ function offAccCell(c){
   var r=offRec(c);
   if(!r||!r.offered_count)return '<span class="off-cell" style="color:var(--text3)">&ndash;</span>';
   var tog='<button class="off-tog" onclick="toggleOffers(\''+escH(c.id)+'\')">'+(offerOpen[c.id]?'Hide':'See offers')+'</button>';
-  return '<span class="off-cell">'+fh(r.accepted_hours)+' <span class="n">('+r.accepted_count+' of '+r.offered_count+')</span></span>'+tog;
+  var np=r.unknown_count?'<div class="n" style="color:var(--text3)" title="Offered, but no visit time was picked up from the call, or the caregiver has no availability in Viv, so it could not be counted as inside or outside">'+r.unknown_count+' not placed</div>':'';
+  return '<span class="off-cell">'+fh(r.accepted_hours)+' <span class="n">('+r.accepted_count+' of '+r.offered_count+')</span></span>'+np+tog;
 }
 function toggleOffers(id){offerOpen[id]=!offerOpen[id];renderListTable();}
 function _clock(t){if(!t)return '';var p=t.split(':'),h=parseInt(p[0],10),m=p[1];var ap=h>=12?'p':'a';h=h%12||12;return h+(m!=='00'?':'+m:'')+ap;}
