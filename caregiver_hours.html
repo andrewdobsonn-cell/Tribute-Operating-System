@@ -87,6 +87,14 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 .mce-hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;cursor:pointer;user-select:none}
 .mce-hdr:hover{background:var(--bg2)}
 .mce-body{display:none;border-top:.5px solid var(--border);padding:12px 18px}
+.off-cell{white-space:nowrap}
+.off-cell .n{font-size:10px;color:var(--text3);font-weight:normal}
+.off-tog{font-size:10px;font-weight:600;color:var(--blue);background:none;border:none;cursor:pointer;padding:0 0 0 4px}
+.off-detail>td{background:var(--bg2);padding:10px 14px!important;text-align:left!important}
+.off-detail .tbl{background:var(--bg);border-radius:var(--r)}
+.off-detail .tbl td,.off-detail .tbl th{padding:5px 8px;font-size:11px}
+.off-note{font-size:11px;color:var(--text3);margin-top:10px;line-height:1.5}
+.off-sum{font-size:12px;color:var(--text2);background:var(--bg2);border-radius:var(--r);padding:10px 14px;margin-bottom:10px;line-height:1.6}
 .ftr{margin-top:32px;padding-top:14px;border-top:.5px solid var(--border);font-size:11px;color:var(--text3);display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
 </style>
 <style>/* design-system header */ .logo,.hdr .logo{font-family:"Space Grotesk",Inter,sans-serif!important;font-weight:700!important;font-size:22px!important;letter-spacing:-.02em!important;color:#1C1A17!important;text-decoration:none!important} .title{font-family:"Space Grotesk",Inter,sans-serif!important} h1,h2,.finder-title,.results-title{font-family:"Space Grotesk",Inter,sans-serif}</style></head>
@@ -299,6 +307,7 @@ function applyData(d){
   markOnLeave();
   populateMCEDropdown();
   render();
+  fetchOffered();
   // Fetch the on-leave set once, then re-mark + re-render so on-leave caregivers
   // are excluded from utilization/gap/unhappy and shown with an "On leave" tag.
   if(!onLeaveLoaded){
@@ -948,6 +957,101 @@ function availSummary(c){
   return w.map(function(x){return DOW_SHORT[x.dow]+' '+_availT(x.start)+'–'+_availT(x.end);}).join(' · ');
 }
 function availCell(c){ var a=availSummary(c); if(a===null)return '<span style="color:var(--text3)">—</span>'; var days=(c.availWindows||[]).length; return '<span title="'+a.replace(/"/g,'&quot;')+'" style="font-weight:normal;font-size:11px;color:'+(days?'var(--text2)':'var(--text3)')+'">'+(days?days+' day'+(days===1?'':'s')+' · '+a.slice(0,42)+(a.length>42?'…':''):'none listed')+'</span>'; }
+// Offered hours (Galip, 2026-11-18 CE meeting): for the selected week, the visits
+// Scheduling offered each caregiver on calls and texts, inside vs outside their
+// stated availability, and how many they accepted. From call intelligence via
+// vivProxy?endpoint=offered_hours, joined to this list on the Viv caregiver id.
+var offeredMap={},offeredKey=null,offeredState='idle',offeredMeta=null,offerOpen={};
+function fetchOffered(){
+  var key=curStart+'|'+curEnd;
+  if(offeredKey===key&&(offeredState==='ok'||offeredState==='loading'))return;
+  offeredKey=key;offeredState='loading';offeredMap={};offeredMeta=null;
+  _authFetch(API+'?endpoint=offered_hours&startDate='+curStart+'&endDate='+curEnd)
+    .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
+    .then(function(d){
+      if(offeredKey!==key)return;
+      var m={};(d.caregivers||[]).forEach(function(r){if(r.viv_id)m[String(r.viv_id)]=r;});
+      offeredMap=m;offeredMeta=d;
+      offeredState=d.configured===false?'off':(d.error?'error':'ok');
+      if(data&&curView==='list')renderListTable();
+    })
+    .catch(function(){if(offeredKey!==key)return;offeredState='error';if(data&&curView==='list')renderListTable();});
+}
+function escH(s){return String(s==null?'':s).replace(/[&<>"']/g,function(ch){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch];});}
+function offRec(c){return offeredMap[String(c.id)]||null;}
+// Sort keys live on the caregiver row so the list's own sorter can use them.
+// Hours first, visit count as the tie-break (offers without times have no hours).
+function attachOffered(cgs){
+  var ready=offeredState==='ok';
+  cgs.forEach(function(c){
+    var r=ready?offRec(c):null;
+    c.offInSort=ready?(r?r.inside_hours+r.inside_count/1000:0):-1;
+    c.offOutSort=ready?(r?r.outside_hours+r.outside_count/1000:0):-1;
+    c.offAccSort=ready?(r?r.accepted_hours+r.accepted_count/1000:0):-1;
+  });
+}
+function _visits(n){return n+' visit'+(n===1?'':'s');}
+function offCell(c,fit){
+  if(offeredState==='loading'||offeredState==='idle')return '<span style="color:var(--text3)">&hellip;</span>';
+  if(offeredState!=='ok')return '<span style="color:var(--text3)">&ndash;</span>';
+  var r=offRec(c);
+  var n=r?r[fit+'_count']:0,h=r?r[fit+'_hours']:0;
+  if(!n)return '<span class="off-cell" data-val="0" style="color:var(--text3)">0h</span>';
+  var col=fit==='outside'?'var(--amber-text)':'var(--text)';
+  return '<span class="off-cell" style="color:'+col+'">'+fh(h)+' <span class="n">('+_visits(n)+')</span></span>';
+}
+function offAccCell(c){
+  if(offeredState!=='ok')return offCell(c,'inside');
+  var r=offRec(c);
+  if(!r||!r.offered_count)return '<span class="off-cell" style="color:var(--text3)">&ndash;</span>';
+  var tog='<button class="off-tog" onclick="toggleOffers(\''+escH(c.id)+'\')">'+(offerOpen[c.id]?'Hide':'See offers')+'</button>';
+  return '<span class="off-cell">'+fh(r.accepted_hours)+' <span class="n">('+r.accepted_count+' of '+r.offered_count+')</span></span>'+tog;
+}
+function toggleOffers(id){offerOpen[id]=!offerOpen[id];renderListTable();}
+function _clock(t){if(!t)return '';var p=t.split(':'),h=parseInt(p[0],10),m=p[1];var ap=h>=12?'p':'a';h=h%12||12;return h+(m!=='00'?':'+m:'')+ap;}
+function _day(d){if(!d)return '&ndash;';var x=new Date(d+'T12:00:00');return x.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});}
+function offDetailRow(c,ncol){
+  var r=offRec(c);if(!r)return '';
+  var fitLbl={inside:'Inside',outside:'Outside',unknown:'Not placed'};
+  var fitCls={inside:'bg',outside:'ba',unknown:'bb'};
+  var outCls={accepted:'bg',declined:'br',undecided:'ba',no_reply:'bb',withdrawn:'bb'};
+  var h='<tr class="off-detail"><td colspan="'+ncol+'">';
+  h+='<div style="font-size:11px;color:var(--text2);margin-bottom:6px"><b>'+escH(c.name)+'</b>: '+_visits(r.offered_count)+' offered ('+fh(r.offered_hours)+'), '+r.accepted_count+' accepted. ';
+  h+=r.inside_count+' inside availability, '+r.outside_count+' outside'+(r.unknown_count?', '+r.unknown_count+' could not be placed (no visit time, or no availability on file)':'')+'.';
+  if(r.offers_without_times)h+=' '+r.offers_without_times+' had no visit time, so their hours are not in the totals.';
+  h+='</div>';
+  h+='<table class="tbl"><thead><tr><th style="text-align:left">Offered on</th><th style="text-align:left">How</th><th style="text-align:left">Visit</th><th>Hours</th><th style="text-align:left">Client</th><th style="text-align:left">Availability</th><th style="text-align:left">Outcome</th><th style="text-align:left">Offered by</th></tr></thead><tbody>';
+  (r.offers||[]).forEach(function(o){
+    var visit=o.visit_date?_day(o.visit_date)+(o.start?' '+_clock(o.start)+' to '+_clock(o.end):''):'<span style="color:var(--text3)">No visit time captured</span>';
+    var fit='<span class="bdg '+fitCls[o.fit]+'">'+fitLbl[o.fit]+(o.partial?' (partly)':'')+'</span>';
+    var asked=o.times_asked>1?' <span style="color:var(--text3)">(asked '+o.times_asked+'x)</span>':'';
+    h+='<tr><td style="text-align:left;font-weight:normal">'+_day(o.offered_on)+'</td>';
+    h+='<td style="text-align:left">'+escH(o.channel_label)+'</td>';
+    h+='<td style="text-align:left">'+visit+'</td>';
+    h+='<td>'+(o.hours!=null?fh(o.hours):'&ndash;')+'</td>';
+    h+='<td style="text-align:left">'+(o.client?escH(o.client):'<span style="color:var(--text3)">&ndash;</span>')+'</td>';
+    h+='<td style="text-align:left">'+fit+'</td>';
+    h+='<td style="text-align:left"><span class="bdg '+(outCls[o.outcome]||'bb')+'">'+escH(o.outcome_label)+'</span>'+asked+'</td>';
+    h+='<td style="text-align:left;color:var(--text2)">'+(o.offered_by?escH(o.offered_by):'&ndash;')+'</td></tr>';
+  });
+  h+='</tbody></table></td></tr>';
+  return h;
+}
+function offSummary(cgs){
+  if(offeredState==='loading'||offeredState==='idle')return '<div class="off-sum">Loading offered visits for this week&hellip;</div>';
+  if(offeredState==='off')return '';
+  if(offeredState!=='ok')return '<div class="off-sum">Offered visits could not be loaded right now. The hours columns below are unaffected.</div>';
+  var t={ic:0,ih:0,oc:0,oh:0,aic:0,aoc:0,n:0};
+  cgs.forEach(function(c){var r=offRec(c);if(!r)return;t.n++;t.ic+=r.inside_count;t.ih+=r.inside_hours;t.oc+=r.outside_count;t.oh+=r.outside_hours;t.aic+=r.accepted_inside_count;t.aoc+=r.accepted_outside_count;});
+  var wk=(offeredMeta&&offeredMeta.start)?_day(offeredMeta.start)+' to '+_day(offeredMeta.end):'this week';
+  return '<div class="off-sum"><b>Offered by Scheduling, '+wk+':</b> '+t.n+' of these caregivers were offered visits. '+
+    '<b>Inside</b> their availability: '+_visits(t.ic)+' ('+fh(t.ih)+'), '+t.aic+' accepted. '+
+    '<b>Outside</b> their availability: '+_visits(t.oc)+' ('+fh(t.oh)+'), '+t.aoc+' accepted.</div>';
+}
+function offFootnote(){
+  var n=(offeredMeta&&offeredMeta.note)?offeredMeta.note:'';
+  return '<div class="off-note"><b>About the Offered columns.</b> Visits a Scheduling Partner offered on a phone call, or that Tribute offered by text or agent call, during the week shown. The same visit asked about more than once counts once, with its final answer. "Partly" inside availability counts as inside. '+escH(n)+'</div>';
+}
 function renderList(){
   var html='';
   html+='<div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">';
@@ -995,6 +1099,7 @@ function renderListTable(){
   if(listTSFilter==='any')cgs=cgs.filter(function(c){return c.tsThreshold>0;});
   else if(listTSFilter)cgs=cgs.filter(function(c){return c.tsThreshold===parseInt(listTSFilter);});
 
+  attachOffered(cgs);
   var col=listSort.col,dir=listSort.dir;
   cgs=cgs.slice().sort(function(a,b){
     var av=a[col],bv=b[col];
@@ -1009,7 +1114,7 @@ function renderListTable(){
     return '<th data-sort="'+colName+'" style="'+style+'">'+label+arrow+'</th>';
   }
 
-  var html='<div style="font-size:11px;color:var(--text3);margin-bottom:8px">'+cgs.length+' caregivers &middot; Click column headers to sort</div>';
+  var html=offSummary(cgs)+'<div style="font-size:11px;color:var(--text3);margin-bottom:8px">'+cgs.length+' caregivers &middot; Click column headers to sort</div>';
   html+='<table class="tbl"><thead><tr>';
   html+=thSort('Caregiver','name');
   html+=thSort('Market','market');
@@ -1017,13 +1122,17 @@ function renderListTable(){
   html+=thSort('MCE','assignee');
   html+=thSort('Hire Date','hireDate');
   html+=thSort('TS','tsThreshold');
-  html+='<th style="text-align:left">Availability</th>';
+  html+='<th data-nosort style="text-align:left">Availability</th>';
   html+=thSort('Happiness','happiness');
   html+=thSort('Scheduled','scheduledHrs');
   html+=thSort('Desired','desiredHrs');
   html+=thSort('Gap','differential');
   html+=thSort('PTO','ptoHrs');
+  html+=thSort('Offered inside availability','offInSort');
+  html+=thSort('Offered outside availability','offOutSort');
+  html+=thSort('Accepted','offAccSort');
   html+='</tr></thead><tbody>';
+  var NCOL=15;
 
   cgs.slice(0,500).forEach(function(c){
     var pct=Math.round(c.happiness*100);
@@ -1043,9 +1152,14 @@ function renderListTable(){
     html+='<td>'+fh(c.desiredHrs)+'</td>';
     html+='<td style="color:'+(c.differential>=0?'var(--green)':'var(--red)')+'">'+(c.differential>=0?'+':'')+fh(c.differential)+'</td>';
     html+='<td style="color:'+(c.ptoHrs>0?'var(--amber)':'var(--text3)')+'">'+( c.ptoHrs>0?fh(c.ptoHrs):'&mdash;')+'</td>';
+    html+='<td>'+offCell(c,'inside')+'</td>';
+    html+='<td>'+offCell(c,'outside')+'</td>';
+    html+='<td>'+offAccCell(c)+'</td>';
     html+='</tr>';
+    if(offerOpen[c.id]&&offeredState==='ok')html+=offDetailRow(c,NCOL);
   });
   html+='</tbody></table>';
+  if(offeredState!=='off')html+=offFootnote();
   if(cgs.length>500)html+='<div style="text-align:center;padding:10px;font-size:11px;color:var(--text3)">Showing 500 of '+cgs.length+'. Use filters to narrow down.</div>';
   document.getElementById('cgListWrap').innerHTML=html;
   // Attach sort handlers via event delegation
@@ -1649,7 +1763,7 @@ function renderDHTrendUI(weekData){
   }
   document.addEventListener('click',function(ev){
     var th=ev.target&&ev.target.closest?ev.target.closest('.tbl th'):null;
-    if(!th||th.hasAttribute('data-sort'))return;
+    if(!th||th.hasAttribute('data-sort')||th.hasAttribute('data-nosort'))return;
     var table=th.closest('table');var tbody=table?table.querySelector('tbody'):null;
     if(!tbody)return;
     var tr=th.parentNode;var idx=Array.prototype.indexOf.call(tr.children,th);

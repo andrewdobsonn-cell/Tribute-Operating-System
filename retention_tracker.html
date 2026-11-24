@@ -533,7 +533,8 @@ function renderAtRisk(){
   var high=scored.filter(function(c){return c._level==='High'}).length;
   var med=scored.filter(function(c){return c._level==='Medium'}).length;
   var shown=sortRows(scored.filter(function(c){return (arShowAll||c._score>=40)&&(!arFlaggedOnly||(c._flags&&c._flags.length))}),AR_COLS,arSort); // default Medium+; Flagged-only narrows further
-  var h='<div class="banner w"><div class="bl w">At-risk watchlist — '+active.length+' active</div>'+
+  var h='<div class="banner w"><div class="bl w">At risk of reducing availability: '+active.length+' active caregivers</div>'+
+    'Covers caregivers who may leave Tribute, take another job, or cut back to PRN.<br>'+
     '<b>Scoring:</b> <span class="bdg br">Critical</span> first 90 days · 0 hrs · never called/texted &nbsp; <span class="bdg br">High</span> getting 0 or &lt;50% of desired hours &nbsp; <span class="bdg ba">Medium</span> 50–75% of desired &nbsp; <span class="bdg bg">Low</span> 75%+. PRN: low unless no work 30d+ (High if also no call/text). Caregivers with no desired hours (non-PRN) are excluded.<br><b>🚩 Intervention flags</b> (any flag → at least High): declining offered visits (within-availability once that data populates) · called on 2+ days with no callback (0 answered, 0 inbound) · not replying to texts (3+ sent, 0 replies).</div>';
   if(!hoursLoaded)h+='<div class="banner'+(hoursErr?' r':'')+'"><div class="bl'+(hoursErr?' r':'')+'">'+(hoursErr?'Hours data failed to load':'Loading current-week hours…')+'</div>'+(hoursErr?'Couldn\'t load caregiver hours ('+esc(hoursErr)+'), so risk scores below are based on desired hours only and may over-flag. <button class="btn2" onclick="hoursErr=null;loadHours()">↻ Retry hours</button>':'Risk scores use desired-vs-received hours; the received side is still loading (~15s) and scores will refine automatically when it arrives.')+'</div>';
   h+='<div class="kg">'+kpi('Active',active.length,'in scope','')+kpi('Critical',crit,'first-90 · 0h · no contact','r')+kpi('High',high,'0 or <50% of desired','r')+kpi('Medium',med,'50–75% of desired','a')+kpi('🚩 Flagged',scored.filter(function(c){return c._flags&&c._flags.length}).length,'intervention triggers','r')+'</div>';
@@ -577,8 +578,8 @@ async function analyzeWhy(c){
     .then(function(cd){
       var calls=(cd&&cd.calls)||[]; cgWhy[k]={loading:true,calls:calls}; repaintRej();
       var callText=calls.length?calls.map(function(x){return '- '+((x.started_at||'').slice(0,10))+' ['+(x.outcome||'?')+', '+(x.direction||'')+']: '+((x.summary||'')).slice(0,500);}).join('\n'):'(no analyzed calls on file)';
-      var sys='You are a home-care retention analyst. Using the signals AND the recent call summaries, explain in 2–4 sentences why this caregiver is declining visits / at risk — cite specifics from the calls — then give one concrete next action. No preamble.';
-      var content='Signals:\n'+whyPrompt(c)+'\n\nRecent analyzed calls (date [outcome, direction]: summary):\n'+callText+'\n\nWhy is this caregiver declining / at risk, and what should we do?';
+      var sys='You are a home-care retention analyst. Using the signals AND the recent call summaries, explain in 2 to 4 sentences why this caregiver is declining visits or is at risk of reducing availability (leaving, taking another job, or cutting back to PRN). Cite specifics from the calls, then give one concrete next action. Say "visit", never "shift". No preamble.';
+      var content='Signals:\n'+whyPrompt(c)+'\n\nRecent analyzed calls (date [outcome, direction]: summary):\n'+callText+'\n\nWhy is this caregiver declining visits or at risk of reducing availability, and what should we do?';
       return _authFetch(CLAUDE,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:500,system:sys,messages:[{role:'user',content:content}]})})
         .then(function(r){return r.json()}).then(function(d){cgWhy[k]={text:(d.content&&d.content[0]&&d.content[0].text)||'(no response)',calls:calls};repaintRej();});
     })
@@ -694,7 +695,7 @@ function renderHours(){
   var totDes=withH.reduce(function(s,c){return s+(hoursFor(c).desired||0)},0);
   var totSch=withH.reduce(function(s,c){return s+(hoursFor(c).scheduled||0)},0);
   var under=withH.filter(function(c){var h=hoursFor(c);return (h.scheduled+(h.pto||0))<h.desired}).length;
-  var h='<div class="banner"><div class="bl">Hours — desired vs received</div>Current week (Sun–Sat) scheduled billable hours vs each caregiver\'s desired hours. A persistent gap (fewer hours than wanted) is a leading retention risk and feeds the At-Risk score. '+
+  var h='<div class="banner"><div class="bl">Hours: desired vs received</div>Current week (Sun–Sat) scheduled billable hours vs each caregiver\'s desired hours. A persistent gap (fewer hours than wanted) is a leading sign a caregiver is at risk of reducing availability, and it feeds the At-Risk score. '+
     (hrWindowLoading?'<b>Historical avg/wk</b> — loaded '+hrWindowProgress+' of '+hrWindowTotal+' weeks (avg fills in as each week arrives; uncached weeks recompute, ~1–2 min on first load)…':hrWindowLoaded?('<b>Historical avg/wk</b> = mean weekly scheduled hours over the last '+hrWindowLoaded+' completed weeks, tenure-aware. <button class="btn2" onclick="hrWindowLoaded=0;loadHoursWindow(13)">↻ reload (13w)</button> <button class="btn2" onclick="hrWindowLoaded=0;loadHoursWindow(26)">extend to 26w</button>'):'')+'</div>';
   h+='<div class="kg">'+kpi('Active w/ hours',withH.length,'in scope','')+kpi('Desired',Math.round(totDes)+'h','this week','b')+kpi('Scheduled',Math.round(totSch)+'h','this week','g')+kpi('Fill rate',totDes?Math.round(totSch/totDes*100)+'%':'—','scheduled/desired','a')+kpi('Under-scheduled',under,'below desired','r')+'</div>';
   h+='<div class="tbl-wrap"><table class="tbl"><thead>'+sortHeader(HR_COLS,hrSort,'hrSortBy')+'</thead><tbody>';
