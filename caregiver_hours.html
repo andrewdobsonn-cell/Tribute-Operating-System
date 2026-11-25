@@ -252,7 +252,7 @@ function setWeek(wa,el){
   var s=getSunday(-wa);var e=new Date(s);e.setDate(s.getDate()+6); /* buttons pass -1 for last week; getSunday counts weeks back */
   curStart=fmtDate(s);curEnd=fmtDate(e);
   var cs=document.getElementById('cs'),ce=document.getElementById('ce'); if(cs)cs.value=curStart; if(ce)ce.value=curEnd;
-  document.querySelectorAll('.pbtn').forEach(function(x){x.classList.remove('on')});
+  document.querySelectorAll('.pbtn:not(.ofm)').forEach(function(x){x.classList.remove('on')});
   el.classList.add('on');fetchData();
 }
 
@@ -260,7 +260,7 @@ function setCustom(){
   var s=document.getElementById('cs').value,e=document.getElementById('ce').value;
   if(!s||!e){alert('Select both dates');return;}
   curStart=s;curEnd=e;
-  document.querySelectorAll('.pbtn').forEach(function(x){x.classList.remove('on')});
+  document.querySelectorAll('.pbtn:not(.ofm)').forEach(function(x){x.classList.remove('on')});
   fetchData();
 }
 
@@ -972,14 +972,35 @@ function fetchOffered(){
     .then(function(d){
       if(offeredKey!==key)return;
       var m={};(d.caregivers||[]).forEach(function(r){if(r.viv_id)m[String(r.viv_id)]=r;});
-      offeredMap=m;offeredMeta=d;
+      offeredMap=m;offeredMeta=d;offDirectCache={};
       offeredState=d.configured===false?'off':(d.error?'error':'ok');
       if(data&&curView==='list')renderListTable();
     })
     .catch(function(){if(offeredKey!==key)return;offeredState='error';if(data&&curView==='list')renderListTable();});
 }
 function escH(s){return String(s==null?'':s).replace(/[&<>"']/g,function(ch){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch];});}
-function offRec(c){return offeredMap[String(c.id)]||null;}
+// Direct offers (a Scheduling Partner call or text, or Tribute's agent) vs blasts
+// (one text to many caregivers, and the Viv app answers to those). Direct is the
+// default: it answers "was this caregiver personally asked?" (Galip, 11/18).
+var offerMode='direct',offDirectCache={};
+var BLAST_LABELS={'Blast text':1,'Viv app':1};
+function _isDirect(o){var ls=o.channel_labels||[o.channel_label];for(var i=0;i<ls.length;i++){if(ls[i]&&!BLAST_LABELS[ls[i]])return true;}return false;}
+function _directRec(r){
+  var k=String(r.viv_id);if(offDirectCache[k])return offDirectCache[k];
+  var offs=(r.offers||[]).filter(_isDirect);
+  if(!offs.length){offDirectCache[k]=null;return null;}
+  var t={offered_count:0,offered_hours:0,inside_count:0,inside_hours:0,outside_count:0,outside_hours:0,unknown_count:0,unknown_hours:0,
+         accepted_count:0,accepted_hours:0,accepted_inside_count:0,accepted_outside_count:0,offers_without_times:0};
+  offs.forEach(function(o){
+    var h=(o.hours==null?0:+o.hours),f=o.fit==='inside'||o.fit==='outside'?o.fit:'unknown',acc=o.outcome==='accepted';
+    t.offered_count++;t.offered_hours+=h;t[f+'_count']++;t[f+'_hours']+=h;
+    if(o.hours==null)t.offers_without_times++;
+    if(acc){t.accepted_count++;t.accepted_hours+=h;if(f==='inside')t.accepted_inside_count++;if(f==='outside')t.accepted_outside_count++;}
+  });
+  var out=Object.assign({},r,t,{offers:offs});offDirectCache[k]=out;return out;
+}
+function offRec(c){var r=offeredMap[String(c.id)]||null;if(!r||offerMode!=='direct')return r;return _directRec(r);}
+function setOfferMode(m){offerMode=m;if(data&&curView==='list')renderListTable();}
 // Sort keys live on the caregiver row so the list's own sorter can use them.
 // Hours first, visit count as the tie-break (offers without times have no hours).
 function attachOffered(cgs){
@@ -1046,13 +1067,16 @@ function offSummary(cgs){
   var t={ic:0,ih:0,oc:0,oh:0,aic:0,aoc:0,n:0};
   cgs.forEach(function(c){var r=offRec(c);if(!r)return;t.n++;t.ic+=r.inside_count;t.ih+=r.inside_hours;t.oc+=r.outside_count;t.oh+=r.outside_hours;t.aic+=r.accepted_inside_count;t.aoc+=r.accepted_outside_count;});
   var wk=(offeredMeta&&offeredMeta.start)?_day(offeredMeta.start)+' to '+_day(offeredMeta.end):'this week';
-  return '<div class="off-sum"><b>Offered by Scheduling, '+wk+':</b> '+t.n+' of these caregivers were offered visits. '+
+  var tg='<span style="float:right;display:inline-flex;gap:4px">'+
+    '<button class="pbtn ofm'+(offerMode==='direct'?' on':'')+'" onclick="setOfferMode(\'direct\')" title="Calls and texts from a Scheduling Partner, and Tribute\'s agent">Direct offers</button>'+
+    '<button class="pbtn ofm'+(offerMode==='all'?' on':'')+'" onclick="setOfferMode(\'all\')" title="Adds blast texts sent to many caregivers at once, and Viv app answers to them">Include blasts</button></span>';
+  return '<div class="off-sum">'+tg+'<b>'+(offerMode==='direct'?'Offered directly':'Offered, including blasts')+', '+wk+':</b> '+t.n+' of these caregivers were offered visits. '+
     '<b>Inside</b> their availability: '+_visits(t.ic)+' ('+fh(t.ih)+'), '+t.aic+' accepted. '+
     '<b>Outside</b> their availability: '+_visits(t.oc)+' ('+fh(t.oh)+'), '+t.aoc+' accepted.</div>';
 }
 function offFootnote(){
   var n=(offeredMeta&&offeredMeta.note)?offeredMeta.note:'';
-  return '<div class="off-note"><b>About the Offered columns.</b> Visits a Scheduling Partner offered on a phone call, or that Tribute offered by text or agent call, during the week shown. The same visit asked about more than once counts once, with its final answer. "Partly" inside availability counts as inside. '+escH(n)+'</div>';
+  return '<div class="off-note"><b>About the Offered columns.</b> <b>Direct offers</b> are visits a Scheduling Partner offered on a call or text, or that Tribute\'s agent offered by text or call. <b>Include blasts</b> adds blast texts sent to many caregivers at once (one offer per caregiver who got it) and Viv app answers to them. Counted during the week shown. The same visit asked about more than once counts once, with its final answer. "Partly" inside availability counts as inside. '+escH(n)+'</div>';
 }
 function renderList(){
   var html='';
